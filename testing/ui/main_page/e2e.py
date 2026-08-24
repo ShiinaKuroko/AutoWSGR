@@ -70,7 +70,7 @@ def run_test(runner: UIControllerTestRunner) -> None:  # noqa: PLR0911, C901, PL
     """执行主页面控制器完整测试序列。"""
     from autowsgr.ui.backyard_page import BackyardPage
     from autowsgr.ui.main_page import MainPage
-    from autowsgr.ui.map.page import MapPage
+    from autowsgr.ui.map import MapPage
     from autowsgr.ui.mission_page import MissionPage
     from autowsgr.ui.sidebar_page import SidebarPage
 

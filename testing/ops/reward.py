@@ -54,7 +54,8 @@ def main() -> None:
         logger.info(f'已连接: {ctrl.serial}')
         print(f'  [OK] 已连接: {ctrl.serial}')
 
-        from autowsgr.ops.reward import collect_rewards
+        # 已迁移到新方法: 奖励收取执行器入口 (原 autowsgr.ops.reward.collect_rewards)
+        from autowsgr.business.logistics.reward import collect_rewards
 
         result = collect_rewards(ctrl)
         logger.info(f'collect_rewards() 返回: {result}')

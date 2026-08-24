@@ -10,6 +10,8 @@ import enum
 from typing import TYPE_CHECKING
 
 from autowsgr.image_resources import Templates
+from autowsgr.infra.base.constants.coordinates import point
+from autowsgr.infra.base.constants.signatures import signature
 from autowsgr.infra.logger import get_logger
 from autowsgr.types import PageName
 from autowsgr.ui.battle.constants import (
@@ -28,11 +30,8 @@ from autowsgr.ui.battle.constants import (
 from autowsgr.ui.utils import click_and_wait_for_page
 from autowsgr.vision import (
     ImageChecker,
-    MatchStrategy,
     PageMatch,
     PixelChecker,
-    PixelRule,
-    PixelSignature,
 )
 
 
@@ -76,32 +75,17 @@ class Panel(enum.Enum):
 
 
 PANEL_PROBE: dict[Panel, tuple[float, float]] = {
-    Panel.STATS: (0.1214, 0.7907),
-    Panel.QUICK_SUPPLY: (0.2625, 0.7944),
-    Panel.QUICK_REPAIR: (0.3932, 0.7926),
-    Panel.EQUIPMENT: (0.5250, 0.7926),
+    panel: point('battle_prep', f'panel_probe.{panel.name.lower()}') for panel in Panel
 }
-"""面板标签探测点。选中项探测颜色 ≈ (30, 139, 240)。"""
+"""面板标签探测点 — 数据源: coordinates/battle_prep.yaml。选中项探测颜色 ≈ (30, 139, 240)。"""
 
 CLICK_PANEL: dict[Panel, tuple[float, float]] = {
-    Panel.STATS: (0.155, 0.793),
-    Panel.QUICK_SUPPLY: (0.286, 0.793),
-    Panel.QUICK_REPAIR: (0.417, 0.793),
-    Panel.EQUIPMENT: (0.548, 0.793),
+    panel: point('battle_prep', f'click_panel.{panel.name.lower()}') for panel in Panel
 }
-"""面板标签点击位置。"""
+"""面板标签点击位置 — 数据源: coordinates/battle_prep.yaml。"""
 
-PAGE_SIGNATURE = PixelSignature(
-    name=PageName.BATTLE_PREP,
-    strategy=MatchStrategy.ALL,
-    rules=[
-        PixelRule.of(0.0758, 0.7806, (46, 61, 80), tolerance=30.0),
-        PixelRule.of(0.8758, 0.0500, (216, 223, 229), tolerance=30.0),
-        PixelRule.of(0.9422, 0.9389, (255, 219, 47), tolerance=30.0),
-        PixelRule.of(0.8070, 0.9417, (255, 219, 47), tolerance=30.0),
-    ],
-)
-"""出征准备页面像素签名。"""
+PAGE_SIGNATURE = signature('battle_prep', 'page')
+"""出征准备页面像素签名 — 数据源: signatures/battle_prep.yaml。"""
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -188,7 +172,7 @@ class BaseBattlePreparation:
         存在假成功——点击后画面仍在出征准备页时, ``MapPage.is_current_page``
         同样为 False, 第一帧就误判离开, 从未验证到达。
         """
-        from autowsgr.ui.map.page import MapPage
+        from autowsgr.ui.map import MapPage
 
         _log.debug('[UI] 出征准备 → 回退')
         click_and_wait_for_page(

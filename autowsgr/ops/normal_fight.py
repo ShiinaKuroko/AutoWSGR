@@ -21,7 +21,8 @@ from autowsgr.combat.fleet import (
 )
 from autowsgr.infra import ActionFailedError
 from autowsgr.infra.logger import get_logger
-from autowsgr.ops.navigate import goto_page
+# 已迁移到新方法: 导航器入口 (原 autowsgr.ops.navigate.goto_page)
+from autowsgr.business.system.navigate import goto_page
 from autowsgr.types import ConditionFlag, PageName, RepairMode, ShipDamageState
 from autowsgr.ui import BaseEventPage, BattlePreparationPage, MapPage, MapPanel, RepairStrategy
 from autowsgr.ui.utils import NavigationError

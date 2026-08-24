@@ -1,11 +1,15 @@
-"""任务页面子包。
+"""兼容 shim — 实现已迁移至 :mod:`autowsgr.infra.base.ui.pages.mission_page`。
 
-re-export 公开 API, 外部统一通过 ``autowsgr.ui.mission_page`` 导入。
+老代码仍可 ``from autowsgr.ui.mission_page import MissionPage``，
+新代码请直接使用新路径。
 """
 
-from autowsgr.ui.mission_page.data import ButtonType, MissionInfo, MissionPanel
-from autowsgr.ui.mission_page.page import MissionPage
-
+from autowsgr.infra.base.ui.pages.mission_page import (
+    ButtonType,
+    MissionInfo,
+    MissionPage,
+    MissionPanel,
+)
 
 __all__ = [
     'ButtonType',

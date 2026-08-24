@@ -32,7 +32,8 @@ async def expedition_check() -> ApiResponse:
     except RuntimeError as e:
         raise HTTPException(status_code=503, detail=str(e)) from e
 
-    from autowsgr.ops.expedition import collect_expedition
+    # 已迁移到新方法: 远征检查执行器入口 (原 autowsgr.ops.expedition.collect_expedition)
+    from autowsgr.business.logistics.expedition import collect_expedition
 
     try:
         result = await asyncio.to_thread(collect_expedition, ctx)
@@ -65,9 +66,10 @@ async def expedition_auto_check(request: ExpeditionAutoCheckRequest) -> ApiRespo
     except RuntimeError as e:
         raise HTTPException(status_code=503, detail=str(e)) from e
 
-    from autowsgr.ops.expedition import collect_expedition
-    from autowsgr.ops.repair import repair_in_bath
-    from autowsgr.ops.reward import collect_rewards
+    # 已迁移到新方法: 原 autowsgr.ops.expedition / ops.repair / ops.reward
+    from autowsgr.business.logistics.expedition import collect_expedition
+    from autowsgr.business.logistics.repair.bath_repair import repair_in_bath
+    from autowsgr.business.logistics.reward import collect_rewards
 
     results: dict[str, Any] = {}
 
@@ -182,7 +184,8 @@ async def reward_collect() -> ApiResponse:
     except RuntimeError as e:
         raise HTTPException(status_code=503, detail=str(e)) from e
 
-    from autowsgr.ops import collect_rewards
+    # 已迁移到新方法: 奖励收取执行器入口 (原 autowsgr.ops.collect_rewards)
+    from autowsgr.business.logistics.reward import collect_rewards
 
     try:
         collected = await asyncio.to_thread(collect_rewards, ctx)
@@ -235,7 +238,8 @@ async def repair_bath() -> ApiResponse:
     except RuntimeError as e:
         raise HTTPException(status_code=503, detail=str(e)) from e
 
-    from autowsgr.ops import repair_in_bath
+    # 已迁移到新方法: 浴场修理 (原 autowsgr.ops.repair_in_bath)
+    from autowsgr.business.logistics.repair.bath_repair import repair_in_bath
 
     try:
         await asyncio.to_thread(repair_in_bath, ctx)
@@ -264,7 +268,8 @@ async def repair_ship(request: RepairShipRequest) -> ApiResponse:
     except RuntimeError as e:
         raise HTTPException(status_code=503, detail=str(e)) from e
 
-    from autowsgr.ops.repair import repair_ship_by_name
+    # 已迁移到新方法: 浴场修理 (原 autowsgr.ops.repair.repair_ship_by_name)
+    from autowsgr.business.logistics.repair.bath_repair import repair_ship_by_name
 
     try:
         repair_secs = await asyncio.to_thread(repair_ship_by_name, ctx, request.ship_name)

@@ -46,7 +46,7 @@ class _FakeCtx:
 
 def _patch_repair(monkeypatch: pytest.MonkeyPatch, fake_page: _FakeBathPage) -> None:
     """把 repair 模块的设备依赖 (goto_page / BathPage / sleep) 替换为 no-op。"""
-    import autowsgr.ops.repair as mod
+    import autowsgr.business.logistics.repair.bath_repair as mod
 
     monkeypatch.setattr(mod, 'goto_page', lambda *_a, **_kw: None)
     monkeypatch.setattr(mod, 'BathPage', lambda _ctx: fake_page)
@@ -58,7 +58,7 @@ def _patch_repair(monkeypatch: pytest.MonkeyPatch, fake_page: _FakeBathPage) -> 
 
 def test_fills_all_free_slots_then_stops(monkeypatch: pytest.MonkeyPatch):
     """两空闲槽 → 连续派修两艘, 槽填满后停止 (不死循环)。"""
-    import autowsgr.ops.repair as mod
+    import autowsgr.business.logistics.repair.bath_repair as mod
 
     fake = _FakeBathPage([100, 200])  # 两次都派单成功
     _patch_repair(monkeypatch, fake)
@@ -73,7 +73,7 @@ def test_fills_all_free_slots_then_stops(monkeypatch: pytest.MonkeyPatch):
 
 def test_partial_fill_then_no_candidates(monkeypatch: pytest.MonkeyPatch):
     """修一艘后剩余无可修候选 (secs==-1): 派 1 艘后停止, 仍留 1 空闲槽。"""
-    import autowsgr.ops.repair as mod
+    import autowsgr.business.logistics.repair.bath_repair as mod
 
     fake = _FakeBathPage([100, -1])
     _patch_repair(monkeypatch, fake)
@@ -87,7 +87,7 @@ def test_partial_fill_then_no_candidates(monkeypatch: pytest.MonkeyPatch):
 
 def test_no_candidates_first_try(monkeypatch: pytest.MonkeyPatch):
     """首次即无可修候选 (secs==-1): 不占用任何槽, 返回 False。"""
-    import autowsgr.ops.repair as mod
+    import autowsgr.business.logistics.repair.bath_repair as mod
 
     fake = _FakeBathPage([-1])
     _patch_repair(monkeypatch, fake)
@@ -101,7 +101,7 @@ def test_no_candidates_first_try(monkeypatch: pytest.MonkeyPatch):
 
 def test_bath_full_marks_unknown(monkeypatch: pytest.MonkeyPatch):
     """浴场满 (secs==-2): mark_unknown 退避, 返回 False。"""
-    import autowsgr.ops.repair as mod
+    import autowsgr.business.logistics.repair.bath_repair as mod
 
     fake = _FakeBathPage([-2])
     _patch_repair(monkeypatch, fake)
@@ -114,7 +114,7 @@ def test_bath_full_marks_unknown(monkeypatch: pytest.MonkeyPatch):
 
 def test_skip_when_no_free_slot(monkeypatch: pytest.MonkeyPatch):
     """无空闲槽 → 直接返回, 不开 overlay (省一次截图)。"""
-    import autowsgr.ops.repair as mod
+    import autowsgr.business.logistics.repair.bath_repair as mod
 
     fake = _FakeBathPage([])  # 不应被调用
     _patch_repair(monkeypatch, fake)

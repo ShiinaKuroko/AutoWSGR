@@ -8,7 +8,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from autowsgr.infra.logger import get_logger
-from autowsgr.ops.navigate import goto_page
+# 已迁移到新方法: 导航器入口 (原 autowsgr.ops.navigate.goto_page)
+from autowsgr.business.system.navigate import goto_page
 from autowsgr.types import PageName
 from autowsgr.ui.canteen_page import CanteenPage
 

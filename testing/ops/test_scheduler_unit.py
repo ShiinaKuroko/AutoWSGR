@@ -475,11 +475,12 @@ class _FakeSortiePage:
 
 def _patch_ctx_sortie(monkeypatch: pytest.MonkeyPatch, page: _FakeSortiePage) -> None:
     """替换 ctx.sync_daily_drop_counts 的设备依赖 (goto_page / MapPage / sleep) 为 no-op。"""
+    import autowsgr.business.system.navigate as nav_mod
     import autowsgr.context.game_context as gc_mod
-    import autowsgr.ops as ops_mod
     import autowsgr.ui as ui_mod
 
-    monkeypatch.setattr(ops_mod, 'goto_page', lambda *_a, **_kw: None)
+    # 已迁移到新方法: goto_page 现在来自 business.system.navigate
+    monkeypatch.setattr(nav_mod, 'goto_page', lambda *_a, **_kw: None)
     monkeypatch.setattr(ui_mod, 'MapPage', lambda _ctx: page)
     monkeypatch.setattr(gc_mod, 'time', types.SimpleNamespace(sleep=lambda *_a: None))
 

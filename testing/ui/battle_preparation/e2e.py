@@ -127,8 +127,8 @@ def _navigate_to(
     import time
 
     from autowsgr.ui.main_page import MainPage
-    from autowsgr.ui.map.data import MAP_NODE_POSITIONS, TOTAL_CHAPTERS, MapPanel
-    from autowsgr.ui.map.page import MapPage
+    from autowsgr.ui.map import MAP_NODE_POSITIONS, TOTAL_CHAPTERS, MapPanel
+    from autowsgr.ui.map import MapPage
 
     if not reset_to_main_page(ctrl, pause):
         return

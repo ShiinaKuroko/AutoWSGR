@@ -6,7 +6,10 @@
 import time
 
 from autowsgr.infra.logger import get_logger
-from autowsgr.ops import collect_expedition, collect_rewards, repair_in_bath
+# 已迁移到新方法: 原 autowsgr.ops 聚合导出 (collect_expedition/collect_rewards/repair_in_bath)
+from autowsgr.business.logistics.expedition import collect_expedition
+from autowsgr.business.logistics.repair.bath_repair import repair_in_bath
+from autowsgr.business.logistics.reward import collect_rewards
 from autowsgr.scheduler import launch
 
 

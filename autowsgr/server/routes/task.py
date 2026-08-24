@@ -266,7 +266,8 @@ async def _start_campaign(ctx: Any, request: CampaignRequest) -> ApiResponse:
 
 async def _start_exercise(ctx: Any, request: ExerciseRequest) -> ApiResponse:
     """启动演习任务。"""
-    from autowsgr.ops import ExerciseRunner
+    # 已迁移到新方法: 演习执行器兼容入口 (原 autowsgr.ops.ExerciseRunner)
+    from autowsgr.business.combat.exercise import ExerciseRunner
 
     def executor(_task_info: Any) -> TaskOutcome:
         runner = ExerciseRunner(ctx, fleet_id=request.fleet_id)

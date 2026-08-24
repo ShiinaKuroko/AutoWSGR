@@ -92,7 +92,8 @@ def main() -> None:
         logger.info('已连接: {}', ctrl.serial)
         print(f'  [OK] 已连接: {ctrl.serial}')
 
-        from autowsgr.ops.exercise import run_exercise
+        # 已迁移到新方法: 演习执行器入口 (原 autowsgr.ops.exercise.run_exercise)
+        from autowsgr.business.combat.exercise import run_exercise
 
         results = run_exercise(ctrl, fleet_id=args.fleet, rival=args.rival)
         logger.info('run_exercise() 返回 {} 场结果', len(results))

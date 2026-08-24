@@ -1,0 +1,12 @@
+# 启动画面像素签名 (坐标 + 颜色), 引用格式: signatures.start_screen.<键>
+
+page:
+  name: 启动画面
+  strategy: all
+  rules:
+    # 底部横幅暖黄色调特征
+    - {x: 0.0508, y: 0.8722, color: [204, 210, 208], tolerance: 30.0}
+    - {x: 0.8125, y: 0.8569, color: [224, 183, 41], tolerance: 30.0}
+    - {x: 0.8695, y: 0.9028, color: [222, 198, 40], tolerance: 30.0}
+    - {x: 0.9641, y: 0.8681, color: [222, 197, 43], tolerance: 30.0}
+    - {x: 0.7914, y: 0.7333, color: [237, 237, 237], tolerance: 30.0}

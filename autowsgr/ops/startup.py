@@ -3,6 +3,16 @@
 note. 已通过测试
 TODO: 处理游戏更新提示
 
+.. note::
+    迁移标注: 本模块的每日浮层处理 (``handle_daily_overlays`` 及相关常量)
+    已被 :mod:`autowsgr.business.system.initialize.overlays` 迁移
+    (新位置: ``business/system/initialize/overlays.py``, 签名改为
+    ``handle_daily_overlays(ctrl, state)``); 冷启动/恢复主页面流程
+    (``start_game`` / ``recover_to_main_or_restart`` / ``ensure_game_ready``)
+    与 :mod:`autowsgr.business.system.initialize.initialize` 职责重叠,
+    待后续整体迁移时按注释找到新位置。导航已迁
+    :mod:`autowsgr.business.system.navigate`。
+
 提供从零开始到稳定运行于主页面的完整启动流程：
 
 1. 检测游戏是否在前台运行
@@ -29,7 +39,8 @@ from datetime import date
 from typing import TYPE_CHECKING
 
 from autowsgr.infra.logger import get_logger
-from autowsgr.ops.navigate import goto_page
+# 已迁移到新方法: 导航器入口 (原 autowsgr.ops.navigate.goto_page)
+from autowsgr.business.system.navigate import goto_page
 from autowsgr.types import GameAPP, PageName
 from autowsgr.ui.main_page import MainPage
 from autowsgr.ui.start_screen_page import StartScreenPage
@@ -285,7 +296,7 @@ def handle_daily_overlays(ctx: GameContext) -> None:
 def go_main_page(ctx: GameContext, *, dismiss_overlays: bool = True) -> None:
     """确保当前处于游戏主页面。
 
-    1. 调用 :func:`~autowsgr.ops.navigate.goto_page` 导航到主页面
+    1. 调用 :func:`~autowsgr.business.system.navigate.goto_page` 导航到主页面
     2. 若设置了 ``dismiss_overlays``，导航后消除登录浮层
 
     Parameters

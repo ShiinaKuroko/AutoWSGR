@@ -106,7 +106,8 @@ def build_daily_plan(
 
     # ── 远征 (定时, prio 0) ──
     if cfg.auto_expedition:
-        from autowsgr.ops.expedition import collect_expedition
+        # 已迁移到新方法: 远征检查执行器入口 (原 autowsgr.ops.expedition.collect_expedition)
+        from autowsgr.business.logistics.expedition import collect_expedition
 
         scheduler.register_trigger(
             ExpeditionTrigger(
@@ -122,7 +123,8 @@ def build_daily_plan(
 
     # ── 任务奖励 (定时, prio 1, 随远征周期) ──
     if cfg.auto_gain_bonus:
-        from autowsgr.ops.reward import collect_rewards
+        # 已迁移到新方法: 奖励收取执行器入口 (原 autowsgr.ops.reward.collect_rewards)
+        from autowsgr.business.logistics.reward import collect_rewards
 
         scheduler.register_trigger(
             TimerTrigger(
@@ -138,7 +140,8 @@ def build_daily_plan(
 
     # ── 浴室修理 (定时, prio 200, 空闲填充: 所有战斗完成后才执行) ──
     if cfg.auto_bath_repair:
-        from autowsgr.ops.repair import repair_one_available
+        # 已迁移到新方法: 浴场修理 (原 autowsgr.ops.repair.repair_one_available)
+        from autowsgr.business.logistics.repair.bath_repair import repair_one_available
 
         scheduler.register_trigger(
             TimerTrigger(
@@ -171,7 +174,8 @@ def build_daily_plan(
 
     # ── 演习 (条件, prio 10) ──
     if cfg.auto_exercise:
-        from autowsgr.ops.exercise import ExerciseOnceRunner
+        # 已迁移到新方法: 演习执行器入口 (原 autowsgr.ops.exercise.ExerciseOnceRunner)
+        from autowsgr.business.combat.exercise import ExerciseOnceRunner
 
         fleet_id = cfg.exercise_fleet_id or 1
         scheduler.register_trigger(

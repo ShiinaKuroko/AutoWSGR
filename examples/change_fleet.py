@@ -4,7 +4,8 @@
 """
 
 from autowsgr.combat.fleet import exact_fleet_rules
-from autowsgr.ops import goto_page
+# 已迁移到新方法: 导航器入口 (原 autowsgr.ops.goto_page)
+from autowsgr.business.system.navigate import goto_page
 from autowsgr.scheduler import launch
 from autowsgr.ui import BattlePreparationPage, PageName
 

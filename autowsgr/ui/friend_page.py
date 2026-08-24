@@ -95,7 +95,7 @@ class FriendPage:
         screen:
             截图 (HxWx3, RGB)。
         """
-        from autowsgr.ui.tabbed_page import TabbedPageType, check_tabbed_page
+        from autowsgr.infra.base.ui.pages.tabbed_page import TabbedPageType, check_tabbed_page
 
         return check_tabbed_page(screen, TabbedPageType.FRIEND)
 

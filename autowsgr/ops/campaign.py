@@ -17,7 +17,8 @@ from typing import TYPE_CHECKING
 
 from autowsgr.combat import CombatEngine, CombatMode, CombatPlan, CombatResult, NodeDecision
 from autowsgr.infra.logger import get_logger
-from autowsgr.ops.navigate import goto_page
+# 已迁移到新方法: 导航器入口 (原 autowsgr.ops.navigate.goto_page)
+from autowsgr.business.system.navigate import goto_page
 from autowsgr.types import ConditionFlag, Formation, PageName, RepairMode, ShipDamageState
 from autowsgr.ui import (
     BattlePreparationPage,

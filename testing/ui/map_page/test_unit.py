@@ -8,12 +8,12 @@ import pytest
 
 from autowsgr.context import GameContext
 from autowsgr.emulator import AndroidController
-from autowsgr.ui.map.data import (
+from autowsgr.ui.map import (
     CHAPTER_MAP_COUNTS,
     MAP_DATABASE,
     parse_map_title,
 )
-from autowsgr.ui.map.page import MapPage
+from autowsgr.ui.map import MapPage
 
 
 # ─────────────────────────────────────────────

@@ -100,8 +100,7 @@ from .event.event_page import BaseEventPage
 from .friend_page import FriendPage
 from .intensify_page import IntensifyPage, IntensifyTab
 from .main_page import MainPage
-from .map.data import MAP_DATABASE, MapIdentity, MapPanel
-from .map.page import MapPage
+from .map import MAP_DATABASE, MapIdentity, MapPanel, MapPage
 from .mission_page import MissionInfo, MissionPage, MissionPanel
 from .sidebar_page import SidebarPage, SidebarTarget
 

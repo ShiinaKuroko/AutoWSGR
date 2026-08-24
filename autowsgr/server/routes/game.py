@@ -36,8 +36,9 @@ async def game_acquisition() -> ApiResponse:
     except RuntimeError as e:
         raise HTTPException(status_code=503, detail=str(e)) from e
 
-    from autowsgr.ops.navigate import goto_page
-    from autowsgr.ui.map.page import MapPage
+    # 已迁移到新方法: 导航器入口 (原 autowsgr.ops.navigate.goto_page)
+    from autowsgr.business.system.navigate import goto_page
+    from autowsgr.ui.map import MapPage
 
     def _recognize() -> dict[str, int | None]:
         goto_page(ctx, '地图页面')

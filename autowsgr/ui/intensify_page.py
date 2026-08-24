@@ -21,7 +21,7 @@ from typing import TYPE_CHECKING
 
 from autowsgr.infra.logger import get_logger
 from autowsgr.types import PageName
-from autowsgr.ui.tabbed_page import (
+from autowsgr.infra.base.ui.pages.tabbed_page import (
     TabbedPageType,
     check_tabbed_page,
     get_active_tab_index,

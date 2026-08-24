@@ -500,7 +500,7 @@ def reset_to_main_page(ctrl: ADBController, pause: float = 1.5) -> bool:  # noqa
     from autowsgr.ui.friend_page import FriendPage
     from autowsgr.ui.intensify_page import IntensifyPage
     from autowsgr.ui.main_page import MainPage
-    from autowsgr.ui.map.page import MapPage
+    from autowsgr.ui.map import MapPage
     from autowsgr.ui.mission_page import MissionPage
     from autowsgr.ui.sidebar_page import SidebarPage
 

@@ -35,7 +35,7 @@ from autowsgr.types import PageName, ShipType
 from autowsgr.vision import ImageChecker, PageMatch
 
 from .page import click_and_wait_for_page
-from .tabbed_page import (
+from autowsgr.infra.base.ui.pages.tabbed_page import (
     TabbedPageType,
     check_tabbed_page,
     get_active_tab_index,

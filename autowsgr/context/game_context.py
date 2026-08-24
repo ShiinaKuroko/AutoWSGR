@@ -98,7 +98,7 @@ class GameContext:
     """UI 导航栈 — 页面来路追踪。
 
     识别候选剪枝与 go_back 期望父页的来源, 由导航循环
-    (:func:`autowsgr.ops.navigate._goto_page`) 维护。
+    (:func:`autowsgr.business.system.navigate._goto_page`) 维护。
     """
     current_page: PageName | None = None
     """当前游戏页面。
@@ -256,7 +256,8 @@ class GameContext:
             的触发器 (常规战) 并提示用户, 而非降级 —— 降级会退化为"靠首场
             战斗自行校准", 但战斗未必掉落, 计数器可能一直为 0 → 持续误触发。
         """
-        from autowsgr.ops import goto_page
+        # 已迁移到新方法: 导航器入口 (原 autowsgr.ops.goto_page)
+        from autowsgr.business.system.navigate import goto_page
         from autowsgr.types import PageName
         from autowsgr.ui import MapPage, MapPanel
 

@@ -1,14 +1,9 @@
-"""主页面 UI 控制层。
+"""兼容 shim — 实现已迁移至 :mod:`autowsgr.infra.base.ui.pages.main_page`。
 
-使用方式::
-
-    from autowsgr.ui.main_page import MainPage
-
-    page = MainPage(ctrl)
-    page.navigate_to(MainPage.Target.SORTIE)
+老代码仍可 ``from autowsgr.ui.main_page import MainPage``，
+新代码请直接使用新路径。
 """
 
-from .controller import MainPage
-
+from autowsgr.infra.base.ui.pages.main_page import MainPage
 
 __all__ = ['MainPage']

@@ -508,7 +508,8 @@ class TaskScheduler:
             elapsed,
         )
         try:
-            from autowsgr.ops.expedition import collect_expedition
+            # 已迁移到新方法: 远征检查执行器入口 (原 autowsgr.ops.expedition.collect_expedition)
+            from autowsgr.business.logistics.expedition import collect_expedition
 
             collect_expedition(self._ctx)
         except Exception as exc:

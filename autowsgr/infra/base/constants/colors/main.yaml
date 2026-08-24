@@ -1,0 +1,4 @@
+# 主页面颜色 (RGB + 容差), 引用格式: colors.main.<键>
+
+notification_red: {rgb: [255, 89, 45], tolerance: 40.0}   # 通知红点 (远征/任务)
+event_sidebar_bg: {rgb: [121, 130, 135], tolerance: 50.0} # 侧边栏无活动时背景灰色

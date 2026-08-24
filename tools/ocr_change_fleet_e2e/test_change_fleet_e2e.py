@@ -22,7 +22,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from autowsgr.ops import goto_page
+# 已迁移到新方法: 导航器入口 (原 autowsgr.ops.goto_page)
+from autowsgr.business.system.navigate import goto_page
 from autowsgr.types import PageName
 from autowsgr.ui.battle.preparation import BattlePreparationPage
 from autowsgr.ui.main_page import MainPage

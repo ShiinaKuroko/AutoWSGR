@@ -1,143 +1,120 @@
-"""出征准备页面常量 — 坐标与颜色参考值。
+"""出征准备页面常量 — 坐标、颜色、OCR 裁切参数。
 
-从 ``battle_preparation.py`` 中分离的纯数据常量。
+数据源统一为 infra/base/constants 分类 YAML:
+    - coordinates/battle_prep.yaml — 点击/探测坐标 (1280x720 绝对像素, point() 归一化)
+    - colors/battle_prep.yaml      — 选中态/支援颜色与状态检测容差
+    - ocr/battle_prep.yaml         — 舰船等级/舰种 OCR 裁切区域
 """
 
 from __future__ import annotations
 
-from autowsgr.vision import Color
+from autowsgr.infra.base.constants.colors import color as _color
+from autowsgr.infra.base.constants.colors import param as _color_param
+from autowsgr.infra.base.constants.coordinates import point, points
+from autowsgr.infra.base.constants.ocr import param as _ocr_param
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# 选中态参考颜色 (RGB)
+# 选中态参考颜色 (RGB) — 数据源: colors/battle_prep.yaml
 # ═══════════════════════════════════════════════════════════════════════════════
 
-FLEET_ACTIVE = Color.of(16, 133, 228)
+FLEET_ACTIVE = _color('battle_prep', 'fleet_active')
 """舰队标签选中态颜色 — 明亮蓝色。"""
 
-PANEL_ACTIVE = Color.of(30, 139, 240)
+PANEL_ACTIVE = _color('battle_prep', 'panel_active')
 """面板标签选中态颜色 — 明亮蓝色。"""
 
-AUTO_SUPPLY_ON = Color.of(13, 140, 233)
+AUTO_SUPPLY_ON = _color('battle_prep', 'auto_supply_on')
 """自动补给启用态颜色 — 蓝色勾选框。"""
 
-STATE_TOLERANCE = 30.0
+STATE_TOLERANCE = _color_param('battle_prep', 'state_tolerance')
 """状态检测颜色容差。"""
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# 探测坐标 — 采样颜色判断状态
+# 探测坐标 — 采样颜色判断状态 (数据源: coordinates/battle_prep.yaml)
 # ═══════════════════════════════════════════════════════════════════════════════
 
-FLEET_PROBE: dict[int, tuple[float, float]] = {
-    1: (0.0750, 0.1731),
-    2: (0.1974, 0.1778),
-    3: (0.3271, 0.1694),
-    4: (0.4479, 0.1713),
-}
-"""舰队标签探测点。选中项探测颜色 ≈ (16, 133, 228)。"""
+FLEET_PROBE: dict[int, tuple[float, float]] = dict(
+    enumerate(points('battle_prep', 'fleet_probe'), 1)
+)
+"""舰队标签探测点 (1-4)。选中项探测颜色 ≈ (16, 133, 228)。"""
 
-SUPPORT_PROBE: tuple[float, float] = (0.6521, 0.1843)
+SUPPORT_PROBE: tuple[float, float] = point('battle_prep', 'support_probe')
 """战役支援探测点。"""
 
-AUTO_SUPPLY_PROBE: tuple[float, float] = (0.0552, 0.9343)
+AUTO_SUPPLY_PROBE: tuple[float, float] = point('battle_prep', 'auto_supply_probe')
 """自动补给探测点。启用态探测颜色 ≈ (13, 140, 233)。"""
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# 点击坐标 — 执行操作
+# 点击坐标 — 执行操作 (数据源: coordinates/battle_prep.yaml)
 # ═══════════════════════════════════════════════════════════════════════════════
 
-CLICK_BACK: tuple[float, float] = (0.022, 0.058)
+CLICK_BACK: tuple[float, float] = point('battle_prep', 'back')
 """回退按钮 (◁)。"""
 
-CLICK_FLEET: dict[int, tuple[float, float]] = {
-    1: (0.088, 0.170),
-    2: (0.197, 0.170),
-    3: (0.327, 0.170),
-    4: (0.448, 0.170),
-}
-"""舰队标签点击位置。"""
+CLICK_FLEET: dict[int, tuple[float, float]] = dict(
+    enumerate(points('battle_prep', 'fleet'), 1)
+)
+"""舰队标签点击位置 (1-4)。"""
 
-CLICK_SUPPORT: tuple[float, float] = (0.640, 0.180)
+CLICK_SUPPORT: tuple[float, float] = point('battle_prep', 'support')
 """战役支援点击位置。"""
 
-CLICK_AUTO_SUPPLY: tuple[float, float] = (0.095, 0.935)
+CLICK_AUTO_SUPPLY: tuple[float, float] = point('battle_prep', 'auto_supply')
 """自动补给复选框点击位置。"""
 
-CLICK_START_BATTLE: tuple[float, float] = (0.850, 0.935)
+CLICK_START_BATTLE: tuple[float, float] = point('battle_prep', 'start_battle')
 """「开始出征」按钮点击位置。"""
 
-CLICK_SHIP_SLOT: dict[int, tuple[float, float]] = {
-    0: (0.1146, 0.4630),
-    1: (0.2292, 0.4630),
-    2: (0.3438, 0.4630),
-    3: (0.4583, 0.4630),
-    4: (0.5729, 0.4630),
-    5: (0.6875, 0.4630),
-}
+CLICK_SHIP_SLOT: dict[int, tuple[float, float]] = dict(
+    enumerate(points('battle_prep', 'ship_slot'))
+)
 """6 个舰船槽位的点击坐标 (0-indexed)。"""
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# 血量检测探测坐标
+# 血量检测探测坐标 (数据源: coordinates/battle_prep.yaml)
 # ═══════════════════════════════════════════════════════════════════════════════
 
-BLOOD_BAR_PROBE: dict[int, tuple[float, float]] = {
-    0: (0.0583, 0.5963),
-    1: (0.1750, 0.5963),
-    2: (0.2917, 0.5963),
-    3: (0.4083, 0.5963),
-    4: (0.5250, 0.5963),
-    5: (0.6417, 0.5963),
-}
+BLOOD_BAR_PROBE: dict[int, tuple[float, float]] = dict(
+    enumerate(points('battle_prep', 'blood_bar'))
+)
 """出征准备页 6 个舰船血条探测点 (0-indexed)。"""
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# 战役支援颜色 (RGB)
+# 战役支援颜色 (RGB) — 数据源: colors/battle_prep.yaml
 # ═══════════════════════════════════════════════════════════════════════════════
 
-SUPPORT_ENABLE = Color.of(228, 182, 60)
+SUPPORT_ENABLE = _color('battle_prep', 'support_enable')
 """战役支援启用 — 黄色。"""
-SUPPORT_DISABLE = Color.of(44, 142, 239)
+SUPPORT_DISABLE = _color('battle_prep', 'support_disable')
 """战役支援禁用 — 蓝色。"""
-SUPPORT_EXHAUSTED = Color.of(143, 145, 154)
+SUPPORT_EXHAUSTED = _color('battle_prep', 'support_exhausted')
 """战役支援次数用尽 — 灰色。"""
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# 舰船等级 OCR 裁切区域
+# 舰船等级 OCR 裁切区域 (数据源: ocr/battle_prep.yaml)
 # ═══════════════════════════════════════════════════════════════════════════════
 
 SHIP_LEVEL_CROP: dict[int, tuple[float, float, float, float]] = {
-    0: (0.0508, 0.5667, 0.0953, 0.5875),
-    1: (0.1672, 0.5667, 0.2117, 0.5875),
-    2: (0.2836, 0.5667, 0.3281, 0.5875),
-    3: (0.3992, 0.5667, 0.4438, 0.5875),
-    4: (0.5164, 0.5667, 0.5609, 0.5875),
-    5: (0.6328, 0.5667, 0.6773, 0.5875),
+    i: tuple(crop) for i, crop in enumerate(_ocr_param('battle_prep', 'ship_level_crop'))
 }
 """出征准备页 6 个舰船槽位的等级文本 OCR 裁切区域 (x1, y1, x2, y2)。
 
 每个区域覆盖对应舰船卡片上的 ``Lv.XX`` 文本。
-
-.. note::
-    坐标按 1280x720 出征准备页实机截图校准，仅适用于相同页面布局。
 """
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# 舰船舰种 OCR 裁切区域
+# 舰船舰种 OCR 裁切区域 (数据源: ocr/battle_prep.yaml)
 # ═══════════════════════════════════════════════════════════════════════════════
 
 SHIP_TYPE_CROP: dict[int, tuple[float, float, float, float]] = {
-    0: (0.050825, 0.5278, 0.086725, 0.5681),
-    1: (0.167225, 0.5278, 0.203125, 0.5681),
-    2: (0.283625, 0.5278, 0.319625, 0.5681),
-    3: (0.400025, 0.5278, 0.436025, 0.5681),
-    4: (0.516425, 0.5278, 0.552425, 0.5681),
-    5: (0.633625, 0.5278, 0.669625, 0.5681),
+    i: tuple(crop) for i, crop in enumerate(_ocr_param('battle_prep', 'ship_type_crop'))
 }
 """出征准备页 6 个舰船槽位的舰种文本 OCR 裁切区域 (x1, y1, x2, y2)。
 
