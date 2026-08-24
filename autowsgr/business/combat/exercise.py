@@ -44,6 +44,7 @@ from autowsgr.combat import CombatMode, CombatPlan, CombatResult, NodeDecision, 
 from autowsgr.dispatch.registry import register
 from autowsgr.infra.base.ui.pages.map import MapPage, MapPanel
 from autowsgr.infra.logger import get_logger
+from autowsgr.ops.startup import recover_to_main_or_restart
 from autowsgr.types import ConditionFlag, Formation, PageName, ShipDamageState
 # 出征准备页尚未迁入 infra/base/ui/pages (待迁移), 暂走 ui.battle
 from autowsgr.ui.battle import BattlePreparationPage
@@ -77,6 +78,9 @@ class ExerciseExecutor(BaseExecutor):
 
     def _execute(self) -> list[CombatResult]:
         results: list[CombatResult] = []
+
+        # 确保游戏处于可识别页面 (页面异常时先恢复/重启)
+        recover_to_main_or_restart(self.ctx, self.ctx.config.account.game_app)
 
         self._goto_exercise_panel()
         self._wait(1.0)  # 断点①: 面板导航完成后
