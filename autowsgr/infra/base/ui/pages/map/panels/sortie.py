@@ -20,7 +20,6 @@ from autowsgr.infra.base.ui.pages.map.data import (
     LOOT_COUNT_CROP,
     SHIP_COUNT_CROP,
     SIDEBAR_CLICK_X,
-    SIDEBAR_SCAN_Y_RANGE,
     TOTAL_CHAPTERS,
     MapPanel,
 )
