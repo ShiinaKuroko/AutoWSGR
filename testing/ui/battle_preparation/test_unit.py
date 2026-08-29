@@ -1409,6 +1409,7 @@ class TestDecisiveFleetChangeFeatureGate:
 
         new_change.assert_called_once_with(None, exact_fleet_rules(['A']))
 
+
 # ─────────────────────────────────────────────
 # 智能换船
 # ─────────────────────────────────────────────
@@ -2604,7 +2605,7 @@ class TestFleetAlignment:
 
         with (
             patch.object(page, 'click_ship_slot'),
-            patch('autowsgr.ui.utils.wait_for_page'),
+            patch('autowsgr.infra.base.ui.interaction.wait_for_page'),
             patch(
                 'autowsgr.ui.choose_ship_page.ChooseShipPage.change_single_ship',
                 side_effect=[None, 'U-96'],
@@ -2829,3 +2830,29 @@ class TestFleetAlignment:
 
         assert current == ['A', 'B', None, None, None, None]
         ctrl.swipe.assert_called_once()
+
+    def test_final_failure_logs_only_unmatched_targets(self):
+        page = BattlePreparationPage(_make_ctx(MagicMock(spec=AndroidController)))
+        assigned = [
+            ShipSelector(name='A'),
+            ShipSelector(name='B'),
+            None,
+            None,
+            None,
+            None,
+        ]
+        current = ['A', None, None, None, None, None]
+        occupied = [True, False, False, False, False, False]
+
+        with patch(
+            'autowsgr.infra.base.ui.pages.battle_preparation.fleet_change._change._log.error'
+        ) as log_error:
+            page._log_final_result(current, occupied, assigned, set(), passed=False)
+
+        exhaustion = [
+            call_item
+            for call_item in log_error.call_args_list
+            if call_item.args and str(call_item.args[0]).startswith('[OCR]')
+        ]
+        assert len(exhaustion) == 1
+        assert exhaustion[0].args[1:] == ('B', '不限', '不限')

@@ -84,6 +84,7 @@ class E2ERunner:
         debug: bool = False,
         no_launch: bool = False,
         with_ocr: bool = False,
+        fast_ocr: bool = False,
     ) -> None:
         self.case_name = case_name
         self.args = case_args  # case 自己的参数 namespace (run.py 解析后传入)
@@ -91,6 +92,7 @@ class E2ERunner:
         self.debug = debug  # True 时日志级别 DEBUG
         self.no_launch = no_launch  # True 时跳过游戏就绪 (纯只读验证)
         self.with_ocr = with_ocr  # True 时初始化 OCR 引擎 (编队识别等需要)
+        self.fast_ocr = fast_ocr  # True 时仅在本次 E2E 内切换 CPU FastOCR
         self.state = RunnerState()
         self.ctx: Any = None  # GameContext (prepare() 成功后可用)
         self._launcher: Any = None
@@ -116,6 +118,10 @@ class E2ERunner:
         # still released when connection or context construction fails.
         self._launcher = launcher
         cfg = launcher.load_config()
+
+        if self.fast_ocr:
+            ocr_cfg = cfg.ocr.model_copy(update={'enhanced_ship_ocr': True})
+            launcher.set_config(cfg.model_copy(update={'ocr': ocr_cfg}))
 
         # 日志目录/级别以本次运行为准, 通道配置沿用 usersettings.yaml
         channels = cfg.log.effective_channels or None

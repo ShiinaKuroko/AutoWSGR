@@ -6,15 +6,15 @@ import time
 from typing import TYPE_CHECKING
 
 from autowsgr.image_resources import Templates
-from autowsgr.infra.logger import get_logger
-from autowsgr.types import PageName
+from autowsgr.infra.base.ui.interaction import confirm_operation, wait_for_page
 from autowsgr.infra.base.ui.pages.map.base import BaseMapPage
 from autowsgr.infra.base.ui.pages.map.data import (
     EXPEDITION_READY_COLOR,
     EXPEDITION_SLOT_PROBES,
     EXPEDITION_SLOT_TOLERANCE,
 )
-from autowsgr.ui.utils import confirm_operation, wait_for_page
+from autowsgr.infra.logger import get_logger
+from autowsgr.types import PageName
 from autowsgr.vision import ImageChecker, PixelChecker
 
 
@@ -94,7 +94,7 @@ class ExpeditionPanelMixin(BaseMapPage):
                         _log.debug('[UI] 远征收取: 通知消失，结束')
                         break
                 else:
-                    from autowsgr.ui.utils import NavigationError
+                    from autowsgr.infra.base.ui.interaction import NavigationError
 
                     raise NavigationError(
                         '远征收取超时: 通知仍在但 10s 内未检测到就绪槽位',

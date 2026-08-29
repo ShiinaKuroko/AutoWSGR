@@ -247,6 +247,22 @@ def test_locate_ship_rows_applies_user_ship_name_alias(
     assert ocr.recognize.call_count == 1
 
 
+def test_locate_ship_rows_accepts_task_specific_expected_name(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    screen = _single_row_screen(monkeypatch)
+    ocr = MagicMock()
+    ocr.recognize.return_value = [
+        OCRResult(text='S-198', confidence=0.99, bbox=(200, 2, 300, 18)),
+    ]
+
+    found = locate_ship_rows(ocr, screen, expected_names=['S-198'])
+
+    assert found == [
+        ('S-198', pytest.approx(250 / 1280), pytest.approx(109 / 720)),
+    ]
+
+
 def test_read_ship_level_at_card_converts_relative_card_position(
     monkeypatch: pytest.MonkeyPatch,
 ):

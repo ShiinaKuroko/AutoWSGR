@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import time
 
-from autowsgr.infra.logger import get_logger
-from autowsgr.types import PageName
+from autowsgr.infra.base.ui.interaction import click_and_wait_for_page
 from autowsgr.infra.base.ui.pages.map.base import BaseMapPage
 from autowsgr.infra.base.ui.pages.map.data import CLICK_ENTER_DECISIVE, MapPanel
-from autowsgr.ui.utils import click_and_wait_for_page
+from autowsgr.infra.logger import get_logger
+from autowsgr.types import PageName
 
 
 _log = get_logger('ui')

@@ -21,6 +21,7 @@ from autowsgr.ui.event.event_page import (
     CLICK_CLOSE_NODE_OVERLAY,
     NODE_POSITIONS_BY_EVENT,
     BaseEventPage,
+    _get_fight_button_templates,
 )
 from autowsgr.vision import ImageMatchDetail
 
@@ -123,6 +124,19 @@ class TestIsCurrentPage:
         result = BaseEventPage.is_current_page(_gradient_screen())
         assert not result.matched
         assert result.name == str(PageName.EVENT_MAP)
+
+    def test_fight_button_template_ignores_preparation_title_position(self) -> None:
+        """准备页标题不得被当作活动浮层按钮。"""
+        template = _get_fight_button_templates()[0].image
+        screen = np.zeros((540, 960, 3), dtype=np.uint8)
+        screen[12 : 12 + template.shape[0], 12 : 12 + template.shape[1]] = template
+        assert BaseEventPage._fight_button_detail(screen) is None
+
+        screen[430 : 430 + template.shape[0], 720 : 720 + template.shape[1]] = template
+        detail = BaseEventPage._fight_button_detail(screen)
+        assert detail is not None
+        assert detail.center[0] > 0.7
+        assert detail.center[1] > 0.7
 
 
 # ─────────────────────────────────────────────

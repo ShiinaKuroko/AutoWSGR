@@ -11,8 +11,6 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING
 
-import numpy as np
-
 from autowsgr.combat.actions import (
     check_blood,
     click_enter_fight,
@@ -37,9 +35,9 @@ from autowsgr.combat.recognition import (
 )
 from autowsgr.combat.recognizer import CombatRecognizer
 from autowsgr.image_resources import TemplateKey
+from autowsgr.infra.base.ui.interaction import wait_leave_page
 from autowsgr.infra.logger import get_logger
 from autowsgr.types import ConditionFlag, Formation, ShipDamageState
-from autowsgr.ui.utils import wait_leave_page
 from autowsgr.vision import ImageChecker
 
 from .history import CombatEvent, CombatHistory, EventType, FightResult
@@ -49,6 +47,8 @@ from .state import CombatPhase
 
 
 if TYPE_CHECKING:
+    import numpy as np
+
     from autowsgr.emulator import AndroidController
     from autowsgr.vision import OCREngine
 
@@ -490,10 +490,7 @@ class PhaseHandlersMixin:
                     # 过渡帧: 只等待, 不点击 (防穿透/误触)。GET_SHIP 模板
                     # 可能因页面动画/字体渲染未命中, 用掉落页像素签名兜底探测,
                     # 防止快速穿行把掉落页直接点过去导致漏统计。
-                    if (
-                        CombatPhase.GET_SHIP in candidates
-                        and self._is_get_ship_page(screen)
-                    ):
+                    if CombatPhase.GET_SHIP in candidates and self._is_get_ship_page(screen):
                         _log.debug(
                             '[Combat] {} 过渡帧命中掉落页像素签名, 捕获掉落',
                             phase.name,

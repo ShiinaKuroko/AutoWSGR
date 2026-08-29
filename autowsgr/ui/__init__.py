@@ -68,6 +68,9 @@
         page.start_battle()
 """
 
+import importlib as _importlib
+import sys as _sys
+
 # ── 控制器 ─────────────────────────────────────────────────────────────
 from autowsgr.types import PageName
 from autowsgr.ui.main_page.constants import OverlayKind
@@ -100,7 +103,7 @@ from .event.event_page import BaseEventPage
 from .friend_page import FriendPage
 from .intensify_page import IntensifyPage, IntensifyTab
 from .main_page import MainPage
-from .map import MAP_DATABASE, MapIdentity, MapPanel, MapPage
+from .map import MAP_DATABASE, MapIdentity, MapPage, MapPanel
 from .mission_page import MissionInfo, MissionPage, MissionPanel
 from .sidebar_page import SidebarPage, SidebarTarget
 
@@ -137,6 +140,51 @@ register_page(PageName.FRIEND, FriendPage.is_current_page)
 register_page(PageName.EVENT_MAP, BaseEventPage.is_current_page)
 register_page(PageName.DECISIVE_BATTLE, DecisiveBattlePage.is_current_page)
 register_page(PageName.CHOOSE_SHIP, ChooseShipPage.is_current_page)
+
+
+# Keep legacy patch/import targets bound to the moved implementation modules.
+# This runs after the package has finished importing, so it cannot participate
+# in the infra page import cycle.
+_MIGRATED_MODULE_ALIASES = {
+    'autowsgr.ui.utils.navigation': 'autowsgr.infra.base.ui.interaction',
+    'autowsgr.ui.utils.ship_list': 'autowsgr.infra.base.ui.ship_list',
+    'autowsgr.ui.choose_ship_page': 'autowsgr.infra.base.ui.pages.choose_ship',
+    'autowsgr.ui.battle.base': 'autowsgr.infra.base.ui.pages.battle_preparation.base',
+    'autowsgr.ui.battle.blood': 'autowsgr.infra.base.ui.pages.battle_preparation.blood',
+    'autowsgr.ui.battle.constants': 'autowsgr.infra.base.ui.pages.battle_preparation.constants',
+    'autowsgr.ui.battle.detection': 'autowsgr.infra.base.ui.pages.battle_preparation.detection',
+    'autowsgr.ui.battle.preparation': 'autowsgr.infra.base.ui.pages.battle_preparation.preparation',
+    'autowsgr.ui.battle.repair': 'autowsgr.infra.base.ui.pages.battle_preparation.repair',
+    'autowsgr.ui.battle.supply': 'autowsgr.infra.base.ui.pages.battle_preparation.supply',
+    'autowsgr.ui.battle.fleet_change': (
+        'autowsgr.infra.base.ui.pages.battle_preparation.fleet_change'
+    ),
+    'autowsgr.ui.battle.fleet_change._alignment': (
+        'autowsgr.infra.base.ui.pages.battle_preparation.fleet_change._alignment'
+    ),
+    'autowsgr.ui.battle.fleet_change._change': (
+        'autowsgr.infra.base.ui.pages.battle_preparation.fleet_change._change'
+    ),
+    'autowsgr.ui.battle.fleet_change._detect': (
+        'autowsgr.infra.base.ui.pages.battle_preparation.fleet_change._detect'
+    ),
+    'autowsgr.ui.battle.fleet_change._planning': (
+        'autowsgr.infra.base.ui.pages.battle_preparation.fleet_change._planning'
+    ),
+    'autowsgr.ui.battle.fleet_change._rules': (
+        'autowsgr.infra.base.ui.pages.battle_preparation.fleet_change._rules'
+    ),
+    'autowsgr.ui.battle.fleet_change._selection': (
+        'autowsgr.infra.base.ui.pages.battle_preparation.fleet_change._selection'
+    ),
+}
+for _legacy_name, _migrated_name in _MIGRATED_MODULE_ALIASES.items():
+    _module = _importlib.import_module(_migrated_name)
+    _sys.modules[_legacy_name] = _module
+    _parent_name, _, _child_name = _legacy_name.rpartition('.')
+    _parent = _sys.modules.get(_parent_name)
+    if _parent is not None:
+        setattr(_parent, _child_name, _module)
 
 __all__ = [
     # ── 数据 ──

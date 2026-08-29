@@ -9,8 +9,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from autowsgr.infra.logger import get_logger
 from autowsgr.infra.base.ui.pages.map.data import LOOT_COUNT_CROP, SHIP_COUNT_CROP
+from autowsgr.infra.logger import get_logger
 from autowsgr.vision import PixelChecker
 
 

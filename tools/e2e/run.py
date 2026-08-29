@@ -15,7 +15,7 @@
     python tools/e2e/run.py --serial 127.0.0.1:16384 --debug screenshot
 
 参数顺序约定: 全局参数在前, case 名居中, case 参数在后。
-全局参数: --serial SERIAL / --debug / --no-launch / --with-ocr / --list。
+全局参数: --serial SERIAL / --debug / --no-launch / --with-ocr / --fast-ocr / --list。
 其余参数由 case 自己的 add_arguments(parser) 定义并解析 (见 cases/ 示例)。
 """
 
@@ -141,6 +141,7 @@ def main() -> int:
     gp.add_argument('--debug', action='store_true', help='DEBUG 日志')
     gp.add_argument('--no-launch', action='store_true', help='跳过游戏就绪 (只读验证)')
     gp.add_argument('--with-ocr', action='store_true', help='初始化 OCR 引擎')
+    gp.add_argument('--fast-ocr', action='store_true', help='本次运行使用 CPU FastOCR')
     g = gp.parse_args(global_argv)
 
     # case 参数 (由 case 自己定义; 未定义 add_arguments 时 rest 必须为空)
@@ -159,7 +160,7 @@ def main() -> int:
     print(f'  设备: {g.serial or "自动检测 (usersettings.yaml)"}')
     print(
         f'  模式: {"只读 (跳过游戏就绪)" if g.no_launch else "完整 (游戏就绪)"}'
-        f'{" + OCR" if g.with_ocr else ""}'
+        f'{" + OCR" if g.with_ocr else ""}{" + FastOCR" if g.fast_ocr else ""}'
     )
 
     # 执行
@@ -172,6 +173,7 @@ def main() -> int:
         debug=g.debug,
         no_launch=g.no_launch,
         with_ocr=g.with_ocr,
+        fast_ocr=g.fast_ocr,
     )
     if not rt.prepare():
         return rt.finalize(overall=False)

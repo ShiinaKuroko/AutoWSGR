@@ -14,6 +14,7 @@ import autowsgr.ops.normal_fight as normal_fight_module
 from autowsgr import ops
 from autowsgr.combat import CombatPlan, CombatResult
 from autowsgr.combat.fleet import FleetSelectionSource, ResolvedFleetSelection
+from autowsgr.dispatch import Request
 from autowsgr.server import main as server_main
 from autowsgr.server.device_lease import DeviceOperationBusyError
 from autowsgr.server.routes import task
@@ -113,6 +114,39 @@ def test_task_start_rejects_concurrent_task(monkeypatch: pytest.MonkeyPatch) -> 
     assert exc_info.value.status_code == 409
 
 
+def test_yaml_extre_is_forwarded_to_running_processor(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """演习运行期间的 YAML 插队请求进入同一 Processor。"""
+
+    class RunningManager:
+        is_running = True
+
+        def __init__(self) -> None:
+            self.received: list[object] = []
+
+        def interrupt_processor(self, request: object) -> bool:
+            self.received.append(request)
+            return True
+
+    manager = RunningManager()
+    path = tmp_path / 'exercise.yaml'
+    path.write_text('task_type: exercise\nfleet_id: 2\n', encoding='utf-8')
+    monkeypatch.setattr(task, 'task_manager', manager)
+    monkeypatch.setattr(server_main, '_ctx', SimpleNamespace())
+
+    response = asyncio.run(
+        task.task_start(
+            YamlTaskRequest(yaml_path=str(path), count=1, extre=True),
+        ),
+    )
+
+    assert response.success is True
+    assert response.data['status'] == 'queued'
+    assert response.data['task_id'] == manager.received[0].request_id
+
+
 def test_task_start_requires_system_context(monkeypatch: pytest.MonkeyPatch) -> None:
     """Task admission fails after system shutdown removed the context."""
     monkeypatch.setattr(task, 'task_manager', _TaskManager())
@@ -181,6 +215,35 @@ def test_yaml_task_route_submits_normalized_request(
     assert normalized.task_type == 'exercise'
     assert normalized.count == 2
     assert normalized.params == {'fleet_id': 2}
+
+
+def test_processor_exercise_with_no_rivals_is_a_successful_skip(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    manager = _ExecutingTaskManager()
+    ctx = type('Context', (), {'stop_event': None})()
+
+    class ProcessorStub:
+        def __init__(self, _ctx: object, **_kwargs: object) -> None:
+            self.request: object | None = None
+
+        def submit(self, request: object) -> None:
+            self.request = request
+
+        def run_pending(self) -> list[tuple[str, object, object]]:
+            assert self.request is not None
+            return [('done', self.request, [])]
+
+    request = Request(task_type='exercise', params={'fleet_id': 2})
+    monkeypatch.setattr(task, 'task_manager', manager)
+    monkeypatch.setattr(task, 'Processor', ProcessorStub)
+
+    outcome = task._run_processor_request(ctx, request)
+
+    assert outcome.success is True
+    assert outcome.results == [
+        {'round': 1, 'success': True, 'result': 'skip fight'},
+    ]
 
 
 def test_processor_result_list_keeps_inner_failure() -> None:

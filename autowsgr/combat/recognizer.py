@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING
 
 from autowsgr.image_resources import TemplateKey
@@ -175,7 +175,7 @@ PHASE_SIGNATURES: dict[CombatPhase, PhaseSignature] = {
     CombatPhase.EVENT_MAP_PAGE: PhaseSignature(
         template_key=None,
         default_timeout=7.5,
-        image_templates=_get_event_map_title_templates(),
+        image_templates=None,
     ),
 }
 
@@ -275,6 +275,10 @@ class CombatRecognizer:
         sig = PHASE_SIGNATURES.get(phase)
         if sig is None:
             return PhaseSignature(template_key=None, default_timeout=10.0)
+        if phase is CombatPhase.EVENT_MAP_PAGE and sig.image_templates is None:
+            # 活动页模板依赖旧活动 UI 包；延迟到真正识别活动页时加载，
+            # 使其他低层战斗/页面能力可以独立导入。
+            sig = replace(sig, image_templates=_get_event_map_title_templates())
         return sig
 
     def wait_for_phase(

@@ -7,6 +7,7 @@ from autowsgr.infra.base.ui.pages.map.base import BaseMapPage
 from autowsgr.infra.base.ui.pages.map.data import MapIdentity, MapPanel, parse_map_title
 from autowsgr.infra.base.ui.pages.map.page import MapPage
 
+
 __all__ = [
     'BaseMapPage',
     'MapIdentity',

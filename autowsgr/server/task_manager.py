@@ -22,6 +22,8 @@ from autowsgr.server.ws_manager import ws_manager
 if TYPE_CHECKING:
     from collections.abc import Callable, Coroutine
 
+    from autowsgr.dispatch.processor import Processor, Request
+
 
 _log = get_logger('server.task')
 
@@ -126,6 +128,7 @@ class TaskManager:
         self._lock = threading.Lock()
         self._loop: asyncio.AbstractEventLoop | None = None
         self._device_lease = device_lease or device_operation_lease
+        self._processor: Processor | None = None
 
     @property
     def current_task(self) -> TaskInfo | None:
@@ -145,6 +148,26 @@ class TaskManager:
     def set_loop(self, loop: asyncio.AbstractEventLoop) -> None:
         """设置事件循环引用，用于从线程中调用 async 函数。"""
         self._loop = loop
+
+    def attach_processor(self, processor: Processor) -> None:
+        """绑定当前任务使用的 Processor，供插队请求复用。"""
+        with self._lock:
+            self._processor = processor
+
+    def detach_processor(self, processor: Processor) -> None:
+        """解绑已结束的 Processor，不清理其他任务的绑定。"""
+        with self._lock:
+            if self._processor is processor:
+                self._processor = None
+
+    def interrupt_processor(self, request: Request) -> bool:
+        """把插队请求交给当前 Processor。"""
+        with self._lock:
+            processor = self._processor
+        if processor is None:
+            return False
+        processor.interrupt(request)
+        return True
 
     def _submit_to_loop(self, coroutine: Coroutine[Any, Any, Any]) -> None:
         """Submit a notification unless application shutdown closed the loop."""

@@ -91,6 +91,14 @@ SHIP_TYPE_BY_CODE: Mapping[str, tuple[ShipType, ...]] = MappingProxyType(
 )
 """API 舰种代码到后端领域枚举的唯一映射。"""
 
+_SHIP_TYPE_LABEL_TO_CODE: Mapping[str, str] = MappingProxyType(
+    {
+        ship_types[0].value: code
+        for code, ship_types in SHIP_TYPE_BY_CODE.items()
+        if code != 'ss_or_ssg' and len(ship_types) == 1
+    },
+)
+
 LEGACY_SHIP_TYPE_ALIASES: Mapping[str, str] = MappingProxyType(
     {
         'cf': 'cv',
@@ -122,7 +130,8 @@ def parse_ship_type_codes(raw: object) -> tuple[ShipType, ...]:
     for value in values:
         if not isinstance(value, str) or not value.strip():
             raise ValueError('ship_type 必须是非空字符串列表')
-        code = value.strip().lower()
+        text = value.strip()
+        code = _SHIP_TYPE_LABEL_TO_CODE.get(text, text.lower())
         canonical_code = LEGACY_SHIP_TYPE_ALIASES.get(code, code)
         ship_types = SHIP_TYPE_BY_CODE.get(canonical_code)
         if ship_types is None:
@@ -247,6 +256,11 @@ def _optional_level(rule: Mapping[str, Any], field: str) -> int | None:
 def _optional_relaxed(rule: Mapping[str, Any]) -> bool:
     """读取宽松校验开关；缺省为 False（严格校验）。"""
     value = rule.get('relaxed')
+    if value is None and 'strict' in rule:
+        strict = rule['strict']
+        if not isinstance(strict, bool):
+            raise TypeError('strict 必须是布尔值')
+        return not strict
     if value is None:
         return False
     if not isinstance(value, bool):
@@ -267,7 +281,7 @@ def _selector_from_mapping(
     return ShipSelector(
         name=name,
         search_name=_optional_text(raw.get('search_name', inherited_search_name)),
-        ship_types=parse_ship_type_codes(source.get('ship_type')),
+        ship_types=parse_ship_type_codes(source.get('ship_type', source.get('type'))),
         min_level=_optional_level(source, 'min_level'),
         max_level=_optional_level(source, 'max_level'),
         relaxed_constraints=_optional_relaxed(raw),
@@ -292,7 +306,7 @@ def fleet_slot_from_api(raw: str | Mapping[str, Any]) -> FleetSlotRule:
 
     name = _optional_text(raw.get('name'))
     primary = _selector_from_mapping(raw) if name is not None else None
-    raw_candidates = raw.get('candidates', [])
+    raw_candidates = raw.get('candidates', raw.get('alternatives', []))
     if not isinstance(raw_candidates, Sequence) or isinstance(raw_candidates, str):
         raise TypeError('candidates 必须是规则对象列表')
     candidates = _deduplicate_selectors(
@@ -300,7 +314,7 @@ def fleet_slot_from_api(raw: str | Mapping[str, Any]) -> FleetSlotRule:
             ShipSelector(
                 name=candidate,
                 search_name=_optional_text(raw.get('search_name')),
-                ship_types=parse_ship_type_codes(raw.get('ship_type')),
+                ship_types=parse_ship_type_codes(raw.get('ship_type', raw.get('type'))),
                 min_level=_optional_level(raw, 'min_level'),
                 max_level=_optional_level(raw, 'max_level'),
             )
@@ -319,7 +333,7 @@ def fleet_slot_from_yaml(raw: object) -> FleetSlotRule:
     if not isinstance(raw, Mapping):
         raise TypeError('舰队槽位必须是字符串或规则对象')
 
-    raw_candidates = raw.get('candidates', [])
+    raw_candidates = raw.get('candidates', raw.get('alternatives', []))
     if not isinstance(raw_candidates, Sequence) or isinstance(raw_candidates, str):
         raise TypeError('candidates 必须是列表')
     candidates = list(raw_candidates)

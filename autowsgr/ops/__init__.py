@@ -34,6 +34,10 @@
     business/logistics/repair/bath_repair.py。
 """
 
+import sys
+
+from autowsgr.business.logistics.repair import bath_repair as _bath_repair
+
 # ── 建造 ──
 from autowsgr.ops.build import BuildRecipe, build_ship, collect_built_ships
 
@@ -72,6 +76,12 @@ from autowsgr.ops.startup import (
     restart_game,
     start_game,
 )
+
+
+# Compatibility facade for documented legacy imports. The implementation lives
+# in the new homeport/business path and remains the single source of behavior.
+sys.modules[f'{__name__}.repair'] = _bath_repair
+repair = _bath_repair
 
 
 __all__ = [

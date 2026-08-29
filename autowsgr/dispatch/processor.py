@@ -39,6 +39,17 @@ if TYPE_CHECKING:
 
 _log = get_logger('dispatch.processor')
 
+_HANDOFF_EVENTS = frozenset(
+    {
+        'panel_ready',
+        'rival_confirmed',
+        'formation_entered',
+        'ship_selected',
+        'before_start',
+        'rival_done',
+    },
+)
+
 
 class TaskPaused(Exception):  # noqa: N818 - public protocol name
     """执行器在断点收到暂停, 已回主页让路 (处理器捕获后跑加急再重派)。"""
@@ -48,42 +59,31 @@ class TaskStopped(Exception):  # noqa: N818 - public protocol name
     """执行器收到协作式停止请求, 已回主页并结束当前任务。"""
 
 
-# 数字越大越优先。外部入口不接受任意优先级, 统一从任务类型推导。
-# 业务优先级保持在约定的 0-10 范围内, 0 留给未分类任务。
+# 数字越小越优先。外部入口不接受任意优先级, 统一从任务类型推导。
+# 业务优先级保持在约定的 0-10 范围内。
 MAX_PRIORITY = 10
 TASK_PRIORITIES: dict[str, int] = {
-    'expedition_check': 6,
-    'reward_check': 5,
-    'campaign': 4,
+    'expedition_check': 0,
+    'reward_check': 1,
+    'campaign': 2,
     'exercise': 3,
-    'decisive': 2,
-    'normal_fight': 1,
-    'event_fight': 1,
+    'decisive': 4,
+    'normal_fight': 5,
+    'event_fight': 5,
+    'other': 6,
 }
 
 
 def priority_for(task_type: str) -> int:
     """返回任务类型的调度优先级, 未知业务按最低优先级处理。"""
-    return TASK_PRIORITIES.get(task_type, 0)
+    return TASK_PRIORITIES.get(task_type, MAX_PRIORITY)
 
 
 def _validate_exercise_params(params: Mapping[str, Any]) -> None:
     """校验演习 YAML 的业务字段, 不把错误推迟到设备操作阶段。"""
-    allowed = {'fleet_id', 'rival', 'rivals_limit'}
-    unknown = sorted(set(params) - allowed)
-    if unknown:
-        raise ValueError(f'演习 YAML 包含未知字段: {", ".join(unknown)}')
+    from autowsgr.business.combat.exercise.spec import ExerciseSpec
 
-    for name in ('fleet_id', 'rival', 'rivals_limit'):
-        value = params.get(name)
-        if value is None:
-            continue
-        if isinstance(value, bool) or not isinstance(value, int) or value < 1:
-            raise ValueError(f'演习字段 {name} 必须是正整数')
-    if params.get('fleet_id', 1) > 6:
-        raise ValueError('演习字段 fleet_id 必须在 1-6 范围内')
-    if params.get('rival') is not None and params['rival'] > 5:
-        raise ValueError('演习字段 rival 必须在 1-5 范围内')
+    ExerciseSpec.from_params(params)
 
 
 def _validate_params(task_type: str, params: Mapping[str, Any]) -> None:
@@ -106,7 +106,7 @@ class Request:
     """任务参数快照 (不允许执行器在运行中改写)。"""
 
     priority: int | None = None
-    """优先级, 越大越急; interrupt 会自动抬到当前任务之上。"""
+    """优先级, 数字越小越急; interrupt 会自动抬到当前任务之上。"""
 
     count: int = 1
     """同一请求提交的有限执行次数, 与 YAML 业务字段分离。"""
@@ -223,25 +223,37 @@ class Processor:
         self._run_lock = threading.Lock()
         self._pause = threading.Event()
         self._stop = stop if stop is not None else threading.Event()
-        self._current_priority = 0
+        self._current_priority = MAX_PRIORITY
         self._current_request: Request | None = None
         self._recover = recover or self._default_recover
         self._soft_retries = max(0, soft_retries)
         self._hard_retries = max(0, hard_retries)
         self.on_event = on_event
         """执行器事件回调 (event, **data); 可构造后赋值 (回调里常要引用 self)。"""
+        # 战斗引擎仍从上下文读取停止信号；在处理器创建时绑定同一个
+        # token，避免 Processor 与 GameContext 各持有一份可写停止状态。
+        if hasattr(ctx, 'stop_event'):
+            ctx.stop_event = self._stop
 
     # ── 对外 API ───────────────────────────────────────────────
 
     def submit(self, request: Request) -> str:
         """普通入队 (按优先级排序)。"""
         self._push(request)
+        self._report(
+            'accepted',
+            task_id=request.request_id,
+            task_type=request.task_type,
+            status='queued',
+        )
         return request.request_id
 
     def interrupt(self, request: Request) -> None:
         """加急: 打断当前任务, 本请求抬到最高优先处理。"""
         with self._lock:
-            priority = min(MAX_PRIORITY, max(request.priority or 0, self._current_priority + 1))
+            current = self._current_priority
+            requested = request.priority if request.priority is not None else MAX_PRIORITY
+            priority = max(0, min(requested, current - 1)) if self._current_request else requested
             request = replace(request, priority=priority, extre=True)
             should_pause = self._current_request is not None
         _log.info('[Processor] 加急请求打断当前任务: {} (prio={})', request.task_type, priority)
@@ -269,11 +281,18 @@ class Processor:
             while True:
                 with self._lock:
                     if not self._heap:
-                        self._current_priority = 0
+                        self._current_priority = MAX_PRIORITY
                         return outcomes
                     request = heapq.heappop(self._heap)[3]
-                    self._current_priority = request.priority or 0
+                    self._current_priority = (
+                        request.priority if request.priority is not None else MAX_PRIORITY
+                    )
                     self._current_request = request
+                self._report(
+                    'running',
+                    task_id=request.request_id,
+                    task_type=request.task_type,
+                )
                 try:
                     outcomes.extend(self._run_request(request))
                 finally:
@@ -284,13 +303,38 @@ class Processor:
 
     def _push(self, request: Request) -> None:
         with self._lock:
-            # The explicit insertion flag breaks a max-priority tie without
+            # The explicit insertion flag breaks a priority tie without
             # widening the public 0-10 priority contract.
             heapq.heappush(
                 self._heap,
-                (-(request.priority or 0), 0 if request.extre else 1, self._seq, request),
+                (
+                    request.priority if request.priority is not None else MAX_PRIORITY,
+                    0 if request.extre else 1,
+                    self._seq,
+                    request,
+                ),
             )
             self._seq += 1
+
+    def _executor_event(self, event: str, **data: Any) -> None:
+        """转发业务事件，并在安全断点自动协调更高优先级任务。"""
+        current = self._current_request
+        payload = dict(data)
+        payload.setdefault('task_type', current.task_type if current is not None else None)
+        self._report(event, **payload)
+        if event in _HANDOFF_EVENTS and self._has_higher_waiting_request():
+            self._pause.set()
+            _log.info('[Processor] 安全断点 {} 检测到更高优先级任务, 请求暂停', event)
+
+    def _has_higher_waiting_request(self) -> bool:
+        """判断队首任务是否应在当前安全断点让路。"""
+        with self._lock:
+            if self._current_request is None or not self._heap:
+                return False
+            priority, insertion, _sequence, _request = self._heap[0]
+            return priority < self._current_priority or (
+                priority == self._current_priority and insertion == 0
+            )
 
     def _run_request(self, request: Request) -> list[tuple[str, Request, Any]]:
         """执行请求的剩余次数; 每次完成都产出一个可观察结果。"""
@@ -307,6 +351,7 @@ class Processor:
         completed = raw_completed
         while completed < request.count:
             if self._stop.is_set():
+                self._report('stopped', task_id=request.request_id, task_type=request.task_type)
                 outcomes.append(('stopped', request, None))
                 return outcomes
             status, result = self._run_one(request)
@@ -315,14 +360,26 @@ class Processor:
                 outcomes.append(('paused', request, None))
                 return outcomes
             if status == 'stopped':
+                self._report('stopped', task_id=request.request_id, task_type=request.task_type)
                 outcomes.append(('stopped', request, None))
                 return outcomes
             if status == 'failed':
+                self._report(
+                    'failed',
+                    task_id=request.request_id,
+                    task_type=request.task_type,
+                    error=result,
+                )
                 outcomes.append(('failed', request, result))
                 return outcomes
             completed += 1
             request.progress['_completed'] = completed
-            self._report('completed', count=completed, total=request.count)
+            self._report(
+                'completed',
+                task_type=request.task_type,
+                count=completed,
+                total=request.count,
+            )
             outcomes.append(('done', request, result))
         return outcomes
 
@@ -340,7 +397,7 @@ class Processor:
                 pause=self._pause,
                 stop=self._stop,
                 progress=request.progress,
-                on_event=self.on_event,
+                on_event=self._executor_event,
             )
             try:
                 _log.info(
@@ -363,11 +420,23 @@ class Processor:
                     return 'stopped', None
                 if soft_attempts < self._soft_retries:
                     soft_attempts += 1
-                    self._report('retry', mode='soft', attempt=soft_attempts, error=str(exc))
+                    self._report(
+                        'retry',
+                        task_type=request.task_type,
+                        mode='soft',
+                        attempt=soft_attempts,
+                        error=str(exc),
+                    )
                     continue
                 if hard_attempts < self._hard_retries:
                     hard_attempts += 1
-                    self._report('retry', mode='hard', attempt=hard_attempts, error=str(exc))
+                    self._report(
+                        'retry',
+                        task_type=request.task_type,
+                        mode='hard',
+                        attempt=hard_attempts,
+                        error=str(exc),
+                    )
                     try:
                         self._recover()
                     except Exception as recovery_error:

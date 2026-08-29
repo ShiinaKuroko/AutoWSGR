@@ -20,10 +20,14 @@ from __future__ import annotations
 import time
 
 from autowsgr.infra import ActionFailedError
+from autowsgr.infra.base.ui.pages.battle_preparation.base import (
+    BaseBattlePreparation,
+    Panel,
+    RepairStrategy,
+)
+from autowsgr.infra.base.ui.pages.battle_preparation.constants import BLOOD_BAR_PROBE
 from autowsgr.infra.logger import get_logger
 from autowsgr.types import ShipDamageState
-from autowsgr.ui.battle.base import BaseBattlePreparation, Panel, RepairStrategy
-from autowsgr.ui.battle.constants import BLOOD_BAR_PROBE
 
 
 _log = get_logger('business.logistics.repair')

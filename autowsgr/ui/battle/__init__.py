@@ -1,9 +1,6 @@
-"""出征准备页面子包。
+"""Compatibility exports for the migrated battle-preparation pages."""
 
-re-export 公开 API，外部统一通过 ``autowsgr.ui.battle`` 导入。
-"""
-
-from autowsgr.ui.battle.preparation import (
+from autowsgr.infra.base.ui.pages.battle_preparation import (
     CLICK_PANEL,
     PANEL_PROBE,
     BattlePreparationPage,

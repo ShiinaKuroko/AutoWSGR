@@ -12,8 +12,7 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING
 
-from autowsgr.infra.logger import get_logger
-from autowsgr.types import PageName
+from autowsgr.infra.base.ui.interaction import click_and_wait_for_page
 from autowsgr.infra.base.ui.pages.map.base import BaseMapPage
 from autowsgr.infra.base.ui.pages.map.data import (
     CHAPTER_MAP_COUNTS,
@@ -28,6 +27,9 @@ from autowsgr.infra.base.ui.pages.map.data import (
     TOTAL_CHAPTERS,
     MapPanel,
 )
+from autowsgr.infra.logger import get_logger
+from autowsgr.types import PageName
+
 # ── 计数器模块 (OCR 纯函数) 重导出 — 保持 sortie.py 对外符号不变 ──
 from .sortie_counters import (  # noqa: F401  重新导出
     LOOT_MAX,
@@ -36,7 +38,6 @@ from .sortie_counters import (  # noqa: F401  重新导出
     recognize_loot_count,
     recognize_ship_count,
 )
-from autowsgr.ui.utils import click_and_wait_for_page
 
 
 if TYPE_CHECKING:
@@ -267,7 +268,7 @@ class SortiePanelMixin(BaseMapPage):
                 steps_done += 1
                 consec_misses = 0
                 remaining -= 1
-                _log.info('[UI] 章节导航: 跳转{:+d}章, 剩余{}章 (已走{}步)'.format(direction, remaining, steps_done))
+                _log.info(f'[UI] 章节导航: 跳转{direction:+d}章, 剩余{remaining}章 (已走{steps_done}步)')
                 time.sleep(CHAPTER_NAV_DELAY)
 
                 # ── 每步回检 (单次OCR ~0.18s): 立即确认章号是否真的前进了 ──
@@ -343,7 +344,7 @@ class SortiePanelMixin(BaseMapPage):
             info_probe = self.recognize_map(self._ctrl.screenshot(), self._ocr)
             if info_probe is not None:
                 cur_max = CHAPTER_MAP_COUNTS.get(int(info_probe.chapter), 99)
-        except Exception:  # noqa: BLE001 - 探测失败不致命, 继续
+        except Exception:
             pass
         if not 1 <= map_num <= cur_max:
             raise ValueError(
@@ -370,7 +371,7 @@ class SortiePanelMixin(BaseMapPage):
             if len(maps) == samples and len(set(maps)) == 1:
                 return maps[0], True
             candidate = max(set(maps), key=maps.count)
-            _log.warning('[UI] 地图节点导航: OCR 抖动 {}, 本轮不点击'.format(maps))
+            _log.warning(f'[UI] 地图节点导航: OCR 抖动 {maps}, 本轮不点击')
             return candidate, False
 
         def _quick_map() -> int | None:
@@ -504,7 +505,7 @@ class SortiePanelMixin(BaseMapPage):
         NavigationError
             导航超时。
         """
-        from autowsgr.ui.battle.preparation import BattlePreparationPage
+        from autowsgr.infra.base.ui.pages.battle_preparation import BattlePreparationPage
 
         _log.info('[UI] 地图页面 → 进入出征 {}-{}', chapter, map_num)
 
@@ -521,7 +522,7 @@ class SortiePanelMixin(BaseMapPage):
                 raise ValueError(f'章节 {chapter} 的地图编号必须为 1-{max_maps}，收到: {map_num}')
             result = self.navigate_to_chapter(chapter)
             if result is None:
-                from autowsgr.ui.utils import NavigationError
+                from autowsgr.infra.base.ui.interaction import NavigationError
 
                 raise NavigationError(
                     f'无法导航到第 {chapter} 章',

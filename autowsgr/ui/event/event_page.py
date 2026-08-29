@@ -26,6 +26,7 @@ from autowsgr.infra.logger import get_logger
 from autowsgr.types import PageName
 from autowsgr.ui.utils import click_and_wait_for_page
 from autowsgr.vision import (
+    ROI,
     Color,
     ImageChecker,
     ImageMatchDetail,
@@ -158,6 +159,9 @@ CLICK_BACK: tuple[float, float] = (0.0273, 0.0558)
 CLICK_FIGHT_BUTTON: tuple[float, float] = (0.8276, 0.8426)
 """出击按钮坐标 (活动地图右下角，选择节点后出现)。"""
 
+FIGHT_BUTTON_ROI = ROI(0.60, 0.65, 1.0, 1.0)
+"""出击按钮搜索区域，避免与准备页左上角标题发生模板误匹配。"""
+
 CLICK_CLOSE_NODE_OVERLAY: tuple[float, float] = (0.95, 0.14)
 """关卡详情浮层的红色 X 关闭按钮坐标 (浮层右上角)。
 
@@ -248,7 +252,12 @@ class BaseEventPage:
     @staticmethod
     def _fight_button_detail(screen: np.ndarray) -> ImageMatchDetail | None:
         """查找出击按钮 (浮层态锚点), 返回匹配详情 (``None`` = 浮层未开)。"""
-        return ImageChecker.find_any(screen, _get_fight_button_templates(), confidence=0.8)
+        return ImageChecker.find_any(
+            screen,
+            _get_fight_button_templates(),
+            roi=FIGHT_BUTTON_ROI,
+            confidence=0.8,
+        )
 
     # ── 节点选择 ──────────────────────────────────────────────────────────
     def _enter_node(self, node_id: int) -> None:

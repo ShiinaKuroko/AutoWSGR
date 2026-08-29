@@ -66,11 +66,11 @@ def _start_task(
 
 
 @router.post('/start', response_model=ApiResponse)
-async def task_start(request: TaskRequestUnion) -> ApiResponse:  # type: ignore[arg-type]
+async def task_start(request: TaskRequestUnion) -> ApiResponse:  # type: ignore[arg-type]  # noqa: PLR0911
     """启动任务 (异步执行，立即返回)。"""
     async with lifecycle_lock:
         if task_manager.is_running:
-            raise HTTPException(status_code=409, detail='已有任务正在运行')
+            return await _handle_running_task(request)
 
         ctx = require_context(get_context)
 
@@ -96,6 +96,30 @@ async def task_start(request: TaskRequestUnion) -> ApiResponse:  # type: ignore[
                 raise HTTPException(status_code=400, detail='未知的任务类型')
         except DeviceOperationBusyError as error:
             raise HTTPException(status_code=409, detail=str(error)) from error
+
+
+async def _handle_running_task(request: TaskRequestUnion) -> ApiResponse:
+    """把允许的 YAML 插队请求转给当前 Processor。"""
+    if not isinstance(request, YamlTaskRequest) or not request.extre:
+        raise HTTPException(status_code=409, detail='已有任务正在运行')
+
+    require_context(get_context)
+    try:
+        queued = Request.from_yaml(
+            request.yaml_path,
+            source='gui',
+            count=request.count,
+            extre=True,
+        )
+    except (FileNotFoundError, ValueError) as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+    if not task_manager.interrupt_processor(queued):
+        raise HTTPException(status_code=409, detail='当前任务尚未绑定处理器')
+    return ApiResponse(
+        success=True,
+        data={'task_id': queued.request_id, 'status': 'queued'},
+        message='插队任务已受理',
+    )
 
 
 @router.post('/start-yaml', response_model=ApiResponse)
@@ -147,30 +171,52 @@ async def _start_yaml_task(ctx: Any, request: YamlTaskRequest) -> ApiResponse:
     )
 
 
-def _run_processor_request(ctx: Any, request: Request) -> TaskOutcome:
+def _run_processor_request(ctx: Any, request: Request) -> TaskOutcome:  # noqa: PLR0912
     """执行一份 Processor 请求并转换成现有 HTTP 结果封装。"""
 
     def on_event(event: str, **data: Any) -> None:
-        if event == 'completed':
+        if event == 'completed' and data.get('task_type', request.task_type) == request.task_type:
             task_manager.update_progress(
                 current_round=int(data.get('count', 0)),
                 current_node=request.task_type,
             )
 
     processor = Processor(ctx, stop=task_manager.stop_event, on_event=on_event)
-    if request.extre:
-        processor.interrupt(request)
-    else:
-        processor.submit(request)
-    outcomes = processor.run_pending()
+    attach_processor = getattr(task_manager, 'attach_processor', None)
+    detach_processor = getattr(task_manager, 'detach_processor', None)
+    if attach_processor is not None:
+        attach_processor(processor)
+    try:
+        if request.extre:
+            processor.interrupt(request)
+        else:
+            processor.submit(request)
+        outcomes = processor.run_pending()
+    finally:
+        if detach_processor is not None:
+            detach_processor(processor)
     details: list[dict[str, Any]] = []
     completed = 0
     error: str | None = None
     for status, _request, raw in outcomes:
         if status == 'done':
+            if _request.task_type != request.task_type:
+                continue
             completed += 1
-            details.extend(_processor_details(raw, len(details) + 1))
+            converted = _processor_details(raw, len(details) + 1)
+            if not converted and request.task_type == 'exercise':
+                converted = [
+                    {
+                        'round': len(details) + 1,
+                        'success': True,
+                        'result': 'skip fight',
+                    },
+                ]
+            details.extend(converted)
         elif status == 'failed':
+            if _request.task_type != request.task_type:
+                _log.error('[Task] 插队任务 {} 失败: {}', _request.task_type, raw)
+                continue
             error = str(raw)
             details.append({'round': len(details) + 1, 'success': False, 'error': error})
             break

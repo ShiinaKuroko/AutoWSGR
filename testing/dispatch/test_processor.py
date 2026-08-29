@@ -40,13 +40,13 @@ def test_priority_policy_is_bounded_and_ordered() -> None:
     values = [priority_for(name) for name in TASK_PRIORITIES]
 
     assert max(values) <= MAX_PRIORITY
-    assert priority_for('expedition_check') > priority_for('reward_check')
-    assert priority_for('reward_check') > priority_for('campaign')
-    assert priority_for('campaign') > priority_for('exercise')
-    assert priority_for('exercise') > priority_for('decisive')
-    assert priority_for('decisive') > priority_for('normal_fight')
+    assert priority_for('expedition_check') < priority_for('reward_check')
+    assert priority_for('reward_check') < priority_for('campaign')
+    assert priority_for('campaign') < priority_for('exercise')
+    assert priority_for('exercise') < priority_for('decisive')
+    assert priority_for('decisive') < priority_for('normal_fight')
     assert priority_for('normal_fight') == priority_for('event_fight')
-    assert priority_for('unknown') == 0
+    assert priority_for('unknown') == MAX_PRIORITY
 
 
 @pytest.mark.parametrize(
@@ -145,6 +145,34 @@ def test_interrupt_requeues_paused_request_before_continuing(
 
     monkeypatch.setattr(processor_module, 'build_executor', build)
     processor = Processor(SimpleNamespace(), on_event=on_event)
+    request = Request(task_type='exercise')
+    processor.submit(request)
+
+    outcomes = processor.run_pending()
+
+    assert [(status, item.task_type) for status, item, _result in outcomes] == [
+        ('paused', 'exercise'),
+        ('done', 'expedition_check'),
+        ('done', 'exercise'),
+    ]
+
+
+def test_higher_priority_waiting_request_pauses_at_safe_event(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[str] = []
+    processor: Processor
+
+    def build(task_type: str, _ctx: Any, _params: Any, **kwargs: Any) -> _Executor:
+        calls.append(task_type)
+        if task_type == 'exercise' and calls.count('exercise') == 1:
+            processor.submit(Request(task_type='expedition_check'))
+            kwargs['on_event']('rival_done')
+            return _Executor(error=TaskPaused())
+        return _Executor(result=task_type)
+
+    monkeypatch.setattr(processor_module, 'build_executor', build)
+    processor = Processor(SimpleNamespace())
     request = Request(task_type='exercise')
     processor.submit(request)
 

@@ -1,0 +1,15 @@
+task_type: exercise
+fleet_id: 2
+fleet_presets:
+  - name: 队伍2
+    ships:
+      - name: U-177
+        type: 潜艇
+        min_level: 69
+        strict: true
+      - name: 阿尔戈
+      - name: 卡萨比安卡
+      - name: U-103
+      - name: S-198
+        alternatives: [S189]
+      - alternatives: [阿尔汉格尔斯克, 水貂]

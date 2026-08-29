@@ -9,8 +9,7 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING
 
-from autowsgr.infra.logger import get_logger
-from autowsgr.types import PageName
+from autowsgr.infra.base.ui.interaction import NavigationError, click_and_wait_for_page
 from autowsgr.infra.base.ui.pages.map.data import (
     CLICK_BACK,
     CLICK_EXPEDITION_SKIP,
@@ -20,7 +19,6 @@ from autowsgr.infra.base.ui.pages.map.data import (
     EXPEDITION_TOLERANCE,
     PANEL_LIST,
     PANEL_TO_INDEX,
-    SIDEBAR_BRIGHTNESS_THRESHOLD,
     SIDEBAR_SCAN_STEP,
     SIDEBAR_SCAN_X,
     SIDEBAR_SCAN_Y_RANGE,
@@ -35,7 +33,8 @@ from autowsgr.infra.base.ui.pages.tabbed_page import (
     get_active_tab_index,
     make_tab_checker,
 )
-from autowsgr.ui.utils import NavigationError, click_and_wait_for_page
+from autowsgr.infra.logger import get_logger
+from autowsgr.types import PageName
 from autowsgr.vision import OCREngine, PageMatch, PixelChecker
 
 
@@ -133,8 +132,7 @@ class BaseMapPage:
             brightness = c.r + c.g + c.b
             ys.append(y)
             brights.append(brightness)
-            if brightness > max_bright:
-                max_bright = brightness
+            max_bright = max(max_bright, brightness)
             sum_bright += brightness
             y += step
 
@@ -245,7 +243,7 @@ class BaseMapPage:
 
     def go_back(self) -> None:
         """点击回退按钮 (◁)，返回主页面。"""
-        from autowsgr.ui.main_page import MainPage
+        from autowsgr.infra.base.ui.pages.main_page import MainPage
 
         _log.info('[UI] 地图页面 → 回退')
         click_and_wait_for_page(
