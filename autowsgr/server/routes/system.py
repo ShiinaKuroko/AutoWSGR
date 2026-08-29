@@ -45,6 +45,7 @@ async def system_start(request: SystemStartRequest) -> ApiResponse:
             config_path = request.config_path or 'usersettings.yaml'
             _log.info('[System] 正在启动, 配置: {}', config_path)
             _main._ctx = await asyncio.to_thread(launch, config_path=config_path)
+            _main.register_stats_log_sink(asyncio.get_running_loop())
             _log.info('[System] 启动成功')
 
             return ApiResponse(success=True, message='系统启动成功')
@@ -80,6 +81,12 @@ async def system_stop() -> ApiResponse:
         except DeviceOperationBusyError as error:
             raise HTTPException(status_code=409, detail=str(error)) from error
         try:
+            ctx = _main._ctx
+            await asyncio.to_thread(ctx.ctrl.disconnect)
+        except Exception as error:
+            _log.error('[System] 断开模拟器连接失败: {}', error)
+            return ApiResponse(success=False, error=str(error))
+        else:
             _main._ctx = None
             _log.info('[System] 系统已停止')
             return ApiResponse(success=True, message='系统已停止')
