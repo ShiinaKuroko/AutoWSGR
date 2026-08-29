@@ -94,6 +94,8 @@ class E2ERunner:
         self.state = RunnerState()
         self.ctx: Any = None  # GameContext (prepare() 成功后可用)
         self._launcher: Any = None
+        self._cleanup_done = False
+        self._recovery_in_progress = False
         # 每次运行独立目录: logs/e2e_tools/<case>/<时间戳>
         stamp = datetime.now().astimezone().strftime('%Y%m%d_%H%M%S')
         self.log_dir = Path('logs/e2e_tools') / case_name / stamp
@@ -110,6 +112,9 @@ class E2ERunner:
         from autowsgr.scheduler.launcher import Launcher
 
         launcher = Launcher()
+        # Keep the handle before connect so a partially connected controller is
+        # still released when connection or context construction fails.
+        self._launcher = launcher
         cfg = launcher.load_config()
 
         # 日志目录/级别以本次运行为准, 通道配置沿用 usersettings.yaml
@@ -137,20 +142,27 @@ class E2ERunner:
             print(f'  [FAIL] 设备连接失败: {exc}')
             return False
 
-        self._launcher = launcher
+        try:
+            # 组装 GameContext (与 testing/ops 的 launch_for_test 同款流程)
+            from autowsgr.context import GameContext
 
-        # 组装 GameContext (与 testing/ops 的 launch_for_test 同款流程)
-        from autowsgr.context import GameContext
+            if self.with_ocr:
+                self.ctx = launcher.build_context()  # 含 OCR 引擎
+            else:
+                self.ctx = GameContext(ctrl=launcher.ctrl, config=launcher.config, ocr=None)
 
-        if self.no_launch:
-            # 纯只读模式: 不调 ensure_ready, 不动游戏当前状态
-            self.ctx = GameContext(ctrl=launcher.ctrl, config=launcher.config, ocr=None)
-            return True
-        if self.with_ocr:
-            self.ctx = launcher.build_context()  # 含 OCR 引擎
-        else:
-            self.ctx = GameContext(ctrl=launcher.ctrl, config=launcher.config, ocr=None)
-            launcher.ensure_ready(self.ctx)  # 启动游戏并回到主页面
+            if self.no_launch:
+                # 显式只读模式: 不启动/导航游戏, 供截图和页面识别诊断使用。
+                return True
+
+            # 所有正常 E2E 都从同一个业务初始化入口开始，避免 OCR 分支
+            # 与普通分支产生不同的首页/浮层状态。
+            self._initialize_game()
+        except Exception as exc:
+            self._record('初始化游戏', ok=False, error=str(exc))
+            print(f'  [FAIL] 游戏初始化失败: {exc}')
+            self._error_screenshot('prepare')
+            return False
         return True
 
     # ── 步骤 API (case 调用) ───────────────────────────────────────
@@ -167,7 +179,13 @@ class E2ERunner:
         """
         t0 = time.monotonic()
         try:
+            if not self._ensure_game_running():
+                raise RuntimeError('游戏进程已退出且重新初始化失败')
             value = fn(*args, **kwargs)
+            # 操作期间进程可能被外部关闭。此处只恢复运行环境，不重放
+            # 已经执行过的业务函数，避免点击类操作被重复提交。
+            if not self._ensure_game_running():
+                raise RuntimeError('操作后游戏进程已退出且重新初始化失败')
         except Exception as exc:
             self._record(label, ok=False, error=str(exc), t0=t0)
             print(f'  [FAIL] {label}: {exc}')
@@ -181,8 +199,13 @@ class E2ERunner:
         """断言步骤: 把 fn 返回值当 bool 判定, 打印 PASS/FAIL。"""
         t0 = time.monotonic()
         try:
+            if not self._ensure_game_running():
+                raise RuntimeError('游戏进程已退出且重新初始化失败')
             passed = bool(fn(*args, **kwargs))
             error: str | None = None
+            if not self._ensure_game_running():
+                passed = False
+                error = '检查后游戏进程已退出且重新初始化失败'
         except Exception as exc:
             passed = False
             error = str(exc)
@@ -205,7 +228,8 @@ class E2ERunner:
         self._error_screenshot('case_crash')
 
     def finalize(self, *, overall: bool = True) -> int:
-        """打印汇总并返回进程退出码 (0 = 全部通过)。"""
+        """先收口游戏生命周期，再打印汇总并返回进程退出码。"""
+        self.cleanup()
         total = len(self.state.steps)
         failed = self.state.failed
         print()
@@ -221,6 +245,78 @@ class E2ERunner:
         print(f'  日志目录: {self.log_dir.resolve()}')
         print('═' * 68)
         return 0 if verdict == 'PASS' else 1
+
+    def cleanup(self) -> None:
+        """无论 case 结果如何，尝试回主页并释放设备连接。"""
+        if self._cleanup_done:
+            return
+        self._cleanup_done = True
+
+        if self.ctx is not None and not self.no_launch:
+            t0 = time.monotonic()
+            try:
+                self._initialize_game()
+            except Exception as exc:
+                self._record('清理: 回到主页面', ok=False, error=str(exc), t0=t0)
+                print(f'  [FAIL] 清理: 回到主页面: {exc}')
+                self._error_screenshot('cleanup')
+            else:
+                self._record('清理: 回到主页面', ok=True, t0=t0)
+                print(f'  [OK] 清理: 回到主页面 ({self._ms_since(t0)}ms)')
+
+        if self._launcher is None:
+            return
+        try:
+            self._launcher.disconnect()
+        except Exception as exc:
+            self._record('清理: 断开设备', ok=False, error=str(exc))
+            print(f'  [FAIL] 清理: 断开设备: {exc}')
+
+    # ── 游戏生命周期 ─────────────────────────────────────────────
+
+    def _game_package(self) -> str:
+        """返回当前配置对应的 Android 包名。"""
+        if self.ctx is None:
+            raise RuntimeError('GameContext 尚未构造')
+        app = self.ctx.config.account.game_app
+        package = getattr(app, 'package_name', None)
+        if package is None:
+            from autowsgr.types import GameAPP
+
+            package = GameAPP(str(app)).package_name
+        return package
+
+    def _initialize_game(self) -> None:
+        """调用唯一业务初始化入口，保证终态为首页待机。"""
+        if self.ctx is None:
+            raise RuntimeError('GameContext 尚未构造')
+        from autowsgr.business.system.initialize.initialize import initialize
+
+        initialize(self.ctx)
+
+    def _ensure_game_running(self) -> bool:
+        """检测游戏是否仍在运行；异常退出时只重新初始化一次。"""
+        if self.no_launch or self.ctx is None:
+            return True
+        try:
+            running = self.ctx.ctrl.is_app_running(self._game_package())
+        except Exception as exc:
+            self.note(f'无法检查游戏进程: {exc}')
+            return False
+        if running or self._recovery_in_progress:
+            return running
+
+        self._recovery_in_progress = True
+        try:
+            self.note('检测到游戏进程异常退出，重新初始化')
+            self._initialize_game()
+        except Exception as exc:
+            self.note(f'重新初始化失败: {exc}')
+            return False
+        else:
+            return True
+        finally:
+            self._recovery_in_progress = False
 
     # ── 内部工具 ───────────────────────────────────────────────────
 

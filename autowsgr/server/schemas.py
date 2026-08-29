@@ -284,6 +284,21 @@ class ExerciseRequest(BaseModel):
     model_config = {'extra': 'forbid'}
 
 
+class YamlTaskRequest(BaseModel):
+    """由 GUI/CLI 提交的 YAML 任务请求。
+
+    ``type`` 是传输层分辨符，不是业务任务类型；真正的 task_type 只从
+    ``yaml_path`` 文件读取并由 dispatch 校验。
+    """
+
+    type: Literal['yaml'] = 'yaml'
+    yaml_path: str = Field(min_length=1, description='任务 YAML 文件路径')
+    count: int = Field(default=1, ge=1, description='本次提交执行次数')
+    extre: bool = Field(default=False, description='是否作为插队请求')
+
+    model_config = {'extra': 'forbid'}
+
+
 class DecisiveRequest(BaseModel):
     """决战请求。"""
 
@@ -322,7 +337,12 @@ class DecisiveRequest(BaseModel):
 
 
 TaskStartRequest = (
-    NormalFightRequest | EventFightRequest | CampaignRequest | ExerciseRequest | DecisiveRequest
+    NormalFightRequest
+    | EventFightRequest
+    | CampaignRequest
+    | ExerciseRequest
+    | DecisiveRequest
+    | YamlTaskRequest
 )
 
 

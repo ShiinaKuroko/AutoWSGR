@@ -2,8 +2,8 @@
 
 执行模式 (由 rivals_limit 参数区分):
     完整模式 (默认, rivals_limit=None):
-        迭代执行单场挑战直至无可挑战对手; times 为完整流程的
-        执行轮数 (YAML times:1 即执行一轮完整演习)。
+        迭代执行单场挑战直至无可挑战对手。一次 Processor 请求就是一轮
+        完整演习; 重复次数由请求的 count 字段控制, 不写入 YAML。
     限额模式 (rivals_limit=N):
         累计挑战 N 个对手后即视为完成; N=1 为单次模式
         (兼容定时触发器 ExerciseOnceRunner)。
@@ -46,6 +46,7 @@ from autowsgr.infra.base.ui.pages.map import MapPage, MapPanel
 from autowsgr.infra.logger import get_logger
 from autowsgr.ops.startup import recover_to_main_or_restart
 from autowsgr.types import ConditionFlag, Formation, PageName, ShipDamageState
+
 # 出征准备页尚未迁入 infra/base/ui/pages (待迁移), 暂走 ui.battle
 from autowsgr.ui.battle import BattlePreparationPage
 from autowsgr.ui.utils import NavigationError
@@ -67,8 +68,6 @@ class ExerciseExecutor(BaseExecutor):
     def __init__(self, ctx: GameContext, params: dict | None = None, **kwargs: Any) -> None:
         super().__init__(ctx, params, **kwargs)
         self.fleet_id = int(self.params.get('fleet_id', 1))
-        self.times = int(self.params.get('times', 1))
-        """完整流程执行轮数 (YAML times, 默认 1)。"""
         self.rivals_limit = self.params.get('rivals_limit')
         """单轮挑战数量上限 (None=完整模式不限; N=限额模式, 1 为单次)。"""
         self.rival = self.params.get('rival')
@@ -85,21 +84,23 @@ class ExerciseExecutor(BaseExecutor):
         self._goto_exercise_panel()
         self._wait(1.0)  # 断点①: 面板导航完成后
 
-        for _ in range(self.times):
-            # 终止条件: 完整模式 — 无可挑战对手; 限额模式 — 配额耗尽
-            while self._has_quota():
-                target = self._pick_rival()
-                if target is None:
-                    break  # 无可挑战对手, 本轮结束
-                results.append(self._fight_one(target))
-                self._wait(1.0)  # 断点④: 战斗完成后 (强制检查, 含最后一场)
-                if not self._has_quota():
-                    break  # 配额耗尽, 无需复位面板
-                self._goto_exercise_panel()  # 复位面板, 供下一场识别
+        # 终止条件: 完整模式 — 无可挑战对手; 限额模式 — 配额耗尽。
+        while self._has_quota():
+            target = self._pick_rival()
+            if target is None:
+                break  # 无可挑战对手, 本轮结束
+            results.append(self._fight_one(target))
+            self._wait(1.0)  # 断点④: 战斗完成后 (强制检查, 含最后一场)
+            if not self._has_quota():
+                break  # 配额耗尽, 无需复位面板
+            self._goto_exercise_panel()  # 复位面板, 供下一场识别
 
         goto_page(self.ctx, PageName.MAIN)  # 锚点: 终态返回主页
-        _log.info('[Exercise] 演习完成, 本次 {} 场, 累计计数 {}',
-                  len(results), self.progress.get('fought', 0))
+        _log.info(
+            '[Exercise] 演习完成, 本次 {} 场, 累计计数 {}',
+            len(results),
+            self.progress.get('fought', 0),
+        )
         return results
 
     # ── 基本执行单元: 单场挑战 ─────────────────────────────────
@@ -155,7 +156,7 @@ class ExerciseExecutor(BaseExecutor):
         2026-08-25: 入场后约 1 秒内点击被吞), 故先等同样时长再点返回,
         失败重试至多 3 次 (动画抖动时点击可能落空)。
         """
-        if self._pause.is_set():
+        if self._pause.is_set() or self._stop.is_set():
             time.sleep(seconds)
             page = BattlePreparationPage(self.ctx)
             for attempt in range(_PREP_BACK_RETRIES):

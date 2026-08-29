@@ -7,6 +7,7 @@ from typing import Annotated, Any
 from fastapi import APIRouter, HTTPException
 from pydantic import Discriminator
 
+from autowsgr.dispatch.processor import Processor, Request
 from autowsgr.infra.logger import get_logger
 from autowsgr.server.device_lease import DeviceOperationBusyError
 from autowsgr.server.schemas import (
@@ -17,6 +18,7 @@ from autowsgr.server.schemas import (
     ExerciseRequest,
     NormalFightRequest,
     TaskStatusResponse,
+    YamlTaskRequest,
 )
 from autowsgr.server.serializers import (
     apply_combat_plan_overrides,
@@ -36,7 +38,12 @@ router = APIRouter(prefix='/api/task', tags=['task'])
 
 
 TaskRequestUnion = Annotated[
-    NormalFightRequest | EventFightRequest | CampaignRequest | ExerciseRequest | DecisiveRequest,
+    NormalFightRequest
+    | EventFightRequest
+    | CampaignRequest
+    | ExerciseRequest
+    | DecisiveRequest
+    | YamlTaskRequest,
     Discriminator('type'),
 ]
 
@@ -70,6 +77,11 @@ async def task_start(request: TaskRequestUnion) -> ApiResponse:  # type: ignore[
         ctx.stop_event = task_manager.stop_event
 
         try:
+            if isinstance(request, YamlTaskRequest):
+                try:
+                    return await _start_yaml_task(ctx, request)
+                except (FileNotFoundError, ValueError) as error:
+                    raise HTTPException(status_code=422, detail=str(error)) from error
             if isinstance(request, NormalFightRequest):
                 return await _start_normal_fight(ctx, request)
             elif isinstance(request, EventFightRequest):
@@ -84,6 +96,12 @@ async def task_start(request: TaskRequestUnion) -> ApiResponse:  # type: ignore[
                 raise HTTPException(status_code=400, detail='未知的任务类型')
         except DeviceOperationBusyError as error:
             raise HTTPException(status_code=409, detail=str(error)) from error
+
+
+@router.post('/start-yaml', response_model=ApiResponse)
+async def task_start_yaml(request: YamlTaskRequest) -> ApiResponse:
+    """按 YAML 路径启动一次或多次任务。"""
+    return await task_start(request)
 
 
 @router.post('/stop', response_model=ApiResponse)
@@ -111,6 +129,86 @@ async def task_status() -> ApiResponse[TaskStatusResponse]:
     """查询当前任务状态。"""
     status = task_manager.get_status()
     return ApiResponse[TaskStatusResponse](success=True, data=status)
+
+
+async def _start_yaml_task(ctx: Any, request: YamlTaskRequest) -> ApiResponse:
+    """把文件请求转换为 Processor 请求, 再交给现有后台生命周期适配器。"""
+    task_request = Request.from_yaml(
+        request.yaml_path,
+        source='gui',
+        count=request.count,
+        extre=request.extre,
+    )
+
+    return _start_task(
+        task_request.task_type,
+        task_request.count,
+        lambda _task_info: _run_processor_request(ctx, task_request),
+    )
+
+
+def _run_processor_request(ctx: Any, request: Request) -> TaskOutcome:
+    """执行一份 Processor 请求并转换成现有 HTTP 结果封装。"""
+
+    def on_event(event: str, **data: Any) -> None:
+        if event == 'completed':
+            task_manager.update_progress(
+                current_round=int(data.get('count', 0)),
+                current_node=request.task_type,
+            )
+
+    processor = Processor(ctx, stop=task_manager.stop_event, on_event=on_event)
+    if request.extre:
+        processor.interrupt(request)
+    else:
+        processor.submit(request)
+    outcomes = processor.run_pending()
+    details: list[dict[str, Any]] = []
+    completed = 0
+    error: str | None = None
+    for status, _request, raw in outcomes:
+        if status == 'done':
+            completed += 1
+            details.extend(_processor_details(raw, len(details) + 1))
+        elif status == 'failed':
+            error = str(raw)
+            details.append({'round': len(details) + 1, 'success': False, 'error': error})
+            break
+        elif status == 'stopped':
+            break
+    for detail in details:
+        task_manager.add_result(detail)
+    task_manager.update_progress(current_round=completed, current_node=request.task_type)
+    return TaskOutcome.from_results(details, error=error)
+
+
+def _processor_details(raw: Any, first_round: int) -> list[dict[str, Any]]:
+    """将一次 Processor 结果转换成 GUI 需要的扁平轮次记录。"""
+    from autowsgr.combat.history import CombatResult
+
+    if isinstance(raw, list):
+        details: list[dict[str, Any]] = []
+        for index, item in enumerate(raw, 1):
+            if isinstance(item, CombatResult):
+                details.append(convert_combat_result(item, first_round + index - 1))
+            elif isinstance(item, dict):
+                detail = dict(item)
+                detail.setdefault('round', first_round + index - 1)
+                detail.setdefault('success', True)
+                details.append(detail)
+            else:
+                details.append(
+                    {'round': first_round + index - 1, 'success': True, 'result': item},
+                )
+        return details
+    if isinstance(raw, CombatResult):
+        return [convert_combat_result(raw, first_round)]
+    if isinstance(raw, dict):
+        detail = dict(raw)
+        detail.setdefault('round', first_round)
+        detail.setdefault('success', True)
+        return [detail]
+    return [{'round': first_round, 'success': True, 'result': raw}]
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -247,22 +345,16 @@ async def _start_campaign(ctx: Any, request: CampaignRequest) -> ApiResponse:
 
 async def _start_exercise(ctx: Any, request: ExerciseRequest) -> ApiResponse:
     """启动演习任务。"""
-    # 已迁移到新方法: 演习执行器兼容入口 (原 autowsgr.ops.ExerciseRunner)
-    from autowsgr.business.combat.exercise import ExerciseRunner
-
-    def executor(_task_info: Any) -> TaskOutcome:
-        runner = ExerciseRunner(ctx, fleet_id=request.fleet_id)
-        task_manager.update_progress(current_round=1, current_node='演习')
-
-        try:
-            results = runner.run()
-            return TaskOutcome.from_results(
-                [convert_combat_result(r, i + 1) for i, r in enumerate(results)]
-            )
-        except Exception as e:
-            return TaskOutcome.from_results([{'round': 1, 'success': False, 'error': str(e)}])
-
-    return _start_task('exercise', 1, executor)
+    task_request = Request(
+        source='gui',
+        task_type='exercise',
+        params={'fleet_id': request.fleet_id},
+    )
+    return _start_task(
+        task_request.task_type,
+        task_request.count,
+        lambda _task_info: _run_processor_request(ctx, task_request),
+    )
 
 
 async def _start_decisive(ctx: Any, request: DecisiveRequest) -> ApiResponse:

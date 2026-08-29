@@ -175,14 +175,17 @@ def main() -> int:
     )
     if not rt.prepare():
         return rt.finalize(overall=False)
+    overall = False
     try:
         overall = bool(mod.run(rt))
     except SystemExit:
+        # finalize() 位于 finally，保证显式退出也执行回主页/断开连接。
         raise
     except Exception as exc:
         rt.unexpected(exc)
-        overall = False
-    return rt.finalize(overall=overall)
+    finally:
+        rt.finalize(overall=overall)
+    return 0 if overall and rt.state.failed == 0 else 1
 
 
 if __name__ == '__main__':

@@ -7,14 +7,27 @@
 配合 business.base.BaseExecutor (执行器基类: _wait 断点 + 暂停协议)。
 """
 
-from autowsgr.dispatch.processor import Processor, Request, TaskPaused
+from autowsgr.dispatch.processor import (
+    MAX_PRIORITY,
+    TASK_PRIORITIES,
+    Processor,
+    Request,
+    TaskPaused,
+    TaskStopped,
+    priority_for,
+)
 from autowsgr.dispatch.registry import build_executor, register, registered_names
 
+
 __all__ = [
+    'MAX_PRIORITY',
+    'TASK_PRIORITIES',
     'Processor',
     'Request',
     'TaskPaused',
+    'TaskStopped',
     'build_executor',
+    'priority_for',
     'register',
     'registered_names',
 ]

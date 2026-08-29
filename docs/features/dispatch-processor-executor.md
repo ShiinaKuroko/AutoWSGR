@@ -127,7 +127,7 @@ _fight_one(target):
 # 主流程
 _execute():
     导航到演习面板 → _wait (断点①)
-    for _ in range(times):            # 轮数 (YAML times:1 = 一轮)
+    for _ in range(request.count):    # 重复次数 (由入口参数控制, 不写入 YAML)
         while _has_quota():           # 完整模式恒真; 限额模式看计数
             target = _pick_rival()    # 截图识别, 已挑战的置灰自动跳过
             if target is None: break  # 无可挑战对手 → 结束

@@ -44,6 +44,7 @@ def build_executor(
     params: dict | None = None,
     *,
     pause: threading.Event | None = None,
+    stop: threading.Event | None = None,
     progress: dict | None = None,
     on_event: Callable[..., None] | None = None,
 ) -> BaseExecutor:
@@ -55,7 +56,14 @@ def build_executor(
             msg = f'未注册的链路: {task_type} (可用: {available})'
             raise KeyError(msg)
         importlib.import_module(module)  # 触发该模块的 register()
-    return _EXECUTORS[task_type](ctx, params, pause=pause, progress=progress, on_event=on_event)
+    return _EXECUTORS[task_type](
+        ctx,
+        params,
+        pause=pause,
+        stop=stop,
+        progress=progress,
+        on_event=on_event,
+    )
 
 
 def registered_names() -> tuple[str, ...]:

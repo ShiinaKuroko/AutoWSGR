@@ -133,6 +133,17 @@ class Launcher:
             raise RuntimeError('设备未连接，请先调用 connect()')
         return self._ctrl
 
+    def disconnect(self) -> None:
+        """释放设备连接；未连接时安全返回。"""
+        ctrl = self._ctrl
+        if ctrl is None:
+            return
+        try:
+            ctrl.disconnect()
+        finally:
+            self._ctrl = None
+            self._ocr = None
+
     # ── OCR ──
 
     def create_ocr(self) -> OCREngine:
@@ -254,8 +265,7 @@ class Launcher:
             if ensure_game:
                 self.ensure_ready(ctx)
         except Exception:
-            if self._ctrl is not None:
-                self._ctrl.disconnect()
+            self.disconnect()
             raise
         else:
             _log.info('[Launcher] 启动完成，游戏已就绪')

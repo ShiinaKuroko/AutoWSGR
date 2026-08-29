@@ -20,6 +20,7 @@ from .schemas import (
     NodeDecisionRequest,
     TaskStartRequest,
     TaskStatusResponse,
+    YamlTaskRequest,
 )
 from .task_manager import TaskManager, TaskStatus
 
@@ -33,5 +34,6 @@ __all__ = [
     'TaskStartRequest',
     'TaskStatus',
     'TaskStatusResponse',
+    'YamlTaskRequest',
     'app',
 ]

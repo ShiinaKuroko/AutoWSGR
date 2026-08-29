@@ -29,6 +29,7 @@ from autowsgr.server.schemas import (
     NormalFightRequest,
     RoundResult,
     TaskStatusResponse,
+    YamlTaskRequest,
 )
 from autowsgr.types import ConditionFlag, ShipType
 
@@ -121,6 +122,83 @@ def test_task_start_requires_system_context(monkeypatch: pytest.MonkeyPatch) -> 
         asyncio.run(task.task_start(ExerciseRequest()))
 
     assert exc_info.value.status_code == 503
+
+
+def test_yaml_task_route_rejects_invalid_yaml_before_starting(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    manager = _TaskManager()
+    ctx = type('Context', (), {'stop_event': None})()
+    monkeypatch.setattr(task, 'task_manager', manager)
+    monkeypatch.setattr(server_main, '_ctx', ctx)
+
+    request = YamlTaskRequest(yaml_path=str(tmp_path / 'missing.yaml'))
+
+    with pytest.raises(HTTPException) as exc_info:
+        asyncio.run(task.task_start_yaml(request))
+
+    assert exc_info.value.status_code == 422
+
+
+def test_yaml_task_route_submits_normalized_request(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / 'exercise.yaml'
+    path.write_text('task_type: exercise\nfleet_id: 2\n', encoding='utf-8')
+    manager = _ExecutingTaskManager()
+    ctx = type('Context', (), {'stop_event': None})()
+    captured: list[object] = []
+
+    class ProcessorStub:
+        def __init__(self, _ctx: object, **kwargs: object) -> None:
+            self._on_event = kwargs['on_event']
+
+        def submit(self, request: object) -> None:
+            captured.append(request)
+
+        def interrupt(self, request: object) -> None:
+            captured.append(request)
+
+        def run_pending(self) -> list[tuple[str, object, object]]:
+            self._on_event('completed', count=1, total=1)
+            return [('done', captured[-1], {'result': 'ok'})]
+
+    monkeypatch.setattr(task, 'task_manager', manager)
+    monkeypatch.setattr(server_main, '_ctx', ctx)
+    monkeypatch.setattr(task, 'Processor', ProcessorStub)
+
+    response = asyncio.run(
+        task.task_start_yaml(YamlTaskRequest(yaml_path=str(path), count=2)),
+    )
+
+    assert response.success is True
+    assert manager.outcome is not None
+    assert manager.outcome.success is True
+    assert manager.outcome.results == [{'round': 1, 'success': True, 'result': 'ok'}]
+    normalized = captured[0]
+    assert normalized.task_type == 'exercise'
+    assert normalized.count == 2
+    assert normalized.params == {'fleet_id': 2}
+
+
+def test_processor_result_list_keeps_inner_failure() -> None:
+    from autowsgr.server.task_manager import TaskOutcome
+    from autowsgr.types import ConditionFlag
+
+    details = task._processor_details(
+        [
+            CombatResult(flag=ConditionFlag.OPERATION_SUCCESS),
+            CombatResult(flag=ConditionFlag.BATTLE_TIMES_EXCEED),
+        ],
+        1,
+    )
+
+    outcome = TaskOutcome.from_results(details)
+
+    assert [detail['round'] for detail in details] == [1, 2]
+    assert outcome.success is False
 
 
 def test_campaign_route_preserves_out_of_times_result(

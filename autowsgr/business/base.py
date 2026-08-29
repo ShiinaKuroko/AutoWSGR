@@ -25,7 +25,7 @@ import time
 from typing import TYPE_CHECKING, Any
 
 from autowsgr.business.system.navigate import goto_page
-from autowsgr.dispatch.processor import TaskPaused
+from autowsgr.dispatch.processor import TaskPaused, TaskStopped
 from autowsgr.types import PageName
 
 
@@ -44,6 +44,7 @@ class BaseExecutor:
         params: dict | None = None,
         *,
         pause: threading.Event | None = None,
+        stop: threading.Event | None = None,
         progress: dict | None = None,
         on_event: Callable[[str, ...], None] | None = None,
     ) -> None:
@@ -52,6 +53,7 @@ class BaseExecutor:
         self.progress = progress if progress is not None else {}
         """任务级进度 (如 fought 计数), 暂停重跑后由处理器传入同一 dict 保留。"""
         self._pause = pause if pause is not None else threading.Event()
+        self._stop = stop if stop is not None else threading.Event()
         self._on_event = on_event
 
     def run(self) -> Any:
@@ -72,6 +74,10 @@ class BaseExecutor:
 
     def _check_pause(self) -> None:
         """断点检查: 处理器发了暂停 → 回主页 → 上报 → 让出执行权。"""
+        if self._stop.is_set():
+            goto_page(self.ctx, PageName.MAIN)
+            self._report('stopped')
+            raise TaskStopped
         if not self._pause.is_set():
             return
         goto_page(self.ctx, PageName.MAIN)
