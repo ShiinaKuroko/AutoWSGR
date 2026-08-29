@@ -89,11 +89,6 @@ class Coords:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
-def click_start_march(device: AndroidController) -> None:
-    """点击出征按钮。"""
-    device.click(*Coords.START_MARCH)
-
-
 def click_retreat(device: AndroidController) -> None:
     """点击撤退按钮（索敌成功界面）。"""
     device.click(*Coords.RETREAT)
@@ -319,14 +314,17 @@ def get_ship_drop(device: AndroidController, ocr: OCREngine) -> str | None:
         掉落的舰船名称，或 ``None`` 如果未获取到。
     """
 
-    # 硬等待: GET_SHIP 页面动画 (舰船卡片滑入/文字淡入) 需要时间稳定,
-    # 远端卡顿机器上立即截图会截到半渲染画面导致 OCR 全部未识别
-    time.sleep(1.5)
-    screen = device.screenshot()
-    result = recognize_ship_drop(screen, ocr)
-    if result.ship_name:
-        _log.info('[Combat] 掉落识别: {} ({})', result.ship_name, result.ship_type or '未知')
-    return result.ship_name
+    # 页面动画或远端延迟可能让首帧仍未完成; 保留有限重试后再交给调用方点击离开。
+    for attempt in range(5):
+        if attempt:
+            time.sleep(0.5)
+        screen = device.screenshot()
+        result = recognize_ship_drop(screen, ocr)
+        if result.ship_name:
+            _log.info('[Combat] 掉落识别: {} ({})', result.ship_name, result.ship_type or '未知')
+            return result.ship_name
+        _log.debug('[Combat] 掉落 OCR 第 {}/5 次未识别', attempt + 1)
+    return None
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

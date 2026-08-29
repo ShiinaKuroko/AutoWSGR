@@ -23,7 +23,7 @@ from typing import TYPE_CHECKING
 from autowsgr.business.system.navigate import goto_page
 from autowsgr.infra.base.ui.pages.bath_page import BathPage
 from autowsgr.infra.logger import get_logger
-from autowsgr.types import PageName
+from autowsgr.types import PageName, ShipDamageState
 
 
 if TYPE_CHECKING:
@@ -83,6 +83,7 @@ def repair_ship_by_name(ctx: GameContext, ship_name: str) -> int:
     if repair_secs >= 0:
         ship = ctx.get_ship(ship_name)
         ship.set_repair(repair_secs)
+        ctx.update_ship_damage(ship_name, ShipDamageState.NORMAL)
         _log.info('[BathRepair] 浴室修理操作完成: {} ({}s)', ship_name, repair_secs)
     else:
         _log.warning('[BathRepair] 浴场已满, 无法修理 {}', ship_name)
@@ -135,9 +136,12 @@ def repair_one_available(
     # 浴场满 (secs==-2)。空闲槽数 = slot_count, 故循环上限即槽位数, 不会死循环。
     while bath.is_available():
         page.go_to_choose_repair()
-        secs = page.repair_longest(blacklist=blocked)
+        ship_name, secs = page.repair_longest(blacklist=blocked)
 
         if secs > 0:
+            ship = ctx.get_ship(ship_name)
+            ship.set_repair(secs)
+            ctx.update_ship_damage(ship_name, ShipDamageState.NORMAL)
             bath.occupy(secs)
             repaired += 1
             _log.info('[BathRepair] 浴室修理派单成功 ({}s, 本轮已派 {} 艘)', secs, repaired)

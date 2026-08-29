@@ -6,18 +6,19 @@ import asyncio
 import json
 import re
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING, Any, Callable
-
-from loguru import logger
+from typing import TYPE_CHECKING, Any, Literal
 
 from autowsgr.infra.logger import get_logger
 
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from fastapi import WebSocket
 
 
 _log = get_logger('server.ws')
+Stream = Literal['logs', 'task']
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # GUI 统计所需日志白名单正则
@@ -47,66 +48,32 @@ class WebSocketManager:
     """
 
     def __init__(self) -> None:
-        self._connections: set[WebSocket] = set()
+        self._connections: dict[Stream, set[WebSocket]] = {'logs': set(), 'task': set()}
         self._lock = asyncio.Lock()
-        # loguru sink 的 handler id (None 表示未注册)
-        self._log_sink_handler_id: int | None = None
 
-    def register_log_sink(
-        self,
-        loop: asyncio.AbstractEventLoop,
-        level: str = 'INFO',
-    ) -> None:
-        """注册 loguru sink，把日志通过 WebSocket 推送给 GUI。
-
-        loguru sink 是同步函数，但 ``send_log`` 是 async；通过
-        ``run_coroutine_threadsafe`` 把协程提交到 lifespan 保存的事件循环，
-        避免在日志调用方阻塞或抛 RuntimeError。
-
-        Parameters
-        ----------
-        loop:
-            事件循环引用 (由 FastAPI lifespan 提供)。
-        level:
-            最低日志级别，默认 INFO。DEBUG 不推送，避免大量噪音推送给 GUI。
-        """
-        # 防止重复注册 (开发期间 hot reload 场景)
-        if self._log_sink_handler_id is not None:
-            return
-
-        def sink(message: Any) -> None:
-            """loguru sink：把日志提交到事件循环异步推送。"""
-            record = message.record
-            asyncio.run_coroutine_threadsafe(
-                self.send_log(record['level'].name, record['message']),
-                loop,
-            )
-
-        self._log_sink_handler_id = logger.add(sink, level=level)
-
-    async def connect(self, websocket: WebSocket) -> None:
+    async def connect(self, websocket: WebSocket, stream: Stream) -> None:
         """接受新连接。"""
         await websocket.accept()
         async with self._lock:
-            self._connections.add(websocket)
-        _log.info('[WS] 新连接, 当前连接数: {}', len(self._connections))
+            self._connections[stream].add(websocket)
+        _log.info('[WS] {} 新连接, 当前连接数: {}', stream, len(self._connections[stream]))
 
-    async def disconnect(self, websocket: WebSocket) -> None:
+    async def disconnect(self, websocket: WebSocket, stream: Stream) -> None:
         """断开连接。"""
         async with self._lock:
-            self._connections.discard(websocket)
-        _log.info('[WS] 断开连接, 当前连接数: {}', len(self._connections))
+            self._connections[stream].discard(websocket)
+        _log.info('[WS] {} 断开连接, 当前连接数: {}', stream, len(self._connections[stream]))
 
-    async def broadcast(self, message: dict[str, Any]) -> None:
+    async def broadcast(self, stream: Stream, message: dict[str, Any]) -> None:
         """广播消息到所有连接。"""
-        if not self._connections:
+        if not self._connections[stream]:
             return
 
         data = json.dumps(message, ensure_ascii=False)
         dead_connections = []
 
         async with self._lock:
-            for ws in list(self._connections):
+            for ws in list(self._connections[stream]):
                 try:
                     await ws.send_text(data)
                 except Exception:
@@ -114,7 +81,7 @@ class WebSocketManager:
 
             # 清理断开的连接
             for ws in dead_connections:
-                self._connections.discard(ws)
+                self._connections[stream].discard(ws)
 
     async def send_log(
         self,
@@ -124,6 +91,7 @@ class WebSocketManager:
     ) -> None:
         """发送日志消息。"""
         await self.broadcast(
+            'logs',
             {
                 'type': 'log',
                 'timestamp': datetime.now(UTC).isoformat(),
@@ -150,7 +118,7 @@ class WebSocketManager:
             payload['progress'] = progress
         if result:
             payload['result'] = result
-        await self.broadcast(payload)
+        await self.broadcast('task', payload)
 
     async def send_task_completed(
         self,
@@ -161,6 +129,7 @@ class WebSocketManager:
     ) -> None:
         """发送任务完成通知。"""
         await self.broadcast(
+            'task',
             {
                 'type': 'task_completed',
                 'task_id': task_id,
@@ -174,14 +143,12 @@ class WebSocketManager:
     # 统计日志 sink (供 GUI DailySortieStats 消费)
     # ══════════════════════════════════════════════════════════════════════
 
-    def build_log_sink(self) -> Callable[[dict[str, Any]], None]:
+    def build_log_sink(self, loop: asyncio.AbstractEventLoop) -> Callable[[dict[str, Any]], None]:
         """构建 loguru sink 回调，仅推送 GUI 统计需要的日志。
 
         只推送匹配 :data:`_STATS_LOG_PATTERNS` 白名单的消息；
         普通点击/导航/初始化等 INFO 日志被过滤掉，避免 GUI 端日志面板噪音。
         """
-        loop = asyncio.new_event_loop()
-
         def _sink(message: Any) -> None:  # loguru.Message (avoid runtime import)
             text = str(message.record.get('message', ''))
             if not _is_stats_log(text):
@@ -190,32 +157,8 @@ class WebSocketManager:
             level = raw_level.name if hasattr(raw_level, 'name') else str(raw_level)
             ch = message.record.get('extra', {}).get('ch', '') or ''
 
-            async def _send() -> None:
-                await self.send_log(level, text, ch)
-
-            try:
-                running_loop = asyncio.get_running_loop()
-            except RuntimeError:
-                running_loop = None
-
-            if running_loop is not None:
-                running_loop.create_task(_send())
-                return
-            # 执行线程中无事件循环 → 使用专用线程 loop
-            asyncio.run_coroutine_threadsafe(_send(), loop)
-
-        # 后台线程启动专用事件循环
-        import threading
-
-        def _run() -> None:
-            asyncio.set_event_loop(loop)
-            loop.run_forever()
-
-        threading.Thread(
-            target=_run,
-            name='ws-stats-log-loop',
-            daemon=True,
-        ).start()
+            if not loop.is_closed():
+                asyncio.run_coroutine_threadsafe(self.send_log(level, text, ch), loop)
 
         return _sink
 

@@ -20,6 +20,10 @@ from autowsgr.infra.base.ui.pages.map.data import (
     EXPEDITION_TOLERANCE,
     PANEL_LIST,
     PANEL_TO_INDEX,
+    SIDEBAR_BRIGHTNESS_THRESHOLD,
+    SIDEBAR_SCAN_STEP,
+    SIDEBAR_SCAN_X,
+    SIDEBAR_SCAN_Y_RANGE,
     TITLE_CROP_REGION,
     MapIdentity,
     MapPanel,
@@ -103,9 +107,107 @@ class BaseMapPage:
     # ═══════════════════════════════════════════════════════════════════════
 
     @staticmethod
-    def find_selected_chapter_y() -> float | None:
-        """扫描侧边栏，定位选中章节的 y 坐标。"""
-        return 0.556
+    def find_selected_chapter_y(screen: np.ndarray) -> float | None:
+        """扫描侧边栏, 定位选中章节高亮条的 y 坐标。
+
+        单级算法: 自适应阈值 + 连续段 (中心加权)。
+          - 阈值 = max(峰值亮度×0.70, 均值+40), 放宽以兼容不同高亮主题;
+          - 邻接高亮点合并为「段」, 取最长段 (≥2 step 合格) 的亮度加权中心;
+          - 段覆盖 3%~60% 视为有效; 超出该范围直接返回 None。
+          - **不再使用 Top-K 均值降级**: 之前 12% 亮点加权均值实际等价
+            于「侧边栏所有文字像素亮度中心」≈ 屏幕 0.45~0.5 固定区域,
+            与真实选中章高亮位置完全无关, 导致 target_y 恒定跳错。
+        """
+        y_min, y_max = SIDEBAR_SCAN_Y_RANGE
+        step = SIDEBAR_SCAN_STEP
+
+        # ── 第 1 步: 全量扫描亮度 ──
+        ys: list[float] = []
+        brights: list[int] = []
+        max_bright = 0
+        sum_bright = 0
+
+        y = y_min
+        while y <= y_max:
+            c = PixelChecker.get_pixel(screen, SIDEBAR_SCAN_X, y)
+            brightness = c.r + c.g + c.b
+            ys.append(y)
+            brights.append(brightness)
+            if brightness > max_bright:
+                max_bright = brightness
+            sum_bright += brightness
+            y += step
+
+        total_count = len(ys)
+        if total_count == 0:
+            _log.warning('[UI] 侧边栏扫描采样为空')
+            return None
+
+        avg_bright = sum_bright / total_count
+
+        # ── 第 2 步: 自适应阈值 (0.70*峰值 / 均值+40, 比旧版 avg+80 宽松 2x) ──
+        adaptive_threshold = max(int(max_bright * 0.70), int(avg_bright) + 40)
+
+        # ── 第 3 步: 连续段 (≥2 step 合格) ──
+        segments: list[list[tuple[float, int]]] = []  # [(y, brightness)]
+        current: list[tuple[float, int]] = []
+        prev_y: float | None = None
+
+        for yy, br in zip(ys, brights):
+            if br >= adaptive_threshold:
+                if prev_y is not None and (yy - prev_y) <= step * 1.5:
+                    current.append((yy, br))
+                else:
+                    if current:
+                        segments.append(current)
+                    current = [(yy, br)]
+                prev_y = yy
+            else:
+                if current:
+                    segments.append(current)
+                    current = []
+                prev_y = None
+        if current:
+            segments.append(current)
+
+        MIN_SEG_STEPS = 2  # ≥2 个连续采样点 (≈0.02 高度) 才认为是高亮条
+        valid = [seg for seg in segments if len(seg) >= MIN_SEG_STEPS]
+        segs_info = sorted(
+            ((len(s), min(x[0] for x in s), max(x[0] for x in s)) for s in segments),
+            reverse=True,
+        )[:3]
+
+        if not valid:
+            _log.debug(
+                '[UI] 侧边栏无有效高亮段 (segs={}, 最长段={}, max_br={} avg_br={} th={})',
+                len(segments),
+                segs_info[0] if segs_info else 'none',
+                max_bright, int(avg_bright), adaptive_threshold,
+            )
+            return None
+
+        # 取最长段, 以亮度加权求中心 (比纯平均更贴近高亮条峰值位置)
+        longest = max(valid, key=lambda s: len(s))
+        cover = len(longest) / total_count
+        if not (0.03 <= cover <= 0.60):
+            _log.debug(
+                '[UI] 侧边栏高亮段覆盖异常 cover={:.0%} (segs={} valid={}), 放弃',
+                cover, len(segments), len(valid),
+            )
+            return None
+
+        total_w = sum(x[1] for x in longest)
+        if total_w <= 0:
+            return None
+        center = sum(x[0] * x[1] for x in longest) / total_w
+        y_start = longest[0][0]
+        y_end = longest[-1][0]
+        _log.debug(
+            '[UI] 侧边栏选中章 y={:.3f} (段长{}点 {:.3f}-{:.3f}, max_br={} avg_br={} th={} cover={:.0%})',
+            center, len(longest), y_start, y_end,
+            max_bright, int(avg_bright), adaptive_threshold, cover,
+        )
+        return center
 
     # ═══════════════════════════════════════════════════════════════════════
     # 状态查询 — 地图 OCR

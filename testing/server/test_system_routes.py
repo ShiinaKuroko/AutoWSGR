@@ -6,6 +6,7 @@ import asyncio
 import sys
 import threading
 import types
+from unittest.mock import MagicMock
 
 import pytest
 from fastapi import HTTPException
@@ -68,20 +69,27 @@ def test_system_start_publishes_launched_context(
     """A successful start publishes the launched context exactly once."""
     launched_context = object()
     launch_calls: list[str] = []
+    startup_steps: list[str] = []
     scheduler_module = types.ModuleType('autowsgr.scheduler')
 
     def launch(config_path: str) -> object:
         launch_calls.append(config_path)
+        startup_steps.append('launch')
         return launched_context
+
+    def register_stats_log_sink(_: asyncio.AbstractEventLoop) -> None:
+        startup_steps.append('sink')
 
     scheduler_module.launch = launch  # type: ignore[attr-defined]
     monkeypatch.setitem(sys.modules, 'autowsgr.scheduler', scheduler_module)
     monkeypatch.setattr(server_main, '_ctx', None)
+    monkeypatch.setattr(server_main, 'register_stats_log_sink', register_stats_log_sink)
 
     response = asyncio.run(system.system_start(system.SystemStartRequest(config_path='test.yaml')))
 
     assert response.success is True
     assert launch_calls == ['test.yaml']
+    assert startup_steps == ['launch', 'sink']
     assert server_main._ctx is launched_context
 
 
@@ -157,13 +165,59 @@ def test_system_stop_releases_context_after_worker_finishes(
 ) -> None:
     """The global context is released only after worker termination is confirmed."""
     manager = _RunningTaskManager(completed=True)
-    monkeypatch.setattr(server_main, '_ctx', object())
+    ctrl = MagicMock()
+    monkeypatch.setattr(server_main, '_ctx', types.SimpleNamespace(ctrl=ctrl))
     monkeypatch.setattr(system, 'task_manager', manager)
 
     response = asyncio.run(system.system_stop())
 
     assert response.success is True
     assert server_main._ctx is None
+    ctrl.disconnect.assert_called_once_with()
+
+
+def test_system_stop_keeps_context_when_disconnect_fails(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A failed controller teardown leaves the context available for retry."""
+    ctrl = MagicMock()
+    ctrl.disconnect.side_effect = RuntimeError('disconnect failed')
+    ctx = types.SimpleNamespace(ctrl=ctrl)
+    manager = _TerminalTaskManager(completed=True)
+    monkeypatch.setattr(server_main, '_ctx', ctx)
+    monkeypatch.setattr(system, 'task_manager', manager)
+
+    response = asyncio.run(system.system_stop())
+
+    assert response.success is False
+    assert response.error == 'disconnect failed'
+    assert server_main._ctx is ctx
+
+    token = device_operation_lease.acquire('test:disconnect-failure')
+    device_operation_lease.release(token)
+
+
+def test_lifespan_stops_system_and_disconnects_controller(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Application shutdown reuses the system stop lifecycle."""
+    ctrl = MagicMock()
+    manager = _TerminalTaskManager(completed=True)
+    monkeypatch.setattr(server_main, '_ctx', types.SimpleNamespace(ctrl=ctrl))
+    monkeypatch.setattr(server_main, 'lifecycle_lock', asyncio.Lock())
+    monkeypatch.setattr(server_main, 'register_stats_log_sink', lambda _: None)
+    monkeypatch.setattr(server_main, 'remove_stats_log_sink', lambda: None)
+    monkeypatch.setattr(system, 'task_manager', manager)
+
+    async def run_lifespan() -> None:
+        async with server_main.lifespan(server_main.app):
+            pass
+
+    asyncio.run(run_lifespan())
+
+    assert manager.wait_called is True
+    assert server_main._ctx is None
+    ctrl.disconnect.assert_called_once_with()
 
 
 def test_system_stop_keeps_context_until_terminal_worker_exits(
@@ -187,7 +241,7 @@ def test_task_start_cannot_reuse_context_being_stopped(
 ) -> None:
     """A new task cannot claim a context already owned by system shutdown."""
     manager = _StoppingTaskManager()
-    ctx = type('Context', (), {'stop_event': None})()
+    ctx = types.SimpleNamespace(stop_event=None, ctrl=MagicMock())
     started_contexts: list[object] = []
     monkeypatch.setattr(server_main, '_ctx', ctx)
     monkeypatch.setattr(system, 'task_manager', manager)
