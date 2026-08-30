@@ -78,3 +78,11 @@
   runtime 专项，不复制第二个上下文。
 
 本次执行未追加真实设备 E2E，沿用既有 `logs/e2e_tools/exercise/20260830_220134` 证据。
+
+## 最终验收
+
+- canonical import graph：通过；`application`/`common` 未发现反向项目包依赖。
+- 静态检查：目标文件 pre-commit、compileall、`uv build`、`git diff --check` 通过。
+- 回归测试：`1079 passed in 11.33s`（`--basetemp=.pytest-tmp-final`）。
+- 未决项：`GameContext` 的字段级 owner 拆分、application 视觉适配进一步下沉和
+  `exercise/operations.py` 旧 shim 收口，留作后续 runtime/业务专项。

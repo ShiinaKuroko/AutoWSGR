@@ -62,7 +62,15 @@
   `Templates.FightResult` 仅为别名；坐标/ROI 的全量清单仍需后续专题处理。
 - CP6：完成本批范围。新增 `RuntimeContext` 类型边界；请求 alias 使用不可变映射和
   `contextvars` 任务作用域，非法 alias 显式拒绝；生产导入已切换 canonical 路径。
-- CP7：待完整 pytest 和发布构建；本批目标文件的 pre-commit、compileall、导入 smoke、
-  架构 import graph 和 `git diff --check` 已通过。
+- CP7：完成。`1079 passed in 11.33s`；目标文件 pre-commit、compileall、导入 smoke、
+  架构 import graph、`uv build` 和 `git diff --check` 均通过。
 
 本批提交：`4ad5f52`、`03e1f84`、`b2373b9`、`7f36d9f`、`1879b04`。
+
+最终提交：`8bd29d5`。
+
+全仓 pre-commit 的全量模式仍会报告未参与本批的旧测试/E2E 工具 lint 债务；按用户
+dirty 文件保护规则，本任务采用 changed-files 门禁并已通过。未追加真实设备 E2E。
+
+`exercise/operations.py` 仅保留原有的 3 个空行格式变更，没有业务逻辑改动；其余演习
+调用仍经兼容 shim，后续可在 runtime 专项中进一步收口。
