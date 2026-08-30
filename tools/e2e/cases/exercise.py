@@ -73,6 +73,8 @@ _RELAY_PAUSES = (
     'rival_done',
 )
 
+_CHECK_TYPES = ('expedition_check', 'reward_check')
+
 
 def add_arguments(parser: argparse.ArgumentParser) -> None:
     """定义 case 专属命令行参数。"""
@@ -106,6 +108,26 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
         default='expedition_check',
         help='断点插入的后勤检查任务 (默认: expedition_check)',
     )
+    parser.add_argument(
+        '--checks',
+        default=None,
+        help='接力模式按断点顺序插入的检查任务, 逗号分隔 (共 5 项)',
+    )
+
+
+def _resolve_checks(args: Any) -> tuple[str, ...]:
+    """解析断点检查序列; 未指定序列时保留旧的单检查行为。"""
+    raw = getattr(args, 'checks', None)
+    if raw is None:
+        checks = (args.check,) * len(_RELAY_PAUSES) if args.relay else (args.check,)
+    else:
+        checks = tuple(item.strip() for item in raw.split(',') if item.strip())
+    if any(check not in _CHECK_TYPES for check in checks):
+        raise ValueError(f'检查任务必须属于: {", ".join(_CHECK_TYPES)}')
+    expected = len(_RELAY_PAUSES) if args.relay else 1
+    if len(checks) != expected:
+        raise ValueError(f'当前模式需要 {expected} 个检查任务, 收到 {len(checks)} 个')
+    return checks
 
 
 def run(rt: Any) -> bool:  # noqa: C901, PLR0912, PLR0915 - one E2E case owns its assertions
@@ -116,12 +138,13 @@ def run(rt: Any) -> bool:  # noqa: C901, PLR0912, PLR0915 - one E2E case owns it
 
     args = rt.args
     ctx = rt.ctx
+    checks = _resolve_checks(args)
     rt.note(f'计划: {args.yaml}')
     if args.relay:
         rt.note(f'模式: 接力 ({">".join(_RELAY_PAUSES)})')
     else:
         rt.note(f'打断点: {args.pause_at or "(不打断, 场景5)"}')
-    rt.note(f'插入检查: {args.check}')
+    rt.note(f'插入检查: {checks}')
 
     # ── 阶段零 (可选): 初始化链路 + 每日浮层清理 ────────────────
     if args.with_init:
@@ -160,10 +183,10 @@ def run(rt: Any) -> bool:  # noqa: C901, PLR0912, PLR0915 - one E2E case owns it
     relay_index = [0]
     relay_fired: list[bool] = [False] * len(_RELAY_PAUSES)
 
-    def interrupt_now(event: str) -> None:
+    def interrupt_now(event: str, check: str) -> None:
         """在断点插入后勤检查 (处理器加急)。"""
-        rt.note(f'>> 断点 [{event}] 触发处理器加急: 插入 {args.check}')
-        processor.interrupt(Request(task_type=args.check, source='dependency'))
+        rt.note(f'>> 断点 [{event}] 触发处理器加急: 插入 {check}')
+        processor.interrupt(Request(task_type=check, source='dependency'))
 
     def on_event(event: str, **data: Any) -> None:
         events.append((event, dict(data)))
@@ -183,11 +206,11 @@ def run(rt: Any) -> bool:  # noqa: C901, PLR0912, PLR0915 - one E2E case owns it
             if idx < len(_RELAY_PAUSES) and event == _RELAY_PAUSES[idx] and not relay_fired[idx]:
                 relay_fired[idx] = True
                 relay_index[0] = idx + 1
-                interrupt_now(event)
+                interrupt_now(event, checks[idx])
         elif event == args.pause_at and not snapshots.get('interrupted'):
             # 到达目标断点 → 模拟下游依赖加急插入后勤检查
             snapshots['interrupted'] = True
-            interrupt_now(event)
+            interrupt_now(event, checks[0])
 
     processor.on_event = on_event
 
@@ -204,8 +227,8 @@ def run(rt: Any) -> bool:  # noqa: C901, PLR0912, PLR0915 - one E2E case owns it
     if args.relay:
         # 接力模式: 演习暂停 x5 → 后勤检查 x5 → 演习重跑完成
         expected_flow: list[tuple[str, str]] = []
-        for _ in _RELAY_PAUSES:
-            expected_flow += [('paused', 'exercise'), ('done', args.check)]
+        for check in checks:
+            expected_flow += [('paused', 'exercise'), ('done', check)]
         expected_flow.append(('done', 'exercise'))
         rt.check('执行流 = (暂停→后勤检查) x5 → 重跑完成', lambda: status_flow == expected_flow)
         rt.check('五个交接断点全部触发过', lambda: all(relay_fired))
@@ -222,7 +245,7 @@ def run(rt: Any) -> bool:  # noqa: C901, PLR0912, PLR0915 - one E2E case owns it
         rt.check(
             '执行流 = 暂停 → 后勤检查 → 重跑完成',
             lambda: (
-                status_flow == [('paused', 'exercise'), ('done', args.check), ('done', 'exercise')]
+                status_flow == [('paused', 'exercise'), ('done', checks[0]), ('done', 'exercise')]
             ),
         )
         rt.check(
@@ -264,12 +287,14 @@ def run(rt: Any) -> bool:  # noqa: C901, PLR0912, PLR0915 - one E2E case owns it
 
     # 后勤检查执行过 (打断场景) 且终态回主页
     if args.relay or args.pause_at:
-        expected_checks = len(_RELAY_PAUSES) if args.relay else 1
         rt.check(
-            f'{args.check} 执行了 {expected_checks} 次',
-            lambda: (
-                sum(1 for _, req, _ in outcomes if req.task_type == args.check) == expected_checks
-            ),
+            '后勤检查按断点顺序执行',
+            lambda: [
+                req.task_type
+                for status, req, _ in outcomes
+                if status == 'done' and req.task_type in _CHECK_TYPES
+            ]
+            == list(checks),
         )
     rt.check('终态: 主页面', lambda: identify_current_page(ctx) == PageName.MAIN)
 
