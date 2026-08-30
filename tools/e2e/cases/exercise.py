@@ -8,6 +8,10 @@
     5. --pause-at rival_done       战斗完成后暂停 (计数保留) → 插后勤检查 → 回主页
     6. 不带 --pause-at              直接跑完并统计计数
 
+多轮模式 (--rounds N):
+    每个请求只挑战一个对手，默认按 2,3 队伍循环；前两轮连续执行，
+    第二轮后插入一次后勤任务验证非连续导航。``--rounds 6`` 用于完整六轮验证。
+
 接力模式 (--relay):
     同一趟演习里依次覆盖导航入口、进入编队、一次选船、出征前和战斗结束
     五个交接断点，每次插入一次后勤检查并自动恢复; 配合 --with-init
@@ -34,6 +38,11 @@
 
     # 换计划 YAML
     python tools/e2e/run.py --with-ocr exercise --yaml <路径>
+
+    # 六轮演习: 五个断点 + 队伍 2/3 切换 + 连续/非连续导航
+    python tools/e2e/run.py --with-ocr --fast-ocr exercise --rounds 6 \
+        --fleet-sequence 2,3 --continuous-rounds 2 --relay --with-init \
+        --checks expedition_check,reward_check,expedition_check,reward_check,expedition_check
 """
 
 from __future__ import annotations
@@ -46,7 +55,7 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     import argparse
 
-DESC = '演习: 断点打断 + 后勤检查插入 + 重跑计数 (需 --with-ocr)'
+DESC = '演习: 断点/多轮队伍切换/任务衔接验证 (需 --with-ocr)'
 
 # 默认计划: GUI 系统预设的队伍2演习 (用户提供的驱动 YAML)
 _DEFAULT_YAML = str(
@@ -120,6 +129,18 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
         default=None,
         help='接力模式按断点顺序插入的检查任务, 逗号分隔 (共 5 项)',
     )
+    parser.add_argument('--rounds', type=int, default=1, help='按单场请求执行的演习轮数 (最多 6)')
+    parser.add_argument(
+        '--fleet-sequence',
+        default='2,3',
+        help='多轮模式循环使用的队伍编号，例如 2,3',
+    )
+    parser.add_argument(
+        '--continuous-rounds',
+        type=int,
+        default=2,
+        help='多轮模式中连续任务阶段的轮数',
+    )
 
 
 def _resolve_checks(args: Any) -> tuple[str, ...]:
@@ -137,15 +158,201 @@ def _resolve_checks(args: Any) -> tuple[str, ...]:
     return checks
 
 
+def _resolve_rounds(args: Any) -> tuple[int, tuple[int, ...], int]:
+    """校验多轮演习的次数、队伍循环和连续阶段边界。"""
+    rounds = int(getattr(args, 'rounds', 1))
+    if not 1 <= rounds <= 6:
+        raise ValueError('rounds 必须在 1-6 范围内')
+    sequence = tuple(
+        int(value.strip())
+        for value in str(getattr(args, 'fleet_sequence', '2,3')).split(',')
+        if value.strip()
+    )
+    if not sequence or any(fleet_id not in range(1, 5) for fleet_id in sequence):
+        raise ValueError('fleet-sequence 必须是 1-4 的队伍编号列表')
+    continuous = int(getattr(args, 'continuous_rounds', 2))
+    if not 1 <= continuous < rounds:
+        raise ValueError('continuous-rounds 必须小于 rounds 且至少为 1')
+    return rounds, sequence, continuous
+
+
+def _collect_aliases(ctx: Any, args: Any) -> dict[str, str] | None:
+    """合并用户配置和命令行舰名映射。"""
+    ocr_config = getattr(getattr(ctx, 'config', None), 'ocr', None)
+    aliases = dict(getattr(ocr_config, 'ship_name_aliases', {}) or {})
+    for value in args.ship_name_alias:
+        alias, separator, standard = value.partition('=')
+        if not separator or not alias.strip() or not standard.strip():
+            return None
+        aliases[alias.strip()] = standard.strip()
+    return aliases
+
+
+def _run_multiple_rounds(  # noqa: PLR0915 - one E2E case owns the full scenario assertions
+    rt: Any,
+    ctx: Any,
+    args: Any,
+    aliases: dict[str, str],
+    checks: tuple[str, ...],
+) -> bool:
+    """提交六个单场请求，验证队伍切换和连续/非连续任务衔接。"""
+    from autowsgr.application.ui.navigation import identify_current_page
+    from autowsgr.dispatch.processor import Processor, Request
+    from autowsgr.types import PageName
+
+    rounds, fleet_sequence, continuous_rounds = _resolve_rounds(args)
+    processor = Processor(ctx)
+    requests: list[Request] = []
+    request_index: dict[str, int] = {}
+    events: list[tuple[str, dict[str, Any]]] = []
+    snapshots: dict[str, Any] = {
+        'paused_pages': [],
+        'paused_rounds': [],
+        'round_start_pages': [],
+        'noncontinuous_check': False,
+    }
+
+    for round_number in range(1, rounds + 1):
+        fleet_id = fleet_sequence[(round_number - 1) % len(fleet_sequence)]
+        request = rt.action(
+            f'加载第 {round_number} 轮演习 YAML（队伍 {fleet_id}）',
+            Request.from_yaml,
+            args.yaml,
+            source='cli',
+            ship_name_aliases=aliases,
+        )
+        if request is rt.FAILED:
+            return False
+        request = replace(
+            request,
+            params={
+                **request.params,
+                'fleet_id': fleet_id,
+                'rivals_limit': 1,
+            },
+        )
+        requests.append(request)
+        request_index[request.request_id] = round_number
+
+    relay_index = [0]
+    relay_fired = [False] * len(_RELAY_PAUSES)
+    scheduled_rounds = {1}
+
+    def interrupt_now(event: str, check: str) -> None:
+        rt.note(f'>> 断点 [{event}] 触发后勤任务: {check}')
+        processor.interrupt(Request(task_type=check, source='dependency'))
+
+    def on_event(event: str, **data: Any) -> None:
+        events.append((event, dict(data)))
+        round_number = request_index.get(str(data.get('task_id', '')))
+        if event == 'running' and data.get('task_type') == 'exercise':
+            page = identify_current_page(ctx)
+            snapshots['round_start_pages'].append((round_number, page))
+        if event == 'paused':
+            page = identify_current_page(ctx)
+            snapshots['paused_pages'].append(page)
+            snapshots['paused_rounds'].append(round_number)
+        if args.relay:
+            index = relay_index[0]
+            if (
+                index < len(_RELAY_PAUSES)
+                and event == _RELAY_PAUSES[index]
+                and not relay_fired[index]
+            ):
+                relay_fired[index] = True
+                relay_index[0] = index + 1
+                interrupt_now(event, checks[index])
+        if (
+            event == 'completed'
+            and data.get('task_type') == 'exercise'
+            and round_number is not None
+            and round_number < rounds
+            and round_number + 1 not in scheduled_rounds
+        ):
+            if round_number == continuous_rounds and not snapshots['noncontinuous_check']:
+                snapshots['noncontinuous_check'] = True
+                processor.submit(Request(task_type=args.check, source='dependency'))
+                rt.note('>> 连续任务阶段结束，插入后勤任务验证非连续导航')
+            processor.submit(requests[round_number])
+            scheduled_rounds.add(round_number + 1)
+
+    processor.on_event = on_event
+    processor.submit(requests[0])
+    outcomes = rt.action('执行六轮单场演习任务', processor.run_pending)
+    if outcomes is rt.FAILED:
+        return False
+
+    done_exercises = [
+        (request, result)
+        for status, request, result in outcomes
+        if status == 'done' and request.task_type == 'exercise'
+    ]
+    done_types = [request.task_type for status, request, _ in outcomes if status == 'done']
+    expected_fleets = [fleet_sequence[i % len(fleet_sequence)] for i in range(rounds)]
+    actual_fleets = [request.params.get('fleet_id') for request, _ in done_exercises]
+
+    rt.note(f'六轮事件流水: {[event for event, _ in events]}')
+    rt.note(f'任务完成流水: {done_types}')
+    rt.check('六轮演习全部完成', lambda: len(done_exercises) == rounds)
+    rt.check(
+        '每轮只挑战一个对手',
+        lambda: all(isinstance(result, list) and len(result) == 1 for _, result in done_exercises),
+    )
+    rt.check('队伍按 2→3 循环切换', lambda: actual_fleets == expected_fleets)
+    rt.check(
+        '连续任务阶段导航从首页开始',
+        lambda: all(page == PageName.MAIN for _, page in snapshots['round_start_pages']),
+    )
+    rt.check(
+        '连续任务存在相邻演习请求',
+        lambda: any(
+            done_types[i : i + 2] == ['exercise', 'exercise'] for i in range(len(done_types) - 1)
+        ),
+    )
+    rt.check(
+        '非连续任务经过后勤检查',
+        lambda: (
+            snapshots['noncontinuous_check']
+            and any(
+                done_types[i] == 'exercise'
+                and done_types[i + 1] in _CHECK_TYPES
+                and done_types[i + 2] == 'exercise'
+                for i in range(len(done_types) - 2)
+            )
+        ),
+    )
+    if args.relay:
+        rt.check('五个断点全部触发', lambda: all(relay_fired))
+        rt.check(
+            '断点暂停均回到首页',
+            lambda: (
+                len(snapshots['paused_pages']) >= len(_RELAY_PAUSES)
+                and all(page == PageName.MAIN for page in snapshots['paused_pages'])
+            ),
+        )
+        completed_checks = [
+            request.task_type
+            for status, request, _ in outcomes
+            if status == 'done' and request.task_type in _CHECK_TYPES
+        ]
+        rt.check(
+            '断点后勤检查按顺序执行',
+            lambda: completed_checks[: len(checks)] == list(checks),
+        )
+    rt.check('六轮任务最终回到首页', lambda: identify_current_page(ctx) == PageName.MAIN)
+    return rt.state.failed == 0
+
+
 def run(rt: Any) -> bool:  # noqa: C901, PLR0912, PLR0915 - one E2E case owns its assertions
     """执行演习断点打断验证 (单断点 / 接力 / 可带初始化前置)。"""
+    from autowsgr.application.ui.navigation import identify_current_page
     from autowsgr.dispatch.processor import Processor, Request
-    from autowsgr.infra.ui.navigation import identify_current_page
     from autowsgr.types import PageName
 
     args = rt.args
     ctx = rt.ctx
     checks = _resolve_checks(args)
+    rounds = int(getattr(args, 'rounds', 1))
     rt.note(f'计划: {args.yaml}')
     if args.relay:
         rt.note(f'模式: 接力 ({">".join(_RELAY_PAUSES)})')
@@ -155,9 +362,9 @@ def run(rt: Any) -> bool:  # noqa: C901, PLR0912, PLR0915 - one E2E case owns it
 
     # ── 阶段零 (可选): 初始化链路 + 每日浮层清理 ────────────────
     if args.with_init:
+        from autowsgr.application.ui.pages.main_page import MainPage
+        from autowsgr.application.ui.pages.main_page.overlays import detect_overlay
         from autowsgr.business.system.initialize.initialize import initialize
-        from autowsgr.infra.ui.pages.main_page import MainPage
-        from autowsgr.infra.ui.pages.main_page.overlays import detect_overlay
 
         if rt.action('初始化 (任意状态 → 首页 + 清浮层)', initialize, ctx) is rt.FAILED:
             return False
@@ -168,14 +375,12 @@ def run(rt: Any) -> bool:  # noqa: C901, PLR0912, PLR0915 - one E2E case owns it
         )
 
     # ── 准备: 演习请求 (YAML 驱动) + 处理器 ─────────────────────
-    ocr_config = getattr(getattr(ctx, 'config', None), 'ocr', None)
-    aliases = dict(getattr(ocr_config, 'ship_name_aliases', {}) or {})
-    for value in args.ship_name_alias:
-        alias, separator, standard = value.partition('=')
-        if not separator or not alias.strip() or not standard.strip():
-            rt.note(f'无效舰名映射: {value!r}')
-            return False
-        aliases[alias.strip()] = standard.strip()
+    aliases = _collect_aliases(ctx, args)
+    if aliases is None:
+        rt.note('无效舰名映射')
+        return False
+    if rounds > 1:
+        return _run_multiple_rounds(rt, ctx, args, aliases, checks)
     exercise_req = rt.action(
         '加载演习计划 YAML',
         Request.from_yaml,

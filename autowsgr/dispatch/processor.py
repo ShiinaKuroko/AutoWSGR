@@ -347,6 +347,7 @@ class Processor:
         current = self._current_request
         payload = dict(data)
         payload.setdefault('task_type', current.task_type if current is not None else None)
+        payload.setdefault('task_id', current.request_id if current is not None else None)
         self._report(event, **payload)
         if event in _HANDOFF_EVENTS and self._has_higher_waiting_request():
             self._pause.set()
@@ -402,6 +403,7 @@ class Processor:
             request.progress['_completed'] = completed
             self._report(
                 'completed',
+                task_id=request.request_id,
                 task_type=request.task_type,
                 count=completed,
                 total=request.count,

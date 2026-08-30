@@ -110,7 +110,7 @@ class E2ERunner:
         流程与生产 launch() 对齐: 读配置 → 初始化日志 → 连接设备 → 游戏就绪。
         ``no_launch=True`` 时只连接不启动游戏 (截图/页面识别等只读验证)。
         """
-        from autowsgr.infra.system.logger import setup_logger
+        from autowsgr.common.system.logger import setup_logger
         from autowsgr.scheduler.launcher import Launcher
 
         launcher = Launcher()
@@ -299,6 +299,20 @@ class E2ERunner:
         from autowsgr.business.system.initialize.initialize import initialize
 
         initialize(self.ctx)
+        self._handle_daily_overlays()
+
+    def _handle_daily_overlays(self) -> None:
+        """处理每日首次登录弹窗，供初始化和异常恢复共用。"""
+        from autowsgr.business.system.initialize.overlays import (
+            OverlayState,
+            handle_daily_overlays,
+        )
+
+        state = getattr(self.ctx, 'overlay_state', None)
+        if state is None:
+            state = OverlayState()
+            self.ctx.overlay_state = state
+        handle_daily_overlays(self.ctx.ctrl, state)
 
     def _ensure_game_running(self) -> bool:
         """检测游戏是否仍在运行；异常退出时只重新初始化一次。"""
@@ -352,7 +366,7 @@ class E2ERunner:
         if self.ctx is None or self.ctx.ctrl is None:
             return
         try:
-            from autowsgr.infra import save_image
+            from autowsgr.common.system import save_image
 
             screen = self.ctx.ctrl.screenshot()
             tag = f'e2e_fail_{label.replace(" ", "_")[:40]}'
