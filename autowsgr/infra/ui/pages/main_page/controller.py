@@ -7,10 +7,10 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING
 
-from autowsgr.infra.vision.resources import Templates
 from autowsgr.infra.system.logger import get_logger
-from autowsgr.types import PageName
 from autowsgr.infra.vision import ImageChecker, PageMatch, PixelChecker
+from autowsgr.infra.vision.resources import Templates
+from autowsgr.types import PageName
 
 from .constants import (
     NavCoord,
@@ -41,7 +41,7 @@ _log = get_logger('ui')
 def _get_target_checker(target: Target) -> Callable[[np.ndarray], bool]:
     """延迟导入并返回目标页面的 ``is_current_page``。"""
     if target is Target.SORTIE:
-        from autowsgr.ui.map import MapPage
+        from autowsgr.infra.ui.pages.map import MapPage
 
         return MapPage.is_current_page
     if target is Target.TASK:
