@@ -55,7 +55,7 @@ def get_context() -> Any:
 
 def register_stats_log_sink(loop: asyncio.AbstractEventLoop) -> None:
     """Register the GUI stats sink after logging has been configured."""
-    global _stats_sink_id
+    global _stats_sink_id  # noqa: PLW0603
 
     if _stats_sink_id is not None:
         try:
@@ -67,7 +67,6 @@ def register_stats_log_sink(loop: asyncio.AbstractEventLoop) -> None:
     _stats_sink_id = _loguru_logger.add(
         ws_manager.build_log_sink(loop),
         level='INFO',
-        filter=lambda r: True,  # 过滤由 build_log_sink 内部按白名单完成
         backtrace=False,
         diagnose=False,
     )
@@ -75,7 +74,7 @@ def register_stats_log_sink(loop: asyncio.AbstractEventLoop) -> None:
 
 def remove_stats_log_sink() -> None:
     """Remove the currently registered GUI stats sink."""
-    global _stats_sink_id
+    global _stats_sink_id  # noqa: PLW0603
 
     if _stats_sink_id is None:
         return

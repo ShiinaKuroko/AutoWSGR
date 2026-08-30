@@ -106,11 +106,11 @@ class BaseMapPage:
     # ═══════════════════════════════════════════════════════════════════════
 
     @staticmethod
-    def find_selected_chapter_y(screen: np.ndarray) -> float | None:
+    def find_selected_chapter_y(screen: np.ndarray) -> float | None:  # noqa: PLR0912
         """扫描侧边栏, 定位选中章节高亮条的 y 坐标。
 
         单级算法: 自适应阈值 + 连续段 (中心加权)。
-          - 阈值 = max(峰值亮度×0.70, 均值+40), 放宽以兼容不同高亮主题;
+          - 阈值 = max(峰值亮度x0.70, 均值+40), 放宽以兼容不同高亮主题;
           - 邻接高亮点合并为「段」, 取最长段 (≥2 step 合格) 的亮度加权中心;
           - 段覆盖 3%~60% 视为有效; 超出该范围直接返回 None。
           - **不再使用 Top-K 均值降级**: 之前 12% 亮点加权均值实际等价
@@ -151,7 +151,7 @@ class BaseMapPage:
         current: list[tuple[float, int]] = []
         prev_y: float | None = None
 
-        for yy, br in zip(ys, brights):
+        for yy, br in zip(ys, brights, strict=True):
             if br >= adaptive_threshold:
                 if prev_y is not None and (yy - prev_y) <= step * 1.5:
                     current.append((yy, br))
@@ -168,8 +168,8 @@ class BaseMapPage:
         if current:
             segments.append(current)
 
-        MIN_SEG_STEPS = 2  # ≥2 个连续采样点 (≈0.02 高度) 才认为是高亮条
-        valid = [seg for seg in segments if len(seg) >= MIN_SEG_STEPS]
+        min_seg_steps = 2  # ≥2 个连续采样点 (≈0.02 高度) 才认为是高亮条
+        valid = [seg for seg in segments if len(seg) >= min_seg_steps]
         segs_info = sorted(
             ((len(s), min(x[0] for x in s), max(x[0] for x in s)) for s in segments),
             reverse=True,
@@ -187,7 +187,7 @@ class BaseMapPage:
             return None
 
         # 取最长段, 以亮度加权求中心 (比纯平均更贴近高亮条峰值位置)
-        longest = max(valid, key=lambda s: len(s))
+        longest = max(valid, key=len)
         cover = len(longest) / total_count
         if not (0.03 <= cover <= 0.60):
             _log.debug(

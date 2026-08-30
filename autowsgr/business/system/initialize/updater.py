@@ -25,7 +25,7 @@ if TYPE_CHECKING:
     from autowsgr.common.device import AndroidController
 
 
-def needs_update(screen: np.ndarray) -> bool:
+def needs_update(screen: np.ndarray) -> bool:  # noqa: ARG001
     """检测当前画面是否为游戏更新界面。
 
     空实现: 永远返回 ``False``, 不改变现有启动行为。
@@ -33,7 +33,7 @@ def needs_update(screen: np.ndarray) -> bool:
     return False
 
 
-def handle(ctrl: AndroidController) -> None:
+def handle(ctrl: AndroidController) -> None:  # noqa: ARG001
     """处理游戏更新流程 (等待下载 / 点击安装 / 重启游戏)。
 
     空实现: 不做任何动作。

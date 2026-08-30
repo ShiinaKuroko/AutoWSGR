@@ -304,9 +304,9 @@ class YamlTaskRequest(BaseModel):
     @classmethod
     def _normalize_ship_name_aliases(cls, value: dict[str, str]) -> dict[str, str]:
         normalized: dict[str, str] = {}
-        for alias, name in value.items():
-            alias = alias.strip()
-            name = name.strip()
+        for raw_alias, raw_name in value.items():
+            alias = raw_alias.strip()
+            name = raw_name.strip()
             if not alias or not name:
                 raise ValueError('ship_name_aliases 不允许空名称')
             normalized[alias] = name

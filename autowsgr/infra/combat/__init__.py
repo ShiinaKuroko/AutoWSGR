@@ -17,7 +17,7 @@ from autowsgr.business.combat.fleet import (
 )
 
 
-__all__ = [
+__all__ = [  # noqa: PLE0604
     *_application_all,
     *_business_all,
     'ALLOWED_SHIP_TYPE_CODES',

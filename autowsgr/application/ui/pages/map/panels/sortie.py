@@ -10,7 +10,7 @@
 from __future__ import annotations
 
 import time
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 from autowsgr.application.ui.pages.map.base import BaseMapPage
 from autowsgr.application.ui.pages.map.data import (
@@ -56,7 +56,7 @@ class SortiePanelMixin(BaseMapPage):
 
     # click_chapter 内部「方向 fallback 探针」轮换使用的候选 y, 保证每次点不同位置避免死点同坐标
     #  +1 (下一条): 中下半区;  -1 (上一条): 中上半区 (都在安全区 [0.16, 0.84] 内)
-    _PROBE_Y = {
+    _PROBE_Y: ClassVar[dict[int, tuple[float, ...]]] = {
         1: (0.700, 0.645, 0.755, 0.590),
         -1: (0.300, 0.355, 0.245, 0.410),
     }
@@ -169,7 +169,7 @@ class SortiePanelMixin(BaseMapPage):
         self._ctrl.click(SIDEBAR_CLICK_X, click_y)
         return True
 
-    def navigate_to_chapter(self, target: int) -> int | None:
+    def navigate_to_chapter(self, target: int) -> int | None:  # noqa: C901, PLR0912, PLR0915
         """导航到指定章节 (通过 OCR 识别当前位置并批量点击)。
 
         远距离章节切换时采用批量点击 + 充分等待的策略，
@@ -260,15 +260,15 @@ class SortiePanelMixin(BaseMapPage):
             remaining = abs(delta)
             consec_misses = 0  # click_chapter 没点的次数
             consec_stuck = 0  # 点击后章没变的次数
-            MAX_MISSES = 6
-            MAX_STUCK = 3
+            max_misses = 6
+            max_stuck = 3
             steps_done = 0
 
-            while remaining > 0 and consec_misses < MAX_MISSES and consec_stuck < MAX_STUCK:
+            while remaining > 0 and consec_misses < max_misses and consec_stuck < max_stuck:
                 clicked = self.click_chapter(direction, probe_cycle=strategy_switches + steps_done)
                 if not clicked:
                     consec_misses += 1
-                    _log.warning('[UI] 章节导航: click 无动作 %d/%d', consec_misses, MAX_MISSES)
+                    _log.warning('[UI] 章节导航: click 无动作 %d/%d', consec_misses, max_misses)
                     time.sleep(CHAPTER_NAV_DELAY)
                     continue
                 steps_done += 1
@@ -294,7 +294,7 @@ class SortiePanelMixin(BaseMapPage):
                         qc,
                         current,
                         consec_stuck,
-                        MAX_STUCK,
+                        max_stuck,
                     )
                 elif direction == -1 and qc >= current:
                     if qc == current and consec_stuck == 0:
@@ -306,7 +306,7 @@ class SortiePanelMixin(BaseMapPage):
                         qc,
                         current,
                         consec_stuck,
-                        MAX_STUCK,
+                        max_stuck,
                     )
                 else:
                     consec_stuck = 0
@@ -331,10 +331,10 @@ class SortiePanelMixin(BaseMapPage):
                             SIDEBAR_CLICK_X, 0.80, SIDEBAR_CLICK_X, 0.25, duration=0.45
                         )
                     time.sleep(0.5)
-            if consec_misses >= MAX_MISSES:
+            if consec_misses >= max_misses:
                 _log.warning('[UI] 章节导航: 连续 %d 次无点击, 重启本层 attempt', consec_misses)
                 continue
-            if consec_stuck >= MAX_STUCK:
+            if consec_stuck >= max_stuck:
                 _log.warning(
                     '[UI] 章节导航: 连续 %d 次没前进, 重启本层 attempt (strategy_switches=%d)',
                     consec_stuck,
@@ -349,7 +349,7 @@ class SortiePanelMixin(BaseMapPage):
         )
         return None
 
-    def navigate_to_map(self, map_num: int | str) -> None:
+    def navigate_to_map(self, map_num: int | str) -> None:  # noqa: C901, PLR0912, PLR0915
         """在当前章节内, 翻页(←/→)至目标地图节点并 OCR 二次确认。
 
         与 :meth:`navigate_to_chapter` 采用同等强度的稳健策略:
@@ -366,14 +366,14 @@ class SortiePanelMixin(BaseMapPage):
             info_probe = self.recognize_map(self._ctrl.screenshot(), self._ocr)
             if info_probe is not None:
                 cur_max = CHAPTER_MAP_COUNTS.get(int(info_probe.chapter), 99)
-        except Exception:
-            pass
+        except Exception as error:
+            _log.debug('[UI] 当前章节识别失败，使用默认地图上限: {}', error)
         if not 1 <= map_num <= cur_max:
             raise ValueError(
                 f'地图编号 map_num={map_num} 超出范围 [1, {cur_max}] '
                 '(若当前章识别失败请先调用 navigate_to_chapter 正确选章)',
             )
-        MAP_NAV_DELAY = CHAPTER_NAV_DELAY
+        map_nav_delay = CHAPTER_NAV_DELAY
 
         def _read_map(samples: int = 3, delay: float = 0.15) -> tuple[int | None, bool]:
             maps: list[int] = []
@@ -418,12 +418,12 @@ class SortiePanelMixin(BaseMapPage):
                         '[UI] 地图节点导航: 已到达当前章第 %d 节 (地图编号 %d)', map_num, map_num
                     )
                     return
-                time.sleep(MAP_NAV_DELAY)
+                time.sleep(map_nav_delay)
                 continue
 
             confirm = 0
             if not stable:
-                time.sleep(MAP_NAV_DELAY)
+                time.sleep(map_nav_delay)
                 continue
 
             delta = map_num - current
@@ -432,8 +432,8 @@ class SortiePanelMixin(BaseMapPage):
             stuck = 0
             misses = 0
             steps = 0
-            MAX_STUCK = 3
-            MAX_MISSES = 6
+            max_stuck = 3
+            max_misses = 6
 
             _log.info(
                 '[UI] 地图节点导航: 当前 %d -> 目标 %d (delta=%+d)',
@@ -442,7 +442,7 @@ class SortiePanelMixin(BaseMapPage):
                 delta,
             )
 
-            while remaining > 0 and stuck < MAX_STUCK and misses < MAX_MISSES:
+            while remaining > 0 and stuck < max_stuck and misses < max_misses:
                 if direction == 1:
                     self._ctrl.click(*CLICK_MAP_NEXT)
                     _log.info(
@@ -455,7 +455,7 @@ class SortiePanelMixin(BaseMapPage):
                     )
                 steps += 1
                 remaining -= 1
-                time.sleep(MAP_NAV_DELAY + 0.20)  # 翻页动画比章节切换长
+                time.sleep(map_nav_delay + 0.20)  # 翻页动画比章节切换长
 
                 qc = _quick_map()
                 if qc is None:
@@ -472,13 +472,13 @@ class SortiePanelMixin(BaseMapPage):
                         qc,
                         current,
                         stuck,
-                        MAX_STUCK,
+                        max_stuck,
                     )
                 else:
                     stuck = 0
                     current = qc
                     remaining = abs(map_num - current)
-            if stuck >= MAX_STUCK or misses >= MAX_MISSES:
+            if stuck >= max_stuck or misses >= max_misses:
                 _log.warning(
                     '[UI] 地图节点导航: 卡住/识别失败超限 (stuck=%d misses=%d), 重启 attempt',
                     stuck,
