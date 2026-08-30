@@ -151,7 +151,11 @@ class Request:
         if self.ship_name_aliases is None:
             aliases = {}
         elif isinstance(self.ship_name_aliases, Mapping):
-            from autowsgr.constants import SHIPNAMES, get_ship_name_group_id
+            from autowsgr.constants import (
+                SHIPNAMES,
+                get_ship_name_group_id,
+                is_standard_ship_name,
+            )
 
             aliases = {}
             for raw_alias, raw_standard_name in self.ship_name_aliases.items():
@@ -163,7 +167,7 @@ class Request:
                     raise ValueError('ship_name_aliases 不允许空名称')
                 if standard_name not in SHIPNAMES or get_ship_name_group_id(standard_name) is None:
                     raise ValueError(f'ship_name_aliases 目标不是标准舰名: {standard_name}')
-                if alias in SHIPNAMES:
+                if alias in SHIPNAMES and is_standard_ship_name(alias):
                     raise ValueError(f'ship_name_aliases 别名已是标准舰名: {alias}')
                 aliases[alias] = standard_name
         else:

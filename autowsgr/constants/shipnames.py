@@ -102,6 +102,11 @@ def get_ship_name_group_id(name: str) -> str | None:
     return group_id if group_id is not None and group_id.startswith('No.') else None
 
 
+def is_standard_ship_name(name: str) -> bool:
+    """判断名称是否来自内置舰名表，而非用户别名。"""
+    return any(name in names for names in _BASE_SHIPNAME_GROUPS.values())
+
+
 def get_ship_name_variants(name: str) -> list[str]:
     """返回同一艘船的全部名称，未登记名称只返回自身。"""
     group_id = get_ship_name_group_id(name)

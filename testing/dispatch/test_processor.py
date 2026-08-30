@@ -100,6 +100,23 @@ def test_request_from_yaml_keeps_task_ship_name_aliases(tmp_path: Path) -> None:
         request.ship_name_aliases['契卡洛夫'] = '胡德'  # type: ignore[index]
 
 
+def test_request_accepts_configured_aliases(tmp_path: Path) -> None:
+    from autowsgr.common.vision.ocr_rules import set_user_ship_name_aliases
+
+    path = tmp_path / 'exercise.yaml'
+    path.write_text('task_type: exercise\nfleet_id: 2\n', encoding='utf-8')
+    set_user_ship_name_aliases({'希尔德布兰德': 'AIII'})
+    try:
+        request = Request.from_yaml(
+            path,
+            ship_name_aliases={'希尔德布兰德': 'AIII'},
+        )
+    finally:
+        set_user_ship_name_aliases({})
+
+    assert request.ship_name_aliases == {'希尔德布兰德': 'AIII'}
+
+
 def test_request_from_yaml_reports_syntax_errors(tmp_path: Path) -> None:
     path = tmp_path / 'broken.yaml'
     path.write_text('task_type: [', encoding='utf-8')
