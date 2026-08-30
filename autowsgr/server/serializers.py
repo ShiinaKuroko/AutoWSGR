@@ -89,7 +89,7 @@ def serialize_build_queue(build_queue: Any) -> dict[str, Any]:
     }
 
 
-def convert_combat_result(result: Any, round_num: int) -> dict[str, Any]:  # noqa: PLR0912
+def convert_combat_result(result: Any, round_num: int) -> dict[str, Any]:
     """转换 CombatResult 为响应格式。"""
     nodes: list[str] = []
     mvp = None
@@ -100,9 +100,7 @@ def convert_combat_result(result: Any, round_num: int) -> dict[str, Any]:  # noq
     if result.history:
         fight_results = result.history.get_fight_results()
         fight_results_iter = (
-            fight_results.values()
-            if isinstance(fight_results, dict)
-            else fight_results
+            fight_results.values() if isinstance(fight_results, dict) else fight_results
         )
         for fr in fight_results_iter:
             if fr.mvp and fr.mvp > 0 and mvp is None:

@@ -17,7 +17,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 from PIL import Image
 
-from autowsgr.infra.logger import get_logger
+from autowsgr.infra.system.logger import get_logger
 from autowsgr.vision import ROI, ApiDll, PixelChecker, get_api_dll
 from autowsgr.vision.pixel import MatchStrategy, PixelRule, PixelSignature
 
@@ -235,6 +235,7 @@ _SHIP_NAME_CROP = (0.754, 0.268, 0.983, 0.009, 25)
 
 _SHIP_TYPE_CROP = (0.79, 0.29, 0.95, 0.1, 25)
 """舰种 OCR 裁切参数 (bl_x, bl_y, tr_x, tr_y, angle)。"""
+
 
 @dataclass(frozen=True, slots=True)
 class ShipDropResult:

@@ -16,7 +16,7 @@ import enum
 from typing import TYPE_CHECKING
 
 from autowsgr.image_resources import Templates
-from autowsgr.infra.logger import get_logger
+from autowsgr.infra.system.logger import get_logger
 from autowsgr.vision import (
     ImageChecker,
     ImageTemplate,

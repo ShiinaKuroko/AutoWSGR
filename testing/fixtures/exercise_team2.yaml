@@ -3,13 +3,17 @@ fleet_id: 2
 fleet_presets:
   - name: 队伍2
     ships:
-      - name: U-177
-        type: 潜艇
-        min_level: 69
-        strict: true
-      - name: 阿尔戈
-      - name: 卡萨比安卡
-      - name: U-103
-      - name: S-198
-        alternatives: [S189]
-      - alternatives: [阿尔汉格尔斯克, 水貂]
+      - name: 炽热·改
+        search_name: 炽热
+        ship_type: [aadg]
+        min_level: 100
+        relaxed: true
+        candidates:
+          - {name: 米切尔·改, search_name: 米切尔, ship_type: [aadg], min_level: 100, relaxed: false}
+          - {name: 威武·改, search_name: 威武, ship_type: [aadg], min_level: 100, relaxed: false}
+          - {name: 谦逊·改, search_name: 谦逊, ship_type: [aadg], min_level: 100, relaxed: false}
+          - {name: 炽热·改, search_name: 炽热, ship_type: [aadg], min_level: 100, relaxed: false}
+          - {name: 基阿特·改, search_name: 基阿特, ship_type: [aadg], min_level: 100, relaxed: false}
+          - {name: 考文垂, ship_type: [aadg], min_level: 100, relaxed: false}
+          - {name: 不惧(防空导弹驱逐舰), search_name: 不惧, ship_type: [aadg], min_level: 100, relaxed: false}
+          - {name: 絮弗伦, ship_type: [aadg], min_level: 100, relaxed: false}

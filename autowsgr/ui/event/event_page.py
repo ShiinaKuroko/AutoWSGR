@@ -21,8 +21,8 @@ import time
 from functools import lru_cache
 from typing import TYPE_CHECKING, Literal
 
-from autowsgr.infra.exceptions import ActionFailedError
-from autowsgr.infra.logger import get_logger
+from autowsgr.infra.system.exceptions import ActionFailedError
+from autowsgr.infra.system.logger import get_logger
 from autowsgr.types import PageName
 from autowsgr.ui.utils import click_and_wait_for_page
 from autowsgr.vision import (

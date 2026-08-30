@@ -10,6 +10,8 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING, Literal
 
+# 已迁移到新方法: 导航器入口 (原 autowsgr.ops.navigate.goto_page)
+from autowsgr.business.system.navigate import goto_page
 from autowsgr.combat import CombatMode, CombatPlan, CombatResult
 from autowsgr.combat.engine import run_combat
 from autowsgr.combat.fleet import (
@@ -20,9 +22,7 @@ from autowsgr.combat.fleet import (
     validate_fleet_selection_arguments,
 )
 from autowsgr.infra import ActionFailedError
-from autowsgr.infra.logger import get_logger
-# 已迁移到新方法: 导航器入口 (原 autowsgr.ops.navigate.goto_page)
-from autowsgr.business.system.navigate import goto_page
+from autowsgr.infra.system.logger import get_logger
 from autowsgr.types import ConditionFlag, PageName, RepairMode, ShipDamageState
 from autowsgr.ui import BaseEventPage, BattlePreparationPage, MapPage, MapPanel, RepairStrategy
 from autowsgr.ui.utils import NavigationError
@@ -501,7 +501,7 @@ def get_normal_fight_plan(
 
     *plan_root* 透传给 :func:`resolve_plan_path`: 用户自定义目录优先于包内默认。
     """
-    from autowsgr.infra.file_utils import resolve_plan_path
+    from autowsgr.infra.system.file_utils import resolve_plan_path
 
     last_err: Exception | None = None
     for category in ('normal_fight', 'event'):

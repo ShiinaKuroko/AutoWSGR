@@ -41,7 +41,7 @@ emulator_type: 雷电
 log_level: INFO
 ```
 
-完整配置项参见 `autowsgr/infra/config.py` 中的 `UserConfig` 类。
+完整配置项参见 `autowsgr/infra/system/config.py` 中的 `UserConfig` 类。
 
 ---
 

@@ -41,7 +41,7 @@ from autowsgr.business.combat.exercise.spec import ExerciseSpec
 from autowsgr.combat import CombatResult, run_combat
 from autowsgr.combat.fleet import exact_fleet_rules
 from autowsgr.dispatch.registry import register
-from autowsgr.infra.logger import get_logger
+from autowsgr.infra.system.logger import get_logger
 from autowsgr.types import ConditionFlag, ShipDamageState
 
 from .operations import ExerciseOperations

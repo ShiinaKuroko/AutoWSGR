@@ -1,6 +1,7 @@
 """基础设施层 — 日志、配置、异常体系、文件工具。"""
 
-from .config import (
+from .system import config, exceptions, file_utils, logger
+from .system.config import (
     AccountConfig,
     BattleConfig,
     ConfigManager,
@@ -14,7 +15,7 @@ from .config import (
     OCRConfig,
     UserConfig,
 )
-from .exceptions import (
+from .system.exceptions import (
     ActionFailedError,
     AutoWSGRError,
     ConfigError,
@@ -32,8 +33,8 @@ from .exceptions import (
     UIError,
     VisionError,
 )
-from .file_utils import load_yaml, merge_dicts, resolve_plan_path, save_yaml
-from .logger import caller_info, get_logger, save_image, setup_logger
+from .system.file_utils import load_yaml, merge_dicts, resolve_plan_path, save_yaml
+from .system.logger import caller_info, get_logger, save_image, setup_logger
 
 
 __all__ = [

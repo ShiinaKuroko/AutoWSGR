@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from autowsgr.infra.logger import get_logger
+from autowsgr.infra.system.logger import get_logger
 from autowsgr.types import FleetSelection, Formation
 
 from .config import MapData

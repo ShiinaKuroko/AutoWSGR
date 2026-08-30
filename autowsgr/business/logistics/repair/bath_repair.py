@@ -21,8 +21,8 @@ import time
 from typing import TYPE_CHECKING
 
 from autowsgr.business.system.navigate import goto_page
-from autowsgr.infra.base.ui.pages.bath_page import BathPage
-from autowsgr.infra.logger import get_logger
+from autowsgr.infra.system.logger import get_logger
+from autowsgr.infra.ui.pages.bath_page import BathPage
 from autowsgr.types import PageName, ShipDamageState
 
 

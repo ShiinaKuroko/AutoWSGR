@@ -24,7 +24,7 @@ import numpy as np
 
 from autowsgr.combat.recognizer import CombatRecognizer
 from autowsgr.combat.state import CombatPhase
-from autowsgr.infra.logger import get_logger
+from autowsgr.infra.system.logger import get_logger
 from autowsgr.vision import (
     MatchStrategy,
     PixelChecker,
@@ -180,7 +180,7 @@ class MapNodeData:
             _log.warning('[NodeTracker] 地图文件不存在: {}', path)
             return None
 
-        from autowsgr.infra.file_utils import load_yaml
+        from autowsgr.infra.system.file_utils import load_yaml
 
         raw: dict[str, Any] = load_yaml(path)
         return cls._parse(raw)
@@ -229,7 +229,7 @@ class MapNodeData:
             )
             return None
 
-        from autowsgr.infra.file_utils import load_yaml
+        from autowsgr.infra.system.file_utils import load_yaml
 
         raw: dict[str, Any] = load_yaml(path)
         _log.debug('[NodeTracker] 加载活动地图数据: {}', path)

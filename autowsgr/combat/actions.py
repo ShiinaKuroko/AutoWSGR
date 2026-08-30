@@ -17,7 +17,7 @@ from typing import TYPE_CHECKING
 from autowsgr.image_resources import TemplateKey, Templates
 from autowsgr.image_resources.keys import RESULT_GRADE_KEYS
 from autowsgr.infra import get_logger
-from autowsgr.infra.base.combat.battle_preparation.blood import classify_blood
+from autowsgr.infra.ui.pages.battle_preparation.blood import classify_blood
 from autowsgr.types import FightCondition, Formation, RepairMode, ShipDamageState
 from autowsgr.vision import ImageChecker, PixelChecker
 

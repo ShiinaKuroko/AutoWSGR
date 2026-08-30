@@ -40,9 +40,7 @@ class TestDailyOverlays:
         date_type.today.return_value = _TODAY
         monkeypatch.setattr(overlays_mod, 'date', date_type)
 
-    def test_gate_skips_when_already_handled_today(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_gate_skips_when_already_handled_today(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """当日日期匹配时，零开销直接返回，不截图。"""
         from autowsgr.business.system.initialize import overlays
 
@@ -54,9 +52,7 @@ class TestDailyOverlays:
 
         ctrl.screenshot.assert_not_called()
 
-    def test_processes_once_on_date_change(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_processes_once_on_date_change(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """日期变更后第一次调用触发清除流程；第二次零开销跳过。"""
         from autowsgr.business.system.initialize import overlays
 
@@ -123,16 +119,12 @@ class TestInitialize:
 
     # ── 分支 1: 已在首页 → 清浮层 → 完成 ─────────────────────────────────
 
-    def test_already_on_main_just_dismisses_overlays(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_already_on_main_just_dismisses_overlays(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """游戏在运行且已经在首页：只处理浮层，不启动不导航。"""
         from autowsgr.business.system.initialize import initialize, overlays
 
         ctx = _make_ctx()
-        monkeypatch.setattr(
-            initialize, 'identify_current_page', lambda _c, **_k: PageName.MAIN
-        )
+        monkeypatch.setattr(initialize, 'identify_current_page', lambda _c, **_k: PageName.MAIN)
         dismiss = MagicMock()
         monkeypatch.setattr(overlays, 'handle_daily_overlays', dismiss)
 
@@ -143,9 +135,7 @@ class TestInitialize:
 
     # ── 分支 2: 游戏内但不在首页 → 导航回首页 ─────────────────────────────
 
-    def test_known_non_main_page_navigates_home(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_known_non_main_page_navigates_home(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """页面认识但不是首页：调用 goto_page 导航，成功后清浮层。"""
         from autowsgr.business.system.initialize import initialize, overlays
 
@@ -154,9 +144,7 @@ class TestInitialize:
         monkeypatch.setattr(initialize, 'goto_page', goto_page)
         dismiss = MagicMock()
         monkeypatch.setattr(overlays, 'handle_daily_overlays', dismiss)
-        monkeypatch.setattr(
-            initialize, 'identify_current_page', lambda _c, **_k: PageName.MAP
-        )
+        monkeypatch.setattr(initialize, 'identify_current_page', lambda _c, **_k: PageName.MAP)
 
         initialize.initialize(ctx)
 
@@ -175,9 +163,7 @@ class TestInitialize:
         ctx.ctrl.is_app_running.return_value = False
         start = MagicMock()
         monkeypatch.setattr(initialize, '_start_game_flow', start)
-        monkeypatch.setattr(
-            initialize, 'identify_current_page', lambda _c, **_k: PageName.MAIN
-        )
+        monkeypatch.setattr(initialize, 'identify_current_page', lambda _c, **_k: PageName.MAIN)
         dismiss = MagicMock()
         monkeypatch.setattr(overlays, 'handle_daily_overlays', dismiss)
 
@@ -188,9 +174,7 @@ class TestInitialize:
 
     # ── SL 边界: 重启只试 1 次 ──────────────────────────────────────────
 
-    def test_restart_limit_prevents_infinite_loop(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_restart_limit_prevents_infinite_loop(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """页面识别不出 + 导航失败 → SL 重启一次；仍失败 → 抛异常。"""
         from autowsgr.business.system.initialize import initialize
         from autowsgr.ui.utils import NavigationError
@@ -200,9 +184,8 @@ class TestInitialize:
         restart = MagicMock()
         monkeypatch.setattr(initialize, '_restart_game', restart)
         # 识别: 全程 None (页面不认识)
-        monkeypatch.setattr(
-            initialize, 'identify_current_page', lambda _c, **_k: None
-        )
+        monkeypatch.setattr(initialize, 'identify_current_page', lambda _c, **_k: None)
+
         # goto_page 每次都失败 (导航超时)
         def _nav_fail(_c, _t):
             raise NavigationError('timeout')
@@ -223,9 +206,7 @@ class TestInitialize:
 
     # ── 启动流程中调用 updater 空判断 ─────────────────────────────────────
 
-    def test_updater_called_in_start_flow(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_updater_called_in_start_flow(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """启动过程中会做一次更新检测空判断 (未来扩展点)。"""
         from autowsgr.business.system.initialize import initialize, overlays, updater
 
@@ -241,9 +222,7 @@ class TestInitialize:
         monkeypatch.setattr(initialize, '_wait_for_start_screen', lambda _c: True)
         monkeypatch.setattr(initialize, '_click_enter', lambda _c: None)
         monkeypatch.setattr(initialize, '_is_on_main_page', lambda _c: True)
-        monkeypatch.setattr(
-            initialize, 'identify_current_page', lambda _c, **_k: PageName.MAIN
-        )
+        monkeypatch.setattr(initialize, 'identify_current_page', lambda _c, **_k: PageName.MAIN)
         monkeypatch.setattr(overlays, 'handle_daily_overlays', MagicMock())
 
         initialize.initialize(ctx)

@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Any
 
 from autowsgr.infra import NodeConfig, load_yaml
-from autowsgr.infra.logger import get_logger
+from autowsgr.infra.system.logger import get_logger
 from autowsgr.types import FightCondition, Formation, RepairMode
 
 from .fleet import FleetPreset, fleet_presets_from_yaml
@@ -401,7 +401,7 @@ class CombatPlan:
 
     @classmethod
     def from_yaml(cls, path: str | Path) -> CombatPlan:
-        from autowsgr.infra.config_compat import (
+        from autowsgr.infra.system.config_compat import (
             LegacyConfigError,
             detect_legacy_plan,
         )

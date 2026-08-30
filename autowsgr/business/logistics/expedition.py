@@ -19,9 +19,9 @@ from typing import TYPE_CHECKING, Any
 from autowsgr.business.base import BaseExecutor
 from autowsgr.business.system.navigate import goto_page
 from autowsgr.dispatch.registry import register
-from autowsgr.infra.base.combat.map import MapPage, MapPanel
-from autowsgr.infra.base.ui.pages.main_page import MainPage
-from autowsgr.infra.logger import get_logger
+from autowsgr.infra.system.logger import get_logger
+from autowsgr.infra.ui.pages.main_page import MainPage
+from autowsgr.infra.ui.pages.map import MapPage, MapPanel
 from autowsgr.types import PageName
 
 

@@ -16,7 +16,7 @@ from typing import TYPE_CHECKING
 
 import cv2
 
-from autowsgr.infra.logger import get_logger
+from autowsgr.infra.system.logger import get_logger
 from autowsgr.types import FleetSelection
 from autowsgr.ui.decisive.overlay import (
     COST_AREA,

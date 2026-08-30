@@ -79,18 +79,21 @@ def test_create_ocr_missing_enhanced_ship_ocr_attr_no_throw():
         seen_gpu.append(kwargs.get('gpu'))
         return MagicMock()
 
-    with patch(
-        'autowsgr.scheduler.launcher.EasyOCREngine.create',
-        side_effect=_capture_easy_ocr,
-    ) as easy_create, patch(
-        'autowsgr.scheduler.launcher.OCREngine.create',
-    ) as fastocr_create, patch.dict(
-        'os.environ', {'AUTOWSGR_OCR_GPU_MODE': 'cuda'},
-        clear=False,
+    with (
+        patch(
+            'autowsgr.scheduler.launcher.EasyOCREngine.create',
+            side_effect=_capture_easy_ocr,
+        ) as easy_create,
+        patch(
+            'autowsgr.scheduler.launcher.OCREngine.create',
+        ) as fastocr_create,
+        patch.dict(
+            'os.environ',
+            {'AUTOWSGR_OCR_GPU_MODE': 'cuda'},
+            clear=False,
+        ),
     ):
         launcher.create_ocr()
-
-
 
     fastocr_create.assert_not_called()
     easy_create.assert_called_once()
@@ -143,20 +146,22 @@ def test_gui_runtime_contract_probe_compatible():
     previous_save = os.environ.get(save_key)
     previous_gpu = os.environ.get(gpu_key)
     try:
-        with patch(
-            'autowsgr.scheduler.launcher.ConfigManager.load',
-            return_value=fake_config,
-        ), patch(
-            'autowsgr.scheduler.launcher.setup_logger',
-            side_effect=_capture_setup_logger,
+        with (
+            patch(
+                'autowsgr.scheduler.launcher.ConfigManager.load',
+                return_value=fake_config,
+            ),
+            patch(
+                'autowsgr.scheduler.launcher.setup_logger',
+                side_effect=_capture_setup_logger,
+            ),
         ):
             os.environ[save_key] = 'true'
             Launcher().load_config()
             os.environ[save_key] = 'false'
             Launcher().load_config()
         assert save_images_calls == [True, False], (
-            'AUTOWSGR_SAVE_IMAGES 行为不兼容 (GUI probe step 1 fail) '
-            f'actual={save_images_calls}'
+            f'AUTOWSGR_SAVE_IMAGES 行为不兼容 (GUI probe step 1 fail) actual={save_images_calls}'
         )
 
         launcher = Launcher()
@@ -170,8 +175,7 @@ def test_gui_runtime_contract_probe_compatible():
             os.environ[gpu_key] = 'cpu'
             launcher.create_ocr()
         assert ocr_gpu_calls == [True, False], (
-            'AUTOWSGR_OCR_GPU_MODE 行为不兼容 (GUI probe step 2 fail) '
-            f'actual={ocr_gpu_calls}'
+            f'AUTOWSGR_OCR_GPU_MODE 行为不兼容 (GUI probe step 2 fail) actual={ocr_gpu_calls}'
         )
     finally:
         if previous_save is None:

@@ -8,7 +8,7 @@ from typing import Any
 from fastapi import APIRouter
 from pydantic import BaseModel
 
-from autowsgr.infra.logger import get_logger
+from autowsgr.infra.system.logger import get_logger
 from autowsgr.server.device_lease import exclusive_device_operation
 from autowsgr.server.schemas import ApiResponse
 

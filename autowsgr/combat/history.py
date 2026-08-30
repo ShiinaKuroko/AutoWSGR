@@ -12,7 +12,7 @@ from dataclasses import dataclass, field
 from enum import Enum, auto
 from typing import TYPE_CHECKING, Any
 
-from autowsgr.infra.logger import get_logger
+from autowsgr.infra.system.logger import get_logger
 from autowsgr.types import ConditionFlag, ShipDamageState
 
 
@@ -213,9 +213,7 @@ class CombatHistory:
         用于幂等捕获：同一节点的掉落事件已记录过时不再重复 OCR。
         """
         for event in reversed(self.events):
-            if event.event_type == event_type and (
-                not node or event.node == node
-            ):
+            if event.event_type == event_type and (not node or event.node == node):
                 return event
         return None
 

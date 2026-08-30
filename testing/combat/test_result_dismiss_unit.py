@@ -75,9 +75,7 @@ class TestClickResultUntilClosed:
 
     def test_intermediate_page_waits_for_confirmation(self):
         """过渡帧未确认时只等待, 不盲点跳过尚未识别的掉落页。"""
-        host, device, recognizer = _make_host(
-            [None, None, None, None, CombatPhase.GET_SHIP]
-        )
+        host, device, recognizer = _make_host([None, None, None, None, CombatPhase.GET_SHIP])
         host._click_result_until_closed(CombatPhase.RESULT)
         assert device.click.call_count == 1
         assert recognizer.identify_current.call_count == 4

@@ -7,7 +7,7 @@ import subprocess
 
 from autowsgr.emulator.detector import _find_adb
 from autowsgr.infra import EmulatorConfig, EmulatorError, EmulatorNotFoundError
-from autowsgr.infra.logger import get_logger
+from autowsgr.infra.system.logger import get_logger
 from autowsgr.types import OSType
 
 from .base import EmulatorProcessManager

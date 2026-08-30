@@ -78,8 +78,7 @@ def _navigate_to(ctrl: AndroidController, pause: float) -> None:
     import time
 
     from autowsgr.ui.main_page import MainPage
-    from autowsgr.ui.map import MapPanel
-    from autowsgr.ui.map import MapPage
+    from autowsgr.ui.map import MapPage, MapPanel
 
     if not reset_to_main_page(ctrl, pause):
         return

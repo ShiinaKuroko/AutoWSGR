@@ -18,7 +18,7 @@ import threading
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from autowsgr.infra.logger import get_logger
+from autowsgr.infra.system.logger import get_logger
 from autowsgr.ui.navigation import neighbors
 
 

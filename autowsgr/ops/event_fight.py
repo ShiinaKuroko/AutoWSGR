@@ -29,7 +29,7 @@ from autowsgr.combat.fleet import (
     resolve_fleet_selection,
     validate_fleet_selection_arguments,
 )
-from autowsgr.infra.logger import get_logger
+from autowsgr.infra.system.logger import get_logger
 from autowsgr.ops.normal_fight import NormalFightRunner
 
 
@@ -200,7 +200,7 @@ def run_event_fight_from_yaml(
     -------
     list[CombatResult]
     """
-    from autowsgr.infra.file_utils import resolve_plan_path
+    from autowsgr.infra.system.file_utils import resolve_plan_path
 
     resolved = resolve_plan_path(yaml_path, category='event')
     plan = CombatPlan.from_yaml(resolved)

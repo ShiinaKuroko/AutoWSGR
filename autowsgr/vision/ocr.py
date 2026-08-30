@@ -23,7 +23,7 @@ import cv2
 import easyocr
 
 from autowsgr.constants import SHIPNAMES, normalize_ship_name
-from autowsgr.infra.logger import get_logger
+from autowsgr.infra.system.logger import get_logger
 from autowsgr.vision.ocr_rules import (
     EasyOCRProfile,
     FastOCRProfile,

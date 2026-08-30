@@ -2,7 +2,7 @@
 
 验证链路契约: 首页 → 浴场 → 选择修理 overlay → 派修 → 回首页。
 覆盖点:
-    - goto_page 跨页导航 (浴场页已迁 infra/base/ui/pages/bath_page/)
+    - goto_page 跨页导航 (浴场页已迁 infra/ui/pages/bath_page/)
     - 选择修理 overlay 开关机制 (点击舰船后自动关闭)
     - OCR 选船 (修理时间最长优先) + BathRoom 状态机 occupy
 
@@ -16,6 +16,7 @@
 
 from __future__ import annotations
 
+
 DESC = '浴场修理链路: 首页 → 浴场 → 派修 → 回首页'
 
 
@@ -23,7 +24,7 @@ def run(rt) -> bool:
     """执行浴场修理链路并验证终态契约。"""
     from autowsgr.business.logistics.repair.bath_repair import repair_one_available
     from autowsgr.business.system.navigate import identify_current_page
-    from autowsgr.infra.base.ui.pages.main_page import MainPage
+    from autowsgr.infra.ui.pages.main_page import MainPage
 
     ctx = rt.ctx
 

@@ -16,11 +16,11 @@ from dataclasses import dataclass
 from datetime import date
 from typing import TYPE_CHECKING
 
-from autowsgr.infra.base.ui.pages.main_page.overlays import (
+from autowsgr.infra.system.logger import get_logger
+from autowsgr.infra.ui.pages.main_page.overlays import (
     detect_overlay,
     dismiss_overlay,
 )
-from autowsgr.infra.logger import get_logger
 from autowsgr.ui.utils import confirm_operation
 
 
@@ -86,7 +86,9 @@ def handle_daily_overlays(ctrl: AndroidController, state: OverlayState) -> None:
         if overlay is not None:
             _log.info(
                 '[Overlays] 消除浮层: {} ({}/{})',
-                overlay, attempt + 1, _OVERLAY_DISMISS_MAX,
+                overlay,
+                attempt + 1,
+                _OVERLAY_DISMISS_MAX,
             )
             dismiss_overlay(ctrl, overlay)
             time.sleep(_OVERLAY_DISMISS_WAIT)
@@ -96,7 +98,8 @@ def handle_daily_overlays(ctrl: AndroidController, state: OverlayState) -> None:
         if confirm_operation(ctrl, must_confirm=False, timeout=_OVERLAY_CONFIRM_TIMEOUT):
             _log.info(
                 '[Overlays] 确认弹窗兜底 ({}/{})',
-                attempt + 1, _OVERLAY_DISMISS_MAX,
+                attempt + 1,
+                _OVERLAY_DISMISS_MAX,
             )
             time.sleep(_OVERLAY_DISMISS_WAIT)
             continue

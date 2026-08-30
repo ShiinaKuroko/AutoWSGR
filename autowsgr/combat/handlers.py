@@ -35,8 +35,8 @@ from autowsgr.combat.recognition import (
 )
 from autowsgr.combat.recognizer import CombatRecognizer
 from autowsgr.image_resources import TemplateKey
-from autowsgr.infra.base.ui.interaction import wait_leave_page
-from autowsgr.infra.logger import get_logger
+from autowsgr.infra.system.logger import get_logger
+from autowsgr.infra.ui.interaction import wait_leave_page
 from autowsgr.types import ConditionFlag, Formation, ShipDamageState
 from autowsgr.vision import ImageChecker
 

@@ -7,7 +7,7 @@
 from __future__ import annotations
 
 from autowsgr.infra import DockFullError
-from autowsgr.infra.logger import get_logger
+from autowsgr.infra.system.logger import get_logger
 from autowsgr.ops.decisive.base import DecisiveBase
 from autowsgr.types import PageName
 

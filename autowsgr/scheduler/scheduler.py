@@ -28,7 +28,7 @@ from datetime import date
 from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
 from autowsgr.combat import CombatResult
-from autowsgr.infra.logger import get_logger
+from autowsgr.infra.system.logger import get_logger
 from autowsgr.types import ConditionFlag
 
 

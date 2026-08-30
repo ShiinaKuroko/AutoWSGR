@@ -26,8 +26,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from autowsgr.infra import EmulatorConfig, EmulatorConnectionError
-from autowsgr.infra.config import operation_delay
-from autowsgr.infra.logger import caller_info, get_logger
+from autowsgr.infra.system.config import operation_delay
+from autowsgr.infra.system.logger import caller_info, get_logger
 
 from ..detector import _find_adb, detect_emulators, prompt_user_select, resolve_serial
 from .protocol import AndroidController, DeviceInfo
@@ -87,7 +87,7 @@ class ScrcpyController(AndroidController):
         设备的 ADB serial 地址（如 ``"emulator-5554"``、``"127.0.0.1:16384"``）。
         为 None 时自动检测。
     config:
-        :class:`~autowsgr.infra.config.EmulatorConfig` 实例。
+        :class:`~autowsgr.infra.system.config.EmulatorConfig` 实例。
     max_size:
         视频流最大尺寸（宽或高的上限，0 = 不限制）。
     bitrate:

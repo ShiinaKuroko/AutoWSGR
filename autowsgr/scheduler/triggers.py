@@ -27,7 +27,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, ClassVar
 
 from autowsgr.combat import GradeCondition, grade_condition_met
-from autowsgr.infra.logger import get_logger
+from autowsgr.infra.system.logger import get_logger
 from autowsgr.scheduler.scheduler import FightTask
 from autowsgr.types import ConditionFlag
 

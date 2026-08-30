@@ -734,7 +734,7 @@ def connect_via_launcher(
     """
     from autowsgr.emulator import ADBController
     from autowsgr.infra import ConfigManager
-    from autowsgr.infra.logger import setup_logger
+    from autowsgr.infra.system.logger import setup_logger
 
     # 加载配置（自动检测当前目录下的 usersettings.yaml，不存在则用默认值）
     cfg = ConfigManager.load()

@@ -9,7 +9,7 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING
 
-from autowsgr.infra.logger import get_logger
+from autowsgr.infra.system.logger import get_logger
 
 
 if TYPE_CHECKING:

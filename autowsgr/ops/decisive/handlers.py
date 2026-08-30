@@ -21,7 +21,7 @@ import cv2
 
 from autowsgr.combat.engine import run_combat
 from autowsgr.combat.plan import CombatMode, CombatPlan, NodeDecision
-from autowsgr.infra.logger import get_logger
+from autowsgr.infra.system.logger import get_logger
 from autowsgr.ops.decisive.base import DecisiveBase
 from autowsgr.types import (
     ConditionFlag,

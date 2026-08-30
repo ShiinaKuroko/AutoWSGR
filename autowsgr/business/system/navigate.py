@@ -9,9 +9,9 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING
 
-from autowsgr.infra.logger import get_logger
+from autowsgr.business.navigation import find_path
+from autowsgr.infra.system.logger import get_logger
 from autowsgr.types import PageName
-from autowsgr.infra.base.ui.navigation import find_path
 from autowsgr.ui.page import get_current_page
 from autowsgr.ui.utils import NavigationError
 

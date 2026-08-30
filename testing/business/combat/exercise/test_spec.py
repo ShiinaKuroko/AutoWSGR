@@ -17,12 +17,69 @@ def _params() -> dict:
             {
                 'name': '队伍2',
                 'ships': [
-                    {'name': 'U-177', 'ship_type': ['ss'], 'min_level': 69},
-                    {'name': '阿尔戈'},
-                    {'name': '卡萨比安卡'},
-                    {'name': 'U-103'},
-                    {'name': 'S-198', 'candidates': ['S189']},
-                    {'candidates': ['阿尔汉格尔斯克', '水貂']},
+                    {
+                        'name': '炽热·改',
+                        'search_name': '炽热',
+                        'ship_type': ['aadg'],
+                        'min_level': 100,
+                        'relaxed': True,
+                        'candidates': [
+                            {
+                                'name': '米切尔·改',
+                                'search_name': '米切尔',
+                                'ship_type': ['aadg'],
+                                'min_level': 100,
+                                'relaxed': False,
+                            },
+                            {
+                                'name': '威武·改',
+                                'search_name': '威武',
+                                'ship_type': ['aadg'],
+                                'min_level': 100,
+                                'relaxed': False,
+                            },
+                            {
+                                'name': '谦逊·改',
+                                'search_name': '谦逊',
+                                'ship_type': ['aadg'],
+                                'min_level': 100,
+                                'relaxed': False,
+                            },
+                            {
+                                'name': '炽热·改',
+                                'search_name': '炽热',
+                                'ship_type': ['aadg'],
+                                'min_level': 100,
+                                'relaxed': False,
+                            },
+                            {
+                                'name': '基阿特·改',
+                                'search_name': '基阿特',
+                                'ship_type': ['aadg'],
+                                'min_level': 100,
+                                'relaxed': False,
+                            },
+                            {
+                                'name': '考文垂',
+                                'ship_type': ['aadg'],
+                                'min_level': 100,
+                                'relaxed': False,
+                            },
+                            {
+                                'name': '不惧(防空导弹驱逐舰)',
+                                'search_name': '不惧',
+                                'ship_type': ['aadg'],
+                                'min_level': 100,
+                                'relaxed': False,
+                            },
+                            {
+                                'name': '絮弗伦',
+                                'ship_type': ['aadg'],
+                                'min_level': 100,
+                                'relaxed': False,
+                            },
+                        ],
+                    },
                 ],
             },
         ],
@@ -37,13 +94,25 @@ def test_exercise_spec_converts_team_rules() -> None:
     assert spec.fleet_selection.fleet_id == 2
     rules = spec.fleet_selection.slot_rules
     assert rules is not None
-    assert len(rules) == 6
+    assert len(rules) == 1
     assert rules[0].primary is not None
+    assert rules[0].primary.name == '炽热·改'
+    assert rules[0].primary.search_name == '炽热'
     assert rules[0].primary.ship_types
-    assert rules[0].primary.min_level == 69
-    assert [option.name for option in rules[4].options] == ['S-198', 'S189']
-    assert rules[5].primary is None
-    assert [option.name for option in rules[5].options] == ['阿尔汉格尔斯克', '水貂']
+    assert rules[0].primary.ship_types[0].name == 'AADG'
+    assert rules[0].primary.min_level == 100
+    assert rules[0].primary.relaxed_constraints is True
+    assert [option.name for option in rules[0].candidates] == [
+        '米切尔·改',
+        '威武·改',
+        '谦逊·改',
+        '炽热·改',
+        '基阿特·改',
+        '考文垂',
+        '不惧(防空导弹驱逐舰)',
+        '絮弗伦',
+    ]
+    assert all(option.relaxed_constraints is False for option in rules[0].candidates)
 
 
 def test_exercise_spec_rejects_bad_mode_and_unknown_field() -> None:

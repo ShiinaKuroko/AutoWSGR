@@ -21,7 +21,7 @@ from typing import TYPE_CHECKING
 import cv2
 import numpy as np
 
-from autowsgr.infra.logger import get_logger
+from autowsgr.infra.system.logger import get_logger
 
 from .image_template import (
     ImageMatchDetail,

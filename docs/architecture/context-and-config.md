@@ -67,7 +67,7 @@ Launcher.build_context() → GameContext(ctrl, config, ocr)
 
 ## UserConfig — 用户配置模型
 
-**文件**: `autowsgr/infra/config.py`
+**文件**: `autowsgr/infra/system/config.py`
 
 基于 Pydantic v2 的不可变配置模型层级。所有子配置均标记 `frozen=True`。
 
@@ -149,7 +149,7 @@ UserConfig (顶层)
 
 ## 配置加载流程
 
-**文件**: `autowsgr/infra/config.py` — `ConfigManager`
+**文件**: `autowsgr/infra/system/config.py` — `ConfigManager`
 
 ```
 用户 YAML 文件 (usersettings.yaml)

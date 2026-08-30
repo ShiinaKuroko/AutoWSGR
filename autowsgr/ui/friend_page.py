@@ -18,7 +18,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from autowsgr.infra.logger import get_logger
+from autowsgr.infra.system.logger import get_logger
 from autowsgr.types import PageName
 from autowsgr.ui.utils import click_and_wait_for_page
 from autowsgr.vision import (
@@ -95,7 +95,7 @@ class FriendPage:
         screen:
             截图 (HxWx3, RGB)。
         """
-        from autowsgr.infra.base.ui.pages.tabbed_page import TabbedPageType, check_tabbed_page
+        from autowsgr.infra.ui.pages.tabbed_page import TabbedPageType, check_tabbed_page
 
         return check_tabbed_page(screen, TabbedPageType.FRIEND)
 

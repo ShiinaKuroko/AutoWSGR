@@ -4,7 +4,7 @@
 ----
 1. 运行 ``adb devices`` 获取当前在线设备列表。
 2. 按 serial 端口规则推断模拟器类型。
-3. 结合 :class:`~autowsgr.infra.config.EmulatorConfig` 决定使用哪个 serial：
+3. 结合 :class:`~autowsgr.infra.system.config.EmulatorConfig` 决定使用哪个 serial：
 
    - ``config.serial`` 非空 → 直接使用
    - 仅 1 个在线设备      → 自动选择
@@ -21,7 +21,7 @@
     candidates = detect_emulators()
 
     # 结合配置自动决策（ScrcpyController 内部调用）
-    from autowsgr.infra.config import EmulatorConfig
+    from autowsgr.infra.system.config import EmulatorConfig
     serial = resolve_serial(EmulatorConfig())
 """
 
@@ -35,7 +35,7 @@ import sys
 from dataclasses import dataclass, field
 
 from autowsgr.infra import EmulatorConfig, EmulatorConnectionError
-from autowsgr.infra.logger import get_logger
+from autowsgr.infra.system.logger import get_logger
 from autowsgr.types import EmulatorType
 
 
@@ -366,12 +366,12 @@ def resolve_serial(config: EmulatorConfig, adb_path: str | None = None) -> str:
     2. 在线设备恰好 1 个     → 自动采用
     3. 在线设备多于 1 个，``config.type`` 恰好匹配 1 个 → 自动采用
     4. 在线设备多于 1 个，无法唯一匹配 → :func:`prompt_user_select`
-    5. 没有在线设备 → 抛出 :class:`~autowsgr.infra.exceptions.EmulatorConnectionError`
+    5. 没有在线设备 → 抛出 :class:`~autowsgr.infra.system.exceptions.EmulatorConnectionError`
 
     Parameters
     ----------
     config:
-        :class:`~autowsgr.infra.config.EmulatorConfig` 实例。
+        :class:`~autowsgr.infra.system.config.EmulatorConfig` 实例。
     adb_path:
         adb 可执行文件路径；``None`` 时自动查找。
 

@@ -17,7 +17,7 @@ The decorator will be enhanced to support:
 import functools
 import time
 from typing import Callable, TypeVar, Any, Sequence
-from autowsgr.infra.logger import get_logger
+from autowsgr.infra.system.logger import get_logger
 
 _log = get_logger("ops.retry")
 

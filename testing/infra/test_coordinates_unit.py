@@ -1,4 +1,4 @@
-"""infra.base.constants.coordinates 坐标加载器的无设备单元测试。
+"""infra.ui.profile.coordinates 坐标加载器的无设备单元测试。
 
 硬约束: YAML 文件格式不可变 (键 + [x, y] 绝对像素 + 注释),
 加载器只负责读取与归一化 (1280x720 → 0-1 相对坐标)。
@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import pytest
 
-from autowsgr.infra.base.constants import coordinates
+from autowsgr.infra.ui.profile import coordinates
 
 
 class TestPoint:

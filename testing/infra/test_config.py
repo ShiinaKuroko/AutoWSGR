@@ -241,6 +241,7 @@ destroy_ship_types:
 
 # ── FightConfig ──
 
+
 class TestFightConfig:
     def test_repair_mode_expanded(self):
         cfg = FightConfig(repair_mode=RepairMode.moderate_damage)
@@ -296,12 +297,12 @@ class TestConfigCompat:
     # ── detect_legacy_user_config (只读) ──
 
     def test_detect_clean_returns_empty(self):
-        from autowsgr.infra.config_compat import detect_legacy_user_config
+        from autowsgr.infra.system.config_compat import detect_legacy_user_config
 
         assert detect_legacy_user_config({'emulator': {'type': 'MuMu'}}) == []
 
     def test_detect_hits_each_legacy_item(self):
-        from autowsgr.infra.config_compat import detect_legacy_user_config
+        from autowsgr.infra.system.config_compat import detect_legacy_user_config
 
         assert detect_legacy_user_config({'ship_name_file': 'x'})
         assert detect_legacy_user_config({'account': {'account': 'a', 'password': 'b'}})
@@ -310,20 +311,20 @@ class TestConfigCompat:
         assert detect_legacy_user_config({'check_update': False})
 
     def test_detect_non_dict_returns_empty(self):
-        from autowsgr.infra.config_compat import detect_legacy_user_config
+        from autowsgr.infra.system.config_compat import detect_legacy_user_config
 
         assert detect_legacy_user_config(None) == []  # type: ignore[arg-type]
 
     # ── migrate_raw_config (原地转换, 无副作用) ──
 
     def test_ship_name_file_removed(self):
-        from autowsgr.infra.config_compat import migrate_raw_config
+        from autowsgr.infra.system.config_compat import migrate_raw_config
 
         out = migrate_raw_config({'ship_name_file': '/tmp/x.json'})
         assert 'ship_name_file' not in out
 
     def test_account_credentials_removed(self):
-        from autowsgr.infra.config_compat import migrate_raw_config
+        from autowsgr.infra.system.config_compat import migrate_raw_config
 
         out = migrate_raw_config(
             {'account': {'game_app': '官服', 'account': 'a', 'password': 'b'}},
@@ -331,7 +332,7 @@ class TestConfigCompat:
         assert out['account'] == {'game_app': '官服'}
 
     def test_delay_migrated_to_operation_delay_fields(self):
-        from autowsgr.infra.config_compat import migrate_raw_config
+        from autowsgr.infra.system.config_compat import migrate_raw_config
 
         out = migrate_raw_config({'delay': 1.5})
         assert 'delay' not in out
@@ -339,7 +340,7 @@ class TestConfigCompat:
         assert out['operation_delay_max'] == 1.5
 
     def test_delay_unparseable_dropped(self):
-        from autowsgr.infra.config_compat import migrate_raw_config
+        from autowsgr.infra.system.config_compat import migrate_raw_config
 
         out = migrate_raw_config({'delay': 'abc'})
         assert 'delay' not in out
@@ -353,13 +354,13 @@ class TestConfigCompat:
         assert config.operation_delay() == 2.0
 
     def test_non_dict_passthrough(self):
-        from autowsgr.infra.config_compat import migrate_raw_config
+        from autowsgr.infra.system.config_compat import migrate_raw_config
 
         assert migrate_raw_config(None) is None  # type: ignore[arg-type]
 
     def test_legacy_emulator_fields_migrated(self):
         """classic 平铺 emulator_type/start_cmd/name → 嵌套 emulator 块, 值透传。"""
-        from autowsgr.infra.config_compat import migrate_raw_config
+        from autowsgr.infra.system.config_compat import migrate_raw_config
 
         out = migrate_raw_config(
             {
@@ -377,7 +378,7 @@ class TestConfigCompat:
 
     def test_nested_emulator_takes_precedence(self):
         """同时存在平铺与嵌套时, 以嵌套 emulator 块为准。"""
-        from autowsgr.infra.config_compat import migrate_raw_config
+        from autowsgr.infra.system.config_compat import migrate_raw_config
 
         out = migrate_raw_config(
             {
@@ -390,7 +391,7 @@ class TestConfigCompat:
 
     def test_legacy_null_emulator_fields_skipped(self):
         """None 值的平铺模拟器字段不写入嵌套 (让 dev 自动检测)。"""
-        from autowsgr.infra.config_compat import migrate_raw_config
+        from autowsgr.infra.system.config_compat import migrate_raw_config
 
         out = migrate_raw_config(
             {'emulator_type': 'MuMu', 'emulator_start_cmd': None, 'emulator_name': None},
@@ -399,7 +400,7 @@ class TestConfigCompat:
 
     def test_legacy_toplevel_fields_dropped(self):
         """check_update / 顶层 show_map_node 等 classic 废弃字段被清理。"""
-        from autowsgr.infra.config_compat import migrate_raw_config
+        from autowsgr.infra.system.config_compat import migrate_raw_config
 
         out = migrate_raw_config({'check_update': False, 'show_map_node': True})
         assert 'check_update' not in out
@@ -410,7 +411,7 @@ class TestConfigCompat:
     def test_detect_migrate_consistency(self):
         import copy
 
-        from autowsgr.infra.config_compat import (
+        from autowsgr.infra.system.config_compat import (
             detect_legacy_user_config,
             migrate_raw_config,
         )
@@ -455,14 +456,14 @@ class TestConfigCompat:
         self,
         tmp_yaml: Callable[[str, str], Path],
     ):
-        from autowsgr.infra.config_compat import LegacyConfigError
+        from autowsgr.infra.system.config_compat import LegacyConfigError
 
         path = tmp_yaml('emu_legacy.yaml', "emulator_type: 'MuMu'\n")
         with pytest.raises(LegacyConfigError, match='迁移工具'):
             UserConfig.from_yaml(path)
 
     def test_from_yaml_crashes_on_delay(self, tmp_yaml: Callable[[str, str], Path]):
-        from autowsgr.infra.config_compat import LegacyConfigError
+        from autowsgr.infra.system.config_compat import LegacyConfigError
 
         path = tmp_yaml('delay_legacy.yaml', 'delay: 1.5\n')
         with pytest.raises(LegacyConfigError, match='delay'):
@@ -496,14 +497,14 @@ class TestPlanCompat:
     # ── detect_legacy_plan (只读) ──
 
     def test_detect_clean_fleet_empty(self):
-        from autowsgr.infra.config_compat import detect_legacy_plan
+        from autowsgr.infra.system.config_compat import detect_legacy_plan
 
         assert detect_legacy_plan({'fleet': ['吹雪', '明斯克']}) == []
         assert detect_legacy_plan({'fleet': []}) == []
         assert detect_legacy_plan({}) == []
 
     def test_detect_leading_empty_fleet(self):
-        from autowsgr.infra.config_compat import detect_legacy_plan
+        from autowsgr.infra.system.config_compat import detect_legacy_plan
 
         assert detect_legacy_plan({'fleet': ['', '吹雪']})
         assert detect_legacy_plan({'fleet': [None, '吹雪']})
@@ -511,32 +512,32 @@ class TestPlanCompat:
     # ── migrate_plan_dict (原地转换) ──
 
     def test_leading_empty_string_stripped(self):
-        from autowsgr.infra.config_compat import migrate_plan_dict
+        from autowsgr.infra.system.config_compat import migrate_plan_dict
 
         out = migrate_plan_dict({'fleet': ['', '吹雪', '明斯克', '胡德', '赤诚', '']})
         # 前导 "" 占位被剥离; 尾部 "" 保留 (运行期归一化为 None = 不关心该槽位)
         assert out['fleet'] == ['吹雪', '明斯克', '胡德', '赤诚', '']
 
     def test_leading_none_stripped(self):
-        from autowsgr.infra.config_compat import migrate_plan_dict
+        from autowsgr.infra.system.config_compat import migrate_plan_dict
 
         out = migrate_plan_dict({'fleet': [None, '吹雪', '明斯克']})
         assert out['fleet'] == ['吹雪', '明斯克']
 
     def test_multiple_leading_empties_stripped(self):
-        from autowsgr.infra.config_compat import migrate_plan_dict
+        from autowsgr.infra.system.config_compat import migrate_plan_dict
 
         out = migrate_plan_dict({'fleet': ['', '', '吹雪']})
         assert out['fleet'] == ['吹雪']
 
     def test_whitespace_only_treated_as_empty(self):
-        from autowsgr.infra.config_compat import migrate_plan_dict
+        from autowsgr.infra.system.config_compat import migrate_plan_dict
 
         out = migrate_plan_dict({'fleet': ['   ', '吹雪']})
         assert out['fleet'] == ['吹雪']
 
     def test_clean_fleet_unchanged(self):
-        from autowsgr.infra.config_compat import migrate_plan_dict
+        from autowsgr.infra.system.config_compat import migrate_plan_dict
 
         clean = ['飞龙', 'U-1206', 'U-47', '射水鱼', 'U-96', '鲃鱼']
         out = migrate_plan_dict({'fleet': list(clean)})
@@ -544,26 +545,26 @@ class TestPlanCompat:
 
     def test_non_list_fleet_skipped(self):
         """fleet 缺省 / None / 非 list 都不动。"""
-        from autowsgr.infra.config_compat import migrate_plan_dict
+        from autowsgr.infra.system.config_compat import migrate_plan_dict
 
         assert migrate_plan_dict({}) == {}
         assert migrate_plan_dict({'fleet': None}) == {'fleet': None}
         assert migrate_plan_dict({'fleet': '吹雪'}) == {'fleet': '吹雪'}
 
     def test_empty_list_fleet_skipped(self):
-        from autowsgr.infra.config_compat import migrate_plan_dict
+        from autowsgr.infra.system.config_compat import migrate_plan_dict
 
         assert migrate_plan_dict({'fleet': []}) == {'fleet': []}
 
     def test_non_dict_passthrough(self):
-        from autowsgr.infra.config_compat import migrate_plan_dict
+        from autowsgr.infra.system.config_compat import migrate_plan_dict
 
         assert migrate_plan_dict(None) is None  # type: ignore[arg-type]
 
     def test_from_yaml_crashes_on_legacy_fleet(self, tmp_yaml: Callable[[str, str], Path]):
         """CombatPlan.from_yaml 检测到 classic 前导空 fleet → 崩溃提示迁移。"""
         from autowsgr.combat.plan import CombatPlan
-        from autowsgr.infra.config_compat import LegacyConfigError
+        from autowsgr.infra.system.config_compat import LegacyConfigError
 
         path = tmp_yaml('plan_legacy.yaml', 'fleet: ["", "吹雪", "明斯克"]\n')
         with pytest.raises(LegacyConfigError, match='迁移工具'):

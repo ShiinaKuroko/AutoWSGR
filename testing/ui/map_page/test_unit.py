@@ -11,9 +11,9 @@ from autowsgr.emulator import AndroidController
 from autowsgr.ui.map import (
     CHAPTER_MAP_COUNTS,
     MAP_DATABASE,
+    MapPage,
     parse_map_title,
 )
-from autowsgr.ui.map import MapPage
 
 
 # ─────────────────────────────────────────────

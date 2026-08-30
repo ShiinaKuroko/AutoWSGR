@@ -31,7 +31,7 @@ from pathlib import Path
 from autowsgr.context import GameContext
 from autowsgr.emulator import AndroidController, ScrcpyController
 from autowsgr.infra import ConfigManager, UserConfig
-from autowsgr.infra.logger import get_logger, setup_logger
+from autowsgr.infra.system.logger import get_logger, setup_logger
 from autowsgr.vision import EasyOCREngine, OCREngine
 
 

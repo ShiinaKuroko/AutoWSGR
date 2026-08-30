@@ -5,7 +5,7 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING
 
-from autowsgr.infra.logger import get_logger
+from autowsgr.infra.system.logger import get_logger
 from autowsgr.types import ConditionFlag, Formation, ShipDamageState
 
 from .actions import click_speed_up, dismiss_resource_confirm

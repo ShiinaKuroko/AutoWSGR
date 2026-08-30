@@ -1,6 +1,6 @@
 """演习准备页导航节点的无设备回归。"""
 
-from autowsgr.infra.base.ui.navigation import find_path
+from autowsgr.business.navigation import find_path
 from autowsgr.types import PageName
 from autowsgr.ui.page import get_registered_pages
 

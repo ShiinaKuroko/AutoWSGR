@@ -22,7 +22,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from autowsgr.combat import CombatResult
-from autowsgr.infra.logger import get_logger
+from autowsgr.infra.system.logger import get_logger
 from autowsgr.scheduler.triggers import (
     CampaignTrigger,
     ExerciseTrigger,
@@ -39,7 +39,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from autowsgr.context import GameContext
-    from autowsgr.infra.config import DailyAutomationConfig
+    from autowsgr.infra.system.config import DailyAutomationConfig
     from autowsgr.scheduler.scheduler import TaskScheduler
 
 _log = get_logger('scheduler')

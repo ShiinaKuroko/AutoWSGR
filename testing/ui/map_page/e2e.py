@@ -43,8 +43,7 @@ if TYPE_CHECKING:
 def run_test(runner: UIControllerTestRunner) -> None:
     """执行地图页面控制器完整测试序列。"""
     from autowsgr.ui.main_page import MainPage
-    from autowsgr.ui.map import MapPanel
-    from autowsgr.ui.map import MapPage
+    from autowsgr.ui.map import MapPage, MapPanel
 
     map_page = MapPage(runner.ctrl)
 

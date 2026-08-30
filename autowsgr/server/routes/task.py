@@ -8,7 +8,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import Discriminator
 
 from autowsgr.dispatch.processor import Processor, Request
-from autowsgr.infra.logger import get_logger
+from autowsgr.infra.system.logger import get_logger
 from autowsgr.server.device_lease import DeviceOperationBusyError
 from autowsgr.server.schemas import (
     ApiResponse,

@@ -20,7 +20,7 @@ import cv2
 import numpy as np
 
 import autowsgr.ui.decisive.fleet_ocr as _fleet_ocr
-from autowsgr.infra.logger import get_logger
+from autowsgr.infra.system.logger import get_logger
 from autowsgr.types import DecisivePhase, FleetSelection, ShipDamageState
 from autowsgr.ui.battle.preparation import BattlePreparationPage, RepairStrategy
 from autowsgr.ui.decisive.overlay import (

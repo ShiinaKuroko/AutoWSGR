@@ -202,7 +202,7 @@ python tools/e2e/run.py --with-ocr exercise --yaml <路径>
    FleetPolicy 已迁至 `business/combat/fleet_policy.py`) → 已删除。
    若发现 `from autowsgr.dispatch import FleetPolicy` 的引用, 改为
    `from autowsgr.business.combat.fleet_policy import FleetPolicy`。
-3. `infra/base/ui/pages/tabbed_page.py` 模板目录相对路径在目录迁移后失效
+3. `infra/ui/pages/tabbed_page.py` 模板目录相对路径在目录迁移后失效
    (`ui/map.png` 找不到) → 改为 `parents[4] / 'data' / 'images' / 'ui'`。
 4. `exercise.py` 的 `ConditionFlag` 应从 `autowsgr.types` 导入
    (不在 `autowsgr.combat` 包中)。
@@ -225,11 +225,11 @@ python tools/e2e/run.py --with-ocr exercise --yaml <路径>
   `dismiss_reward_popup` / `CLICK_CONFIRM_CENTER` / `confirm_center` 死代码。
   实机 E2E 11/11 PASS, 日志确认 `收取=True`。
 
-### 3.7 常量迁移 (infra/base/constants 分类管理)
+### 3.7 常量迁移 (infra/data/calibration 分类管理)
 
 用户敲定的规则: **初始化/演习/收获奖励三条链路里除时序参数外
 (坐标、OCR 参数、颜色等不易更改的值) 全部迁入
-`autowsgr/infra/base/constants/` 分类 YAML, 时序参数留在执行器/页面代码**。
+`autowsgr/infra/data/calibration/` 分类 YAML, 时序参数留在执行器/页面代码**。
 
 分类结构 (数据源 = 目录内 YAML, 文件名 = 页面名, 进程内缓存):
 
@@ -249,7 +249,7 @@ python tools/e2e/run.py --with-ocr exercise --yaml <路径>
 - 数值换算: 旧相对坐标一律换算为 1280x720 绝对像素整数
   (960x540 分数坐标 ×4/3), 代码侧经 `point()` 归一化后与旧值 ≤1px 误差。
 - 迁移后原常量名全部保留 (数据源改为 YAML), 消费者与测试零改动。
-- **既有导入顺序敏感**: 先导入 `autowsgr.infra.base.combat.map` 包再导入
+- **既有导入顺序敏感**: 先导入 `autowsgr.infra.ui.pages.map` 包再导入
   `autowsgr.ui` 会触发循环导入 (map/base.py → ui.utils → ui/__init__ →
   ui/map → infra.map 部分初始化); 正常运行路径 (先 ui 后 infra) 不受影响,
   调试时注意导入顺序。
@@ -287,20 +287,20 @@ python tools/e2e/run.py reward --with-init
 
 用户敲定的架构模式: **所有与奖励相关的功能拆成两条链路** —
 ① **执行器链路** (business 层): `RewardCheckExecutor` 执行任务;
-② **导航器链路** (infra/base/ui): 导航器支撑执行器的执行链路,
+② **导航器链路** (`business/navigation`): 导航器支撑执行器的执行链路,
 页面导航 / 页面识别 / 页面操作等 UI 基础实现全部归属
-`autowsgr/infra/base/ui`。执行器不直接持有旧层页面, 一律从 base 取。
+`autowsgr/infra/ui`。执行器不直接持有旧层页面, 一律从 `infra/ui` 取。
 
 2026-08-25 完成状态:
 
 | 链路 | 归属 | 状态 |
 |------|------|------|
 | 执行器 | `business/logistics/reward.py` (`RewardCheckExecutor` + 兼容层 `collect_rewards`) | 完成 |
-| 导航器 — 页面归属 | `infra/base/ui/pages/main_page` (含 `has_task_ready`) + **`infra/base/ui/pages/mission_page` (本次迁入)** | 完成 |
-| 导航器 — 导航边 | `infra/base/ui/navigation.py` (`_mission_to_main`) + `main_page/controller.py` (`_get_target_checker`) 均改走 base 路径 | 完成 |
+| 导航器 — 页面归属 | `infra/ui/pages/main_page` (含 `has_task_ready`) + **`infra/ui/pages/mission_page` (本次迁入)** | 完成 |
+| 导航器 — 导航边 | `business/navigation.py` (`_mission_to_main`) + `main_page/controller.py` (`_get_target_checker`) 均改走 `infra/ui` 路径 | 完成 |
 
 `mission_page` 迁移细节: 主实现 (`data/page/recognition.py`) 从
-`autowsgr/ui/mission_page/` 迁入 `autowsgr/infra/base/ui/pages/mission_page/`,
+`autowsgr/ui/mission_page/` 迁入 `autowsgr/infra/ui/pages/mission_page/`,
 旧目录保留 shim (`autowsgr.ui.mission_page` 继续可用);
 导航器与执行器均已改为新路径。验证: 全量 pytest 1008 passed +
 reward E2E 11/11 PASS。注意: 与 map 同款**导入顺序敏感**

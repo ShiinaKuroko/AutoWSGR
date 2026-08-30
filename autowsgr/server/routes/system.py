@@ -7,7 +7,7 @@ import asyncio
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from autowsgr.infra.logger import get_logger
+from autowsgr.infra.system.logger import get_logger
 from autowsgr.server.device_lease import (
     DeviceOperationBusyError,
     device_operation_lease,

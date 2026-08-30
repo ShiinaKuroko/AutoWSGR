@@ -29,7 +29,7 @@ from typing import TYPE_CHECKING
 import cv2
 import numpy as np
 
-from autowsgr.infra.logger import get_logger
+from autowsgr.infra.system.logger import get_logger
 
 # 从 pixel.py 导入所有数据类型 (保持向后兼容)
 from .pixel import (

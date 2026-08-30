@@ -1,14 +1,11 @@
-"""兼容 shim — 实现已迁移至 :mod:`autowsgr.infra.base.ui.pages.main_page.overlays`。"""
+"""兼容 shim — 实现已迁移至 :mod:`autowsgr.infra.ui.pages.main_page.overlays`。"""
 
-from autowsgr.infra.base.ui.pages.main_page.constants import (
+from autowsgr.infra.ui.pages.main_page.constants import (
     DismissCoord,
     OverlayKind,
     Sig,
 )
-from autowsgr.infra.base.ui.pages.main_page.overlays import (
-    _SIGN_CONFIRM_MAX,
-    _SIGN_CONFIRM_TIMEOUT,
-    _SIGN_CONFIRM_WAIT,
+from autowsgr.infra.ui.pages.main_page.overlays import (
     detect_overlay,
     dismiss_booking,
     dismiss_news,
@@ -16,6 +13,7 @@ from autowsgr.infra.base.ui.pages.main_page.overlays import (
     dismiss_sign,
     dismiss_user_info,
 )
+
 
 __all__ = [
     'DismissCoord',

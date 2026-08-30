@@ -3,9 +3,9 @@
 修改第 2 舰队的舰船配置。
 """
 
-from autowsgr.combat.fleet import exact_fleet_rules
 # 已迁移到新方法: 导航器入口 (原 autowsgr.ops.goto_page)
 from autowsgr.business.system.navigate import goto_page
+from autowsgr.combat.fleet import exact_fleet_rules
 from autowsgr.scheduler import launch
 from autowsgr.ui import BattlePreparationPage, PageName
 

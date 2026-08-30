@@ -33,7 +33,7 @@ from enum import Enum, auto
 from typing import Any
 
 from autowsgr.contracts.vessel_types import FLEET_VESSEL_TYPES
-from autowsgr.infra.logger import get_logger
+from autowsgr.infra.system.logger import get_logger
 from autowsgr.types import Formation
 
 

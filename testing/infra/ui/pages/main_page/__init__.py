@@ -1,0 +1,1 @@
+"""Main page infrastructure tests."""

@@ -4,18 +4,35 @@
 
 本文档描述 AutoWSGR 的底层基础设施：日志、异常、文件工具、类型系统和静态数据。
 
+## 最终目录
+
+`infra` 是技术基线总合集，不再使用 `base` 或 `common` 分层：
+
+```text
+autowsgr/infra/
+├── system/       # 配置、异常、文件工具、日志
+├── emulator/     # 设备基础设施边界
+├── vision/       # 视觉基础设施边界
+├── ui/           # 页面识别与页面内原子操作
+├── data/         # 只读校准资源
+└── runtime/      # 会话与租约运行时基础设施
+```
+
+页面导航图属于 `business/navigation.py`；`infra/ui` 只提供页面能力，
+不持有任务队列、优先级或任务衔接状态。
+
 ---
 
 ## 日志系统
 
-**文件**: `autowsgr/infra/logger.py`
+**文件**: `autowsgr/infra/system/logger.py`
 
 基于 loguru 的通道感知日志系统。
 
 ### 初始化
 
 ```python
-from autowsgr.infra.logger import setup_logger, get_logger
+from autowsgr.infra.system.logger import setup_logger, get_logger
 
 setup_logger(
     log_dir='./log',
@@ -56,7 +73,7 @@ _log.info('进入战斗: {}', map_name)
 
 ## 异常层级
 
-**文件**: `autowsgr/infra/exceptions.py`
+**文件**: `autowsgr/infra/system/exceptions.py`
 
 所有异常继承自 `AutoWSGRError`，按模块分组：
 
@@ -91,7 +108,7 @@ AutoWSGRError
 ### 使用模式
 
 ```python
-from autowsgr.infra.exceptions import DockFullError, CombatRecognitionTimeoutError
+from autowsgr.infra.system.exceptions import DockFullError, CombatRecognitionTimeoutError
 
 try:
     engine.fight(plan, ship_stats)
@@ -105,12 +122,12 @@ except DockFullError:
 
 ## 文件工具
 
-**文件**: `autowsgr/infra/file_utils.py`
+**文件**: `autowsgr/infra/system/file_utils.py`
 
 ### YAML 操作
 
 ```python
-from autowsgr.infra.file_utils import load_yaml, save_yaml
+from autowsgr.infra.system.file_utils import load_yaml, save_yaml
 
 data = load_yaml('config.yaml')       # → dict (空文件返回 {})
 save_yaml(data, 'output.yaml')        # 自动创建父目录
@@ -122,7 +139,7 @@ save_yaml(data, 'output.yaml')        # 自动创建父目录
 ### 策略文件查找
 
 ```python
-from autowsgr.infra.file_utils import resolve_plan_path
+from autowsgr.infra.system.file_utils import resolve_plan_path
 
 path = resolve_plan_path('8-5', category='normal_fight')
 ```
@@ -137,7 +154,7 @@ path = resolve_plan_path('8-5', category='normal_fight')
 ### 字典深合并
 
 ```python
-from autowsgr.infra.file_utils import merge_dicts
+from autowsgr.infra.system.file_utils import merge_dicts
 
 result = merge_dicts(base_dict, override_dict)
 ```
@@ -235,7 +252,7 @@ class FleetSelection:
 
 ## 配置系统
 
-**文件**: `autowsgr/infra/config.py`
+**文件**: `autowsgr/infra/system/config.py`
 
 Pydantic v2 配置模型和加载逻辑。详流程见 [context-and-config.md](context-and-config.md)。
 

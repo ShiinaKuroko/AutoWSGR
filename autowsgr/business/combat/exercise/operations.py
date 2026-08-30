@@ -5,10 +5,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from autowsgr.business.system.navigate import goto_page
-from autowsgr.infra.base.combat.battle_preparation import BattlePreparationPage
-from autowsgr.infra.base.combat.battle_preparation.base import RepairStrategy
-from autowsgr.infra.base.combat.map import MapPage, MapPanel
-from autowsgr.infra.logger import get_logger
+from autowsgr.infra.system.logger import get_logger
+from autowsgr.infra.ui.pages.battle_preparation import BattlePreparationPage
+from autowsgr.infra.ui.pages.battle_preparation.base import RepairStrategy
+from autowsgr.infra.ui.pages.map import MapPage, MapPanel
 from autowsgr.types import PageName, RepairMode, ShipDamageState
 
 

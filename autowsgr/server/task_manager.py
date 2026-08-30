@@ -10,7 +10,7 @@ from datetime import UTC, datetime
 from enum import Enum
 from typing import TYPE_CHECKING, Any
 
-from autowsgr.infra.logger import get_logger
+from autowsgr.infra.system.logger import get_logger
 from autowsgr.server.device_lease import (
     DeviceOperationLease,
     DeviceOperationToken,

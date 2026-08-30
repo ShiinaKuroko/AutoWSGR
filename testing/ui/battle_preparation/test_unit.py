@@ -2605,7 +2605,7 @@ class TestFleetAlignment:
 
         with (
             patch.object(page, 'click_ship_slot'),
-            patch('autowsgr.infra.base.ui.interaction.wait_for_page'),
+            patch('autowsgr.infra.ui.interaction.wait_for_page'),
             patch(
                 'autowsgr.ui.choose_ship_page.ChooseShipPage.change_single_ship',
                 side_effect=[None, 'U-96'],
@@ -2845,7 +2845,7 @@ class TestFleetAlignment:
         occupied = [True, False, False, False, False, False]
 
         with patch(
-            'autowsgr.infra.base.combat.battle_preparation.fleet_change._change._log.error'
+            'autowsgr.infra.ui.pages.battle_preparation.fleet_change._change._log.error'
         ) as log_error:
             page._log_final_result(current, occupied, assigned, set(), passed=False)
 

@@ -14,7 +14,7 @@ from unittest.mock import MagicMock, call
 import numpy as np
 import pytest
 
-from autowsgr.infra.exceptions import ActionFailedError
+from autowsgr.infra.system.exceptions import ActionFailedError
 from autowsgr.types import PageName
 from autowsgr.ui.event.event_page import (
     CLICK_BACK,

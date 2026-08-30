@@ -110,7 +110,7 @@ class E2ERunner:
         流程与生产 launch() 对齐: 读配置 → 初始化日志 → 连接设备 → 游戏就绪。
         ``no_launch=True`` 时只连接不启动游戏 (截图/页面识别等只读验证)。
         """
-        from autowsgr.infra.logger import setup_logger
+        from autowsgr.infra.system.logger import setup_logger
         from autowsgr.scheduler.launcher import Launcher
 
         launcher = Launcher()

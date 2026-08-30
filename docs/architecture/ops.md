@@ -245,7 +245,7 @@ collect_rewards(ctx)           # 领取任务/日常奖励
 
 ## YAML 计划加载
 
-**文件**: `autowsgr/infra/file_utils.py` — `resolve_plan_path()`
+**文件**: `autowsgr/infra/system/file_utils.py` — `resolve_plan_path()`
 
 作战计划文件的 4 级优先级搜索：
 

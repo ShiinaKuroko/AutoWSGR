@@ -35,7 +35,7 @@ from autowsgr.constants import (
     expand_ship_name_candidates as expand_group_candidates,
 )
 from autowsgr.constants import get_ship_name_group_id, set_ship_name_aliases
-from autowsgr.infra.logger import get_logger
+from autowsgr.infra.system.logger import get_logger
 from autowsgr.types import ShipType
 
 

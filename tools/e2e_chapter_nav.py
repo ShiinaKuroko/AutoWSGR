@@ -33,8 +33,8 @@ from autowsgr.infra import (
     LogConfig,
     UserConfig,
 )
-from autowsgr.infra.base.combat.map.panels.sortie import SortiePanelMixin
-from autowsgr.infra.config import OCRConfig
+from autowsgr.infra.system.config import OCRConfig
+from autowsgr.infra.ui.pages.map.panels.sortie import SortiePanelMixin
 from autowsgr.ops.navigate import goto_page
 from autowsgr.scheduler.launcher import Launcher
 from autowsgr.types import GameAPP, PageName
@@ -58,9 +58,9 @@ def main() -> int:
     launcher = Launcher()
     launcher.set_config(cfg)
     # 手动触发日志初始化 (load_config 会做, 这里 set_config 后手动调)
-    from autowsgr.infra.logger import setup_logger  # noqa: WPS433
-    setup_logger(cfg.log.dir, cfg.log.level, save_images=True,
-                 channels=cfg.log.effective_channels)
+    from autowsgr.infra.system.logger import setup_logger
+
+    setup_logger(cfg.log.dir, cfg.log.level, save_images=True, channels=cfg.log.effective_channels)
 
     logger.info('[E2E] 连接模拟器 emulator-5554 ...')
     launcher.connect()
@@ -93,17 +93,21 @@ def main() -> int:
         logger.error('[E2E] 地图标题 OCR 失败, 无法继续')
         return 2
     cur_chapter = info.chapter
-    logger.info('[E2E] 初始章: 第 {} 章 ({}-{} {})', cur_chapter, info.chapter, info.map_num, info.name)
+    logger.info(
+        '[E2E] 初始章: 第 {} 章 ({}-{} {})', cur_chapter, info.chapter, info.map_num, info.name
+    )
 
     results: list[tuple[int, int, bool]] = []  # (from, to, ok)
 
     # ── Test 1: 向中间跨 3 章 (相对短路径) ──
     target1 = cur_chapter - 3 if cur_chapter > 5 else cur_chapter + 3
     if 1 <= target1 <= 10 and target1 != cur_chapter:
-        logger.info('[E2E] === Test 1: 跳 {} → {} 章 ==='.format(cur_chapter, target1))
+        logger.info(f'[E2E] === Test 1: 跳 {cur_chapter} → {target1} 章 ===')
         result = page.navigate_to_chapter(target1)
         ok = result == target1
-        logger.info('[E2E] Test 1 结果: 期望={} 实际={} {}'.format(target1, result, '✓' if ok else '✗'))
+        logger.info(
+            '[E2E] Test 1 结果: 期望={} 实际={} {}'.format(target1, result, '✓' if ok else '✗')
+        )
         results.append((cur_chapter, target1, ok))
         cur_chapter = result or target1
     else:
@@ -111,7 +115,7 @@ def main() -> int:
 
     # ── Test 2: 跳回第 1 章 (若已在1章则跳过) ──
     if cur_chapter != 1:
-        logger.info('[E2E] === Test 2: 跳 {} → 第 1 章 ==='.format(cur_chapter))
+        logger.info(f'[E2E] === Test 2: 跳 {cur_chapter} → 第 1 章 ===')
         result = page.navigate_to_chapter(1)
         ok = result == 1
         logger.info('[E2E] Test 2 结果: 期望=1 实际={} {}'.format(result, '✓' if ok else '✗'))
@@ -159,9 +163,15 @@ def main() -> int:
         logger.info('[E2E] Test 6: enter_sortie 无异常, 尝试返回地图页')
         ctx.ctrl.press_back()
         time.sleep(1.2)
-        from autowsgr.ui.utils import wait_for_page  # noqa: WPS433
-        wait_for_page(ctx.ctrl, BaseMapPage.is_current_page, timeout=8.0,
-                      source='出征准备返回', target=PageName.MAP)
+        from autowsgr.ui.utils import wait_for_page
+
+        wait_for_page(
+            ctx.ctrl,
+            BaseMapPage.is_current_page,
+            timeout=8.0,
+            source='出征准备返回',
+            target=PageName.MAP,
+        )
         # 回到地图页后再次 OCR, 确认当前就是 2-1 (说明真的停在目标图而不是乱跳)
         info6 = None
         for _ in range(3):
@@ -171,12 +181,13 @@ def main() -> int:
             time.sleep(0.3)
         if info6 is not None and info6.chapter == 2 and info6.map_num == 1:
             ok6 = True
-            logger.info('[E2E] Test 6 结果: 2-1→出征准备页 ✓，返回后 OCR={}-{} {} ✓'.format(
-                info6.chapter, info6.map_num, info6.name))
+            logger.info(
+                f'[E2E] Test 6 结果: 2-1→出征准备页 ✓，返回后 OCR={info6.chapter}-{info6.map_num} {info6.name} ✓'
+            )
         else:
-            logger.warning('[E2E] Test 6 返回后章/节校验异常: {}'.format(info6))
-    except Exception as e:  # noqa: BLE001
-        logger.exception('[E2E] Test 6 失败: {}'.format(e))
+            logger.warning(f'[E2E] Test 6 返回后章/节校验异常: {info6}')
+    except Exception as e:
+        logger.exception(f'[E2E] Test 6 失败: {e}')
         # 失败时强制兜底返回, 不污染后续流程或其他脚本
         try:
             ctx.ctrl.press_back()
@@ -190,7 +201,7 @@ def main() -> int:
     passed = sum(1 for _, _, ok in results if ok)
     failed = total - passed
     logger.info('=' * 60)
-    logger.info('[E2E] 汇总: 共 {} 项, 通过 {}, 失败 {}'.format(total, passed, failed))
+    logger.info(f'[E2E] 汇总: 共 {total} 项, 通过 {passed}, 失败 {failed}')
     for i, (frm, to, ok) in enumerate(results, 1):
         logger.info('  Test {}: {}→{}  {}'.format(i, frm, to, '✓' if ok else '✗'))
     logger.info('=' * 60)

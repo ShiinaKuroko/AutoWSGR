@@ -8,7 +8,7 @@ import re
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any, Literal
 
-from autowsgr.infra.logger import get_logger
+from autowsgr.infra.system.logger import get_logger
 
 
 if TYPE_CHECKING:
@@ -27,12 +27,12 @@ Stream = Literal['logs', 'task']
 # 只推送匹配以下正则的日志，避免 GUI 收到全量 INFO 噪音。
 _STATS_LOG_PATTERNS: tuple[re.Pattern[str], ...] = (
     re.compile(r'\[Combat\]\s*战果:.*评价'),  # 战斗评级 (battleCount/grades)
-    re.compile(r'\[Combat\]\s*获得舰船'),       # 舰船掉落 (shipCount/shipDrops)
+    re.compile(r'\[Combat\]\s*获得舰船'),  # 舰船掉落 (shipCount/shipDrops)
     re.compile(r'\[UI\]\s*战利品数量:\s*\d'),  # 战利品统计 (lootCount/lootLimit)
-    re.compile(r'\[UI\]\s*舰船数量:\s*\d'),     # 船坞容量统计 (shipCount/shipLimit)
-    re.compile(r'\[UI\]\s*修理位置:'),         # 快修使用 (quickRepairCount)
-    re.compile(r'\[OPS\]\s*浴室修理'),         # 泡澡修理 (bathRepairCount)
-    re.compile(r'\[UI\]\s*远征收取:\s*\d'),    # 远征完成 (expeditionCount)
+    re.compile(r'\[UI\]\s*舰船数量:\s*\d'),  # 船坞容量统计 (shipCount/shipLimit)
+    re.compile(r'\[UI\]\s*修理位置:'),  # 快修使用 (quickRepairCount)
+    re.compile(r'\[OPS\]\s*浴室修理'),  # 泡澡修理 (bathRepairCount)
+    re.compile(r'\[UI\]\s*远征收取:\s*\d'),  # 远征完成 (expeditionCount)
 )
 
 
@@ -98,7 +98,7 @@ class WebSocketManager:
                 'level': level,
                 'channel': channel,
                 'message': message,
-            }
+            },
         )
 
     async def send_task_update(
@@ -136,7 +136,7 @@ class WebSocketManager:
                 'success': success,
                 'result': result,
                 'error': error,
-            }
+            },
         )
 
     # ══════════════════════════════════════════════════════════════════════
@@ -149,6 +149,7 @@ class WebSocketManager:
         只推送匹配 :data:`_STATS_LOG_PATTERNS` 白名单的消息；
         普通点击/导航/初始化等 INFO 日志被过滤掉，避免 GUI 端日志面板噪音。
         """
+
         def _sink(message: Any) -> None:  # loguru.Message (avoid runtime import)
             text = str(message.record.get('message', ''))
             if not _is_stats_log(text):

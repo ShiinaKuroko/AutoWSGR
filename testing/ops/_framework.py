@@ -50,7 +50,7 @@ def launch_for_test(
         ``ctx.ctrl`` 已连接、游戏已在主页面。
         若 ``with_ocr=True`` 则 ``ctx.ocr`` 也已初始化。
     """
-    from autowsgr.infra.logger import setup_logger
+    from autowsgr.infra.system.logger import setup_logger
     from autowsgr.scheduler.launcher import Launcher
 
     launcher = Launcher()
