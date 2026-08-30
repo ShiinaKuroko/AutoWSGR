@@ -109,7 +109,6 @@
 | `autowsgr/dispatch/processor.py` | `Processor` (优先级队列 + `interrupt()` 加急 + `run_pending()`) / `Request` (含 `from_yaml`) / `TaskPaused` | 完成 |
 | `autowsgr/dispatch/registry.py` | `register()` / `build_executor()` 延迟导入 / `registered_names()`; 已注册: `exercise`, `expedition_check`, `reward_check` | 完成 |
 | `autowsgr/business/combat/exercise/executor.py` | `ExerciseExecutor` (见 3.2) | 完成 |
-| `autowsgr/business/combat/exercise/compat.py` | 兼容层 `ExerciseRunner` / `ExerciseOnceRunner` / `run_exercise` | 完成 |
 | `autowsgr/business/logistics/expedition.py` | `ExpeditionCheckExecutor`: 主页 → 有通知则 MAP 远征面板收取 → 回主页 | 完成 |
 | `autowsgr/business/logistics/reward.py` | `RewardCheckExecutor` (见 3.6) + 兼容层 `collect_rewards` (auto_daily 调用方式不变) | 完成 |
 | `autowsgr/ops/reward.py` | 兼容 shim: re-export `RewardCheckExecutor` / `collect_rewards` | 完成 |

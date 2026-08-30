@@ -167,13 +167,6 @@ def test_executor_uses_yaml_fleet_and_exercise_combat_plan() -> None:
     ]
 
 
-def test_legacy_entries_are_kept_out_of_executor_module() -> None:
-    from autowsgr.business.combat.exercise.compat import ExerciseRunner
-
-    assert ExerciseRunner.__module__.endswith('.compat')
-    assert not hasattr(executor_module, 'ExerciseRunner')
-
-
 def test_ship_selection_checkpoint_honors_pause_and_returns_home(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
