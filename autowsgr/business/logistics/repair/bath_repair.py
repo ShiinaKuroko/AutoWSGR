@@ -20,14 +20,14 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING
 
-from autowsgr.business.system.navigate import goto_page
+from autowsgr.infra.ui.navigation import goto_page
 from autowsgr.infra.system.logger import get_logger
 from autowsgr.infra.ui.pages.bath_page import BathPage
 from autowsgr.types import PageName, ShipDamageState
 
 
 if TYPE_CHECKING:
-    from autowsgr.context import GameContext
+    from autowsgr.infra.runtime.context import GameContext
 
 _log = get_logger('business.logistics.repair')
 

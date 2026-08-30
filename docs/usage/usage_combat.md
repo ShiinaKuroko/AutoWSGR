@@ -134,7 +134,7 @@ node_args:
 ### 编程方式创建
 
 ```python
-from autowsgr.combat.plan import CombatPlan, CombatMode, NodeDecision
+from autowsgr.infra.combat import CombatPlan, CombatMode, NodeDecision
 from autowsgr.types import Formation
 
 plan = CombatPlan(
@@ -162,7 +162,7 @@ plan = CombatPlan(
 ### 基本用法
 
 ```python
-from autowsgr.combat.plan import CombatPlan
+from autowsgr.infra.combat import CombatPlan
 from autowsgr.ops import run_normal_fight, run_normal_fight_from_yaml
 
 # 方式一: 从 YAML 加载
@@ -401,7 +401,7 @@ v1 使用 `eval()` 直接执行条件字符串，存在代码注入风险。
 v2 使用 `RuleEngine` 安全解析，只允许预定义的变量和运算符:
 
 ```python
-from autowsgr.combat.rules import RuleEngine
+from autowsgr.infra.combat import RuleEngine
 
 engine = RuleEngine.from_legacy_rules([
     ["CV > 0", "retreat"],
@@ -459,35 +459,23 @@ for i, r in enumerate(results):
 
 ---
 
-## 8. 进阶：自定义回调
+## 8. 战斗基建依赖
 
-`run_combat()` 和各 Runner 支持多种回调函数，用于注入自定义逻辑：
-
-### 可用回调
-
-| 回调 | 签名 | 用途 |
-|------|------|------|
-| `get_enemy_info` | `(screen) → dict` | 获取敌方编成 |
-| `get_enemy_formation` | `(screen) → Formation` | 获取敌方阵型 |
-| `detect_ship_stats` | `(screen) → list[int]` | 检测我方血量 |
-| `detect_result_grade` | `(screen) → str` | 检测战果等级 |
-| `get_ship_drop` | `(screen) → str` | 获取掉落舰船 |
-| `image_exist` | `(screen, key) → bool` | 检查图像是否存在 |
-| `click_image` | `(screen, key) → bool` | 点击图像位置 |
-
-### 示例：带敌方识别的常规战
+战斗引擎通过明确的低层能力运行，不再接受一组会改变战斗语义的识别回调：
 
 ```python
-def my_enemy_info(screen):
-    """通过 OCR 或模板匹配识别敌方编成"""
-    return {"CV": 1, "DD": 3, "SS": 2}
+from autowsgr.infra.combat import CombatEngine
 
-runner = NormalFightRunner(
-    ctrl, plan,
-    get_enemy_info=my_enemy_info,
+engine = CombatEngine(
+    device=ctrl,
+    ocr=ocr,
+    stop_requested=stop_event.is_set,
 )
-results = runner.run_for_times(5)
+result = engine.fight(plan, initial_ship_stats=ship_stats)
 ```
+
+坐标、OCR 区域、模板和页面识别属于 `infra` 内部基建。业务执行器只提交计划，
+不直接点击坐标或替换战斗阶段识别器。
 
 ---
 

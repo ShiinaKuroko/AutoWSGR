@@ -24,8 +24,8 @@ from typing import TYPE_CHECKING, Literal
 from autowsgr.infra.system.exceptions import ActionFailedError
 from autowsgr.infra.system.logger import get_logger
 from autowsgr.types import PageName
-from autowsgr.ui.utils import click_and_wait_for_page
-from autowsgr.vision import (
+from autowsgr.infra.ui.interaction import click_and_wait_for_page
+from autowsgr.infra.vision import (
     ROI,
     Color,
     ImageChecker,
@@ -38,8 +38,8 @@ from autowsgr.vision import (
 if TYPE_CHECKING:
     import numpy as np
 
-    from autowsgr.context import GameContext
-    from autowsgr.vision import ImageTemplate
+    from autowsgr.infra.runtime.context import GameContext
+    from autowsgr.infra.vision import ImageTemplate
 
 _log = get_logger('ui')
 
@@ -59,7 +59,7 @@ def _get_fight_button_templates() -> list[ImageTemplate]:
     相比, 按钮样式跨活动差异小), 且匹配位置 ``center`` 可直接用作点击坐标,
     布局微调也无需改坐标常量。
     """
-    from autowsgr.image_resources._lazy import load_template
+    from autowsgr.infra.vision.resources._lazy import load_template
 
     return [
         load_template('event/fight_button_20260730_540p.png', name='fight_button'),
@@ -75,7 +75,7 @@ def _get_event_title_templates() -> list[ImageTemplate]:
     匹配引擎按 ``source_resolution`` 自动缩放, 540p/720p 模板可共存;
     页面识别时 ``find_any`` 命中任一即认定为活动地图页面。
     """
-    from autowsgr.image_resources._lazy import load_template
+    from autowsgr.infra.vision.resources._lazy import load_template
 
     return [
         load_template(
@@ -101,7 +101,7 @@ def _get_difficulty_hard_templates() -> list[ImageTemplate]:
     活动地图选择页左下角, 当前为**简单**难度时显示 (点击可切到困难)。
     命中 → 当前简单。
     """
-    from autowsgr.image_resources._lazy import load_template
+    from autowsgr.infra.vision.resources._lazy import load_template
 
     return [
         load_template('event/difficulty_hard_540p_1.png', name='diff_hard1'),
@@ -115,7 +115,7 @@ def _get_difficulty_easy_templates() -> list[ImageTemplate]:
 
     当前为**困难**难度时显示 (点击可切回简单)。命中 → 当前困难。
     """
-    from autowsgr.image_resources._lazy import load_template
+    from autowsgr.infra.vision.resources._lazy import load_template
 
     return [
         load_template('event/difficulty_easy_540p_1.png', name='diff_easy1'),
@@ -467,7 +467,7 @@ class BaseEventPage:
         后续点击错乱)。
         """
         from autowsgr.ui.main_page import MainPage
-        from autowsgr.ui.utils import NavigationError
+        from autowsgr.infra.ui.interaction import NavigationError
 
         deadline = time.monotonic() + 15.0
         while time.monotonic() < deadline:

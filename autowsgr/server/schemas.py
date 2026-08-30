@@ -7,7 +7,7 @@ from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
-from autowsgr.combat.fleet import ALLOWED_SHIP_TYPE_CODES
+from autowsgr.infra.fleet import ALLOWED_SHIP_TYPE_CODES
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -95,7 +95,7 @@ class NodeDecisionRequest(BaseModel):
     ) -> list[RuleSpec] | None:
         if value is None:
             return None
-        from autowsgr.combat.rules import _parse_legacy_condition
+        from autowsgr.infra.combat.rules import _parse_legacy_condition
 
         for condition, _action in value:
             _parse_legacy_condition(condition)

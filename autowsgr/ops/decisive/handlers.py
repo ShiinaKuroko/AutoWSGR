@@ -19,8 +19,7 @@ from typing import TYPE_CHECKING
 
 import cv2
 
-from autowsgr.combat.engine import run_combat
-from autowsgr.combat.plan import CombatMode, CombatPlan, NodeDecision
+from autowsgr.infra.combat import CombatMode, CombatPlan, NodeDecision, run_combat
 from autowsgr.infra.system.logger import get_logger
 from autowsgr.ops.decisive.base import DecisiveBase
 from autowsgr.types import (
@@ -392,9 +391,11 @@ class DecisivePhaseHandlers(DecisiveBase):
             ),
         )
         result = run_combat(
-            self._ctx,
+            self._ctx.ctrl,
             plan,
             ship_stats=self._state.ship_stats[:],
+            ocr=self._ctx.ocr,
+            stop_requested=self._ctx.stop_event.is_set,
         )
         self._state.ship_stats = result.ship_stats[:]
         self._sync_ship_states()

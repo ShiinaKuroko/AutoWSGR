@@ -29,7 +29,7 @@ import time
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from autowsgr.image_resources import Templates
+from autowsgr.infra.vision.resources import Templates
 from autowsgr.infra.system.logger import get_logger
 from autowsgr.infra.ui.pages.bath_page.signatures import (
     BATH_FULL_TIMEOUT,
@@ -46,13 +46,13 @@ from autowsgr.infra.ui.pages.bath_page.signatures import (
     SWIPE_START,
 )
 from autowsgr.types import PageName
-from autowsgr.vision import Color, ImageChecker, PageMatch, PixelChecker
+from autowsgr.infra.vision import Color, ImageChecker, PageMatch, PixelChecker
 
 
 if TYPE_CHECKING:
     import numpy as np
 
-    from autowsgr.context import GameContext
+    from autowsgr.infra.runtime.context import GameContext
 
 
 _log = get_logger('ui')
@@ -186,7 +186,7 @@ class BathPage:
         NavigationError
             超时 overlay 未出现。
         """
-        from autowsgr.ui.utils import wait_for_page
+        from autowsgr.infra.ui.interaction import wait_for_page
 
         _log.info('[UI] 浴室 → 打开选择修理 overlay')
         if not self.has_choose_repair_overlay(self._ctrl.screenshot()):
@@ -206,7 +206,7 @@ class BathPage:
         NavigationError
             超时 overlay 未关闭。
         """
-        from autowsgr.ui.utils import wait_for_page
+        from autowsgr.infra.ui.interaction import wait_for_page
 
         _log.info('[UI] 关闭选择修理 overlay')
         self._ctrl.click(*CLICK_CLOSE_OVERLAY)
@@ -233,7 +233,7 @@ class BathPage:
         NavigationError
             超时 overlay 未关闭。
         """
-        from autowsgr.ui.utils import NavigationError
+        from autowsgr.infra.ui.interaction import NavigationError
 
         _log.info('[UI] 选择修理 → 点击第一个舰船')
 
@@ -257,7 +257,7 @@ class BathPage:
         NavigationError
             overlay 未打开，或点击后未能关闭。
         """
-        from autowsgr.ui.utils import NavigationError
+        from autowsgr.infra.ui.interaction import NavigationError
 
         screen = self._ctrl.screenshot()
         if not BathPage.has_choose_repair_overlay(screen):
@@ -317,7 +317,7 @@ class BathPage:
         NavigationError
             选择修理 overlay 未打开，或舰船未找到。
         """
-        from autowsgr.ui.utils import NavigationError
+        from autowsgr.infra.ui.interaction import NavigationError
 
         screen = self._ctrl.screenshot()
         if not BathPage.has_choose_repair_overlay(screen):
@@ -414,7 +414,7 @@ class BathPage:
             当前可见待修理舰船列表。
         """
         from autowsgr.infra.ui.pages.bath_page.recognition import recognize_repair_cards
-        from autowsgr.vision import OCREngine
+        from autowsgr.infra.vision import OCREngine
 
         screen = self._ctrl.screenshot()
         ocr = OCREngine.create()
@@ -440,7 +440,7 @@ class BathPage:
 
         点击一个舰船进行修理后，游戏会自动关闭 overlay 并返回浴室页面。
         """
-        from autowsgr.ui.utils import wait_for_page
+        from autowsgr.infra.ui.interaction import wait_for_page
 
         wait_for_page(
             self._ctrl,
@@ -483,7 +483,7 @@ class BathPage:
         NavigationError
             超时未完成回退。
         """
-        from autowsgr.ui.utils import wait_leave_page
+        from autowsgr.infra.ui.interaction import wait_leave_page
 
         screen = self._ctrl.screenshot()
         if BathPage.has_choose_repair_overlay(screen):

@@ -218,7 +218,7 @@ class NormalFightTaskConfig(BaseModel):
     model_config = {'frozen': True}
 
     name: str
-    """常规战计划名 (如 ``8-5AI-only1DD``), 解析为 ``autowsgr/data/plan/normal_fight/`` 下的文件。"""
+    """常规战计划名 (如 ``8-5AI-only1DD``), 解析为 ``autowsgr/infra/data/plan/normal_fight/`` 下的文件。"""
     fleet_id: int | None = None
     """出征舰队编号; 留空则用 plan 内配置。"""
     times: int | None = None

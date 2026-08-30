@@ -72,7 +72,7 @@ import cv2
 import numpy as np
 
 from autowsgr.types import PageName
-from autowsgr.vision import Color, PageMatch, PixelChecker
+from autowsgr.infra.vision import Color, PageMatch, PixelChecker
 
 
 # from autowsgr.infra.system.logger import get_logger
@@ -135,8 +135,8 @@ TAB_DARK = (22, 37, 62)
 # 模板匹配常量与加载
 # ═══════════════════════════════════════════════════════════════════════════════
 
-_TEMPLATE_DIR = Path(__file__).resolve().parents[4] / 'data' / 'images' / 'ui'
-"""参考模板目录 (autowsgr/data/images/ui/, 随仓库布局)。"""
+_TEMPLATE_DIR = Path(__file__).resolve().parents[2] / 'data' / 'images' / 'ui'
+"""参考模板目录 (autowsgr/infra/data/images/ui/, 随仓库布局)。"""
 
 _CROP_Y: float = 0.075
 """标签栏裁剪高度比例 (顶部 7.5%)。"""
@@ -405,7 +405,7 @@ def check_tabbed_page(screen: np.ndarray, page_type: TabbedPageType) -> PageMatc
     """识别截图是否为指定标签页面类型,返回带覆盖度分数的 :class:`PageMatch`。
 
     供 5 个标签页面 (地图/建造/强化/任务/好友) 的 ``is_current_page`` 注册到
-    :func:`~autowsgr.ui.page.register_page` 使用:把两层检测
+    :func:`~autowsgr.infra.ui.navigation.registry.register_page` 使用:把两层检测
     (标签栏验证 + 模板覆盖度) 的结果统一为 ``score``,让页面注册中心
     能在候选集内按分数排序、消歧。
 

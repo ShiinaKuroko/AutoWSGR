@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from autowsgr.context import GameContext
+from autowsgr.infra.runtime.context import GameContext
 
 
 if TYPE_CHECKING:

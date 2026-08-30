@@ -252,14 +252,14 @@ collect_rewards(ctx)           # 领取任务/日常奖励
 ```
 1. 直接路径                    → /home/user/my_plan.yaml
 2. 补全 .yaml 扩展名            → /home/user/my_plan.yaml
-3. data/plan/ 目录下搜索        → data/plan/normal_fight/8-5.yaml
-4. data/plan/ 目录下补全 .yaml  → data/plan/normal_fight/8-5.yaml
+3. infra/data/plan/ 目录下搜索        → infra/data/plan/normal_fight/8-5.yaml
+4. infra/data/plan/ 目录下补全 .yaml  → infra/data/plan/normal_fight/8-5.yaml
 ```
 
-内置计划文件在 `data/plan/` 中：
+内置计划文件在 `infra/data/plan/` 中：
 
 ```
-data/plan/
+infra/data/plan/
 ├── normal_fight/     # 常规战计划
 │   ├── 1-1.yaml
 │   ├── 8-5.yaml

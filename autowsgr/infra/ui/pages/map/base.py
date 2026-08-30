@@ -35,13 +35,13 @@ from autowsgr.infra.ui.pages.tabbed_page import (
     make_tab_checker,
 )
 from autowsgr.types import PageName
-from autowsgr.vision import OCREngine, PageMatch, PixelChecker
+from autowsgr.infra.vision import OCREngine, PageMatch, PixelChecker
 
 
 if TYPE_CHECKING:
     import numpy as np
 
-    from autowsgr.context import GameContext
+    from autowsgr.infra.runtime.context import GameContext
 
 
 _log = get_logger('ui')

@@ -15,7 +15,7 @@ import numpy as np
 
 from autowsgr.types import PageName as P
 from autowsgr.ui import stack as stack_mod
-from autowsgr.ui.stack import UIStack
+from autowsgr.infra.ui.navigation.stack import UIStack
 
 
 if TYPE_CHECKING:
@@ -202,7 +202,7 @@ def test_resync_rebuilds_single_frame_root(
     s.push(P.BACKYARD)
     s.observe(P.MAP)
     assert s.drifted
-    monkeypatch.setattr('autowsgr.ui.page.get_current_page', lambda _screen: P.CANTEEN.value)
+    monkeypatch.setattr('autowsgr.infra.ui.navigation.registry.get_current_page', lambda _screen: P.CANTEEN.value)
     screen = _frame(9)
     assert s.resync(screen) == P.CANTEEN.value
     assert s.pages() == (P.CANTEEN.value,)
@@ -214,7 +214,7 @@ def test_resync_unidentified_clears_stack(monkeypatch: pytest.MonkeyPatch) -> No
     s = UIStack()
     s.push(P.MAIN)
     s.push(P.BACKYARD)
-    monkeypatch.setattr('autowsgr.ui.page.get_current_page', lambda _screen: None)
+    monkeypatch.setattr('autowsgr.infra.ui.navigation.registry.get_current_page', lambda _screen: None)
     assert s.resync(_frame(0)) is None
     assert s.pages() == ()
     assert not s.drifted

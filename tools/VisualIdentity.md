@@ -14,7 +14,7 @@ AutoWSGR 使用两种主要方式来识别游戏状态和界面元素：**图像
 定义单个像素点的检查规则。
 
 ```python
-from autowsgr.vision import PixelRule
+from autowsgr.infra.vision import PixelRule
 
 # 定义规则: 在相对坐标 (0.5, 0.5) 处，颜色应接近 (255, 255, 255)，容差为 30
 rule = PixelRule.of(
@@ -29,7 +29,7 @@ rule = PixelRule.of(
 由一组 `PixelRule` 组成的集合，用于描述一个完整的界面状态。
 
 ```python
-from autowsgr.vision import PixelSignature, MatchStrategy
+from autowsgr.infra.vision import PixelSignature, MatchStrategy
 
 signature = PixelSignature(
     name="main_page_menu",
@@ -45,7 +45,7 @@ signature = PixelSignature(
 组合多个 `PixelSignature`，通常用于处理同一页面的不同变体（如活动页面的不同背景）。
 
 ```python
-from autowsgr.vision import CompositePixelSignature
+from autowsgr.infra.vision import CompositePixelSignature
 
 composite = CompositePixelSignature.any_of(
     "event_page_variants",
@@ -57,7 +57,7 @@ composite = CompositePixelSignature.any_of(
 ### 使用方法
 
 ```python
-from autowsgr.vision import PixelChecker
+from autowsgr.infra.vision import PixelChecker
 
 # 检查当前屏幕是否匹配签名
 is_match = PixelChecker.check_signature(screen_image, signature).matched
@@ -85,8 +85,8 @@ python tools/debug_screenshot.py --pixel 0.5,0.5
 执行匹配的工具类。
 
 ```python
-from autowsgr.vision import ImageChecker
-from autowsgr.image_resources import TemplateKey
+from autowsgr.infra.vision import ImageChecker
+from autowsgr.infra.vision.resources import TemplateKey
 
 # 查找模板，返回匹配结果对象 (包含坐标、置信度等) 或 None
 result = ImageChecker.find_template(

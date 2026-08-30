@@ -18,7 +18,7 @@ from autowsgr.infra.ui.pages.battle_preparation.constants import (
     SUPPORT_EXHAUSTED,
     SUPPORT_PROBE,
 )
-from autowsgr.vision import PixelChecker
+from autowsgr.infra.vision import PixelChecker
 
 
 if TYPE_CHECKING:

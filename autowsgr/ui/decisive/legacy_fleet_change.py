@@ -15,7 +15,7 @@ from autowsgr.infra.system.logger import get_logger
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from autowsgr.combat.fleet import FleetSlotRule
+    from autowsgr.infra.fleet import FleetSlotRule
     from autowsgr.ui.decisive.preparation import DecisiveBattlePreparationPage
 
 

@@ -223,7 +223,7 @@ destroy_ships(ctrl)
 ### 示例 1: 简单日常脚本
 
 ```python
-from autowsgr.emulator.controller import ADBController
+from autowsgr.infra.emulator.controller import ADBController
 from autowsgr.ops import (
     goto_page, collect_expedition, collect_rewards,
     repair_in_bath, run_campaign, CampaignConfig,

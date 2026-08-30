@@ -1,4 +1,4 @@
-"""Tests for autowsgr.vision.ocr — OCR engine abstractions and helpers."""
+"""Tests for autowsgr.infra.vision.ocr — OCR engine abstractions and helpers."""
 
 from __future__ import annotations
 
@@ -16,15 +16,15 @@ from autowsgr.constants import (
     normalize_ship_name,
     ship_name_identity,
 )
-from autowsgr.vision import OCREngine, OCRResult, ShipNameMismatchError
-from autowsgr.vision.ocr import (
+from autowsgr.infra.vision import OCREngine, OCRResult, ShipNameMismatchError
+from autowsgr.infra.vision.ocr import (
     EasyOCREngine,
     FastOCREngine,
     _fuzzy_match,
     apply_ship_patches,
     set_ship_name_match_confidence,
 )
-from autowsgr.vision.ocr_rules import (
+from autowsgr.infra.vision.ocr_rules import (
     LEVEL_OCR_ALLOWLIST,
     EasyOCRProfile,
     FastOCRProfile,
@@ -67,8 +67,8 @@ def _dummy_image() -> np.ndarray:
 class TestLevelOCREngines:
     def test_easyocr_disables_cpu_quantization(self):
         with (
-            patch('autowsgr.vision.easyocr_models_checker.ensure_models'),
-            patch('autowsgr.vision.ocr.easyocr.Reader') as reader,
+            patch('autowsgr.infra.vision.easyocr_models_checker.ensure_models'),
+            patch('autowsgr.infra.vision.ocr.easyocr.Reader') as reader,
         ):
             EasyOCREngine(gpu=False)
 

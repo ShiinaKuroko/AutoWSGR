@@ -177,7 +177,7 @@ class TestInitialize:
     def test_restart_limit_prevents_infinite_loop(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """页面识别不出 + 导航失败 → SL 重启一次；仍失败 → 抛异常。"""
         from autowsgr.business.system.initialize import initialize
-        from autowsgr.ui.utils import NavigationError
+        from autowsgr.infra.ui.interaction import NavigationError
 
         ctx = _make_ctx()
 

@@ -21,7 +21,7 @@ from autowsgr.types import PageName
 
 
 if TYPE_CHECKING:
-    from autowsgr.vision import Color, PixelSignature
+    from autowsgr.infra.vision import Color, PixelSignature
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

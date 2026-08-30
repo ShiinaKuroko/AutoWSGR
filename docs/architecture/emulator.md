@@ -89,7 +89,7 @@ ScrcpyController(serial, config)
   connect()
     ├─ serial 为 None → detector.resolve_serial(config)
     ├─ adb connect {serial}
-    ├─ 推送 scrcpy-server.jar (从 data/bin/ 加载)
+    ├─ 推送 scrcpy-server.jar (从 infra/data/bin/ 加载)
     ├─ 启动 scrcpy server 进程
     ├─ 建立视频流连接
     └─ 返回 DeviceInfo
@@ -180,4 +180,4 @@ create_emulator_manager(emulator_type, os_type) -> EmulatorProcessManager
 1. **截图性能**: scrcpy 视频流解码有一定延迟，`screenshot()` 返回的是最近一帧。性能基准测试可用 `tools/benchmark_emulator.py`
 2. **连接稳定性**: 模拟器重启后 ADB 连接可能断开，需重新 `connect()`
 3. **坐标转换**: 所有上层代码使用归一化坐标 (0-1)，`ScrcpyController` 内部按实际分辨率转换为像素坐标
-4. **二进制资源**: `scrcpy-server.jar` 打包在 `data/bin/` 中，`pip install` 时随包分发
+4. **二进制资源**: `scrcpy-server.jar` 打包在 `infra/data/bin/` 中，`pip install` 时随包分发

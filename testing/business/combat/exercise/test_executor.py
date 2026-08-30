@@ -13,8 +13,8 @@ import autowsgr.business.base as base_module
 import autowsgr.business.combat.exercise.executor as executor_module
 import autowsgr.business.combat.exercise.operations as operations_module
 import autowsgr.business.system.initialize.initialize as initialize_module
-from autowsgr.combat import CombatResult
 from autowsgr.dispatch import TaskPaused
+from autowsgr.infra.combat import CombatResult
 from autowsgr.types import ConditionFlag, ShipDamageState
 
 
@@ -102,6 +102,7 @@ def _ctx() -> SimpleNamespace:
 
     return SimpleNamespace(
         ctrl=SimpleNamespace(screenshot=screenshot),
+        ocr=None,
         config=SimpleNamespace(account=SimpleNamespace(game_app='pkg')),
     )
 

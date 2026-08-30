@@ -1,0 +1,13 @@
+# 战斗页面坐标 (1280x720 基准像素)
+# 物理动作通过 infra.ui.profile.coordinates.point('combat', <键>) 读取。
+
+retreat: [902.4, 655.92]
+enter_fight: [1140.48, 668.16]
+proceed_yes: [433.92, 466.56]
+proceed_no: [820.48, 466.56]
+night_yes: [433.92, 466.56]
+night_no: [820.48, 466.56]
+click_result: [1219.84, 686.88]
+speed_up_normal: [332.8, 693.36]
+speed_up_battle: [506.88, 693.36]
+flagship_confirm: [640, 360]

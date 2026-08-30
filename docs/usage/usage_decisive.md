@@ -235,7 +235,7 @@ Level 2 (二级舰队)  →  补充选择，替补
 决战的某些操作需要 OCR 识别 (如舰船名称):
 
 ```python
-from autowsgr.vision.ocr import OCREngine
+from autowsgr.infra.vision.ocr import OCREngine
 
 ocr = OCREngine.create("easyocr", gpu=False)
 

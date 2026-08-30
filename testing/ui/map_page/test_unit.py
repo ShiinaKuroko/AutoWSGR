@@ -6,8 +6,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from autowsgr.context import GameContext
-from autowsgr.emulator import AndroidController
+from autowsgr.infra.runtime.context import GameContext
+from autowsgr.infra.emulator import AndroidController
 from autowsgr.ui.map import (
     CHAPTER_MAP_COUNTS,
     MAP_DATABASE,

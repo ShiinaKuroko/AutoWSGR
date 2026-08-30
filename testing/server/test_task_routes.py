@@ -12,9 +12,9 @@ from fastapi import HTTPException
 
 import autowsgr.ops.normal_fight as normal_fight_module
 from autowsgr import ops
-from autowsgr.combat import CombatPlan, CombatResult
-from autowsgr.combat.fleet import FleetSelectionSource, ResolvedFleetSelection
 from autowsgr.dispatch import Request
+from autowsgr.infra.combat import CombatPlan, CombatResult
+from autowsgr.infra.fleet import FleetSelectionSource, ResolvedFleetSelection
 from autowsgr.server import main as server_main
 from autowsgr.server.device_lease import DeviceOperationBusyError
 from autowsgr.server.routes import task

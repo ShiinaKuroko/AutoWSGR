@@ -22,8 +22,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Literal
 
-from autowsgr.combat import CombatPlan, CombatResult
-from autowsgr.combat.fleet import (
+from autowsgr.infra.combat import CombatPlan, CombatResult
+from autowsgr.infra.fleet import (
     FleetSlotRule,
     ResolvedFleetSelection,
     resolve_fleet_selection,
@@ -36,7 +36,7 @@ from autowsgr.ops.normal_fight import NormalFightRunner
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from autowsgr.context import GameContext
+    from autowsgr.infra.runtime.context import GameContext
 
 _log = get_logger('ops')
 
@@ -176,7 +176,7 @@ def run_event_fight_from_yaml(
     *yaml_path* 支持以下格式:
 
     - 绝对路径 / 相对路径: 直接加载。
-    - 策略名称 (如 ``"激斗漩涡H1a"``): 自动在 ``autowsgr/data/plan/event/``
+    - 策略名称 (如 ``"激斗漩涡H1a"``): 自动在 ``autowsgr/infra/data/plan/event/``
       包数据目录中查找, 可省略 ``.yaml`` 后缀。
 
     Parameters

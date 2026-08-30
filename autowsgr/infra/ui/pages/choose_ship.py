@@ -22,24 +22,24 @@ from autowsgr.infra.ui.ship_list import (
     read_ship_level_at_card,
 )
 from autowsgr.types import PageName
-from autowsgr.vision import (
+from autowsgr.infra.vision import (
     MatchStrategy,
     PageMatch,
     PixelChecker,
     PixelRule,
     PixelSignature,
 )
-from autowsgr.vision.ocr import _fuzzy_match
-from autowsgr.vision.ocr_rules import EasyOCRProfile
+from autowsgr.infra.vision.ocr import _fuzzy_match
+from autowsgr.infra.vision.ocr_rules import EasyOCRProfile
 
 
 if TYPE_CHECKING:
     import numpy as np
 
-    from autowsgr.combat.fleet import ShipSelector
-    from autowsgr.context import GameContext
+    from autowsgr.infra.fleet import ShipSelector
+    from autowsgr.infra.runtime.context import GameContext
     from autowsgr.types import ShipType
-    from autowsgr.vision import OCREngine
+    from autowsgr.infra.vision import OCREngine
 
 
 _log = get_logger('ui')

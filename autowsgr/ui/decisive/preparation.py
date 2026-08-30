@@ -19,7 +19,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from autowsgr.combat.fleet import exact_fleet_rules
+from autowsgr.infra.fleet import exact_fleet_rules
 from autowsgr.ui.battle.preparation import BattlePreparationPage
 from autowsgr.ui.decisive.legacy_fleet_change import change_fleet_legacy
 
@@ -27,9 +27,9 @@ from autowsgr.ui.decisive.legacy_fleet_change import change_fleet_legacy
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from autowsgr.context import GameContext
+    from autowsgr.infra.runtime.context import GameContext
     from autowsgr.infra import DecisiveConfig
-    from autowsgr.vision import OCREngine
+    from autowsgr.infra.vision import OCREngine
 
 
 class DecisiveBattlePreparationPage(BattlePreparationPage):

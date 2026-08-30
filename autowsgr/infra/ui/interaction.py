@@ -1,6 +1,6 @@
 """UI 截图-判断-等待 工具函数。
 
-从 ``autowsgr.ui.page`` 迁移而来，提供:
+从 ``autowsgr.infra.ui.navigation.registry`` 迁移而来，提供:
 
 - **NavigationError** — 导航验证失败异常
 - **NavConfig / DEFAULT_NAV_CONFIG** — 导航操作参数
@@ -16,7 +16,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from autowsgr.infra.system.logger import get_logger
-from autowsgr.vision import ImageChecker
+from autowsgr.infra.vision import ImageChecker
 
 
 if TYPE_CHECKING:
@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 
     import numpy as np
 
-    from autowsgr.emulator import AndroidController
+    from autowsgr.infra.emulator import AndroidController
 
 
 _log = get_logger('ui')
@@ -109,7 +109,7 @@ def wait_for_page(
     NavigationError
         超时仍未匹配。
     """
-    from autowsgr.ui.page import get_current_page
+    from autowsgr.infra.ui.navigation.registry import get_current_page
 
     deadline = time.monotonic() + timeout
     attempt = 0
@@ -181,7 +181,7 @@ def wait_leave_page(
     NavigationError
         超时仍在原页面 (仅 ``probe=False`` 时)。
     """
-    from autowsgr.ui.page import get_current_page
+    from autowsgr.infra.ui.navigation.registry import get_current_page
 
     deadline = time.monotonic() + timeout
     attempt = 0
@@ -302,7 +302,7 @@ def confirm_operation(
     NavigationError
         *must_confirm* 为 ``True`` 且超时仍未找到确认按钮。
     """
-    from autowsgr.image_resources import Templates
+    from autowsgr.infra.vision.resources import Templates
 
     confirm_templates = Templates.Confirm.all()
     deadline = time.monotonic() + max(timeout, 0)

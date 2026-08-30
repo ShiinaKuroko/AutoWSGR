@@ -4,7 +4,7 @@
 ``map`` 字段 (``1a``/``1b`` 对应第一/第二入口), 由 ``NormalFightRunner`` 按章节
 自动路由到活动地图。本示例用内置活动 plan (H5ADE夜战) 执行 5 次。
 
-策略文件自动从 ``autowsgr/data/plan/event/`` 解析, 无需指定完整路径。
+策略文件自动从 ``autowsgr/infra/data/plan/event/`` 解析, 无需指定完整路径。
 也可把活动 plan 名加入全局配置的 ``normal_fight_tasks``, 由 auto_daily 自动调度
 (与常规战共用触发器, 无需为活动单独配置)。
 """

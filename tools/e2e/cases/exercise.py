@@ -132,7 +132,7 @@ def _resolve_checks(args: Any) -> tuple[str, ...]:
 
 def run(rt: Any) -> bool:  # noqa: C901, PLR0912, PLR0915 - one E2E case owns its assertions
     """执行演习断点打断验证 (单断点 / 接力 / 可带初始化前置)。"""
-    from autowsgr.business.system.navigate import identify_current_page
+    from autowsgr.infra.ui.navigation import identify_current_page
     from autowsgr.dispatch.processor import Processor, Request
     from autowsgr.types import PageName
 

@@ -24,7 +24,7 @@ import threading
 import time
 from typing import TYPE_CHECKING, Any
 
-from autowsgr.business.system.navigate import goto_page
+from autowsgr.infra.ui.navigation import goto_page
 from autowsgr.dispatch.processor import TaskPaused, TaskStopped
 from autowsgr.types import PageName
 
@@ -32,7 +32,7 @@ from autowsgr.types import PageName
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from autowsgr.context import GameContext
+    from autowsgr.infra.runtime.context import GameContext
 
 
 class BaseExecutor:

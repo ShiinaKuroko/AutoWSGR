@@ -15,7 +15,7 @@ from .config import MapData
 
 
 if TYPE_CHECKING:
-    from autowsgr.context import GameContext
+    from autowsgr.infra.runtime.context import GameContext
     from autowsgr.infra import DecisiveConfig
 
     from .state import DecisiveState

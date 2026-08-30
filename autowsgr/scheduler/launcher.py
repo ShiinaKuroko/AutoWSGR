@@ -28,11 +28,11 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-from autowsgr.context import GameContext
-from autowsgr.emulator import AndroidController, ScrcpyController
+from autowsgr.infra.runtime.context import GameContext
+from autowsgr.infra.emulator import AndroidController, ScrcpyController
 from autowsgr.infra import ConfigManager, UserConfig
 from autowsgr.infra.system.logger import get_logger, setup_logger
-from autowsgr.vision import EasyOCREngine, OCREngine
+from autowsgr.infra.vision import EasyOCREngine, OCREngine
 
 
 _log = get_logger('scheduler')
@@ -167,8 +167,8 @@ class Launcher:
             _log.info('[Launcher] 创建通用 OCR 引擎: EasyOCR (enhanced_ship_ocr 未开启)')
             self._ocr = EasyOCREngine.create(gpu=gpu, mirror=cfg.ocr.mirror)
         # 同步船池感知匹配置信度到 ocr 模块
-        from autowsgr.vision.ocr import set_ship_name_match_confidence
-        from autowsgr.vision.ocr_rules import (
+        from autowsgr.infra.vision.ocr import set_ship_name_match_confidence
+        from autowsgr.infra.vision.ocr_rules import (
             set_user_ship_name_aliases,
             set_user_ship_name_corrections,
         )

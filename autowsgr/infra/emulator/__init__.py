@@ -1,5 +1,46 @@
-"""设备基础设施命名空间。
+"""模拟器层 — 设备控制与进程管理。
 
-设备控制实现仍由既有 ``autowsgr.emulator`` 提供；新业务只依赖本域的
-设备边界，不在这里保存任务状态或业务规则。
+提供两大核心能力：
+
+1. **设备控制** (`AndroidController` / `ScrcpyController`)：
+   截图、点击、滑动、按键、应用管理等纯设备操作。
+   所有触控坐标使用相对值 (0.0-1.0)。
+
+2. **进程管理** (`EmulatorProcessManager` / `create_emulator_manager`)：
+   在宿主操作系统上启动、停止、检测模拟器进程。
 """
+
+from .controller import (
+    AndroidController,
+    DeviceInfo,
+    ScrcpyController,
+)
+from .detector import (
+    EmulatorCandidate,
+    detect_emulators,
+    prompt_user_select,
+    resolve_serial,
+)
+from .os_control import (
+    EmulatorProcessManager,
+    LinuxEmulatorManager,
+    MacEmulatorManager,
+    WindowsEmulatorManager,
+    create_emulator_manager,
+)
+
+
+__all__ = [
+    'AndroidController',
+    'DeviceInfo',
+    'EmulatorCandidate',
+    'EmulatorProcessManager',
+    'LinuxEmulatorManager',
+    'MacEmulatorManager',
+    'ScrcpyController',
+    'WindowsEmulatorManager',
+    'create_emulator_manager',
+    'detect_emulators',
+    'prompt_user_select',
+    'resolve_serial',
+]

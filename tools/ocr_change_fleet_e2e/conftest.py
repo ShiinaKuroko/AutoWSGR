@@ -17,11 +17,11 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from autowsgr.emulator.detector import list_adb_devices
+from autowsgr.infra.emulator.detector import list_adb_devices
 from autowsgr.infra import ConfigManager
 
 if TYPE_CHECKING:
-    from autowsgr.context import GameContext
+    from autowsgr.infra.runtime.context import GameContext
 
 
 def pytest_addoption(parser: pytest.Parser) -> None:

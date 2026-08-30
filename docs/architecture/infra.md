@@ -148,8 +148,8 @@ path = resolve_plan_path('8-5', category='normal_fight')
 
 1. 直接路径 → `8-5` 作为路径存在
 2. 补全 `.yaml` → `8-5.yaml` 存在
-3. 包数据目录 → `autowsgr/data/plan/normal_fight/8-5`
-4. 包数据目录 + `.yaml` → `autowsgr/data/plan/normal_fight/8-5.yaml`
+3. 包数据目录 → `autowsgr/infra/data/plan/normal_fight/8-5`
+4. 包数据目录 + `.yaml` → `autowsgr/infra/data/plan/normal_fight/8-5.yaml`
 
 ### 字典深合并
 
@@ -224,7 +224,7 @@ class FleetSelection:
 
 ### 舰船名称
 
-**文件**: `autowsgr/constants/shipnames.py` + `autowsgr/data/shipnames.yaml`
+**文件**: `autowsgr/constants/shipnames.py` + `autowsgr/infra/data/shipnames.yaml`
 
 - `shipnames.yaml`: 舰船中文名 ↔ 内部 ID 映射
 - `shipnames.py`: 加载 YAML 并提供查询函数
@@ -232,19 +232,19 @@ class FleetSelection:
 
 ### 任务数据
 
-**文件**: `autowsgr/data/missions.yaml`
+**文件**: `autowsgr/infra/data/missions.yaml`
 
 日常/周常任务定义。
 
 ### 地图数据
 
-**目录**: `autowsgr/data/map/`
+**目录**: `autowsgr/infra/data/map/`
 
 各章节地图的节点信息、路线数据。
 
 ### 图像资源
 
-**目录**: `autowsgr/data/images/`
+**目录**: `autowsgr/infra/data/images/`
 
 模板图片，供视觉识别使用。详见 [vision.md](vision.md)。
 

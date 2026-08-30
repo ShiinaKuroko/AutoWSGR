@@ -41,8 +41,8 @@ except Exception:
         pass
 from loguru import logger
 
-from autowsgr.combat import CombatPlan
-from autowsgr.combat.fleet import resolve_fleet_selection
+from autowsgr.infra.combat import CombatPlan
+from autowsgr.infra.fleet import resolve_fleet_selection
 from autowsgr.ops.event_fight import EventFightRunner
 from autowsgr.scheduler import FightTask, TaskScheduler
 from autowsgr.types import ConditionFlag

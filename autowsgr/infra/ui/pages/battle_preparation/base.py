@@ -9,7 +9,7 @@ from __future__ import annotations
 import enum
 from typing import TYPE_CHECKING
 
-from autowsgr.image_resources import Templates
+from autowsgr.infra.vision.resources import Templates
 from autowsgr.infra.system.logger import get_logger
 from autowsgr.infra.ui.interaction import click_and_wait_for_page
 from autowsgr.infra.ui.pages.battle_preparation.constants import (
@@ -28,7 +28,7 @@ from autowsgr.infra.ui.pages.battle_preparation.constants import (
 from autowsgr.infra.ui.profile.coordinates import point
 from autowsgr.infra.ui.profile.signatures import signature
 from autowsgr.types import PageName
-from autowsgr.vision import (
+from autowsgr.infra.vision import (
     ImageChecker,
     PageMatch,
     PixelChecker,
@@ -38,8 +38,8 @@ from autowsgr.vision import (
 if TYPE_CHECKING:
     import numpy as np
 
-    from autowsgr.context import GameContext
-    from autowsgr.vision import OCREngine
+    from autowsgr.infra.runtime.context import GameContext
+    from autowsgr.infra.vision import OCREngine
 
 _log = get_logger('ui.preparation')
 

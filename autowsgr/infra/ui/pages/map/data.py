@@ -19,7 +19,7 @@ from autowsgr.infra.system.logger import get_logger
 from autowsgr.infra.ui.profile.colors import color as _color
 from autowsgr.infra.ui.profile.colors import tolerance as _color_tolerance
 from autowsgr.infra.ui.profile.coordinates import point, points
-from autowsgr.vision import Color
+from autowsgr.infra.vision import Color
 
 
 _log = get_logger('ui')

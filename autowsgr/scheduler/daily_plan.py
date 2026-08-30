@@ -21,7 +21,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from autowsgr.combat import CombatResult
+from autowsgr.infra.combat import CombatResult
 from autowsgr.infra.system.logger import get_logger
 from autowsgr.scheduler.triggers import (
     CampaignTrigger,
@@ -38,7 +38,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable
     from pathlib import Path
 
-    from autowsgr.context import GameContext
+    from autowsgr.infra.runtime.context import GameContext
     from autowsgr.infra.system.config import DailyAutomationConfig
     from autowsgr.scheduler.scheduler import TaskScheduler
 
@@ -232,7 +232,7 @@ def _register_normal_fight(
 
     *plan_root* 透传给 :func:`get_normal_fight_plan`, 用户自定义目录优先。
     """
-    from autowsgr.combat.fleet import resolve_fleet_selection
+    from autowsgr.infra.fleet import resolve_fleet_selection
     from autowsgr.ops.normal_fight import NormalFightRunner, get_normal_fight_plan
 
     plans: list[NormalFightPlan] = []

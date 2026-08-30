@@ -14,15 +14,15 @@ import numpy as np
 import pytest
 
 import autowsgr.ops.normal_fight as normal_fight_module
-from autowsgr.combat import CombatMode, CombatPlan, CombatResult
-from autowsgr.combat.fleet import (
+from autowsgr.infra import ActionFailedError
+from autowsgr.infra.combat import CombatMode, CombatPlan, CombatResult
+from autowsgr.infra.fleet import (
     FleetSelectionSource,
     FleetSlotRule,
     ShipSelector,
     exact_fleet_rules,
     resolve_fleet_selection,
 )
-from autowsgr.infra import ActionFailedError
 from autowsgr.ops.normal_fight import NormalFightRunner, _require_fleet_change
 from autowsgr.types import ConditionFlag, PageName, ShipDamageState, ShipType
 from autowsgr.ui.battle.fleet_change._detect import FleetSnapshot
@@ -504,7 +504,7 @@ class TestDockFullDialogRoute:
     def test_nav_error_falls_back_to_main(self, monkeypatch: pytest.MonkeyPatch):
         """直达解装导航失败 → 回退主页面恢复已知态, 保持 DOCK_FULL。"""
         import autowsgr.ops.destroy as destroy_module
-        from autowsgr.ui.utils import NavigationError
+        from autowsgr.infra.ui.interaction import NavigationError
 
         def _raise(_ctx: object, **_k: object) -> None:
             raise NavigationError('弹窗直达解装失败')
@@ -603,7 +603,7 @@ class TestSkipCheckLifecycle:
 
     def test_mid_fight_error_resets_skip_check(self, monkeypatch: pytest.MonkeyPatch):
         """中途异常 (导航超时等) → 下一轮恢复完整检查 (实机 log 场景回归)。"""
-        from autowsgr.ui.utils import NavigationError
+        from autowsgr.infra.ui.interaction import NavigationError
 
         runner = self._make_runner()
         runner._skip_check = True  # 模拟上一轮成功

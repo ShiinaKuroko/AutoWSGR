@@ -163,7 +163,7 @@ def main() -> int:
         logger.info('[E2E] Test 6: enter_sortie 无异常, 尝试返回地图页')
         ctx.ctrl.press_back()
         time.sleep(1.2)
-        from autowsgr.ui.utils import wait_for_page
+        from autowsgr.infra.ui.interaction import wait_for_page
 
         wait_for_page(
             ctx.ctrl,

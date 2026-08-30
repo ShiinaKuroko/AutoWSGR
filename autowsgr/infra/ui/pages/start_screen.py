@@ -21,7 +21,7 @@ from typing import TYPE_CHECKING
 from autowsgr.infra.system.logger import get_logger
 from autowsgr.infra.ui.profile.coordinates import point
 from autowsgr.infra.ui.profile.signatures import signature
-from autowsgr.vision import (
+from autowsgr.infra.vision import (
     PageMatch,
     PixelChecker,
 )
@@ -30,7 +30,7 @@ from autowsgr.vision import (
 if TYPE_CHECKING:
     import numpy as np
 
-    from autowsgr.emulator import AndroidController
+    from autowsgr.infra.emulator import AndroidController
 
 
 _log = get_logger('ui')

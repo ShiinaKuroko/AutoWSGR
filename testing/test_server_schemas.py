@@ -4,8 +4,8 @@ import pytest
 from autowsgr_native.vessel_type import VesselType
 from pydantic import ValidationError
 
-from autowsgr.combat import CombatPlan
-from autowsgr.combat.fleet import (
+from autowsgr.infra.combat import CombatPlan
+from autowsgr.infra.fleet import (
     NATIVE_VESSEL_TYPE_BY_CODE,
     FleetSelectionSource,
     fleet_slot_from_api,

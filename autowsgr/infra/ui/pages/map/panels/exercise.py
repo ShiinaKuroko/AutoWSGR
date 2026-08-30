@@ -32,7 +32,7 @@ from autowsgr.infra.ui.pages.map.data import (
     EXERCISE_SWIPE_TO_TOP,
 )
 from autowsgr.types import PageName
-from autowsgr.vision import PixelChecker
+from autowsgr.infra.vision import PixelChecker
 
 
 if TYPE_CHECKING:

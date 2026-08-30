@@ -22,9 +22,9 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING
 
-from autowsgr.image_resources import Templates
+from autowsgr.infra.vision.resources import Templates
 from autowsgr.infra.system.logger import get_logger
-from autowsgr.vision import ImageChecker, PixelChecker
+from autowsgr.infra.vision import ImageChecker, PixelChecker
 
 from .constants import DismissCoord, OverlayKind, Sig
 
@@ -32,7 +32,7 @@ from .constants import DismissCoord, OverlayKind, Sig
 if TYPE_CHECKING:
     import numpy as np
 
-    from autowsgr.emulator import AndroidController
+    from autowsgr.infra.emulator import AndroidController
 
 
 _log = get_logger('ui')
@@ -107,7 +107,7 @@ def dismiss_sign(ctrl: AndroidController) -> None:
 
     第一次确认必须点击 (领取后必有), 第二次确认可选 (等不到就直接收尾)。
     """
-    from autowsgr.ui.utils import confirm_operation
+    from autowsgr.infra.ui.interaction import confirm_operation
 
     _log.info('[UI] 每日签到: 领取奖励')
     ctrl.click(*DismissCoord.SIGN_CONFIRM.xy)

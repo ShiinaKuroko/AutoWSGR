@@ -15,9 +15,9 @@ from __future__ import annotations
 import enum
 from typing import TYPE_CHECKING
 
-from autowsgr.image_resources import Templates
+from autowsgr.infra.vision.resources import Templates
 from autowsgr.infra.system.logger import get_logger
-from autowsgr.vision import (
+from autowsgr.infra.vision import (
     ImageChecker,
     ImageTemplate,
     MatchStrategy,

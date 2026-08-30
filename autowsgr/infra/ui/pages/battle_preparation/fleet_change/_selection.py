@@ -9,7 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from autowsgr.combat.fleet import ShipSelector
+from autowsgr.infra.fleet import ShipSelector
 from autowsgr.infra.system.logger import get_logger
 from autowsgr.infra.ui.pages.battle_preparation.constants import CLICK_BACK
 

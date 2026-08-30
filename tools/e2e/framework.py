@@ -150,7 +150,7 @@ class E2ERunner:
 
         try:
             # 组装 GameContext (与 testing/ops 的 launch_for_test 同款流程)
-            from autowsgr.context import GameContext
+            from autowsgr.infra.runtime.context import GameContext
 
             if self.with_ocr:
                 self.ctx = launcher.build_context()  # 含 OCR 引擎

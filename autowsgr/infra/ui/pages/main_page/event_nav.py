@@ -9,9 +9,9 @@ import time
 from functools import lru_cache
 from typing import TYPE_CHECKING
 
-from autowsgr.image_resources import Templates
+from autowsgr.infra.vision.resources import Templates
 from autowsgr.infra.system.logger import get_logger
-from autowsgr.vision import ImageChecker
+from autowsgr.infra.vision import ImageChecker
 
 from .constants import NavCoord, Target
 from .overlays import detect_overlay, dismiss_overlay
@@ -22,8 +22,8 @@ if TYPE_CHECKING:
 
     import numpy as np
 
-    from autowsgr.emulator import AndroidController
-    from autowsgr.vision import ImageTemplate
+    from autowsgr.infra.emulator import AndroidController
+    from autowsgr.infra.vision import ImageTemplate
 
 _log = get_logger('ui')
 
@@ -39,7 +39,7 @@ def _get_event_icon_templates() -> list[ImageTemplate]:
     故 540p/720p 采集的模板可共存。导航时 ``find_any`` 命中任一即视为
     检测到活动入口。
     """
-    from autowsgr.image_resources._lazy import load_template
+    from autowsgr.infra.vision.resources._lazy import load_template
 
     return [
         load_template(
@@ -146,7 +146,7 @@ def navigate_to_event(
     NavigationError
         超过最大重试次数仍未到达活动地图页面。
     """
-    from autowsgr.ui.utils import NavigationError
+    from autowsgr.infra.ui.interaction import NavigationError
 
     from .controller import _get_target_checker
 

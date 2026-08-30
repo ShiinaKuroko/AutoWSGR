@@ -19,7 +19,7 @@
 from __future__ import annotations
 
 from autowsgr.infra.ui.profile.loader import get
-from autowsgr.vision import PixelSignature
+from autowsgr.infra.vision import PixelSignature
 
 
 def signature(page: str, key: str) -> PixelSignature:

@@ -9,15 +9,15 @@ import cv2
 import numpy as np
 import pytest
 
-from autowsgr.combat.fleet import (
+from autowsgr.infra.fleet import (
     FleetSlotRule,
     ShipSelector,
     exact_fleet_rules,
     fleet_slot_from_api,
 )
 from autowsgr.constants import normalize_ship_name, ship_name_identity
-from autowsgr.context import GameContext
-from autowsgr.emulator import AndroidController
+from autowsgr.infra.runtime.context import GameContext
+from autowsgr.infra.emulator import AndroidController
 from autowsgr.infra import DecisiveConfig
 from autowsgr.server.schemas import FleetRuleRequest
 from autowsgr.types import ShipDamageState, ShipType
@@ -41,15 +41,15 @@ from autowsgr.ui.battle.preparation import (
 )
 from autowsgr.ui.decisive.legacy_fleet_change import change_fleet_legacy
 from autowsgr.ui.decisive.preparation import DecisiveBattlePreparationPage
-from autowsgr.vision import OCRResult
-from autowsgr.vision.ocr_rules import (
+from autowsgr.infra.vision import OCRResult
+from autowsgr.infra.vision.ocr_rules import (
     EasyOCRProfile,
     set_user_ship_name_aliases,
 )
 
 
 if TYPE_CHECKING:
-    from autowsgr.vision.ocr import OCREngine
+    from autowsgr.infra.vision.ocr import OCREngine
 
 
 # ─────────────────────────────────────────────
@@ -157,7 +157,7 @@ def _make_screen(
 
     # 出征准备页面模板 (使 is_current_page 模板匹配命中)。
     # 贴到右上角空白区, 避开舰队/面板/补给探测点 (均在中下及左侧)。
-    from autowsgr.image_resources._lazy import load_template
+    from autowsgr.infra.vision.resources._lazy import load_template
 
     tmpl = load_template('page/fight_prepare_540p.png')
     th, tw = tmpl.image.shape[:2]
@@ -409,7 +409,7 @@ class TestActions:
         # go_back 用到达验证 (click_and_wait_for_page): 点击后需识别为 MAP 才算成功。
         # MapPage 识别走 tabbed 模板匹配, 构造假帧太重, 直接 mock checker 命中。
         from autowsgr.ui.map import MapPage
-        from autowsgr.ui.page import PageMatch
+        from autowsgr.infra.ui.navigation.registry import PageMatch
 
         monkeypatch.setattr(
             MapPage,
@@ -418,7 +418,7 @@ class TestActions:
         )
         ctrl.screenshot.return_value = np.zeros((540, 960, 3), dtype=np.uint8)
 
-        with patch('autowsgr.ui.utils.navigation.time.sleep'):
+        with patch('autowsgr.infra.ui.interaction.navigation.time.sleep'):
             pg.go_back()
         ctrl.click.assert_called_with(*CLICK_BACK)
 
@@ -430,8 +430,8 @@ class TestActions:
         """到达验证: 点击后画面仍在准备页 (MAP 不命中) → NavigationError, 不再假成功。"""
         pg, ctrl = page
         from autowsgr.ui.map import MapPage
-        from autowsgr.ui.page import PageMatch
-        from autowsgr.ui.utils import NavigationError
+        from autowsgr.infra.ui.navigation.registry import PageMatch
+        from autowsgr.infra.ui.interaction import NavigationError
 
         monkeypatch.setattr(
             MapPage,
@@ -441,7 +441,7 @@ class TestActions:
         ctrl.screenshot.return_value = np.zeros((540, 960, 3), dtype=np.uint8)
 
         with (
-            patch('autowsgr.ui.utils.navigation.time.sleep'),
+            patch('autowsgr.infra.ui.interaction.navigation.time.sleep'),
             pytest.raises(NavigationError),
         ):
             pg.go_back()

@@ -41,7 +41,7 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
 def run(rt: Any) -> bool:
     """执行奖励收取验证: 处理器路径 → 兼容层路径 → 锚点断言。"""
     from autowsgr.business.logistics.reward import collect_rewards
-    from autowsgr.business.system.navigate import identify_current_page
+    from autowsgr.infra.ui.navigation import identify_current_page
     from autowsgr.dispatch.processor import Processor, Request
     from autowsgr.types import PageName
 

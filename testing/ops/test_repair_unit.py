@@ -10,9 +10,9 @@ from __future__ import annotations
 import types
 from typing import TYPE_CHECKING
 
-from autowsgr.combat.history import CombatResult
-from autowsgr.context import GameContext, Ship
-from autowsgr.context.bathroom import BathRoom
+from autowsgr.infra.combat import CombatResult
+from autowsgr.infra.runtime.context import GameContext, Ship
+from autowsgr.infra.runtime.context.bathroom import BathRoom
 from autowsgr.types import ConditionFlag, ShipDamageState
 
 

@@ -23,7 +23,7 @@ from autowsgr.ui.event.event_page import (
     BaseEventPage,
     _get_fight_button_templates,
 )
-from autowsgr.vision import ImageMatchDetail
+from autowsgr.infra.vision import ImageMatchDetail
 
 
 def _gradient_screen(lo: int = 80, hi: int = 180) -> np.ndarray:
@@ -226,7 +226,7 @@ class TestGoBack:
         """始终不在主页且无浮层 → 15s 超时 → NavigationError。"""
         from itertools import count
 
-        from autowsgr.ui.utils import NavigationError
+        from autowsgr.infra.ui.interaction import NavigationError
 
         page, ctrl = _make_page()
         ctrl.screenshot.return_value = _gradient_screen()

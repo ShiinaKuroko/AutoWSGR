@@ -23,7 +23,7 @@ from autowsgr.infra.system.logger import get_logger
 from autowsgr.infra.ui.pages.battle_preparation.base import BaseBattlePreparation
 from autowsgr.infra.ui.pages.battle_preparation.detection import DetectionMixin
 from autowsgr.types import ShipDamageState, ShipType
-from autowsgr.vision.ocr import (
+from autowsgr.infra.vision.ocr import (
     _fuzzy_match,
     apply_ship_patches,
 )

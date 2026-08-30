@@ -1,6 +1,10 @@
-"""UI calibration accessors backed by read-only data files."""
+"""UI calibration accessors backed by read-only data files.
 
-from . import colors, coordinates, ocr, signatures
-from .loader import get
+Submodules stay lazy so reading one coordinate does not initialize OCR, color
+conversion, or template resources that the caller does not need.
+"""
 
-__all__ = ['colors', 'coordinates', 'get', 'ocr', 'signatures']
+from autowsgr.infra.ui.profile.loader import get
+
+
+__all__ = ['get']

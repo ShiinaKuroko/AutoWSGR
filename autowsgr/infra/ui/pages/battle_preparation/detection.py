@@ -16,8 +16,8 @@ from autowsgr.infra.system.logger import get_logger
 from autowsgr.infra.ui.pages.battle_preparation.base import BaseBattlePreparation
 from autowsgr.infra.ui.ship_list import extract_ship_type_from_text
 from autowsgr.types import ShipDamageState, ShipType
-from autowsgr.vision import PixelChecker
-from autowsgr.vision.ocr_rules import (
+from autowsgr.infra.vision import PixelChecker
+from autowsgr.infra.vision.ocr_rules import (
     LEVEL_NOISY_PATTERN,
     LEVEL_PATTERN,
     LEVEL_SHORT_PATTERN,
@@ -39,7 +39,7 @@ if TYPE_CHECKING:
 
     import numpy as np
 
-    from autowsgr.context.ship import Ship
+    from autowsgr.infra.runtime.context.ship import Ship
 
 
 _log = get_logger('ui.preparation')
@@ -75,7 +75,7 @@ class FleetInfo:
         list[Ship]
             按槽位顺序排列，跳过无舰船的槽位。
         """
-        from autowsgr.context.ship import Ship
+        from autowsgr.infra.runtime.context.ship import Ship
 
         ships: list[Ship] = []
         for i in range(6):

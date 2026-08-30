@@ -124,7 +124,7 @@ only_rec=False
 threshold=0.3
 ```
 
-模型放在 `autowsgr/data/ocr/ppocr_v6_small/`，随包分发，首次运行不需要联网下载。
+模型放在 `autowsgr/infra/data/ocr/ppocr_v6_small/`，随包分发，首次运行不需要联网下载。
 模型来自 MaaXYZ/MaaCommonAssets，对应 MIT 许可证随资源一并提交。
 
 ### 4.2 兼容与回退

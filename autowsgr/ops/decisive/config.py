@@ -16,7 +16,7 @@ _log = get_logger('decisive')
 # 地图静态数据
 # ═══════════════════════════════════════════════════════════════════════════════
 
-# 数据来源: autowsgr_legacy/data/map/decisive_battle/enemy_spec.yaml
+# 数据来源: autowsgr_legacy/infra/data/map/decisive_battle/enemy_spec.yaml
 # map_end[chapter][stage] → 该小关最后一个节点字母
 # chapter 索引 0 为占位; 有效章节 1-6; stage 索引 0 为占位, 有效小关 1-3。
 _MAP_END: list[str] = [

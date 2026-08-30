@@ -563,7 +563,7 @@ class TestPlanCompat:
 
     def test_from_yaml_crashes_on_legacy_fleet(self, tmp_yaml: Callable[[str, str], Path]):
         """CombatPlan.from_yaml 检测到 classic 前导空 fleet → 崩溃提示迁移。"""
-        from autowsgr.combat.plan import CombatPlan
+        from autowsgr.infra.combat.engine.plan import CombatPlan
         from autowsgr.infra.system.config_compat import LegacyConfigError
 
         path = tmp_yaml('plan_legacy.yaml', 'fleet: ["", "吹雪", "明斯克"]\n')
@@ -575,7 +575,7 @@ class TestPlanCompat:
         tmp_yaml: Callable[[str, str], Path],
     ):
         """干净 fleet 的计划文件正常加载, 不被改写 (格式保留)。"""
-        from autowsgr.combat.plan import CombatPlan
+        from autowsgr.infra.combat.engine.plan import CombatPlan
 
         content = 'fleet: ["飞龙", "U-1206"]\n'
         path = tmp_yaml('plan_clean.yaml', content)

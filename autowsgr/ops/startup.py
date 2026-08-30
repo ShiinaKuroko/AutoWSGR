@@ -11,7 +11,7 @@ TODO: 处理游戏更新提示
     (``start_game`` / ``recover_to_main_or_restart`` / ``ensure_game_ready``)
     与 :mod:`autowsgr.business.system.initialize.initialize` 职责重叠,
     待后续整体迁移时按注释找到新位置。导航已迁
-    :mod:`autowsgr.business.system.navigate`。
+    :mod:`autowsgr.infra.ui.navigation`。
 
 提供从零开始到稳定运行于主页面的完整启动流程：
 
@@ -39,17 +39,17 @@ from datetime import date
 from typing import TYPE_CHECKING
 
 # 已迁移到新方法: 导航器入口 (原 autowsgr.ops.navigate.goto_page)
-from autowsgr.business.system.navigate import goto_page
+from autowsgr.infra.ui.navigation import goto_page
 from autowsgr.infra.system.logger import get_logger
 from autowsgr.types import GameAPP, PageName
 from autowsgr.ui.main_page import MainPage
 from autowsgr.ui.start_screen_page import StartScreenPage
-from autowsgr.ui.utils import NavigationError
+from autowsgr.infra.ui.interaction import NavigationError
 
 
 if TYPE_CHECKING:
-    from autowsgr.context import GameContext
-    from autowsgr.emulator import AndroidController
+    from autowsgr.infra.runtime.context import GameContext
+    from autowsgr.infra.emulator import AndroidController
 
 _log = get_logger('ops.startup')
 
@@ -151,7 +151,7 @@ def wait_for_game_ui(
     """
     # 延迟导入避免循环依赖 (ui 层反向引用 ops 的模块)
     from autowsgr.ui.main_page.overlays import detect_overlay
-    from autowsgr.ui.page import get_current_page
+    from autowsgr.infra.ui.navigation.registry import get_current_page
 
     _log.info('[Startup] 等待游戏 UI 就绪 (超时 {:.0f}s)…', timeout)
     deadline = time.monotonic() + timeout
@@ -287,7 +287,7 @@ def handle_daily_overlays(ctx: GameContext) -> None:
 
         # ② 确认弹窗兜底: 检测不到浮层签名, 但可能有「确认」按钮
         #    (如签到奖励确认、二次确认) — 用确认模板轮子点掉
-        from autowsgr.ui.utils import confirm_operation
+        from autowsgr.infra.ui.interaction import confirm_operation
 
         if confirm_operation(
             ctx.ctrl,
@@ -305,7 +305,7 @@ def handle_daily_overlays(ctx: GameContext) -> None:
 def go_main_page(ctx: GameContext, *, dismiss_overlays: bool = True) -> None:
     """确保当前处于游戏主页面。
 
-    1. 调用 :func:`~autowsgr.business.system.navigate.goto_page` 导航到主页面
+    1. 调用 :func:`~autowsgr.infra.ui.navigation.goto_page` 导航到主页面
     2. 若设置了 ``dismiss_overlays``，导航后消除登录浮层
 
     Parameters

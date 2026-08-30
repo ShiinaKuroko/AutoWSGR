@@ -7,7 +7,7 @@
 3. **操作动作** — 点击按钮、切换标签等
 
 状态查询为 ``staticmethod``，只需截图数组即可调用；
-操作动作需要 :class:`~autowsgr.emulator.controller.AndroidController` 实例。
+操作动作需要 :class:`~autowsgr.infra.emulator.controller.AndroidController` 实例。
 
 导航操作 (``go_back``、``navigate_to`` 等) 内置截图验证，
 点击后反复截图确认页面已切换，超时抛出 :class:`NavigationError`。
@@ -50,7 +50,7 @@
 
 导航路径查找::
 
-    from autowsgr.ui.navigation import find_path
+    from autowsgr.infra.ui.navigation.graph import find_path
     from autowsgr.types import PageName
 
     path = find_path(PageName.MAIN, PageName.BUILD)
@@ -74,7 +74,7 @@ import sys as _sys
 # ── 控制器 ─────────────────────────────────────────────────────────────
 from autowsgr.types import PageName
 from autowsgr.ui.main_page.constants import OverlayKind
-from autowsgr.ui.page import (
+from autowsgr.infra.ui.navigation.registry import (
     get_current_page,
     get_registered_pages,
     register_page,
@@ -84,7 +84,7 @@ from autowsgr.ui.page import (
 from autowsgr.ui.tabbed_page import (
     TabbedPageType,
 )
-from autowsgr.ui.utils import (
+from autowsgr.infra.ui.interaction import (
     NavConfig,
     NavigationError,
     click_and_wait_for_page,
@@ -143,8 +143,8 @@ register_page(PageName.CHOOSE_SHIP, ChooseShipPage.is_current_page)
 # This runs after the package has finished importing, so it cannot participate
 # in the infra page import cycle.
 _MIGRATED_MODULE_ALIASES = {
-    'autowsgr.ui.utils.navigation': 'autowsgr.infra.ui.interaction',
-    'autowsgr.ui.utils.ship_list': 'autowsgr.infra.ui.ship_list',
+    'autowsgr.infra.ui.interaction.navigation': 'autowsgr.infra.ui.interaction',
+    'autowsgr.infra.ui.ship_list': 'autowsgr.infra.ui.ship_list',
     'autowsgr.ui.choose_ship_page': 'autowsgr.infra.ui.pages.choose_ship',
     'autowsgr.ui.battle.base': 'autowsgr.infra.ui.pages.battle_preparation.base',
     'autowsgr.ui.battle.blood': 'autowsgr.infra.ui.pages.battle_preparation.blood',

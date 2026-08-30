@@ -56,7 +56,7 @@ from testing.ui._framework import (
 
 
 if TYPE_CHECKING:
-    from autowsgr.emulator import AndroidController
+    from autowsgr.infra.emulator import AndroidController
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -66,7 +66,7 @@ if TYPE_CHECKING:
 
 def run_test(runner: UIControllerTestRunner) -> None:
     """执行活动地图页面控制器完整测试序列。"""
-    from autowsgr.context import GameContext
+    from autowsgr.infra.runtime.context import GameContext
     from autowsgr.infra import UserConfig
     from autowsgr.ui.event.event_page import BaseEventPage
     from autowsgr.ui.main_page import MainPage
@@ -184,7 +184,7 @@ def _try_enter_node(event_page: object, node_id: int) -> None:
 
 def _navigate_to(ctrl: AndroidController, pause: float) -> None:
     """从任意已知页面导航到活动地图页面。"""
-    from autowsgr.context import GameContext
+    from autowsgr.infra.runtime.context import GameContext
     from autowsgr.infra import UserConfig
     from autowsgr.ui.main_page import MainPage
 

@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from autowsgr.business.combat.exercise.spec import ExerciseSpec
-from autowsgr.combat import CombatMode
+from autowsgr.infra.combat import CombatMode
 
 
 def _params() -> dict:

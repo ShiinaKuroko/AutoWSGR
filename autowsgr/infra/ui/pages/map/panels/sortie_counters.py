@@ -11,13 +11,13 @@ from typing import TYPE_CHECKING
 
 from autowsgr.infra.system.logger import get_logger
 from autowsgr.infra.ui.pages.map.data import LOOT_COUNT_CROP, SHIP_COUNT_CROP
-from autowsgr.vision import PixelChecker
+from autowsgr.infra.vision import PixelChecker
 
 
 if TYPE_CHECKING:
     import numpy as np
 
-    from autowsgr.vision import OCREngine
+    from autowsgr.infra.vision import OCREngine
 
 
 _log = get_logger('ui')

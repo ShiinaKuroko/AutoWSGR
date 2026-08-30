@@ -27,14 +27,14 @@ import time
 from typing import TYPE_CHECKING
 
 from autowsgr.business.system.initialize import overlays, updater
-from autowsgr.business.system.navigate import goto_page, identify_current_page
+from autowsgr.infra.ui.navigation import goto_page, identify_current_page
 from autowsgr.infra.system.logger import get_logger
 from autowsgr.types import GameAPP, PageName
-from autowsgr.ui.utils import NavigationError
+from autowsgr.infra.ui.interaction import NavigationError
 
 
 if TYPE_CHECKING:
-    from autowsgr.context import GameContext
+    from autowsgr.infra.runtime.context import GameContext
 
 
 _log = get_logger('business.initialize')

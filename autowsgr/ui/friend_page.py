@@ -20,8 +20,8 @@ from typing import TYPE_CHECKING
 
 from autowsgr.infra.system.logger import get_logger
 from autowsgr.types import PageName
-from autowsgr.ui.utils import click_and_wait_for_page
-from autowsgr.vision import (
+from autowsgr.infra.ui.interaction import click_and_wait_for_page
+from autowsgr.infra.vision import (
     MatchStrategy,
     PageMatch,
     PixelRule,
@@ -32,7 +32,7 @@ from autowsgr.vision import (
 if TYPE_CHECKING:
     import numpy as np
 
-    from autowsgr.context import GameContext
+    from autowsgr.infra.runtime.context import GameContext
 
 
 _log = get_logger('ui')

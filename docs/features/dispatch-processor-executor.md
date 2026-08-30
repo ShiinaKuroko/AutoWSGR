@@ -201,11 +201,11 @@ python tools/e2e/run.py --with-ocr exercise --yaml <路径>
 2. `dispatch/contract.py` 废弃编排器残留 (TaskChain/Step 旧方案,
    FleetPolicy 已迁至 `business/combat/fleet_policy.py`) → 已删除。
    若发现 `from autowsgr.dispatch import FleetPolicy` 的引用, 改为
-   `from autowsgr.business.combat.fleet_policy import FleetPolicy`。
+   `from autowsgr.infra.fleet.policy import FleetPolicy`。
 3. `infra/ui/pages/tabbed_page.py` 模板目录相对路径在目录迁移后失效
    (`ui/map.png` 找不到) → 改为 `parents[4] / 'data' / 'images' / 'ui'`。
 4. `exercise.py` 的 `ConditionFlag` 应从 `autowsgr.types` 导入
-   (不在 `autowsgr.combat` 包中)。
+   (不在 `autowsgr.infra.combat.engine` 包中)。
 
 ### 3.6 任务奖励执行器 (`RewardCheckExecutor`)
 

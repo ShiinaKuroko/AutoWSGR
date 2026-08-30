@@ -5,7 +5,7 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING
 
-from autowsgr.image_resources import Templates
+from autowsgr.infra.vision.resources import Templates
 from autowsgr.infra.system.logger import get_logger
 from autowsgr.infra.ui.interaction import confirm_operation, wait_for_page
 from autowsgr.infra.ui.pages.map.base import BaseMapPage
@@ -15,7 +15,7 @@ from autowsgr.infra.ui.pages.map.data import (
     EXPEDITION_SLOT_TOLERANCE,
 )
 from autowsgr.types import PageName
-from autowsgr.vision import ImageChecker, PixelChecker
+from autowsgr.infra.vision import ImageChecker, PixelChecker
 
 
 if TYPE_CHECKING:

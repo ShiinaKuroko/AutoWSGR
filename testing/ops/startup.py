@@ -46,7 +46,7 @@ except Exception:
         pass
 from loguru import logger
 
-from autowsgr.emulator import ADBController
+from autowsgr.infra.emulator import ADBController
 from autowsgr.infra import ConfigManager, setup_logger
 from autowsgr.ops.startup import restart_game
 from autowsgr.types import GameAPP

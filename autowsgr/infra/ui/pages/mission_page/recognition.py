@@ -30,15 +30,15 @@ from autowsgr.infra.ui.pages.mission_page.data import (
     ButtonType,
     MissionInfo,
 )
-from autowsgr.vision import PixelChecker
-from autowsgr.vision.roi import ROI
+from autowsgr.infra.vision import PixelChecker
+from autowsgr.infra.vision.roi import ROI
 
 
 if TYPE_CHECKING:
     import numpy as np
 
-    from autowsgr.vision import OCREngine
-    from autowsgr.vision.pixel import Color
+    from autowsgr.infra.vision import OCREngine
+    from autowsgr.infra.vision.pixel import Color
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -205,7 +205,7 @@ def match_mission_name(
         return max(substring_hits, key=len)
 
     # Levenshtein 模糊匹配
-    from autowsgr.vision.ocr import _edit_distance
+    from autowsgr.infra.vision.ocr import _edit_distance
 
     best_name: str | None = None
     best_dist = threshold + 1

@@ -15,7 +15,7 @@ from ._selection import FleetSelectionMixin
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from autowsgr.combat.fleet import FleetSlotRule, ShipSelector
+    from autowsgr.infra.fleet import FleetSlotRule, ShipSelector
 
     from ._detect import FleetSnapshot
 

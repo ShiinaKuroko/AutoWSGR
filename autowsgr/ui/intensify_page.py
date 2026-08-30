@@ -27,14 +27,14 @@ from autowsgr.infra.ui.pages.tabbed_page import (
     make_tab_checker,
 )
 from autowsgr.types import PageName
-from autowsgr.ui.utils import click_and_wait_for_page
+from autowsgr.infra.ui.interaction import click_and_wait_for_page
 
 
 if TYPE_CHECKING:
     import numpy as np
 
-    from autowsgr.context import GameContext
-    from autowsgr.vision import PageMatch
+    from autowsgr.infra.runtime.context import GameContext
+    from autowsgr.infra.vision import PageMatch
 
 
 _log = get_logger('ui')

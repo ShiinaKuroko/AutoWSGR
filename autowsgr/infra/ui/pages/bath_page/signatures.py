@@ -1,6 +1,6 @@
 """浴室页面像素签名与坐标常量。"""
 
-from autowsgr.vision import MatchStrategy, PixelRule, PixelSignature
+from autowsgr.infra.vision import MatchStrategy, PixelRule, PixelSignature
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

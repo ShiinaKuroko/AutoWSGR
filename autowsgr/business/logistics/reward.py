@@ -17,7 +17,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from autowsgr.business.base import BaseExecutor
-from autowsgr.business.system.navigate import goto_page
+from autowsgr.infra.ui.navigation import goto_page
 from autowsgr.dispatch.registry import register
 from autowsgr.infra.system.logger import get_logger
 from autowsgr.infra.ui.pages.main_page import MainPage
@@ -26,7 +26,7 @@ from autowsgr.types import PageName
 
 
 if TYPE_CHECKING:
-    from autowsgr.context import GameContext
+    from autowsgr.infra.runtime.context import GameContext
 
 
 _log = get_logger('business.logistics.reward')

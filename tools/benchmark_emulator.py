@@ -43,7 +43,7 @@ from pathlib import Path
 
 from loguru import logger
 
-from autowsgr.emulator import AndroidController, ScrcpyController
+from autowsgr.infra.emulator import AndroidController, ScrcpyController
 
 
 # ── 将项目根目录加入 sys.path，兼容直接运行 ──

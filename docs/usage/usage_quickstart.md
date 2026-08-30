@@ -67,9 +67,9 @@ infra (基础设施)       ← 配置/日志/异常
 
 | 类型 | 用途 | 导入 |
 |------|------|------|
-| `AndroidController` | 设备控制（截图、点击、滑动） | `from autowsgr.emulator import ADBController` |
-| `CombatPlan` | 作战计划（阵型、夜战、节点决策） | `from autowsgr.combat.plan import CombatPlan` |
-| `CombatResult` | 战斗结果（状态标记、血量、历史） | `from autowsgr.combat.callbacks import CombatResult` |
+| `AndroidController` | 设备控制（截图、点击、滑动） | `from autowsgr.infra.emulator import ADBController` |
+| `CombatPlan` | 作战计划（阵型、夜战、节点决策） | `from autowsgr.infra.combat import CombatPlan` |
+| `CombatResult` | 战斗结果（状态标记、血量、历史） | `from autowsgr.infra.combat import CombatResult` |
 
 ---
 
@@ -77,7 +77,7 @@ infra (基础设施)       ← 配置/日志/异常
 
 ```python
 """连接模拟器并截图"""
-from autowsgr.emulator import ADBController
+from autowsgr.infra.emulator import ADBController
 
 # 连接设备 (自动检测串口)
 ctrl = ADBController(serial="127.0.0.1:5555")
@@ -98,7 +98,7 @@ ctrl.disconnect()
 ## 6. 导航到任意页面
 
 ```python
-from autowsgr.emulator import ADBController
+from autowsgr.infra.emulator import ADBController
 from autowsgr.ops import goto_page, identify_current_page
 
 ctrl = ADBController(serial="127.0.0.1:5555")
@@ -170,7 +170,7 @@ print(f"战役结果: {results[0].flag}")
 ## 9. 执行一次常规战
 
 ```python
-from autowsgr.combat.plan import CombatPlan
+from autowsgr.infra.combat import CombatPlan
 from autowsgr.ops import run_normal_fight
 
 # 从 YAML 加载作战计划

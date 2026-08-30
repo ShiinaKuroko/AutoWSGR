@@ -22,7 +22,7 @@ from autowsgr.infra.ui.profile.colors import param as _color_param
 from autowsgr.infra.ui.profile.colors import tolerance as _color_tolerance
 from autowsgr.infra.ui.profile.coordinates import point
 from autowsgr.infra.ui.profile.ocr import param as _ocr_param
-from autowsgr.vision.roi import ROI
+from autowsgr.infra.vision.roi import ROI
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -152,7 +152,7 @@ CLICK_BACK: tuple[float, float] = point('mission', 'back')
 # 任务数据库
 # ═══════════════════════════════════════════════════════════════════════════════
 
-_MISSIONS_YAML = Path(__file__).resolve().parent.parent.parent / 'data' / 'missions.yaml'
+_MISSIONS_YAML = Path(__file__).resolve().parents[3] / 'data' / 'missions.yaml'
 
 
 @lru_cache(maxsize=1)

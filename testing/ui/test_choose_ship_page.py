@@ -5,13 +5,13 @@ from unittest.mock import MagicMock, patch
 
 import numpy as np
 
-from autowsgr.combat.fleet import ShipSelector
+from autowsgr.infra.fleet import ShipSelector
 from autowsgr.types import ShipType
 from autowsgr.ui.choose_ship_page import ChooseShipPage
-from autowsgr.ui.utils.ship_list import LevelOCRRetryNeededError
-from autowsgr.vision import OCRResult
-from autowsgr.vision.ocr import set_ship_name_match_confidence
-from autowsgr.vision.ocr_rules import EasyOCRProfile, set_user_ship_name_aliases
+from autowsgr.infra.ui.ship_list import LevelOCRRetryNeededError
+from autowsgr.infra.vision import OCRResult
+from autowsgr.infra.vision.ocr import set_ship_name_match_confidence
+from autowsgr.infra.vision.ocr_rules import EasyOCRProfile, set_user_ship_name_aliases
 
 
 class TestShipNameMatching:

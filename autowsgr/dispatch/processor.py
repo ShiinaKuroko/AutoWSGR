@@ -34,7 +34,7 @@ from autowsgr.infra.system.logger import get_logger
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from autowsgr.context import GameContext
+    from autowsgr.infra.runtime.context import GameContext
 
 
 _log = get_logger('dispatch.processor')

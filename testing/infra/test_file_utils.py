@@ -102,7 +102,7 @@ class TestResolvePlanPath:
     """测试 resolve_plan_path —— 含 plan_root 优先 / 回退语义。
 
     对齐 classic ``plan_root``: 用户自定义目录同名文件优先于包内默认,
-    未命中则回退到 ``autowsgr/data/plan/{category}/``。
+    未命中则回退到 ``autowsgr/infra/data/plan/{category}/``。
     """
 
     def test_plan_root_overrides_package_default(self, tmp_path: Path):

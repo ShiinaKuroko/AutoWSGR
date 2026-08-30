@@ -9,7 +9,7 @@ from unittest.mock import patch
 
 import pytest
 
-from autowsgr.emulator import (
+from autowsgr.infra.emulator import (
     LinuxEmulatorManager,
     MacEmulatorManager,
     WindowsEmulatorManager,
@@ -99,7 +99,7 @@ class TestWindowsEmulatorManager:
             'gbk'
         )
         with patch(
-            'autowsgr.emulator.os_control.windows.subprocess.check_output', return_value=fake_output
+            'autowsgr.infra.emulator.os_control.windows.subprocess.check_output', return_value=fake_output
         ):
             assert mgr.is_running() is True
 
@@ -194,7 +194,7 @@ class TestLinuxEmulatorManager:
     def test_adb_devices_empty(self):
         """_adb_devices 在异常时返回空列表。"""
         with patch(
-            'autowsgr.emulator.os_control.linux.LinuxEmulatorManager._adb_devices',
+            'autowsgr.infra.emulator.os_control.linux.LinuxEmulatorManager._adb_devices',
             return_value=[],
         ):
             config = EmulatorConfig(

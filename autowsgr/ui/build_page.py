@@ -29,7 +29,7 @@ import enum
 import time
 from typing import TYPE_CHECKING
 
-from autowsgr.image_resources import Templates
+from autowsgr.infra.vision.resources import Templates
 from autowsgr.infra.system.logger import get_logger
 from autowsgr.infra.ui.pages.tabbed_page import (
     TabbedPageType,
@@ -38,7 +38,7 @@ from autowsgr.infra.ui.pages.tabbed_page import (
     make_tab_checker,
 )
 from autowsgr.types import PageName, ShipType
-from autowsgr.vision import ImageChecker, PageMatch
+from autowsgr.infra.vision import ImageChecker, PageMatch
 
 from .page import click_and_wait_for_page
 
@@ -46,7 +46,7 @@ from .page import click_and_wait_for_page
 if TYPE_CHECKING:
     import numpy as np
 
-    from autowsgr.context import GameContext
+    from autowsgr.infra.runtime.context import GameContext
 
 
 _log = get_logger('ui')

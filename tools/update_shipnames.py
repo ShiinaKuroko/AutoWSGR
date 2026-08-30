@@ -1,4 +1,4 @@
-"""从战舰少女 Wiki 爬取舰娘图鉴并更新 autowsgr/data/shipnames.yaml。
+"""从战舰少女 Wiki 爬取舰娘图鉴并更新 autowsgr/infra/data/shipnames.yaml。
 
 功能
 ----
@@ -46,7 +46,7 @@ except Exception:  # noqa: S110
 # ────────────────────────────────────────────────────────────────────────────
 
 WIKI_URL = 'https://www.zjsnrwiki.com/wiki/%E8%88%B0%E5%A8%98%E5%9B%BE%E9%89%B4'
-YAML_PATH = _ROOT / 'autowsgr' / 'data' / 'shipnames.yaml'
+YAML_PATH = _ROOT / 'autowsgr' / 'infra' / 'data' / 'shipnames.yaml'
 
 # 非图鉴船只（手动维护，Wiki 页面上这几条没有链接文本，需要特殊处理）
 _EXTRA_SHIPS: dict[str, str] = {

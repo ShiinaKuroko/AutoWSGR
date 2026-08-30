@@ -26,15 +26,15 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, ClassVar
 
-from autowsgr.combat import GradeCondition, grade_condition_met
+from autowsgr.infra.combat import grade_condition_met
 from autowsgr.infra.system.logger import get_logger
 from autowsgr.scheduler.scheduler import FightTask
 from autowsgr.types import ConditionFlag
 
 
 if TYPE_CHECKING:
-    from autowsgr.combat import CombatResult
-    from autowsgr.context import GameContext
+    from autowsgr.infra.combat import CombatResult, GradeCondition
+    from autowsgr.infra.runtime.context import GameContext
 
 _log = get_logger('scheduler')
 

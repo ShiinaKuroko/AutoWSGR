@@ -23,16 +23,16 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 # 已迁移到新方法: 导航器入口 (原 autowsgr.ops.goto_page)
-from autowsgr.business.system.navigate import goto_page
+from autowsgr.infra.ui.navigation import goto_page
 from autowsgr.types import PageName
 from autowsgr.ui.battle.preparation import BattlePreparationPage
 from autowsgr.ui.main_page import MainPage
-from autowsgr.ui.page import get_current_page
+from autowsgr.infra.ui.navigation.registry import get_current_page
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from autowsgr.context import GameContext
+    from autowsgr.infra.runtime.context import GameContext
 
 
 def _current_page(ctx: GameContext) -> str:

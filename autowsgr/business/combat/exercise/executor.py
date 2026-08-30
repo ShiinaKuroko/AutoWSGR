@@ -38,9 +38,9 @@ from typing import TYPE_CHECKING, Any
 
 from autowsgr.business.base import BaseExecutor
 from autowsgr.business.combat.exercise.spec import ExerciseSpec
-from autowsgr.combat import CombatResult, run_combat
-from autowsgr.combat.fleet import exact_fleet_rules
 from autowsgr.dispatch.registry import register
+from autowsgr.infra.combat import CombatResult, run_combat
+from autowsgr.infra.fleet import exact_fleet_rules
 from autowsgr.infra.system.logger import get_logger
 from autowsgr.types import ConditionFlag, ShipDamageState
 
@@ -48,7 +48,7 @@ from .operations import ExerciseOperations
 
 
 if TYPE_CHECKING:
-    from autowsgr.context import GameContext
+    from autowsgr.infra.runtime.context import GameContext
 
 
 _log = get_logger('business.combat.exercise')
@@ -159,7 +159,13 @@ class ExerciseExecutor(BaseExecutor):
 
     def _run_combat(self, ship_stats: list[ShipDamageState]) -> CombatResult:
         """构建 CombatPlan 并执行战斗 (原子操作: 执行期间不响应暂停)。"""
-        return run_combat(self.ctx, self.plan, ship_stats=ship_stats)
+        return run_combat(
+            self.ctx.ctrl,
+            self.plan,
+            ship_stats=ship_stats,
+            ocr=self.ctx.ocr,
+            stop_requested=self._stop.is_set,
+        )
 
     def _has_quota(self) -> bool:
         """配额检查: 完整模式恒为 True; 限额模式在累计计数达到上限前为 True。"""

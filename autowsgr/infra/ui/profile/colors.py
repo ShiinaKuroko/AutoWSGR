@@ -19,7 +19,7 @@ from __future__ import annotations
 from typing import Any
 
 from autowsgr.infra.ui.profile.loader import get
-from autowsgr.vision import Color
+from autowsgr.infra.vision import Color
 
 
 def color(page: str, key: str) -> Color:

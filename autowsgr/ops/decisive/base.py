@@ -17,7 +17,7 @@ from autowsgr.ui.decisive import DecisiveBattlePage, DecisiveMapController
 
 
 if TYPE_CHECKING:
-    from autowsgr.context import GameContext
+    from autowsgr.infra.runtime.context import GameContext
 
 _log = get_logger('ops.decisive')
 

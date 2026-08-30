@@ -250,7 +250,7 @@ Templates.Build.BUILD_BUTTON → ImageTemplate
 
 **文件**: `autowsgr/image_resources/_lazy.py`
 
-模板图片在首次访问时从 `data/images/` 目录加载。使用 `LazyTemplate` 描述符，避免启动时一次性加载所有图片：
+模板图片在首次访问时从 `infra/data/images/` 目录加载。使用 `LazyTemplate` 描述符，避免启动时一次性加载所有图片：
 
 ```python
 class LazyTemplate:
@@ -259,10 +259,10 @@ class LazyTemplate:
         # 后续访问: 直接返回缓存
 ```
 
-图片存储在 `data/images/` 的子目录中：
+图片存储在 `infra/data/images/` 的子目录中：
 
 ```
-data/images/
+infra/data/images/
 ├── combat/       # 战斗状态模板
 ├── build/        # 建造页面
 ├── choose_ship/  # 选船页面

@@ -58,7 +58,7 @@ from testing.ui._framework import (
 
 
 if TYPE_CHECKING:
-    from autowsgr.emulator import AndroidController
+    from autowsgr.infra.emulator import AndroidController
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

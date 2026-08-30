@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, call
 
 import pytest
 
-import autowsgr.ui.utils as ui_utils
+import autowsgr.infra.ui.interaction as ui_utils
 from autowsgr.ops import startup
 from autowsgr.types import PageName
 

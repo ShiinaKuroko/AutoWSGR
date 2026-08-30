@@ -10,30 +10,30 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING, Literal
 
-# 已迁移到新方法: 导航器入口 (原 autowsgr.ops.navigate.goto_page)
-from autowsgr.business.system.navigate import goto_page
-from autowsgr.combat import CombatMode, CombatPlan, CombatResult
-from autowsgr.combat.engine import run_combat
-from autowsgr.combat.fleet import (
+from autowsgr.infra import ActionFailedError
+from autowsgr.infra.combat import CombatMode, CombatPlan, CombatResult, run_combat
+from autowsgr.infra.fleet import (
     FleetSlotRule,
     ResolvedFleetSelection,
     exact_fleet_rules,
     resolve_fleet_selection,
     validate_fleet_selection_arguments,
 )
-from autowsgr.infra import ActionFailedError
 from autowsgr.infra.system.logger import get_logger
+from autowsgr.infra.ui.interaction import NavigationError
+
+# 已迁移到新方法: 导航器入口 (原 autowsgr.ops.navigate.goto_page)
+from autowsgr.infra.ui.navigation import goto_page
 from autowsgr.types import ConditionFlag, PageName, RepairMode, ShipDamageState
 from autowsgr.ui import BaseEventPage, BattlePreparationPage, MapPage, MapPanel, RepairStrategy
-from autowsgr.ui.utils import NavigationError
 
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
     from pathlib import Path
 
-    from autowsgr.context import GameContext
-    from autowsgr.context.ship import Ship
+    from autowsgr.infra.runtime.context import GameContext
+    from autowsgr.infra.runtime.context.ship import Ship
 
 
 _log = get_logger('ops')
@@ -431,9 +431,11 @@ class NormalFightRunner:
     def _do_combat(self, ship_stats: list[ShipDamageState]) -> CombatResult:
         """构建 CombatEngine 并执行战斗。"""
         return run_combat(
-            self._ctx,
+            self._ctx.ctrl,
             self._plan,
             ship_stats=ship_stats,
+            ocr=self._ctx.ocr,
+            stop_requested=self._ctx.stop_event.is_set,
         )
 
     # ── 结果处理 ──
@@ -569,7 +571,7 @@ def run_normal_fight_from_yaml(
     - 绝对路径 / 相对路径: 直接加载。
     - 策略名称 (如 ``"7-4千伪"``): 按 :func:`resolve_plan_path` 的优先级查找 ——
       若指定 *plan_root* 先在其中查找 (``{plan_root}/normal_fight/``), 未命中再
-      回退到 ``autowsgr/data/plan/normal_fight/`` 包数据目录; 可省略 ``.yaml`` 后缀。
+      回退到 ``autowsgr/infra/data/plan/normal_fight/`` 包数据目录; 可省略 ``.yaml`` 后缀。
     """
     plan = get_normal_fight_plan(yaml_path, plan_root=plan_root)
     return run_normal_fight(

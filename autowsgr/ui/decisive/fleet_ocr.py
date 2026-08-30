@@ -26,13 +26,13 @@ from autowsgr.ui.decisive.overlay import (
     SHIP_NAME_X_RANGES,
     SHIP_NAME_Y_RANGE,
 )
-from autowsgr.vision import ROI, OCREngine
+from autowsgr.infra.vision import ROI, OCREngine
 
 
 if TYPE_CHECKING:
     import numpy as np
 
-    from autowsgr.emulator import AndroidController
+    from autowsgr.infra.emulator import AndroidController
 
 
 _log = get_logger('ui.decisive')

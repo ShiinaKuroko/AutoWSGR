@@ -13,8 +13,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from autowsgr.combat import CombatResult
-from autowsgr.context import GameContext
+from autowsgr.infra.combat import CombatResult
+from autowsgr.infra.runtime.context import GameContext
 from autowsgr.scheduler.scheduler import BatchRunnerAdapter, FightTask, TaskScheduler
 from autowsgr.scheduler.triggers import NormalFightPlan, NormalFightTrigger
 from autowsgr.types import ConditionFlag
@@ -476,8 +476,8 @@ class _FakeSortiePage:
 
 def _patch_ctx_sortie(monkeypatch: pytest.MonkeyPatch, page: _FakeSortiePage) -> None:
     """替换 ctx.sync_daily_drop_counts 的设备依赖 (goto_page / MapPage / sleep) 为 no-op。"""
-    import autowsgr.business.system.navigate as nav_mod
-    import autowsgr.context.game_context as gc_mod
+    import autowsgr.infra.runtime.context.game_context as gc_mod
+    import autowsgr.infra.ui.navigation as nav_mod
     import autowsgr.ui as ui_mod
 
     # 已迁移到新方法: goto_page 现在来自 business.system.navigate
@@ -587,7 +587,7 @@ def test_normal_fight_trigger_disable_survives_reset():
 
 def _fight_result(node: str, grade: str) -> CombatResult:
     """构造一场成功战斗: flag=SUCCESS + 单节点战果。"""
-    from autowsgr.combat.history import CombatEvent, EventType
+    from autowsgr.infra.combat.history import CombatEvent, EventType
 
     result = CombatResult(flag=ConditionFlag.OPERATION_SUCCESS)
     result.history.add(CombatEvent(event_type=EventType.RESULT, node=node, result=grade))
@@ -611,7 +611,7 @@ def _make_normal_trigger(
 
 def test_normal_fight_trigger_counts_condition_met():
     """conditions 计划: 达标场次计数, 打满 target 后停止产出。"""
-    from autowsgr.combat import GradeCondition
+    from autowsgr.infra.combat import GradeCondition
 
     trigger, plan = _make_normal_trigger(
         conditions=(GradeCondition(node='F', grade='S'),),
@@ -629,7 +629,7 @@ def test_normal_fight_trigger_counts_condition_met():
 
 def test_normal_fight_trigger_condition_not_met_not_counted():
     """conditions 计划: 不达标场次 (评级不足) 不计数, 触发器继续产出。"""
-    from autowsgr.combat import GradeCondition
+    from autowsgr.infra.combat import GradeCondition
 
     trigger, plan = _make_normal_trigger(conditions=(GradeCondition(node='F', grade='S'),))
     ctx = _ctx_with_da(None)
@@ -688,7 +688,7 @@ def test_run_task_dock_full_resolved_round_does_not_consume_times(
 
 def test_register_normal_fight_passes_condition(monkeypatch: pytest.MonkeyPatch):
     """daily_plan: CombatPlan.condition 镜像到 NormalFightPlan (触发器按条件计数)。"""
-    from autowsgr.combat import CombatPlan, GradeCondition
+    from autowsgr.infra.combat import CombatPlan, GradeCondition
     from autowsgr.infra.system.config import DailyAutomationConfig
     from autowsgr.ops import normal_fight as nf_mod
     from autowsgr.scheduler.daily_plan import _register_normal_fight

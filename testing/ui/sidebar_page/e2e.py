@@ -36,7 +36,7 @@ from testing.ui._framework import (
 
 
 if TYPE_CHECKING:
-    from autowsgr.emulator import AndroidController
+    from autowsgr.infra.emulator import AndroidController
 
 
 def run_test(runner: UIControllerTestRunner) -> None:  # noqa: PLR0911
@@ -151,7 +151,7 @@ def _navigate_to(ctrl: AndroidController, pause: float) -> None:
     """从任意已知页面导航到侧边栏。"""
     import time
 
-    from autowsgr.context import GameContext
+    from autowsgr.infra.runtime.context import GameContext
     from autowsgr.infra import UserConfig
     from autowsgr.ui.main_page import MainPage
 

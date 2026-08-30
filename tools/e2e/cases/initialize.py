@@ -27,7 +27,7 @@ def add_arguments(parser) -> None:
 def run(rt) -> bool:
     """执行初始化链路并验证终态契约。"""
     from autowsgr.business.system.initialize.initialize import _package_of, initialize
-    from autowsgr.business.system.navigate import identify_current_page
+    from autowsgr.infra.ui.navigation import identify_current_page
     from autowsgr.infra.ui.pages.main_page import MainPage
     from autowsgr.infra.ui.pages.main_page.overlays import detect_overlay
 

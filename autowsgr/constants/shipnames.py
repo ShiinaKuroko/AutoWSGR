@@ -1,6 +1,6 @@
-import os
 import re
 from collections.abc import Mapping
+from pathlib import Path
 
 from autowsgr.infra import load_yaml
 
@@ -34,11 +34,7 @@ def process_dict(d: dict) -> list[str]:
     return result
 
 
-_SHIPNAME_PATH = os.path.join(
-    os.path.dirname(os.path.dirname(__file__)),
-    'data',
-    'shipnames.yaml',
-)
+_SHIPNAME_PATH = Path(__file__).resolve().parents[1] / 'infra' / 'data' / 'shipnames.yaml'
 _BASE_SHIPNAME_GROUPS: dict[str, list[str]] = {
     group_id: list(names) for group_id, names in load_yaml(_SHIPNAME_PATH).items()
 }

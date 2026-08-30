@@ -40,8 +40,8 @@ from autowsgr.ui.decisive.overlay import (
     is_fleet_acquisition,
 )
 from autowsgr.ui.decisive.preparation import DecisiveBattlePreparationPage
-from autowsgr.ui.utils.ship_list import recognize_ships_in_list as _recognize_ships
-from autowsgr.vision import (
+from autowsgr.infra.ui.ship_list import recognize_ships_in_list as _recognize_ships
+from autowsgr.infra.vision import (
     ImageChecker,
     MatchStrategy,
     PixelChecker,
@@ -54,9 +54,9 @@ from ..page import click_and_wait_for_page
 
 
 if TYPE_CHECKING:
-    from autowsgr.context import GameContext
+    from autowsgr.infra.runtime.context import GameContext
     from autowsgr.infra import DecisiveConfig
-    from autowsgr.vision.api_dll import ApiDll
+    from autowsgr.infra.vision.api_dll import ApiDll
 
 
 _log = get_logger('ui.decisive')
@@ -138,7 +138,7 @@ class DecisiveMapController:
         DecisivePhase | None
             检测到的阶段；过场动画中等未知状态返回 ``None``。
         """
-        from autowsgr.image_resources import Templates
+        from autowsgr.infra.vision.resources import Templates
 
         if screen is None:
             screen = self._ctrl.screenshot()
@@ -389,7 +389,7 @@ class DecisiveMapController:
 
     def check_dock_full(self) -> bool:
         """检查当前界面是否出现船坞已满提示。"""
-        from autowsgr.image_resources import Templates
+        from autowsgr.infra.vision.resources import Templates
 
         screen = self._ctrl.screenshot()
         return ImageChecker.template_exists(
@@ -404,7 +404,7 @@ class DecisiveMapController:
         对应 Legacy ``decisive_battle_image[7]`` + ``click(873, 500)``。
         由状态机多次调度实现重试。
         """
-        from autowsgr.image_resources import Templates
+        from autowsgr.infra.vision.resources import Templates
 
         click_confirm_pos: tuple[float, float] = (873 / 960, 500 / 540)
 
@@ -521,8 +521,8 @@ class DecisiveMapController:
         # TODO: 改进鲁棒性
         time.sleep(1)
         # 调试：检测当前页面状态
-        from autowsgr.image_resources import Templates
-        from autowsgr.ui.utils.navigation import NavConfig
+        from autowsgr.infra.vision.resources import Templates
+        from autowsgr.infra.ui.interaction.navigation import NavConfig
 
         screen = self._ctrl.screenshot()
         map_check = ImageChecker.template_exists(
@@ -581,9 +581,9 @@ class DecisiveMapController:
 
     def confirm_stage_clear(self) -> list[str]:  # noqa: PLR0912
         """小关通关后确认弹窗并收集掉落舰船。"""
-        from autowsgr.combat import recognize_ship_drop
-        from autowsgr.image_resources import Templates
-        from autowsgr.ui.utils import confirm_operation
+        from autowsgr.infra.combat import recognize_ship_drop
+        from autowsgr.infra.vision.resources import Templates
+        from autowsgr.infra.ui.interaction import confirm_operation
 
         confirm_operation(self._ctrl, must_confirm=True, timeout=5.0, delay=2.0)
         confirm_operation(self._ctrl, must_confirm=True, timeout=5.0, delay=2.0)

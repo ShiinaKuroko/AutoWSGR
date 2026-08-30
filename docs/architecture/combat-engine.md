@@ -10,19 +10,33 @@
 
 ```
 CombatEngine
-├── CombatRecognizer        截图 → 阶段识别 (模板+像素)
-├── PhaseHandlersMixin      各阶段处理器 (操作+决策)
-├── CombatPlan              作战计划 (YAML 驱动)
-│   └── NodeDecision        每节点战术 (阵型/夜战/规则)
-├── CombatHistory           战斗事件记录
-└── state.py                CombatPhase 枚举 + 转移图
+├── engine/                 状态机驱动、阶段转移与作战计划
+├── actions.py              战斗页面物理动作
+├── handlers.py             阶段编排与领域数据采集
+├── recognizer.py           阶段视觉状态识别
+├── recognition.py          敌舰、阵型、战果和掉落识别
+├── history.py              战斗事件和结果记录
+├── node_tracker.py         多节点地图位置追踪
+└── rules.py                纯战斗规则评估
 ```
+
+`business/*Executor` 只依赖 `autowsgr.infra.combat` 的公开入口。
+战斗基建内部的依赖方向固定为：
+
+```text
+engine → handlers / actions / recognizer / history
+handlers → actions / recognition / rules
+actions → ui.profile / vision / emulator
+recognition → vision / data
+```
+
+这些模块都不是可调度任务，不拥有队列、优先级或任务生命周期。
 
 ---
 
 ## 状态机核心循环
 
-**文件**: `autowsgr/combat/engine.py`
+**文件**: `autowsgr/infra/combat/engine/engine.py`
 
 `CombatEngine.fight(plan, initial_ship_stats)` 执行完整战斗：
 
@@ -47,7 +61,7 @@ fight(plan)
          ├─ FIGHT_CONTINUE → 继续循环
          ├─ FIGHT_END → 结束 (成功)
          ├─ DOCK_FULL → 结束 (船坞满)
-         └─ SL → 重启游戏 + 结束
+         └─ SL → 返回结果，由上层重试/初始化策略处理
 ```
 
 ### ConditionFlag
@@ -65,7 +79,7 @@ class ConditionFlag(IntEnum):
 
 ## CombatPhase 状态枚举
 
-**文件**: `autowsgr/combat/state.py`
+**文件**: `autowsgr/infra/combat/engine/state.py`
 
 ```python
 class CombatPhase(Enum):
@@ -164,7 +178,7 @@ START_FIGHT → FORMATION → FIGHT_PERIOD → NIGHT_PROMPT → RESULT
 
 ## 作战计划 (CombatPlan)
 
-**文件**: `autowsgr/combat/plan.py`
+**文件**: `autowsgr/infra/combat/engine/plan.py`
 
 ### CombatPlan
 
@@ -216,7 +230,7 @@ class NodeDecision:
 作战计划从 YAML 文件加载，路径解析通过 `resolve_plan_path()`：
 
 ```
-直接路径 → 补全 .yaml → data/plan/ 下搜索 → data/plan/ 下补全 .yaml
+直接路径 → 补全 .yaml → infra/data/plan/ 下搜索 → infra/data/plan/ 下补全 .yaml
 ```
 
 YAML 中 `nodes` 字段的每个节点配置映射到 `NodeConfig` (Pydantic) → `NodeDecision`:
@@ -237,7 +251,7 @@ nodes:
 
 ## 阶段处理器 (PhaseHandlersMixin)
 
-**文件**: `autowsgr/combat/handlers.py`
+**文件**: `autowsgr/infra/combat/handlers.py`
 
 `_make_decision(phase)` 根据当前阶段分发到对应 handler：
 
@@ -272,7 +286,7 @@ handler 还会设置 `self._last_action` (如 `'yes'`/`'no'`/`'fight'`/`'detour'
 
 ## 战斗视觉识别器 (CombatRecognizer)
 
-**文件**: `autowsgr/combat/recognizer.py`
+**文件**: `autowsgr/infra/combat/recognizer.py`
 
 ### PhaseSignature
 
@@ -319,7 +333,7 @@ raise CombatRecognitionTimeout
 
 ## 敌舰/阵型/掉落识别
 
-**文件**: `autowsgr/combat/recognition.py`
+**文件**: `autowsgr/infra/combat/recognition.py`
 
 ### 敌舰识别
 
@@ -356,7 +370,7 @@ recognize_ship_drop(screen, ocr_engine) -> tuple[str, str] | tuple[str, str]
 
 ## 战斗记录
 
-**文件**: `autowsgr/combat/history.py`
+**文件**: `autowsgr/infra/combat/history.py`
 
 ### CombatHistory
 
@@ -382,7 +396,7 @@ class CombatResult:
 
 ## 节点追踪器
 
-**文件**: `autowsgr/combat/node_tracker.py`
+**文件**: `autowsgr/infra/combat/node_tracker.py`
 
 MAP 模式下，通过跟踪我方舰队图标在地图上的移动来确定当前节点：
 
@@ -394,7 +408,7 @@ class NodeTracker:
     def reset()
 ```
 
-地图节点数据从 `data/map/` 加载：
+地图节点数据从 `infra/data/map/` 加载：
 
 ```python
 MapNodeData.load(chapter, map_id) -> MapNodeData | None
@@ -405,7 +419,7 @@ MapNodeData.load_event(event_name, chapter, map_id) -> MapNodeData | None
 
 ## 规则引擎
 
-**文件**: `autowsgr/combat/rules.py`
+**文件**: `autowsgr/infra/combat/rules.py`
 
 作战计划中 `enemy_rules` 和 `enemy_formation_rules` 使用规则引擎进行条件判断：
 
@@ -429,5 +443,5 @@ class RuleEngine:
 
 - **下游**: [vision](vision.md) 提供模板匹配、像素匹配、OCR
 - **下游**: [emulator](emulator.md) 提供截图和触控
-- **上游**: [ops](ops.md) 的各 Runner 调用 `CombatEngine.fight()`
-- **数据**: [context-and-config](context-and-config.md) 的 `GameContext` 提供运行时状态同步
+- **上游**: `business/*Executor` 调用 `CombatEngine.fight()`
+- **下游**: `RuntimeSession` 提供设备、OCR 和停止查询能力

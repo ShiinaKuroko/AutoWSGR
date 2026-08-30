@@ -18,11 +18,11 @@ import re
 import time
 from typing import TYPE_CHECKING
 
-from autowsgr.image_resources import Templates
+from autowsgr.infra.vision.resources import Templates
 from autowsgr.infra.system.logger import get_logger
 from autowsgr.types import DecisiveEntryStatus, PageName
-from autowsgr.ui.utils import click_and_wait_for_page, confirm_operation
-from autowsgr.vision import (
+from autowsgr.infra.ui.interaction import click_and_wait_for_page, confirm_operation
+from autowsgr.infra.vision import (
     Color,
     ImageChecker,
     MatchStrategy,
@@ -37,7 +37,7 @@ from autowsgr.vision import (
 if TYPE_CHECKING:
     import numpy as np
 
-    from autowsgr.context import GameContext
+    from autowsgr.infra.runtime.context import GameContext
 
 
 _log = get_logger('ui.decisive')
@@ -296,7 +296,7 @@ class DecisiveBattlePage:
         NavigationError
             超过最大尝试次数仍未到达。
         """
-        from autowsgr.ui.utils import NavigationError
+        from autowsgr.infra.ui.interaction import NavigationError
 
         if not MIN_CHAPTER <= target <= MAX_CHAPTER:
             raise ValueError(f'决战章节编号必须为 {MIN_CHAPTER}-{MAX_CHAPTER}，收到: {target}')
@@ -400,7 +400,7 @@ class DecisiveBattlePage:
         TimeoutError
             超时仍未匹配到任何入口状态。
         """
-        from autowsgr.image_resources import Templates
+        from autowsgr.infra.vision.resources import Templates
 
         templates = Templates.Decisive.entry_status_templates()
         statuses = list(DecisiveEntryStatus)

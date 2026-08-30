@@ -27,7 +27,7 @@ from dataclasses import dataclass, field
 from datetime import date
 from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
-from autowsgr.combat import CombatResult
+from autowsgr.infra.combat import CombatResult
 from autowsgr.infra.system.logger import get_logger
 from autowsgr.types import ConditionFlag
 
@@ -35,7 +35,7 @@ from autowsgr.types import ConditionFlag
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from autowsgr.context import GameContext
+    from autowsgr.infra.runtime.context import GameContext
     from autowsgr.scheduler.triggers import Trigger
 
 _log = get_logger('scheduler')

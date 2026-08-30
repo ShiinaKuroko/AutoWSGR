@@ -15,19 +15,19 @@ import cv2
 from autowsgr.constants import SHIPNAMES
 from autowsgr.infra.system.logger import get_logger
 from autowsgr.types import ShipType
-from autowsgr.vision import apply_ship_patches, get_api_dll
-from autowsgr.vision.ocr import EasyOCREngine, OCRResult, _fuzzy_match
-from autowsgr.vision.ocr_rules import (
+from autowsgr.infra.vision import apply_ship_patches, get_api_dll
+from autowsgr.infra.vision.ocr import EasyOCREngine, OCRResult, _fuzzy_match
+from autowsgr.infra.vision.ocr_rules import (
     LEVEL_DIGIT_CONFUSABLES,
     EasyOCRProfile,
     is_valid_ship_level,
     normalize_level_digits,
 )
-from autowsgr.vision.ocr_rules import (
+from autowsgr.infra.vision.ocr_rules import (
     LEVEL_NOISY_PATTERN as _LEVEL_NOISY_PATTERN,
 )
-from autowsgr.vision.ocr_rules import LEVEL_PATTERN as _LEVEL_PATTERN
-from autowsgr.vision.ocr_rules import LEVEL_SHORT_PATTERN as _LEVEL_SHORT_PATTERN
+from autowsgr.infra.vision.ocr_rules import LEVEL_PATTERN as _LEVEL_PATTERN
+from autowsgr.infra.vision.ocr_rules import LEVEL_SHORT_PATTERN as _LEVEL_SHORT_PATTERN
 
 
 if TYPE_CHECKING:
@@ -35,7 +35,7 @@ if TYPE_CHECKING:
 
     import numpy as np
 
-    from autowsgr.vision import OCREngine
+    from autowsgr.infra.vision import OCREngine
 
 
 _log = get_logger('ui')

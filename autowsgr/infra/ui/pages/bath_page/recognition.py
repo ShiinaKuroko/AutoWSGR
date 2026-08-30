@@ -21,13 +21,13 @@ import cv2
 from autowsgr.constants import SHIPNAMES
 from autowsgr.infra.system.logger import get_logger
 from autowsgr.infra.ui.pages.bath_page.page import RepairShipInfo
-from autowsgr.vision.ocr import _fuzzy_match
+from autowsgr.infra.vision.ocr import _fuzzy_match
 
 
 if TYPE_CHECKING:
     import numpy as np
 
-    from autowsgr.vision.ocr import OCREngine
+    from autowsgr.infra.vision.ocr import OCREngine
 
 _log = get_logger('ui.bath_page.recognition')
 

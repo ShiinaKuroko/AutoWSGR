@@ -83,7 +83,7 @@ emulator:
 | `device '127.0.0.1:16384' not found` | ADB server not connected to TCP device | Code auto-connects now; if still failing, manually `adb connect 127.0.0.1:16384` |
 | `ModuleNotFoundError: cv2` | opencv-python + opencv-python-headless conflict | `uv pip uninstall opencv-python` then `uv sync` (project uses headless) |
 | `ModuleNotFoundError: retry` | `retry2` not installed (provides `retry` module) | `uv sync` (retry2 is a transitive dep of adbutils) |
-| `scrcpy video stream no first frame` | JAR not pushed, device too slow, or port conflict | Check `autowsgr/data/bin/scrcpy-server.jar` exists; increase screenshot_timeout |
+| `scrcpy video stream no first frame` | JAR not pushed, device too slow, or port conflict | Check `autowsgr/infra/infra/data/bin/scrcpy-server.jar` exists; increase screenshot_timeout |
 | `未发现已连接的 ADB 设备` | No emulator process running or ADB server down | Start emulator; run `adb start-server` |
 | `EmulatorConnectionError` after 3 retries | Persistent ADB issue | Kill all adb processes, restart emulator, then retry |
 
@@ -115,4 +115,4 @@ Serial-to-type matching patterns:
 | `autowsgr/infra/config.py` | EmulatorConfig model, YAML loading |
 | `autowsgr/types.py` | EmulatorType enum |
 | `autowsgr/scheduler/launcher.py` | Launcher.connect() entry point |
-| `autowsgr/data/bin/scrcpy-server.jar` | Bundled scrcpy server (v2.7) |
+| `autowsgr/infra/infra/data/bin/scrcpy-server.jar` | Bundled scrcpy server (v2.7) |

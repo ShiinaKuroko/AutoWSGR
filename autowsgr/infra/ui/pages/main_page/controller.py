@@ -7,10 +7,10 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING
 
-from autowsgr.image_resources import Templates
+from autowsgr.infra.vision.resources import Templates
 from autowsgr.infra.system.logger import get_logger
 from autowsgr.types import PageName
-from autowsgr.vision import ImageChecker, PageMatch, PixelChecker
+from autowsgr.infra.vision import ImageChecker, PageMatch, PixelChecker
 
 from .constants import (
     NavCoord,
@@ -28,7 +28,7 @@ if TYPE_CHECKING:
 
     import numpy as np
 
-    from autowsgr.context import GameContext
+    from autowsgr.infra.runtime.context import GameContext
 
 _log = get_logger('ui')
 
@@ -197,7 +197,7 @@ class MainPage:
 
     def _navigate_standard(self, target: Target) -> None:
         """通用单步导航 — 点击坐标 + 等待目标页面签名。"""
-        from autowsgr.ui.utils import click_and_wait_for_page
+        from autowsgr.infra.ui.interaction import click_and_wait_for_page
 
         coord = NavCoord[target.name]
         _log.info('[UI] 主页面 → {}', target.value)

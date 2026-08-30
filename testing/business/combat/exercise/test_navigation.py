@@ -1,11 +1,12 @@
 """演习准备页导航节点的无设备回归。"""
 
-from autowsgr.business.navigation import find_path
+from autowsgr.infra.ui.navigation.graph import find_path
+from autowsgr.infra.ui.navigation.registry import get_registered_pages, register_default_pages
 from autowsgr.types import PageName
-from autowsgr.ui.page import get_registered_pages
 
 
 def test_battle_preparation_is_registered_and_returns_via_map() -> None:
+    register_default_pages()
     assert PageName.BATTLE_PREP.value in get_registered_pages()
 
     path = find_path(PageName.BATTLE_PREP.value, PageName.MAIN.value)

@@ -21,7 +21,7 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING
 
-from autowsgr.image_resources import Templates
+from autowsgr.infra.vision.resources import Templates
 from autowsgr.infra.system.logger import get_logger
 from autowsgr.infra.ui.pages.mission_page.data import (
     CLICK_BACK,
@@ -35,14 +35,14 @@ from autowsgr.infra.ui.pages.mission_page.recognition import (
 )
 from autowsgr.infra.ui.pages.tabbed_page import TabbedPageType, check_tabbed_page
 from autowsgr.types import PageName
-from autowsgr.ui.utils import click_and_wait_for_page
-from autowsgr.vision import ImageChecker, PageMatch
+from autowsgr.infra.ui.interaction import click_and_wait_for_page
+from autowsgr.infra.vision import ImageChecker, PageMatch
 
 
 if TYPE_CHECKING:
     import numpy as np
 
-    from autowsgr.context import GameContext
+    from autowsgr.infra.runtime.context import GameContext
     from autowsgr.infra.ui.pages.mission_page.data import MissionInfo
 
 

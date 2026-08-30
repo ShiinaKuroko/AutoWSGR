@@ -42,7 +42,7 @@ from typing import TYPE_CHECKING
 
 
 if TYPE_CHECKING:
-    from autowsgr.context import GameContext
+    from autowsgr.infra.runtime.context import GameContext
 
 
 try:
@@ -67,7 +67,7 @@ if TYPE_CHECKING:
 
     import numpy as np
 
-    from autowsgr.emulator import ADBController
+    from autowsgr.infra.emulator import ADBController
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -252,7 +252,7 @@ class UIControllerTestRunner:
     def ctx(self) -> GameContext:
         """懒加载 GameContext (测试用)。"""
         if self._ctx is None:
-            from autowsgr.context import GameContext
+            from autowsgr.infra.runtime.context import GameContext
             from autowsgr.infra import UserConfig
 
             self._ctx = GameContext(ctrl=self.ctrl, config=UserConfig())
@@ -330,7 +330,7 @@ class UIControllerTestRunner:
             rec.screenshot_path = str(path) if path else None
             rec.duration_ms = int((time.monotonic() - t0) * 1000)
 
-            from autowsgr.ui.page import get_current_page
+            from autowsgr.infra.ui.navigation.registry import get_current_page
 
             rec.page_check = checker(screen)
             rec.actual_page = get_current_page(screen)
@@ -488,7 +488,7 @@ def reset_to_main_page(ctrl: ADBController, pause: float = 1.5) -> bool:  # noqa
     bool
         成功回到主页面时返回 ``True``，超出重试次数仍未到达则返回 ``False``。
     """
-    from autowsgr.context import GameContext
+    from autowsgr.infra.runtime.context import GameContext
     from autowsgr.infra import UserConfig
     from autowsgr.ui.backyard_page import BackyardPage
     from autowsgr.ui.bath_page import BathPage
@@ -690,7 +690,7 @@ def parse_e2e_args(
 
 def connect_device(serial: str | None, *, timeout: float = 15.0) -> ADBController:
     """创建并连接 ADB 控制器，失败时退出进程。"""
-    from autowsgr.emulator import ADBController
+    from autowsgr.infra.emulator import ADBController
 
     ctrl = ADBController(serial=serial, screenshot_timeout=timeout)
     try:
@@ -732,7 +732,7 @@ def connect_via_launcher(
     ADBController
         已建立连接的设备控制器。
     """
-    from autowsgr.emulator import ADBController
+    from autowsgr.infra.emulator import ADBController
     from autowsgr.infra import ConfigManager
     from autowsgr.infra.system.logger import setup_logger
 

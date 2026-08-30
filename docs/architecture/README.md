@@ -10,35 +10,29 @@
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│  scheduler / server    调度器 & HTTP API             │
+│  server             HTTP / CLI / Timer 适配           │
 ├─────────────────────────────────────────────────────┤
-│  ops                   游戏操作编排                   │
+│  dispatch           Processor、队列、任务生命周期     │
 ├─────────────────────────────────────────────────────┤
-│  combat                战斗引擎 (状态机)              │
+│  business           可调度业务 Executor               │
 ├─────────────────────────────────────────────────────┤
-│  ui                    页面识别 & 导航图              │
+│  infra              运行时、战斗、UI、视觉、设备基建  │
 ├─────────────────────────────────────────────────────┤
-│  vision                像素特征 / 模板匹配 / OCR      │
-├─────────────────────────────────────────────────────┤
-│  emulator              设备控制 (截图 + 触控)         │
-├─────────────────────────────────────────────────────┤
-│  infra                 配置 / 日志 / 异常 / 类型      │
+│  contracts / data   中立契约与只读包资源               │
 └─────────────────────────────────────────────────────┘
 ```
 
-每一层只依赖其下方的层。跨层调用通过 `GameContext` 传递。
+代码依赖只能向下；结果、检查点和事件向上返回。`GameContext` 是迁移期旧聚合，
+新代码使用明确的运行时能力和类型化契约，不把设备、导航和任务状态重新集中进去。
 
 | 层            | 包路径                | 职责                            | 细节文档                                     |
 |---------------|----------------------|---------------------------------|----------------------------------------------|
-| **infra**     | `autowsgr/infra/`    | 配置加载、日志、异常、文件工具、全局类型  | [infra.md](infra.md)                         |
-| **emulator**  | `autowsgr/emulator/` | ADB 连接、截图、触控、进程管理         | [emulator.md](emulator.md)                   |
-| **vision**    | `autowsgr/vision/`   | 像素匹配、模板匹配、OCR 文字识别       | [vision.md](vision.md)                       |
-| **ui**        | `autowsgr/ui/`       | 游戏页面识别、导航图 BFS 寻路          | [ui.md](ui.md)                               |
-| **combat**    | `autowsgr/combat/`   | 战斗状态机、阶段识别、作战计划          | [combat-engine.md](combat-engine.md)         |
-| **ops**       | `autowsgr/ops/`      | 战斗 Runner、远征、修理、建造等操作     | [ops.md](ops.md)                             |
-| **scheduler** | `autowsgr/scheduler/` | 启动器、任务调度                     | [scheduler-and-server.md](scheduler-and-server.md) |
+| **infra**     | `autowsgr/infra/`    | 运行时、战斗、UI、视觉、设备和系统基建   | [infra.md](infra.md)                         |
+| **combat**    | `autowsgr/infra/combat/` | 战斗领域基建：引擎、动作、识别、记录 | [combat-engine.md](combat-engine.md)         |
+| **business**  | `autowsgr/business/` | 可调度业务用例与 Executor               | [ops.md](ops.md)                             |
+| **dispatch**  | `autowsgr/dispatch/` | Processor、任务队列和生命周期           | [scheduler-and-server.md](scheduler-and-server.md) |
 | **server**    | `autowsgr/server/`   | FastAPI HTTP/WebSocket 接口       | [scheduler-and-server.md](scheduler-and-server.md) |
-| **context**   | `autowsgr/context/`  | 游戏上下文 (状态聚合)                | [context-and-config.md](context-and-config.md) |
+| **runtime**   | `autowsgr/infra/runtime/` | 设备会话和迁移期游戏状态模型        | [context-and-config.md](context-and-config.md) |
 
 ---
 
@@ -53,17 +47,14 @@ usersettings.yaml
   ConfigManager.load()          # YAML → Pydantic 校验 → UserConfig
        │
        ▼
-  Launcher
-    ├─ setup_logger()           # 日志初始化 (通道过滤)
-    ├─ ScrcpyController.connect()  # ADB + scrcpy 连接
-    ├─ EasyOCREngine.create()   # OCR 引擎初始化
-    └─ GameContext(ctrl, config, ocr)
-       │
+  Launcher / server adapter
        ▼
-  NormalFightRunner / CampaignRunner / ...
-    ├─ goto_page(MAP)           # UI 导航 (BFS 寻路)
-    ├─ BattlePreparationPage    # 出征准备 (换船/补给/检测血量)
-    └─ CombatEngine.fight(plan) # 战斗状态机循环
+  Processor                   # 创建 TaskInstance、调度和控制
+       ▼
+  BusinessExecutor            # 业务步骤和检查点
+    ├─ Navigator               # 语义页面交接
+    ├─ BattlePreparationPage   # 出征准备和编队
+    └─ CombatEngine.fight()    # 战斗基建状态机循环
          │
          ├─ CombatRecognizer.wait_for_phase()  # 截图 → 模板+像素匹配 → 阶段
          ├─ PhaseHandler._handle_*()           # 阶段处理 (操作 + 决策)
@@ -77,17 +68,19 @@ usersettings.yaml
 
 ## 关键设计原则
 
-### 1. GameContext 依赖注入
+### 1. 运行时能力注入
 
-所有游戏层代码通过 `ctx: GameContext` 获取基础设施引用（`ctrl` / `config` / `ocr`），不依赖全局变量。这使得单元测试可以注入 mock 对象。
+`GameContext` 仍是迁移期旧聚合，只允许作为上层业务的临时承载。战斗基建接收明确的
+设备、OCR 和停止查询能力，不再把任务状态或游戏快照带入引擎。
 
 ```python
 @dataclass
 class GameContext:
+    # 迁移期模型；新基建不直接依赖它
     ctrl: AndroidController     # 设备控制器
     config: UserConfig          # 用户配置 (只读)
     ocr: OCREngine              # OCR 引擎
-    resources: Resources        # 运行时: 资源
+    resources: Resources        # 迁移期运行时资源
     fleets: list[Fleet]         # 运行时: 舰队 (1-4)
     ...
 ```
@@ -101,8 +94,8 @@ class GameContext:
 ### 3. YAML 驱动配置
 
 - 用户配置：`usersettings.yaml` → Pydantic `UserConfig`
-- 作战计划：`data/plan/*.yaml` → `CombatPlan` + `NodeDecision`
-- 地图数据：`data/map/*.yaml` → `MapNodeData`
+- 作战计划：`infra/data/plan/*.yaml` → `CombatPlan` + `NodeDecision`
+- 地图数据：`infra/data/map/*.yaml` → `MapNodeData`
 
 ### 4. 状态机模式
 

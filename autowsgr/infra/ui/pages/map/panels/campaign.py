@@ -25,7 +25,7 @@ from autowsgr.infra.ui.pages.map.panels.sortie import (
     recognize_ship_count,
 )
 from autowsgr.types import PageName
-from autowsgr.vision import PixelChecker
+from autowsgr.infra.vision import PixelChecker
 
 
 if TYPE_CHECKING:

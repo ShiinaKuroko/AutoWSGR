@@ -1,10 +1,10 @@
-"""Tests for autowsgr.vision.roi — ROI class."""
+"""Tests for autowsgr.infra.vision.roi — ROI class."""
 
 from __future__ import annotations
 
 import pytest
 
-from autowsgr.vision import ROI
+from autowsgr.infra.vision import ROI
 
 from ._helpers import solid_screen
 

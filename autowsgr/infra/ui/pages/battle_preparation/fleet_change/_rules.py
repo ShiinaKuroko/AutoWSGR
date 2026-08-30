@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from autowsgr.combat.fleet import FleetSlotRule, ShipSelector
+from autowsgr.infra.fleet import FleetSlotRule, ShipSelector
 from autowsgr.constants import normalize_ship_name, ship_name_identity
 
 from ._detect import FleetDetectMixin

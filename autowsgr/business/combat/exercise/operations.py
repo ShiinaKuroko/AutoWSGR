@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from autowsgr.business.system.navigate import goto_page
 from autowsgr.infra.system.logger import get_logger
+from autowsgr.infra.ui.navigation import goto_page
 from autowsgr.infra.ui.pages.battle_preparation import BattlePreparationPage
 from autowsgr.infra.ui.pages.battle_preparation.base import RepairStrategy
 from autowsgr.infra.ui.pages.map import MapPage, MapPanel
@@ -15,9 +15,9 @@ from autowsgr.types import PageName, RepairMode, ShipDamageState
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from autowsgr.combat.fleet import FleetSlotRule
-    from autowsgr.combat.plan import CombatPlan
-    from autowsgr.context import GameContext
+    from autowsgr.infra.combat import CombatPlan
+    from autowsgr.infra.fleet import FleetSlotRule
+    from autowsgr.infra.runtime.context import GameContext
 
 
 _log = get_logger('business.combat.exercise')

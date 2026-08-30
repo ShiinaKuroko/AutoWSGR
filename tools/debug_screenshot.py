@@ -103,7 +103,7 @@ def capture_screenshot(config_path: str = 'usersettings.yaml') -> np.ndarray:
 
 def check_page_signatures(screen: np.ndarray, page_name: str | None = None) -> None:
     """检查当前截图匹配哪些页面签名。"""
-    from autowsgr.vision import PixelChecker
+    from autowsgr.infra.vision import PixelChecker
 
     # 收集所有已知的页面签名
     known_pages = {}
@@ -143,7 +143,7 @@ def run_ocr_on_roi(
     out_dir: Path = DEFAULT_OUTPUT_DIR,
 ) -> None:
     """对指定 ROI 区域执行 OCR 测试。"""
-    from autowsgr.vision import EasyOCREngine
+    from autowsgr.infra.vision import EasyOCREngine
 
     x1, y1, x2, y2 = roi
     cropped = _crop(screen, x1, y1, x2, y2)

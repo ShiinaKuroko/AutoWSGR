@@ -187,7 +187,7 @@ FastOCR 原图平均 10.47ms/槽，EasyOCR 优化原图平均 14.57ms/槽，Easy
 | `keys.txt` | 74,947 | `b5f2bfe2bdd9448429e3e82b51c789775d9b42f2403d082b00662eb77e401c5d` |
 
 合计 31,114,872 字节。模型来源和 MIT 许可证记录在
-`autowsgr/data/ocr/ppocr_v6_small/README.md` 与 `LICENSE`。
+`autowsgr/infra/data/ocr/ppocr_v6_small/README.md` 与 `LICENSE`。
 
 ## 7. 三阶段测试流程
 

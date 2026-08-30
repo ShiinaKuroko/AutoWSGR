@@ -38,7 +38,7 @@ _ShipSelection = _SelectionResult
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from autowsgr.combat.fleet import FleetSlotRule, ShipSelector
+    from autowsgr.infra.fleet import FleetSlotRule, ShipSelector
 
 
 # 记录智能换船过程中的关键步骤和失败原因。

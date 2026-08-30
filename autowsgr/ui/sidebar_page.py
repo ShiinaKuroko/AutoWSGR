@@ -25,11 +25,11 @@ import enum
 import time
 from typing import TYPE_CHECKING
 
-from autowsgr.image_resources import Templates
+from autowsgr.infra.vision.resources import Templates
 from autowsgr.infra.system.logger import get_logger
 from autowsgr.types import PageName
-from autowsgr.ui.utils import click_and_wait_for_page, wait_for_page
-from autowsgr.vision import ImageChecker, PageMatch
+from autowsgr.infra.ui.interaction import click_and_wait_for_page, wait_for_page
+from autowsgr.infra.vision import ImageChecker, PageMatch
 
 
 if TYPE_CHECKING:
@@ -37,7 +37,7 @@ if TYPE_CHECKING:
 
     import numpy as np
 
-    from autowsgr.context import GameContext
+    from autowsgr.infra.runtime.context import GameContext
 
 
 _log = get_logger('ui')
@@ -199,7 +199,7 @@ class SidebarPage:
         流程: 点击侧边栏项 → 等待弹出 → 点击子选项 → 验证到达目标页面。
         整个流程带重试。
         """
-        from autowsgr.ui.utils import DEFAULT_NAV_CONFIG, NavigationError
+        from autowsgr.infra.ui.interaction import DEFAULT_NAV_CONFIG, NavigationError
 
         config = DEFAULT_NAV_CONFIG
         last_err: NavigationError | None = None

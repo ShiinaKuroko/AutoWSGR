@@ -21,7 +21,7 @@ from unittest.mock import MagicMock, call
 import numpy as np
 import pytest
 
-from autowsgr.emulator import ScrcpyController
+from autowsgr.infra.emulator import ScrcpyController
 from autowsgr.infra import EmulatorConnectionError
 
 

@@ -21,11 +21,11 @@ from autowsgr.infra.ui.pages.main_page.overlays import (
     detect_overlay,
     dismiss_overlay,
 )
-from autowsgr.ui.utils import confirm_operation
+from autowsgr.infra.ui.interaction import confirm_operation
 
 
 if TYPE_CHECKING:
-    from autowsgr.emulator import AndroidController
+    from autowsgr.infra.emulator import AndroidController
 
 
 _log = get_logger('business.overlays')

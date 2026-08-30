@@ -35,7 +35,7 @@ async def game_acquisition() -> ApiResponse:
     ctx = require_context(get_context)
 
     # 已迁移到新方法: 导航器入口 (原 autowsgr.ops.navigate.goto_page)
-    from autowsgr.business.system.navigate import goto_page
+    from autowsgr.infra.ui.navigation import goto_page
     from autowsgr.ui.map import MapPage
 
     def _recognize() -> dict[str, int | None]:
