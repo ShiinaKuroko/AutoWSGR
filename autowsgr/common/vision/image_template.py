@@ -8,7 +8,7 @@
 - **ImageRule**: 单条匹配规则（模板列表 + ROI + 置信度）
 - **ImageSignature**: 多规则组合签名
 
-匹配引擎 :class:`~autowsgr.infra.vision.image_matcher.ImageChecker` 在独立模块中。
+匹配引擎 :class:`~autowsgr.common.vision.image_matcher.ImageChecker` 在独立模块中。
 """
 
 from __future__ import annotations
@@ -237,7 +237,7 @@ class ImageRule:
     unmask_factor:
         反蒙版还原系数 ``(0, 1]``, 默认 ``0.0`` (禁用)。``> 0`` 时对截图搜索区域
         做 ``RGB /= factor`` 还原半透明黑罩压暗 (见
-        :meth:`~autowsgr.infra.vision.image_matcher.ImageChecker._unmask`), 用于 overlay
+        :meth:`~autowsgr.common.vision.image_matcher.ImageChecker._unmask`), 用于 overlay
         场景下识别被压暗的基础页模板; 模板图本身不还原。
 
     Examples
@@ -272,7 +272,7 @@ class ImageRule:
 class ImageSignature:
     """图像特征签名 — 由多条 ImageRule 组合定义一个页面 / 状态。
 
-    与 :class:`~autowsgr.infra.vision.matcher.PixelSignature` 类似，但基于模板图片。
+    与 :class:`~autowsgr.common.vision.matcher.PixelSignature` 类似，但基于模板图片。
     支持 ALL / ANY / COUNT 匹配策略。
 
     Parameters

@@ -34,7 +34,7 @@ def process_dict(d: dict) -> list[str]:
     return result
 
 
-_SHIPNAME_PATH = Path(__file__).resolve().parents[1] / 'infra' / 'data' / 'shipnames.yaml'
+_SHIPNAME_PATH = Path(__file__).resolve().parents[1] / 'common' / 'data' / 'shipnames.yaml'
 _BASE_SHIPNAME_GROUPS: dict[str, list[str]] = {
     group_id: list(names) for group_id, names in load_yaml(_SHIPNAME_PATH).items()
 }

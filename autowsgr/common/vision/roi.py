@@ -6,7 +6,7 @@
 
 使用方式::
 
-    from autowsgr.infra.vision import ROI
+    from autowsgr.common.vision import ROI
 
     roi = ROI(0.6, 0.8, 1.0, 1.0)       # 右下角
     roi = ROI.from_tuple((0.1, 0.2, 0.5, 0.6))

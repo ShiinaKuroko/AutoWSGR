@@ -44,7 +44,12 @@ _KEY_POINTS: dict[int, list[str]] = {
 def _load_enemy_spec_data() -> dict:
     """加载决战 enemy_spec.yaml 数据。"""
     data_path = (
-        Path(__file__).resolve().parents[2] / 'data' / 'map' / 'decisive_battle' / 'enemy_spec.yaml'
+        Path(__file__).resolve().parents[2]
+        / 'common'
+        / 'data'
+        / 'map'
+        / 'decisive_battle'
+        / 'enemy_spec.yaml'
     )
     return load_yaml(data_path)
 

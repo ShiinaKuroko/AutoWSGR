@@ -1,15 +1,15 @@
 """基于模板匹配的图像识别引擎。
 
-与 :mod:`autowsgr.infra.vision.matcher` 中的像素特征检测互补，提供基于模板图片的匹配。
+与 :mod:`autowsgr.common.vision.matcher` 中的像素特征检测互补，提供基于模板图片的匹配。
 
 数据类（``ROI``, ``ImageTemplate``, ``ImageRule`` 等）定义在
-:mod:`autowsgr.infra.vision.roi` 和 :mod:`autowsgr.infra.vision.image_template` 中，
+:mod:`autowsgr.common.vision.roi` 和 :mod:`autowsgr.common.vision.image_template` 中，
 本模块仅包含匹配引擎 :class:`ImageChecker`。
 
 
 使用方式::
 
-    from autowsgr.infra.vision import (
+    from autowsgr.common.vision import (
         ROI, ImageTemplate, ImageRule, ImageSignature, ImageChecker,
     )
 """
@@ -21,7 +21,7 @@ from typing import TYPE_CHECKING
 import cv2
 import numpy as np
 
-from autowsgr.infra.system.logger import get_logger
+from autowsgr.common.system.logger import get_logger
 
 from .image_template import (
     ImageMatchDetail,
@@ -48,7 +48,7 @@ _log = get_logger('vision.image')
 class ImageChecker:
     """基于模板匹配的图像检测引擎。
 
-    与 :class:`~autowsgr.infra.vision.matcher.PixelChecker` 平行的 API，
+    与 :class:`~autowsgr.common.vision.matcher.PixelChecker` 平行的 API，
     提供模板匹配相关的所有操作。
 
     所有方法接收 numpy 数组形式的截图 (HxWx3, RGB uint8)，

@@ -4,7 +4,7 @@
 
 使用方式::
 
-    from autowsgr.infra.vision import OCREngine
+    from autowsgr.common.vision import OCREngine
 
     engine = OCREngine.create("easyocr", gpu=False, mirror="tencent")
     results = engine.recognize(cropped_image)
@@ -22,9 +22,8 @@ from typing import TYPE_CHECKING, ClassVar
 import cv2
 import easyocr
 
-from autowsgr.constants import SHIPNAMES, normalize_ship_name
-from autowsgr.infra.system.logger import get_logger
-from autowsgr.infra.vision.ocr_rules import (
+from autowsgr.common.system.logger import get_logger
+from autowsgr.common.vision.ocr_rules import (
     EasyOCRProfile,
     FastOCRProfile,
     apply_ship_name_rules,
@@ -32,6 +31,7 @@ from autowsgr.infra.vision.ocr_rules import (
     get_easyocr_params,
     get_fastocr_params,
 )
+from autowsgr.constants import SHIPNAMES, normalize_ship_name
 
 
 if TYPE_CHECKING:
@@ -426,7 +426,7 @@ class EasyOCREngine(OCREngine):
     """基于 EasyOCR 的识别引擎。"""
 
     def __init__(self, gpu: bool = False, mirror: str = 'tencent') -> None:
-        from autowsgr.infra.vision.easyocr_models_checker import ensure_models
+        from autowsgr.common.vision.easyocr_models_checker import ensure_models
 
         ensure_models(mirror)
         self._reader = easyocr.Reader(
@@ -490,7 +490,9 @@ class FastOCREngine(OCREngine):
     _MODEL_DIR_ENV = 'AUTOWSGR_FASTOCR_MODEL_DIR'
     _USER_DIR_ENV = 'AUTOWSGR_FASTOCR_USER_DIR'
     _THRESHOLD_ENV = 'AUTOWSGR_FASTOCR_THRESHOLD'
-    _BUNDLED_MODEL_DIR = Path(__file__).resolve().parents[1] / 'data' / 'ocr' / 'ppocr_v6_small'
+    _BUNDLED_MODEL_DIR = (
+        Path(__file__).resolve().parents[2] / 'common' / 'data' / 'ocr' / 'ppocr_v6_small'
+    )
 
     def __init__(self) -> None:
         from maa.library import Library

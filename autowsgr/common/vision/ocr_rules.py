@@ -32,6 +32,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import TYPE_CHECKING
 
+from autowsgr.common.system.logger import get_logger
 from autowsgr.constants import (
     expand_ship_name_candidates as expand_group_candidates,
 )
@@ -40,7 +41,6 @@ from autowsgr.constants import (
     normalize_ship_name,
     set_ship_name_aliases,
 )
-from autowsgr.infra.system.logger import get_logger
 from autowsgr.types import ShipType
 
 

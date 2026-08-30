@@ -1,11 +1,11 @@
 """模板键枚举 — 替代硬编码字符串。
 
-每个 :class:`TemplateKey` 成员对应一组 :class:`~autowsgr.infra.vision.ImageTemplate`，
+每个 :class:`TemplateKey` 成员对应一组 :class:`~autowsgr.common.vision.ImageTemplate`，
 通过 ``.templates`` 属性延迟解析。
 
 Usage::
 
-    from autowsgr.infra.vision.resources import TemplateKey
+    from autowsgr.common.vision.resources import TemplateKey
 
     # 获取模板列表
     templates = TemplateKey.FORMATION.templates
@@ -22,7 +22,7 @@ from typing import TYPE_CHECKING
 
 
 if TYPE_CHECKING:
-    from autowsgr.infra.vision import ImageTemplate
+    from autowsgr.common.vision import ImageTemplate
 
 
 class TemplateKey(Enum):
@@ -82,7 +82,7 @@ class TemplateKey(Enum):
 
 @lru_cache(maxsize=1)
 def _build_map() -> dict[TemplateKey, list[ImageTemplate]]:
-    from autowsgr.infra.vision.resources.combat import CombatTemplates as T
+    from autowsgr.common.vision.resources.combat import CombatTemplates as T
 
     return {
         TemplateKey.FORMATION: [T.FORMATION],

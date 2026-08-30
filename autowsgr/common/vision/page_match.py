@@ -2,8 +2,8 @@
 
 页面识别(判断当前处于哪个 UI 页面)横跨三种引擎:
 
-- 像素签名 :class:`~autowsgr.infra.vision.matcher.PixelChecker`(输出 matched_count/total_count → ratio)
-- 模板匹配 :class:`~autowsgr.infra.vision.image_matcher.ImageChecker`(输出 confidence)
+- 像素签名 :class:`~autowsgr.common.vision.matcher.PixelChecker`(输出 matched_count/total_count → ratio)
+- 模板匹配 :class:`~autowsgr.common.vision.image_matcher.ImageChecker`(输出 confidence)
 - 标签页覆盖度 :mod:`autowsgr.ui.tabbed_page`(输出覆盖度)
 
 PageMatch 把三者归一化为统一的 ``score`` (0.0-1.0),让页面注册中心

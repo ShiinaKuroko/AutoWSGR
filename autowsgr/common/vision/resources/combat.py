@@ -1,17 +1,17 @@
 """战斗系统图像模板。
 
-所有模板对应 ``autowsgr/infra/data/images/combat/`` 下的 PNG 文件。
+所有模板对应 ``autowsgr/common/data/images/combat/`` 下的 PNG 文件。
 """
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from autowsgr.infra.vision.resources._lazy import LazyTemplate
+from autowsgr.common.vision.resources._lazy import LazyTemplate
 
 
 if TYPE_CHECKING:
-    from autowsgr.infra.vision import ImageTemplate
+    from autowsgr.common.vision import ImageTemplate
 
 
 class _ResultGrade:

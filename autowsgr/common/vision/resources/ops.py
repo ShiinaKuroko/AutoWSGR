@@ -1,7 +1,7 @@
 """业务操作图像模板。
 
 食堂、建造、确认弹窗、错误提示等模板。
-所有模板对应 ``autowsgr/infra/data/images/`` 下的 PNG 文件。
+所有模板对应 ``autowsgr/common/data/images/`` 下的 PNG 文件。
 """
 
 from __future__ import annotations
@@ -9,12 +9,12 @@ from __future__ import annotations
 from functools import lru_cache
 from typing import TYPE_CHECKING
 
-from autowsgr.infra.vision.resources._lazy import LazyTemplate, load_template
-from autowsgr.infra.vision.resources.pages import Bath, CommonPage, Decisive, MainPage
+from autowsgr.common.vision.resources._lazy import LazyTemplate, load_template
+from autowsgr.common.vision.resources.pages import Bath, CommonPage, Decisive, MainPage
 
 
 if TYPE_CHECKING:
-    from autowsgr.infra.vision import ImageTemplate
+    from autowsgr.common.vision import ImageTemplate
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -144,7 +144,7 @@ class Templates:
 
     Usage::
 
-        from autowsgr.infra.vision.resources import Templates
+        from autowsgr.common.vision.resources import Templates
 
         Templates.Cook.COOK_BUTTON
         Templates.Build.SHIP_COMPLETE

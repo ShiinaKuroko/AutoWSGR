@@ -1,92 +1,38 @@
-"""视觉层 — 像素特征检测 + 模板图像匹配 + OCR。
+"""Compatibility aliases for :mod:`autowsgr.common.vision`."""
 
-公开 API::
+import importlib
+import sys
 
-    # 像素检测
-    from autowsgr.infra.vision import (
-        Color,
-        PixelRule,
-        PixelSignature,
-        MatchStrategy,
-        PixelChecker,
-        PixelMatchResult,
-        PixelDetail,
-    )
+from autowsgr.common import vision as _vision
 
-    # 图像模板匹配
-    from autowsgr.infra.vision import (
-        ROI,
-        ImageTemplate,
-        ImageRule,
-        ImageSignature,
-        ImageChecker,
-        ImageMatchResult,
-        ImageMatchDetail,
-    )
 
-    # OCR
-    from autowsgr.infra.vision import OCREngine, OCRResult
-"""
-
-from .api_dll import ApiDll, get_api_dll
-from .image_matcher import TEMPLATE_SOURCE_RESOLUTION, ImageChecker
-from .image_template import (
-    ImageMatchDetail,
-    ImageMatchResult,
-    ImageRule,
-    ImageSignature,
-    ImageTemplate,
+_SUBMODULES = (
+    'api_dll',
+    'easyocr_models_checker',
+    'easyocr_models_cli',
+    'image_matcher',
+    'image_template',
+    'matcher',
+    'ocr',
+    'ocr_rules',
+    'page_match',
+    'pixel',
+    'roi',
+    'resources',
+    'resources._lazy',
+    'resources.combat',
+    'resources.keys',
+    'resources.ops',
+    'resources.pages',
+    'resources.pages.bath',
+    'resources.pages.common',
+    'resources.pages.decisive',
+    'resources.pages.event',
+    'resources.pages.main_page',
 )
-from .matcher import PixelChecker
-from .ocr import (
-    EasyOCREngine,
-    FastOCREngine,
-    OCREngine,
-    OCRResult,
-    ShipNameMismatchError,
-    apply_ship_patches,
-)
-from .page_match import PageMatch
-from .pixel import (
-    Color,
-    CompositePixelSignature,
-    MatchStrategy,
-    PixelDetail,
-    PixelMatchResult,
-    PixelRule,
-    PixelSignature,
-)
-from .roi import ROI
+for _name in _SUBMODULES:
+    _module = importlib.import_module(f'autowsgr.common.vision.{_name}')
+    sys.modules[f'{__name__}.{_name}'] = _module
 
-
-__all__ = [
-    # image_matcher (template)
-    'ROI',
-    'TEMPLATE_SOURCE_RESOLUTION',
-    # api_dll
-    'ApiDll',
-    # matcher (pixel)
-    'Color',
-    'CompositePixelSignature',
-    'EasyOCREngine',
-    'FastOCREngine',
-    'ImageChecker',
-    'ImageMatchDetail',
-    'ImageMatchResult',
-    'ImageRule',
-    'ImageSignature',
-    'ImageTemplate',
-    'MatchStrategy',
-    # ocr
-    'OCREngine',
-    'OCRResult',
-    'PageMatch',
-    'PixelChecker',
-    'PixelDetail',
-    'PixelMatchResult',
-    'PixelRule',
-    'PixelSignature',
-    'ShipNameMismatchError',
-    'apply_ship_patches',
-    'get_api_dll',
-]
+globals().update({name: getattr(_vision, name) for name in _vision.__all__})
+__all__ = _vision.__all__

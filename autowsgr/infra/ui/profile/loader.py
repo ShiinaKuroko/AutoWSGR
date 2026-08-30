@@ -22,7 +22,7 @@ import yaml
 
 
 # 分类目录基址 (与 coordinates/ 同级的兄弟目录)
-_DIR = Path(__file__).resolve().parents[2] / 'data' / 'calibration'
+_DIR = Path(__file__).resolve().parents[3] / 'common' / 'data' / 'calibration'
 
 
 @cache

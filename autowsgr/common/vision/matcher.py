@@ -2,13 +2,13 @@
 
 ``PixelChecker`` 对截图执行像素签名匹配，判定当前页面/状态。
 
-数据类型见 :mod:`autowsgr.infra.vision.pixel`:
+数据类型见 :mod:`autowsgr.common.vision.pixel`:
   - :class:`Color` / :class:`PixelRule` / :class:`PixelSignature`
   - :class:`MatchStrategy` / :class:`PixelDetail` / :class:`PixelMatchResult`
 
 使用方式::
 
-    from autowsgr.infra.vision import Color, PixelRule, PixelSignature, PixelChecker
+    from autowsgr.common.vision import Color, PixelRule, PixelSignature, PixelChecker
 
     main_page = PixelSignature(
         name="main_page",
@@ -29,7 +29,7 @@ from typing import TYPE_CHECKING
 import cv2
 import numpy as np
 
-from autowsgr.infra.system.logger import get_logger
+from autowsgr.common.system.logger import get_logger
 
 # 从 pixel.py 导入所有数据类型 (保持向后兼容)
 from .pixel import (

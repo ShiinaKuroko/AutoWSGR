@@ -1,1 +1,3 @@
-"""基础方法 · 设备 — 连接/截图/触控，与游戏无关。"""
+"""Compatibility exports for :mod:`autowsgr.common.device.device`."""
+
+from autowsgr.common.device.device import *  # noqa: F403

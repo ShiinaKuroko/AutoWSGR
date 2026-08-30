@@ -8,11 +8,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from autowsgr.infra.vision.resources._lazy import LazyTemplate
+from autowsgr.common.vision.resources._lazy import LazyTemplate
 
 
 if TYPE_CHECKING:
-    from autowsgr.infra.vision import ImageTemplate
+    from autowsgr.common.vision import ImageTemplate
 
 
 class Decisive:

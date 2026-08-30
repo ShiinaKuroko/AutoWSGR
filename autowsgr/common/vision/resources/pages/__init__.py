@@ -10,11 +10,11 @@
 
 from __future__ import annotations
 
-from autowsgr.infra.vision.resources.pages.bath import Bath
-from autowsgr.infra.vision.resources.pages.common import CommonPage
-from autowsgr.infra.vision.resources.pages.decisive import Decisive
-from autowsgr.infra.vision.resources.pages.event import event_map_title_templates
-from autowsgr.infra.vision.resources.pages.main_page import MainPage
+from autowsgr.common.vision.resources.pages.bath import Bath
+from autowsgr.common.vision.resources.pages.common import CommonPage
+from autowsgr.common.vision.resources.pages.decisive import Decisive
+from autowsgr.common.vision.resources.pages.event import event_map_title_templates
+from autowsgr.common.vision.resources.pages.main_page import MainPage
 
 
 __all__ = ['Bath', 'CommonPage', 'Decisive', 'MainPage', 'event_map_title_templates']

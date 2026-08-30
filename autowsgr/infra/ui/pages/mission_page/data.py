@@ -152,7 +152,7 @@ CLICK_BACK: tuple[float, float] = point('mission', 'back')
 # 任务数据库
 # ═══════════════════════════════════════════════════════════════════════════════
 
-_MISSIONS_YAML = Path(__file__).resolve().parents[3] / 'data' / 'missions.yaml'
+_MISSIONS_YAML = Path(__file__).resolve().parents[4] / 'common' / 'data' / 'missions.yaml'
 
 
 @lru_cache(maxsize=1)

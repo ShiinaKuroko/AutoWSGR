@@ -17,7 +17,7 @@ def _get_package_data_dir() -> Path:
     spec = importlib.util.find_spec('autowsgr')
     if spec is None or spec.origin is None:
         raise RuntimeError('无法定位 autowsgr 包安装路径')
-    return Path(spec.origin).resolve().parent / 'infra' / 'data'
+    return Path(spec.origin).resolve().parent / 'common' / 'data'
 
 
 def _plan_candidates(directory: Path, name: str) -> list[Path]:
@@ -42,7 +42,7 @@ def resolve_plan_path(
     3. 若指定 *plan_root*: 在 ``{plan_root}/{category}/`` 中查找 —— 用户自定义,
        优先于包内默认, 用于覆盖或新增策略 (对齐 classic ``plan_root`` 语义)。
     4. 同上, 补全 ``.yaml`` 后缀再试。
-    5. 在 ``autowsgr/infra/data/plan/{category}/`` 包数据目录中查找。
+    5. 在 ``autowsgr/common/data/plan/{category}/`` 包数据目录中查找。
     6. 同上, 补全 ``.yaml`` 后缀再试。
 
     支持 pip 安装模式和开发模式。
@@ -55,7 +55,7 @@ def resolve_plan_path(
         策略分类子目录, 如 ``"normal_fight"``、``"event"``。
     plan_root:
         用户自定义策略根目录。其下应按 ``{category}/{name}.yaml`` 组织,
-        与包内 ``infra/data/plan/`` 同构; 同名文件优先于包内默认, 未命中则回退。
+        与包内 ``common/data/plan/`` 同构; 同名文件优先于包内默认, 未命中则回退。
 
     Returns
     -------

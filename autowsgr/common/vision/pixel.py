@@ -11,7 +11,7 @@
 - :class:`PixelMatchResult` — 签名匹配结果
 
 这些类型是纯数据模型，不包含任何检测逻辑。
-检测引擎见 :mod:`autowsgr.infra.vision.matcher` 中的 :class:`PixelChecker`。
+检测引擎见 :mod:`autowsgr.common.vision.matcher` 中的 :class:`PixelChecker`。
 """
 
 from __future__ import annotations

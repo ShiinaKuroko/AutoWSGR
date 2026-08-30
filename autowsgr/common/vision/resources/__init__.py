@@ -12,7 +12,7 @@
 
 Usage::
 
-    from autowsgr.infra.vision.resources import TemplateKey, CombatTemplates, Templates
+    from autowsgr.common.vision.resources import TemplateKey, CombatTemplates, Templates
 
     # 枚举键查询模板列表
     templates = TemplateKey.FORMATION.templates
@@ -24,10 +24,10 @@ Usage::
 
 from __future__ import annotations
 
-from autowsgr.infra.vision.resources._lazy import LazyTemplate
-from autowsgr.infra.vision.resources.combat import CombatTemplates
-from autowsgr.infra.vision.resources.keys import TemplateKey, get_templates
-from autowsgr.infra.vision.resources.ops import Templates
+from autowsgr.common.vision.resources._lazy import LazyTemplate
+from autowsgr.common.vision.resources.combat import CombatTemplates
+from autowsgr.common.vision.resources.keys import TemplateKey, get_templates
+from autowsgr.common.vision.resources.ops import Templates
 
 
 __all__ = [

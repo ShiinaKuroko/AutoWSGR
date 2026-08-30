@@ -4,11 +4,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from autowsgr.infra.vision import ImageTemplate
+from autowsgr.common.vision import ImageTemplate
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# 资源根目录 — autowsgr/infra/data/images/
+# 资源根目录 — autowsgr/common/data/images/
 # ═══════════════════════════════════════════════════════════════════════════════
 
 IMG_ROOT: Path = Path(__file__).resolve().parents[2] / 'data' / 'images'
@@ -20,12 +20,12 @@ def load_template(
     name: str | None = None,
     source_resolution: tuple[int, int] = (960, 540),
 ) -> ImageTemplate:
-    """从 ``autowsgr/infra/data/images/`` 加载图像模板。
+    """从 ``autowsgr/common/data/images/`` 加载图像模板。
 
     Parameters
     ----------
     relative_path:
-        相对于 ``autowsgr/infra/data/images/`` 的路径。
+        相对于 ``autowsgr/common/data/images/`` 的路径。
     name:
         模板名称。默认使用文件名（不含扩展名）。
     source_resolution:

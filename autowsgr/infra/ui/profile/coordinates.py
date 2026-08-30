@@ -38,7 +38,7 @@ _BASE_WIDTH = 1280
 _BASE_HEIGHT = 720
 """坐标采集基准分辨率高 (像素)。"""
 
-_DIR = Path(__file__).resolve().parents[2] / 'data' / 'calibration' / 'coordinates'
+_DIR = Path(__file__).resolve().parents[3] / 'common' / 'data' / 'calibration' / 'coordinates'
 """YAML 文件所在目录 (与本加载器同目录)。"""
 
 

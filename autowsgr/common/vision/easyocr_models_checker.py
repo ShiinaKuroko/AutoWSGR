@@ -11,7 +11,7 @@ from __future__ import annotations
 import os
 import shutil
 
-from autowsgr.infra.system.logger import get_logger
+from autowsgr.common.system.logger import get_logger
 
 # 从 CLI 模块导入共享常量和下载函数（单一维护点）
 from .easyocr_models_cli import (
