@@ -1,9 +1,9 @@
 # 演习实机验证日志报告
 
-日期：2026-08-30  
-仓库：`C:\ShiinaKuroko\01.Project\.worktrees\20260830-exercise-team-contract-4c71\AutoWSGR`  
-设备：`127.0.0.1:16384`，`1280x720`  
-模式：FastOCR / CPU  
+日期：2026-08-30<br>
+仓库：`C:\ShiinaKuroko\01.Project\.worktrees\20260830-exercise-team-contract-4c71\AutoWSGR`<br>
+设备：`127.0.0.1:16384`，`1280x720`<br>
+模式：FastOCR / CPU<br>
 最终日志目录：`logs/e2e_tools/exercise/20260830_211026/`
 
 ## 执行命令

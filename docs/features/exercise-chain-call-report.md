@@ -1,7 +1,7 @@
 # 演习链路调用报告
 
-日期：2026-08-30  
-仓库：`C:\ShiinaKuroko\01.Project\.worktrees\20260830-exercise-team-contract-4c71\AutoWSGR`  
+日期：2026-08-30<br>
+仓库：`C:\ShiinaKuroko\01.Project\.worktrees\20260830-exercise-team-contract-4c71\AutoWSGR`<br>
 基线提交：`a1338a9 refactor(infra): split combat foundations`
 
 ## 结论
