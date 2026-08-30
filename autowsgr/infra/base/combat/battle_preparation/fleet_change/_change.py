@@ -158,6 +158,7 @@ class FleetChangeMixin(FleetAlignmentMixin):
         stage: str,
         snapshot: FleetSnapshot,
         selectors: Sequence[FleetSlotRule | None],
+        attempt_number: int,
     ) -> None:
         """记录一轮 OCR 合并后的六槽结果、规则与匹配结论。"""
         ship_types = snapshot.ship_types or [None] * 6
@@ -209,6 +210,8 @@ class FleetChangeMixin(FleetAlignmentMixin):
                 actual_level,
             )
             if match.startswith('通过'):
+                if option.relaxed_constraints:
+                    _log.info('[OCR] 宽泛校验规则生效，自动放行')
                 _log.info(
                     '[OCR] 目标舰船：{} / {} / {}，识别成功！',
                     option.name,
@@ -221,7 +224,7 @@ class FleetChangeMixin(FleetAlignmentMixin):
                     option.name,
                     expected_type,
                     expected_level,
-                    stage,
+                    attempt_number,
                 )
 
     @classmethod
@@ -689,7 +692,7 @@ class FleetChangeMixin(FleetAlignmentMixin):
         snapshot = self.detect_fleet_snapshot(
             expected_pool=expected_pool,
         )
-        self._log_snapshot_debug('LEVEL1', snapshot, selectors)
+        self._log_snapshot_debug('LEVEL1', snapshot, selectors, 1)
 
         _log.debug('[准备页] LEVEL2 开始: 新截图补识别舰名、舰种和等级')
         snapshot = self.fill_missing_fleet_snapshot(
@@ -701,7 +704,7 @@ class FleetChangeMixin(FleetAlignmentMixin):
             selectors,
             level='LEVEL2',
         )
-        self._log_snapshot_debug('LEVEL2', snapshot, selectors)
+        self._log_snapshot_debug('LEVEL2', snapshot, selectors, 2)
 
         if snapshot.has_unknown_details:
             _log.debug(
@@ -719,7 +722,7 @@ class FleetChangeMixin(FleetAlignmentMixin):
                 selectors,
                 level='LEVEL3',
             )
-            self._log_snapshot_debug('LEVEL3', snapshot, selectors)
+            self._log_snapshot_debug('LEVEL3', snapshot, selectors, 3)
         else:
             _log.debug('[准备页] LEVEL3 跳过: LEVEL2 已取得全部字段')
 
@@ -732,5 +735,5 @@ class FleetChangeMixin(FleetAlignmentMixin):
             expected_pool=expected_pool,
             detail_requirements=self._level4_detail_requirements(selectors),
         )
-        self._log_snapshot_debug('LEVEL4', snapshot, selectors)
+        self._log_snapshot_debug('LEVEL4', snapshot, selectors, 4)
         return snapshot

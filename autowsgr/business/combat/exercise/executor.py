@@ -26,8 +26,7 @@ progress['fought'] 累加一次; 任务被暂停后重跑时计数延续,
     ② 对手确认后 (rival_confirmed 之后的等待点, 已进入准备页)
     ③ 编队完成后 (fleet_ready 之后的等待点, 尚未出征, 状态可完全回退)
     ④ 每场战斗完成后 (rival_done 之后的等待点, 强制检查, 含最后一场)
-    ②③ 位于出征准备页 (不在导航图内), 暂停时先 go_back 退回地图页再回主页
-    (见 _wait_on_prep)。
+    ②③ 位于出征准备页；该页已注册为导航节点，暂停时由导航回到地图页再回主页。
 
 编队策略: FleetPolicy(select=True, fleets=(1,2,3,4)), 见 fleet_policy.py。
 """
@@ -39,16 +38,13 @@ from typing import TYPE_CHECKING, Any
 
 from autowsgr.business.base import BaseExecutor
 from autowsgr.business.combat.exercise.spec import ExerciseSpec
-from autowsgr.business.system.navigate import goto_page
 from autowsgr.combat import CombatResult, run_combat
 from autowsgr.combat.fleet import exact_fleet_rules
 from autowsgr.dispatch.registry import register
-from autowsgr.infra.base.combat.battle_preparation import BattlePreparationPage
-from autowsgr.infra.base.combat.battle_preparation.base import RepairStrategy
-from autowsgr.infra.base.combat.map import MapPage, MapPanel
-from autowsgr.infra.base.ui.interaction import NavigationError
 from autowsgr.infra.logger import get_logger
-from autowsgr.types import ConditionFlag, PageName, RepairMode, ShipDamageState
+from autowsgr.types import ConditionFlag, ShipDamageState
+
+from .operations import ExerciseOperations
 
 
 if TYPE_CHECKING:
@@ -56,9 +52,6 @@ if TYPE_CHECKING:
 
 
 _log = get_logger('business.combat.exercise')
-
-# 准备页暂停退出的返回键重试次数 (入场动画抖动时点击可能落空)
-_PREP_BACK_RETRIES = 3
 
 
 class ExerciseExecutor(BaseExecutor):
@@ -74,7 +67,11 @@ class ExerciseExecutor(BaseExecutor):
         """单轮挑战数量上限 (None=完整模式不限; N=限额模式, 1 为单次)。"""
         self.rival = self.spec.rival
         """指定对手编号; ``None`` 表示自动选择。"""
-        self._prep_active = False
+        self._operations = ExerciseOperations(
+            self.ctx,
+            wait=self._wait,
+            report=self._report,
+        )
 
     # ── 主流程 ─────────────────────────────────────────────────
 
@@ -94,19 +91,19 @@ class ExerciseExecutor(BaseExecutor):
                 else '沿用当前队伍',
             )
 
-            self._goto_exercise_panel()
+            self._operations.goto_exercise_panel()
             self._wait(1.0)  # 断点①: 面板导航完成后
 
             # 终止条件: 完整模式 — 无可挑战对手; 限额模式 — 配额耗尽。
             while self._has_quota():
-                target = self._pick_rival()
+                target = self._operations.pick_rival(self.rival)
                 if target is None:
                     break  # 无可挑战对手, 本轮结束
                 results.append(self._fight_one(target))
                 self._wait(1.0)  # 断点④: 战斗完成后 (强制检查, 含最后一场)
                 if not self._has_quota():
                     break  # 配额耗尽, 无需复位面板
-                self._goto_exercise_panel()  # 复位面板, 供下一场识别
+                self._operations.goto_exercise_panel()  # 复位面板, 供下一场识别
 
             _log.info(
                 '[Exercise] 演习完成, 本次 {} 场, 累计计数 {}',
@@ -118,7 +115,7 @@ class ExerciseExecutor(BaseExecutor):
             # 任务异常、停止或暂停都不能把设备留在演习链路中；清理错误
             # 只记录，不覆盖原始业务异常。
             try:
-                self._return_home()
+                self._operations.return_home()
             except Exception as error:
                 _log.error('[Exercise] 返回首页失败: {}', error)
 
@@ -126,62 +123,25 @@ class ExerciseExecutor(BaseExecutor):
 
     def _fight_one(self, target: int) -> CombatResult:
         """执行单场挑战: 选择对手 → 编队 → 出征 → 战斗, 完成后计数累加。"""
-        map_page = MapPage(self.ctx)
-        _log.info('[Exercise] 选择对手：{}号', target)
-        map_page.select_exercise_rival(target)
-        map_page.enter_exercise_battle()  # 确认弹窗 → 进入出征准备页
-        self._prep_active = True
+        self._operations.select_rival(target)
+        self._operations.enter_battle()  # 确认弹窗 → 进入出征准备页
         self._report('rival_confirmed', rival=target)
-        self._wait_on_prep(1.0)  # 断点②: 对手确认后 (已进入准备页)
-
-        page = BattlePreparationPage(self.ctx)
-        page.select_fleet(self.fleet_id)
-        _log.info('[Exercise] 选择队伍：{}', self.fleet_id)
-        _log.info('[Exercise] 进入舰队编成')
-        self._report('formation_entered', rival=target)
-        self._wait_on_prep(0.2)
+        self._wait(1.0)  # 断点②: 对手确认后 (已进入准备页)
 
         slot_rules = self.fleet_selection.slot_rules
         if slot_rules is None and self.fleet_selection.plain_fleet is not None:
             slot_rules = exact_fleet_rules(self.fleet_selection.plain_fleet)
-        if slot_rules is not None:
-            for slot, rule in enumerate(slot_rules[:6], start=1):
-                for option in rule.options:
-                    _log.info(
-                        '[Exercise] 开始选择 {} 号位舰船: {} ({}校验)',
-                        slot,
-                        option.name,
-                        '宽泛' if option.relaxed_constraints else '严格',
-                    )
-            changed = page.change_fleet(
-                self.fleet_id,
-                slot_rules,
-                on_event=self._on_fleet_event,
-            )
-            if not changed:
-                raise RuntimeError('演习编队未满足 YAML 规则')
-        else:
-            _log.info('[Exercise] 当前队伍已满足演习编队（未提供替换规则）')
+        page = self._operations.configure_fleet(self.fleet_id, slot_rules, rival=target)
 
         self._report('fleet_ready', rival=target)
-        self._wait_on_prep(0.5)  # 断点③: 编队完成后 (尚未出征)
+        self._wait(0.5)  # 断点③: 编队完成后 (尚未出征)
 
-        page.apply_supply()
-        repair_strategy = self._repair_strategy()
-        if repair_strategy is not None:
-            page.apply_repair(repair_strategy)
-
-        screen = self.ctx.ctrl.screenshot()
-        damage = page.detect_ship_damage(screen)
-        ship_stats = [damage.get(i, ShipDamageState.NORMAL) for i in range(6)]
+        ship_stats = self._operations.prepare_battle(page, self.plan)
 
         # 出征前最后一个可交接点。
         self._report('before_start', rival=target)
-        self._wait_on_prep(0.2)
-        page.start_battle()
-        self._prep_active = False
-        _log.info('[Exercise] 进入战斗')
-        self._report('battle_started', rival=target)
+        self._wait(0.2)
+        self._operations.start_battle(page, rival=target)
         time.sleep(1.0)  # 战斗进入过渡 — 原子段内, 不响应暂停
         result = self._run_combat(ship_stats)
 
@@ -201,109 +161,9 @@ class ExerciseExecutor(BaseExecutor):
         """构建 CombatPlan 并执行战斗 (原子操作: 执行期间不响应暂停)。"""
         return run_combat(self.ctx, self.plan, ship_stats=ship_stats)
 
-    def _return_home(self) -> None:
-        """从准备页先回地图，再使用共享导航回首页。"""
-        if self._prep_active or BattlePreparationPage.is_current_page(self.ctx.ctrl.screenshot()):
-            BattlePreparationPage(self.ctx).go_back()
-            self._prep_active = False
-        goto_page(self.ctx, PageName.MAIN)
-
-    def _repair_strategy(self) -> RepairStrategy | None:
-        """将演习计划的修理阈值转换为准备页策略。"""
-        modes = self.plan.repair_mode
-        if not isinstance(modes, list):
-            modes = [modes]
-        value = min(mode.value if isinstance(mode, RepairMode) else int(mode) for mode in modes)
-        if value <= RepairMode.moderate_damage.value:
-            return RepairStrategy.MODERATE
-        if value <= RepairMode.severe_damage.value:
-            return RepairStrategy.SEVERE
-        return None
-
-    def _on_fleet_event(self, event: str, **data: Any) -> None:
-        """记录编队细节，并在每次选船完成后交回处理器断点。"""
-        if event == 'fleet_validation':
-            _log.info(
-                '[Exercise] 当前队伍{}满足演习编队',
-                '已' if data.get('passed') else '不',
-            )
-            self._report(event, **data)
-        elif event == 'ship_selected':
-            option = data.get('option')
-            selected = data.get('selected') or '未识别'
-            _log.info(
-                '[Exercise] 开始替换 {} 号位舰船: {} → {}',
-                data.get('slot', '?'),
-                getattr(option, 'name', '目标'),
-                selected,
-            )
-            self._report(
-                'ship_selected',
-                slot=data.get('slot'),
-                expected=getattr(option, 'name', None),
-                actual=selected,
-            )
-            self._wait_on_prep(0)
-        elif event == 'ship_removed':
-            self._report('ship_selected', slot=data.get('slot'), actual=None)
-            self._wait_on_prep(0)
-        elif event == 'ship_moved':
-            _log.info(
-                '[Exercise] 开始移动 {} 号位到 {} 号位位置',
-                data.get('source', '?'),
-                data.get('destination', '?'),
-            )
-        elif event == 'fleet_result':
-            members = [name for name in data.get('members', []) if name]
-            _log.info('[Exercise] 舰队编成完毕成员为：{}', '、'.join(members))
-            self._report(event, **data)
-
-    # ── 辅助方法 ───────────────────────────────────────────────
-
-    def _wait_on_prep(self, seconds: float) -> None:
-        """准备页断点 (②③) 的等待: 暂停时先退出准备页再走标准协议。
-
-        出征准备页不在页面注册表/导航图中 (单向中转页, 见
-        combat-domain-structure 文档), 标准 ``_check_pause`` 从该页直接
-        ``goto_page(MAIN)`` 会因页面识别漂移 (准备页被误判为活动页) 进入
-        活动页的浮层关闭死循环。暂停信号到来时先显式 ``go_back``
-        (准备页 → 地图页, 自带到达验证), 再走标准暂停协议回主页让路。
-
-        入场动画: 正常路径的 ``_wait`` 本就会等待 *seconds* 让准备页稳定;
-        暂停路径不能跳过这段等待, 否则返回键点击会落在动画中 (实机
-        2026-08-25: 入场后约 1 秒内点击被吞), 故先等同样时长再点返回,
-        失败重试至多 3 次 (动画抖动时点击可能落空)。
-        """
-        if self._pause.is_set() or self._stop.is_set():
-            time.sleep(seconds)
-            page = BattlePreparationPage(self.ctx)
-            for attempt in range(_PREP_BACK_RETRIES):
-                try:
-                    page.go_back()
-                    self._prep_active = False
-                    break
-                except NavigationError:
-                    if attempt == _PREP_BACK_RETRIES - 1:
-                        raise
-                    time.sleep(1.0)
-        self._wait(seconds)
-
-    def _goto_exercise_panel(self) -> None:
-        """导航至出征页的演习面板。"""
-        goto_page(self.ctx, PageName.MAP)
-        MapPage(self.ctx).switch_panel(MapPanel.EXERCISE)
-        self._report('panel_ready')
-
     def _has_quota(self) -> bool:
         """配额检查: 完整模式恒为 True; 限额模式在累计计数达到上限前为 True。"""
         return self.rivals_limit is None or self.progress.get('fought', 0) < self.rivals_limit
-
-    def _pick_rival(self) -> int | None:
-        """选择下一个可挑战对手 (基于截图识别; 指定模式仅校验指定编号)。"""
-        rivals = MapPage(self.ctx).get_exercise_rival_status().rivals
-        if self.rival is not None:
-            return self.rival if rivals[self.rival - 1] else None
-        return next((i for i, ok in enumerate(rivals, start=1) if ok), None)
 
 
 register('exercise', ExerciseExecutor)

@@ -11,6 +11,7 @@ import pytest
 
 import autowsgr.business.base as base_module
 import autowsgr.business.combat.exercise.executor as executor_module
+import autowsgr.business.combat.exercise.operations as operations_module
 import autowsgr.business.system.initialize.initialize as initialize_module
 from autowsgr.combat import CombatResult
 from autowsgr.dispatch import TaskPaused
@@ -111,11 +112,11 @@ def _patch_pages(monkeypatch: pytest.MonkeyPatch) -> None:
     _MapPage.selected = []
     _PreparationPage.instances = []
     _PreparationPage.on_preparation_page = False
-    monkeypatch.setattr(executor_module, 'MapPage', _MapPage)
-    monkeypatch.setattr(executor_module, 'BattlePreparationPage', _PreparationPage)
+    monkeypatch.setattr(operations_module, 'MapPage', _MapPage)
+    monkeypatch.setattr(operations_module, 'BattlePreparationPage', _PreparationPage)
     monkeypatch.setattr(initialize_module, 'initialize', lambda _ctx: None)
-    monkeypatch.setattr(executor_module, 'goto_page', lambda *_args: None)
-    monkeypatch.setattr(base_module, 'goto_page', lambda *_args: None)
+    monkeypatch.setattr(operations_module, 'goto_page', lambda *_args: None)
+    monkeypatch.setattr(base_module, 'goto_page', MagicMock())
     monkeypatch.setattr(
         executor_module,
         'run_combat',
@@ -167,60 +168,33 @@ def test_executor_uses_yaml_fleet_and_exercise_combat_plan() -> None:
     ]
 
 
-def test_ship_selection_checkpoint_honors_pause_and_returns_home(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+def test_ship_selection_checkpoint_honors_pause_and_returns_home() -> None:
     pause = threading.Event()
     pause.set()
-    page_back = MagicMock()
-    monkeypatch.setattr(_PreparationPage, 'go_back', page_back)
     executor = executor_module.ExerciseExecutor(
         _ctx(),
         {'fleet_id': 2, 'fleet_presets': [{'ships': [{'name': 'U-177'}]}]},
         pause=pause,
     )
-    executor._prep_active = True
 
     with pytest.raises(TaskPaused):
-        executor._on_fleet_event(
+        executor._operations._on_fleet_event(
             'ship_selected',
             slot=1,
             option=executor.fleet_selection.slot_rules[0].primary,
             selected='U-177',
         )
 
-    page_back.assert_called_once()
-    assert executor._prep_active is False
+    base_module.goto_page.assert_called_once()
 
 
-def test_failure_cleanup_leaves_preparation_page_before_home_navigation(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    _PreparationPage.on_preparation_page = True
-    executor = executor_module.ExerciseExecutor(_ctx(), {'fleet_id': 2})
-    home = MagicMock()
-    monkeypatch.setattr(executor_module, 'goto_page', home)
-
-    executor._return_home()
-
-    assert _PreparationPage.instances
-    page = _PreparationPage.instances[-1]
-    assert page.events == ['back']
-    home.assert_called_once()
-
-
-def test_failure_cleanup_uses_known_preparation_state_without_reidentifying(
+def test_failure_cleanup_uses_navigation_node(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     executor = executor_module.ExerciseExecutor(_ctx(), {'fleet_id': 2})
-    executor._prep_active = True
     home = MagicMock()
-    monkeypatch.setattr(executor_module, 'goto_page', home)
-    page_check = MagicMock(side_effect=AssertionError('不要依赖准备页识别'))
-    monkeypatch.setattr(_PreparationPage, 'is_current_page', page_check)
+    monkeypatch.setattr(operations_module, 'goto_page', home)
 
-    executor._return_home()
+    executor._operations.return_home()
 
-    assert _PreparationPage.instances[-1].events == ['back']
-    page_check.assert_not_called()
     home.assert_called_once()
