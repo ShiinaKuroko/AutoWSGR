@@ -11,6 +11,70 @@ from autowsgr.combat import CombatMode
 
 
 def _params() -> dict:
+    candidates = [
+        {
+            'name': '米切尔·改',
+            'search_name': '米切尔',
+            'ship_type': ['aadg'],
+            'min_level': 100,
+            'relaxed': False,
+        },
+        {
+            'name': '威武·改',
+            'search_name': '威武',
+            'ship_type': ['aadg'],
+            'min_level': 100,
+            'relaxed': False,
+        },
+        {
+            'name': '谦逊·改',
+            'search_name': '谦逊',
+            'ship_type': ['aadg'],
+            'min_level': 100,
+            'relaxed': False,
+        },
+        {
+            'name': '炽热·改',
+            'search_name': '炽热',
+            'ship_type': ['aadg'],
+            'min_level': 100,
+            'relaxed': False,
+        },
+        {
+            'name': '基阿特·改',
+            'search_name': '基阿特',
+            'ship_type': ['aadg'],
+            'min_level': 100,
+            'relaxed': False,
+        },
+        {
+            'name': '考文垂',
+            'ship_type': ['aadg'],
+            'min_level': 100,
+            'relaxed': False,
+        },
+        {
+            'name': '不惧(防空导弹驱逐舰)',
+            'search_name': '不惧',
+            'ship_type': ['aadg'],
+            'min_level': 100,
+            'relaxed': False,
+        },
+        {
+            'name': '絮弗伦',
+            'ship_type': ['aadg'],
+            'min_level': 100,
+            'relaxed': False,
+        },
+    ]
+    slot = {
+        'name': '炽热·改',
+        'search_name': '炽热',
+        'ship_type': ['aadg'],
+        'min_level': 100,
+        'relaxed': True,
+        'candidates': candidates,
+    }
     return {
         'fleet_id': 2,
         'fleet_presets': [
@@ -18,68 +82,10 @@ def _params() -> dict:
                 'name': '队伍2',
                 'ships': [
                     {
-                        'name': '炽热·改',
-                        'search_name': '炽热',
-                        'ship_type': ['aadg'],
-                        'min_level': 100,
-                        'relaxed': True,
-                        'candidates': [
-                            {
-                                'name': '米切尔·改',
-                                'search_name': '米切尔',
-                                'ship_type': ['aadg'],
-                                'min_level': 100,
-                                'relaxed': False,
-                            },
-                            {
-                                'name': '威武·改',
-                                'search_name': '威武',
-                                'ship_type': ['aadg'],
-                                'min_level': 100,
-                                'relaxed': False,
-                            },
-                            {
-                                'name': '谦逊·改',
-                                'search_name': '谦逊',
-                                'ship_type': ['aadg'],
-                                'min_level': 100,
-                                'relaxed': False,
-                            },
-                            {
-                                'name': '炽热·改',
-                                'search_name': '炽热',
-                                'ship_type': ['aadg'],
-                                'min_level': 100,
-                                'relaxed': False,
-                            },
-                            {
-                                'name': '基阿特·改',
-                                'search_name': '基阿特',
-                                'ship_type': ['aadg'],
-                                'min_level': 100,
-                                'relaxed': False,
-                            },
-                            {
-                                'name': '考文垂',
-                                'ship_type': ['aadg'],
-                                'min_level': 100,
-                                'relaxed': False,
-                            },
-                            {
-                                'name': '不惧(防空导弹驱逐舰)',
-                                'search_name': '不惧',
-                                'ship_type': ['aadg'],
-                                'min_level': 100,
-                                'relaxed': False,
-                            },
-                            {
-                                'name': '絮弗伦',
-                                'ship_type': ['aadg'],
-                                'min_level': 100,
-                                'relaxed': False,
-                            },
-                        ],
-                    },
+                        **slot,
+                        'candidates': [dict(candidate) for candidate in candidates],
+                    }
+                    for _ in range(6)
                 ],
             },
         ],
@@ -94,14 +100,18 @@ def test_exercise_spec_converts_team_rules() -> None:
     assert spec.fleet_selection.fleet_id == 2
     rules = spec.fleet_selection.slot_rules
     assert rules is not None
-    assert len(rules) == 1
-    assert rules[0].primary is not None
-    assert rules[0].primary.name == '炽热·改'
-    assert rules[0].primary.search_name == '炽热'
-    assert rules[0].primary.ship_types
-    assert rules[0].primary.ship_types[0].name == 'AADG'
-    assert rules[0].primary.min_level == 100
-    assert rules[0].primary.relaxed_constraints is True
+    assert len(rules) == 6
+    assert all(rule.primary is not None for rule in rules)
+    assert all(rule.primary.name == '炽热·改' for rule in rules if rule.primary is not None)
+    assert all(rule.primary.search_name == '炽热' for rule in rules if rule.primary is not None)
+    assert all(rule.primary.ship_types for rule in rules if rule.primary is not None)
+    assert all(
+        rule.primary.ship_types[0].name == 'AADG'
+        for rule in rules
+        if rule.primary is not None
+    )
+    assert all(rule.primary.min_level == 100 for rule in rules if rule.primary is not None)
+    assert all(rule.primary.relaxed_constraints is True for rule in rules if rule.primary)
     assert [option.name for option in rules[0].candidates] == [
         '米切尔·改',
         '威武·改',
@@ -112,7 +122,10 @@ def test_exercise_spec_converts_team_rules() -> None:
         '不惧(防空导弹驱逐舰)',
         '絮弗伦',
     ]
-    assert all(option.relaxed_constraints is False for option in rules[0].candidates)
+    assert all(
+        all(option.relaxed_constraints is False for option in rule.candidates)
+        for rule in rules
+    )
 
 
 def test_exercise_spec_rejects_bad_mode_and_unknown_field() -> None:
