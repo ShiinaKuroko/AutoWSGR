@@ -95,7 +95,7 @@ def detect_legacy_user_config(data: Any) -> list[str]:
 def detect_legacy_plan(data: Any) -> list[str]:
     """返回 *data* 中命中的老版本计划项描述; 空列表 = 干净。
 
-    运行期 :meth:`CombatPlan.from_yaml <autowsgr.infra.combat.engine.plan.CombatPlan.from_yaml>`
+    运行期 :meth:`CombatPlan.from_yaml <autowsgr.application.combat.engine.plan.CombatPlan.from_yaml>`
     调用: 非空即抛 :class:`LegacyConfigError`。纯只读, 不修改 *data*。
     """
     if not isinstance(data, dict):

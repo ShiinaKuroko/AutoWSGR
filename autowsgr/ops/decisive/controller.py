@@ -25,7 +25,7 @@ from __future__ import annotations
 
 import enum
 
-from autowsgr.infra.system.logger import get_logger
+from autowsgr.common.system.logger import get_logger
 from autowsgr.ops.decisive.chapter import DecisiveChapterOps
 from autowsgr.ops.decisive.handlers import DecisivePhaseHandlers
 from autowsgr.types import DecisivePhase

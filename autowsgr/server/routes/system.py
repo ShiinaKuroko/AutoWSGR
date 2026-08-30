@@ -7,7 +7,7 @@ import asyncio
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from autowsgr.infra.system.logger import get_logger
+from autowsgr.common.system.logger import get_logger
 from autowsgr.server.device_lease import (
     DeviceOperationBusyError,
     device_operation_lease,
@@ -119,7 +119,7 @@ async def emulator_devices() -> ApiResponse:
     会先对已知 TCP serial（MuMu 等）执行 adb connect，再列出设备。
     """
     try:
-        from autowsgr.infra.emulator.detector import connect_and_list_devices
+        from autowsgr.common.device.detector import connect_and_list_devices
 
         devices = await asyncio.to_thread(connect_and_list_devices)
         return ApiResponse(

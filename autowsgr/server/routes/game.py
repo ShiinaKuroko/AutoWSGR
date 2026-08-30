@@ -6,7 +6,7 @@ import asyncio
 
 from fastapi import APIRouter
 
-from autowsgr.infra.system.logger import get_logger
+from autowsgr.common.system.logger import get_logger
 from autowsgr.server.device_lease import exclusive_device_operation
 from autowsgr.server.schemas import ApiResponse
 from autowsgr.server.serializers import (
@@ -35,7 +35,7 @@ async def game_acquisition() -> ApiResponse:
     ctx = require_context(get_context)
 
     # 已迁移到新方法: 导航器入口 (原 autowsgr.ops.navigate.goto_page)
-    from autowsgr.infra.ui.navigation import goto_page
+    from autowsgr.application.ui.navigation import goto_page
     from autowsgr.ui.map import MapPage
 
     def _recognize() -> dict[str, int | None]:

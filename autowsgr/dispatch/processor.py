@@ -27,14 +27,14 @@ from typing import TYPE_CHECKING, Any
 import yaml
 
 from autowsgr.dispatch.registry import build_executor
-from autowsgr.infra.system.file_utils import load_yaml
-from autowsgr.infra.system.logger import get_logger
+from autowsgr.common.system.file_utils import load_yaml
+from autowsgr.common.system.logger import get_logger
 
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from autowsgr.infra.runtime.context import GameContext
+    from autowsgr.application.runtime import RuntimeContext as GameContext
 
 
 _log = get_logger('dispatch.processor')
@@ -151,6 +151,8 @@ class Request:
         if self.ship_name_aliases is None:
             aliases = {}
         elif isinstance(self.ship_name_aliases, Mapping):
+            from autowsgr.constants import SHIPNAMES, get_ship_name_group_id
+
             aliases = {}
             for raw_alias, raw_standard_name in self.ship_name_aliases.items():
                 if not isinstance(raw_alias, str) or not isinstance(raw_standard_name, str):
@@ -159,6 +161,10 @@ class Request:
                 standard_name = raw_standard_name.strip()
                 if not alias or not standard_name:
                     raise ValueError('ship_name_aliases 不允许空名称')
+                if standard_name not in SHIPNAMES or get_ship_name_group_id(standard_name) is None:
+                    raise ValueError(f'ship_name_aliases 目标不是标准舰名: {standard_name}')
+                if alias in SHIPNAMES:
+                    raise ValueError(f'ship_name_aliases 别名已是标准舰名: {alias}')
                 aliases[alias] = standard_name
         else:
             raise ValueError('ship_name_aliases 必须是映射')
@@ -411,7 +417,7 @@ class Processor:
             if self._stop.is_set():
                 return 'stopped', None
             try:
-                from autowsgr.infra.vision.ocr_rules import ship_name_aliases_scope
+                from autowsgr.common.vision.ocr_rules import ship_name_aliases_scope
 
                 with ship_name_aliases_scope(request.ship_name_aliases):
                     executor = build_executor(

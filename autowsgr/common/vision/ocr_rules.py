@@ -38,9 +38,11 @@ from autowsgr.constants import (
 )
 from autowsgr.constants import (
     get_ship_name_group_id,
+    get_active_ship_name_aliases,
     normalize_ship_name,
     set_ship_name_aliases,
 )
+from autowsgr.constants import ship_name_aliases_scope as _ship_name_aliases_scope
 from autowsgr.types import ShipType
 
 
@@ -217,19 +219,13 @@ def set_user_ship_name_aliases(aliases: Mapping[str, str]) -> int:
 
 @contextmanager
 def ship_name_aliases_scope(aliases: Mapping[str, str]) -> Iterator[None]:
-    """在一次任务执行期间叠加别名，并在结束时恢复进程配置。"""
-    # ponytail: keep the existing process-local OCR registry; add per-worker
-    # context storage only if device tasks become concurrent.
+    """在一次任务执行期间叠加别名，不修改进程级 OCR 配置。"""
     if not aliases:
         yield
         return
 
-    previous = dict(_USER_SHIP_NAME_ALIASES)
-    set_user_ship_name_aliases({**previous, **aliases})
-    try:
+    with _ship_name_aliases_scope(aliases):
         yield
-    finally:
-        set_user_ship_name_aliases(previous)
 
 
 def get_user_ship_name_alias(name: str) -> str | None:
@@ -237,7 +233,8 @@ def get_user_ship_name_alias(name: str) -> str | None:
     normalized = normalize_ship_name(name)
     if normalized is None:
         return None
-    for alias, standard_name in _USER_SHIP_NAME_ALIASES.items():
+    aliases = {**_USER_SHIP_NAME_ALIASES, **get_active_ship_name_aliases()}
+    for alias, standard_name in aliases.items():
         if normalize_ship_name(standard_name) == normalized:
             return alias
     return None

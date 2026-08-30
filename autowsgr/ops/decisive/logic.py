@@ -8,15 +8,15 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from autowsgr.infra.system.logger import get_logger
+from autowsgr.common.system.logger import get_logger
 from autowsgr.types import FleetSelection, Formation
 
 from .config import MapData
 
 
 if TYPE_CHECKING:
-    from autowsgr.infra.runtime.context import GameContext
-    from autowsgr.infra import DecisiveConfig
+    from autowsgr.application.runtime import RuntimeContext as GameContext
+    from autowsgr.common.system import DecisiveConfig
 
     from .state import DecisiveState
 

@@ -6,8 +6,8 @@
 
 from __future__ import annotations
 
-from autowsgr.infra import DockFullError
-from autowsgr.infra.system.logger import get_logger
+from autowsgr.common.system import DockFullError
+from autowsgr.common.system.logger import get_logger
 from autowsgr.ops.decisive.base import DecisiveBase
 from autowsgr.types import PageName
 
@@ -26,7 +26,7 @@ class DecisiveChapterOps(DecisiveBase):
     def _prepare_entry_state(self) -> None:
         """进入决战总览并推断入口状态。"""
         # 已迁移到新方法: 导航器入口 (原 autowsgr.ops.navigate.goto_page)
-        from autowsgr.infra.ui.navigation import goto_page
+        from autowsgr.application.ui.navigation import goto_page
 
         goto_page(self._ctx, PageName.DECISIVE_BATTLE)
         self._battle_page.navigate_to_chapter(self._config.chapter)

@@ -22,21 +22,21 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Literal
 
-from autowsgr.infra.combat import CombatPlan, CombatResult
-from autowsgr.infra.fleet import (
+from autowsgr.application.combat import CombatPlan, CombatResult
+from autowsgr.business.combat.fleet import (
     FleetSlotRule,
     ResolvedFleetSelection,
     resolve_fleet_selection,
     validate_fleet_selection_arguments,
 )
-from autowsgr.infra.system.logger import get_logger
+from autowsgr.common.system.logger import get_logger
 from autowsgr.ops.normal_fight import NormalFightRunner
 
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from autowsgr.infra.runtime.context import GameContext
+    from autowsgr.application.runtime import RuntimeContext as GameContext
 
 _log = get_logger('ops')
 
@@ -200,7 +200,7 @@ def run_event_fight_from_yaml(
     -------
     list[CombatResult]
     """
-    from autowsgr.infra.system.file_utils import resolve_plan_path
+    from autowsgr.common.system.file_utils import resolve_plan_path
 
     resolved = resolve_plan_path(yaml_path, category='event')
     plan = CombatPlan.from_yaml(resolved)

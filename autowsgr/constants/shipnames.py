@@ -1,8 +1,33 @@
 import re
-from collections.abc import Mapping
+from contextlib import contextmanager
+from contextvars import ContextVar
+from collections.abc import Iterator, Mapping
 from pathlib import Path
+from types import MappingProxyType
 
-from autowsgr.infra import load_yaml
+from autowsgr.common.system import load_yaml
+
+
+_LOCAL_SHIPNAME_ALIASES: ContextVar[Mapping[str, str]] = ContextVar(
+    'local_shipname_aliases',
+    default=MappingProxyType({}),
+)
+
+
+class _ShipNameList(list[str]):
+    """Base names plus request-local aliases during OCR."""
+
+    def __iter__(self) -> Iterator[str]:
+        yield from super().__iter__()
+        for alias in _LOCAL_SHIPNAME_ALIASES.get():
+            if list.__contains__(self, alias):
+                continue
+            yield alias
+
+    def __contains__(self, value: object) -> bool:
+        return super().__contains__(value) or (
+            isinstance(value, str) and value in _LOCAL_SHIPNAME_ALIASES.get()
+        )
 
 
 SHIP_NAME_SUFFIXES: tuple[str, ...] = ('·改',)
@@ -45,7 +70,7 @@ _EXTRA_SHIPNAMES: list[str] = []
 _SHIPNAME_TO_GROUP: dict[str, str] = {
     name: group_id for group_id, names in SHIPNAME_GROUPS.items() for name in names
 }
-SHIPNAMES: list[str] = process_dict(SHIPNAME_GROUPS)
+SHIPNAMES: list[str] = _ShipNameList(process_dict(SHIPNAME_GROUPS))
 
 # 决战中出现的非舰船名卡片（副官技能等）
 DECISIVE_SKILL_NAMES: list[str] = ['长跑训练', '肌肉记忆', '黑科技']
@@ -72,6 +97,7 @@ def update_shipnames(extra: list[str]) -> None:
 
 def get_ship_name_group_id(name: str) -> str | None:
     """返回舰名所属的 ``No.xxx`` 舰船组。"""
+    name = _LOCAL_SHIPNAME_ALIASES.get().get(name, name)
     group_id = _SHIPNAME_TO_GROUP.get(name)
     return group_id if group_id is not None and group_id.startswith('No.') else None
 
@@ -130,12 +156,34 @@ def set_ship_name_aliases(aliases: Mapping[str, str]) -> None:
         {group_id: list(names) for group_id, names in _BASE_SHIPNAME_GROUPS.items()},
     )
     _rebuild_shipnames()
-
     for alias, standard_name in aliases.items():
         group_id = get_ship_name_group_id(standard_name)
         if group_id is not None and alias not in SHIPNAME_GROUPS[group_id]:
             SHIPNAME_GROUPS[group_id].append(alias)
     _rebuild_shipnames()
+
+
+def get_active_ship_name_aliases() -> Mapping[str, str]:
+    """Return aliases active in the current request context."""
+    return _LOCAL_SHIPNAME_ALIASES.get()
+
+
+@contextmanager
+def ship_name_aliases_scope(aliases: Mapping[str, str]) -> Iterator[None]:
+    """Overlay aliases for one task without changing process-global names."""
+    normalized = {
+        alias.strip(): standard_name.strip()
+        for alias, standard_name in aliases.items()
+        if isinstance(alias, str)
+        and isinstance(standard_name, str)
+        and alias.strip()
+        and standard_name.strip()
+    }
+    token = _LOCAL_SHIPNAME_ALIASES.set(MappingProxyType(normalized))
+    try:
+        yield
+    finally:
+        _LOCAL_SHIPNAME_ALIASES.reset(token)
 
 
 def _rebuild_shipnames() -> None:

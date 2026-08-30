@@ -1,7 +1,7 @@
 """任务页面子包 — 页面识别 / 状态查询 / 操作动作。
 
 UI 基础实现的归属地 (与 main_page / map 同级), 旧路径
-``autowsgr.ui.mission_page`` 为兼容 shim。
+``autowsgr.ui.mission_page`` remains a compatibility shim.
 """
 
 from autowsgr.application.ui.pages.mission_page.data import (

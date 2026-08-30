@@ -27,15 +27,15 @@ from dataclasses import dataclass, field
 from datetime import date
 from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
-from autowsgr.infra.combat import CombatResult
-from autowsgr.infra.system.logger import get_logger
+from autowsgr.application.combat import CombatResult
+from autowsgr.common.system.logger import get_logger
 from autowsgr.types import ConditionFlag
 
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from autowsgr.infra.runtime.context import GameContext
+    from autowsgr.application.runtime import RuntimeContext as GameContext
     from autowsgr.scheduler.triggers import Trigger
 
 _log = get_logger('scheduler')

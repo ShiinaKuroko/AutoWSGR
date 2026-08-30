@@ -7,7 +7,7 @@ from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
-from autowsgr.infra.fleet import ALLOWED_SHIP_TYPE_CODES
+from autowsgr.business.combat.fleet import ALLOWED_SHIP_TYPE_CODES
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -95,7 +95,7 @@ class NodeDecisionRequest(BaseModel):
     ) -> list[RuleSpec] | None:
         if value is None:
             return None
-        from autowsgr.infra.combat.rules import _parse_legacy_condition
+        from autowsgr.application.combat.rules import _parse_legacy_condition
 
         for condition, _action in value:
             _parse_legacy_condition(condition)
@@ -303,11 +303,14 @@ class YamlTaskRequest(BaseModel):
     @field_validator('ship_name_aliases')
     @classmethod
     def _normalize_ship_name_aliases(cls, value: dict[str, str]) -> dict[str, str]:
-        return {
-            alias.strip(): name.strip()
-            for alias, name in value.items()
-            if alias.strip() and name.strip()
-        }
+        normalized: dict[str, str] = {}
+        for alias, name in value.items():
+            alias = alias.strip()
+            name = name.strip()
+            if not alias or not name:
+                raise ValueError('ship_name_aliases 不允许空名称')
+            normalized[alias] = name
+        return normalized
 
     model_config = {'extra': 'forbid'}
 

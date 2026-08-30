@@ -7,7 +7,7 @@
 - 标签页覆盖度 :mod:`autowsgr.ui.tabbed_page`(输出覆盖度)
 
 PageMatch 把三者归一化为统一的 ``score`` (0.0-1.0),让页面注册中心
-:func:`autowsgr.infra.ui.navigation.registry.get_current_page` 能在候选集内按分数排序、取最高分,
+:func:`autowsgr.application.ui.navigation.registry.get_current_page` 能在候选集内按分数排序、取最高分,
 替代旧的"首次匹配即胜 + 布尔"逻辑。
 
 本模块为纯数据模型,不含检测逻辑。

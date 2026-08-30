@@ -10,6 +10,7 @@ from functools import lru_cache
 from typing import TYPE_CHECKING
 
 from autowsgr.common.vision.resources._lazy import LazyTemplate, load_template
+from autowsgr.common.vision.resources.combat import CombatTemplates
 from autowsgr.common.vision.resources.pages import Bath, CommonPage, Decisive, MainPage
 
 
@@ -77,20 +78,7 @@ class Fight:
     NIGHT_BATTLE = LazyTemplate('combat/night_battle_540p.png', 'night_battle')
 
 
-class FightResult:
-    """战斗结果评级模板。"""
-
-    SS = LazyTemplate('combat/result/ss_540p.png', 'result_SS')
-    S = LazyTemplate('combat/result/s_540p.png', 'result_S')
-    A = LazyTemplate('combat/result/a_540p.png', 'result_A')
-    B = LazyTemplate('combat/result/b_540p.png', 'result_B')
-    C = LazyTemplate('combat/result/c_540p.png', 'result_C')
-    D = LazyTemplate('combat/result/d_540p.png', 'result_D')
-    LOOT = LazyTemplate('combat/result/loot_540p.png', 'result_LOOT')
-
-    @classmethod
-    def all_grades(cls) -> list[ImageTemplate]:
-        return [cls.SS, cls.S, cls.A, cls.B, cls.C, cls.D]
+FightResult = CombatTemplates.Result
 
 
 class ChooseShip:

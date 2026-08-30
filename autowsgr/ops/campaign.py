@@ -15,11 +15,11 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING
 
-from autowsgr.infra.combat import CombatEngine, CombatMode, CombatPlan, CombatResult, NodeDecision
-from autowsgr.infra.system.logger import get_logger
+from autowsgr.application.combat import CombatEngine, CombatMode, CombatPlan, CombatResult, NodeDecision
+from autowsgr.common.system.logger import get_logger
 
 # 已迁移到新方法: 导航器入口 (原 autowsgr.ops.navigate.goto_page)
-from autowsgr.infra.ui.navigation import goto_page
+from autowsgr.application.ui.navigation import goto_page
 from autowsgr.types import ConditionFlag, Formation, PageName, RepairMode, ShipDamageState
 from autowsgr.ui import (
     BattlePreparationPage,
@@ -32,7 +32,7 @@ from autowsgr.ui.battle.base import BaseBattlePreparation
 
 
 if TYPE_CHECKING:
-    from autowsgr.infra.runtime.context import GameContext
+    from autowsgr.application.runtime import RuntimeContext as GameContext
 
 
 _log = get_logger('ops')

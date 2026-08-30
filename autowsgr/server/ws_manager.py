@@ -8,7 +8,7 @@ import re
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any, Literal
 
-from autowsgr.infra.system.logger import get_logger
+from autowsgr.common.system.logger import get_logger
 
 
 if TYPE_CHECKING:

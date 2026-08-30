@@ -14,15 +14,15 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 # 已迁移到新方法: 导航器入口 (原 autowsgr.ops.navigate.goto_page)
-from autowsgr.infra.ui.navigation import goto_page
-from autowsgr.infra.system.logger import get_logger
+from autowsgr.application.ui.navigation import goto_page
+from autowsgr.common.system.logger import get_logger
 from autowsgr.types import DestroyShipWorkMode, PageName, ShipType
 from autowsgr.ui.build_page import BuildPage, BuildTab
-from autowsgr.infra.ui.interaction import click_and_wait_for_page
+from autowsgr.common.ui.interaction import click_and_wait_for_page
 
 
 if TYPE_CHECKING:
-    from autowsgr.infra.runtime.context import GameContext
+    from autowsgr.application.runtime import RuntimeContext as GameContext
 
 _log = get_logger('ops')
 

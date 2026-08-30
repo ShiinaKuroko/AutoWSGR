@@ -10,20 +10,20 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING, Literal
 
-from autowsgr.infra import ActionFailedError
-from autowsgr.infra.combat import CombatMode, CombatPlan, CombatResult, run_combat
-from autowsgr.infra.fleet import (
+from autowsgr.common.system import ActionFailedError
+from autowsgr.application.combat import CombatMode, CombatPlan, CombatResult, run_combat
+from autowsgr.business.combat.fleet import (
     FleetSlotRule,
     ResolvedFleetSelection,
     exact_fleet_rules,
     resolve_fleet_selection,
     validate_fleet_selection_arguments,
 )
-from autowsgr.infra.system.logger import get_logger
-from autowsgr.infra.ui.interaction import NavigationError
+from autowsgr.common.system.logger import get_logger
+from autowsgr.common.ui.interaction import NavigationError
 
 # 已迁移到新方法: 导航器入口 (原 autowsgr.ops.navigate.goto_page)
-from autowsgr.infra.ui.navigation import goto_page
+from autowsgr.application.ui.navigation import goto_page
 from autowsgr.types import ConditionFlag, PageName, RepairMode, ShipDamageState
 from autowsgr.ui import BaseEventPage, BattlePreparationPage, MapPage, MapPanel, RepairStrategy
 
@@ -32,8 +32,8 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
     from pathlib import Path
 
-    from autowsgr.infra.runtime.context import GameContext
-    from autowsgr.infra.runtime.context.ship import Ship
+    from autowsgr.application.runtime import RuntimeContext as GameContext
+    from autowsgr.application.runtime.ship import Ship
 
 
 _log = get_logger('ops')
@@ -503,7 +503,7 @@ def get_normal_fight_plan(
 
     *plan_root* 透传给 :func:`resolve_plan_path`: 用户自定义目录优先于包内默认。
     """
-    from autowsgr.infra.system.file_utils import resolve_plan_path
+    from autowsgr.common.system.file_utils import resolve_plan_path
 
     last_err: Exception | None = None
     for category in ('normal_fight', 'event'):

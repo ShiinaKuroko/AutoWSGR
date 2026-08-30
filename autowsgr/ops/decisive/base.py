@@ -10,14 +10,14 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from autowsgr.constants import DECISIVE_SKILL_NAMES, update_shipnames
-from autowsgr.infra import DecisiveConfig, get_logger
+from autowsgr.common.system import DecisiveConfig, get_logger
 from autowsgr.ops.decisive.logic import DecisiveLogic
 from autowsgr.ops.decisive.state import DecisiveState
 from autowsgr.ui.decisive import DecisiveBattlePage, DecisiveMapController
 
 
 if TYPE_CHECKING:
-    from autowsgr.infra.runtime.context import GameContext
+    from autowsgr.application.runtime import RuntimeContext as GameContext
 
 _log = get_logger('ops.decisive')
 

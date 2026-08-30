@@ -7,9 +7,9 @@ import time
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
-from autowsgr.infra.system.logger import get_logger
+from autowsgr.common.system.logger import get_logger
 from autowsgr.types import ShipDamageState
-from autowsgr.infra.ui.navigation.stack import UIStack
+from autowsgr.application.ui.navigation.stack import UIStack
 
 from .bathroom import BathRoom
 from .build import BuildQueue
@@ -22,11 +22,11 @@ from .ship import Ship
 if TYPE_CHECKING:
     from datetime import date
 
-    from autowsgr.infra.combat import CombatResult
-    from autowsgr.infra.emulator import AndroidController
-    from autowsgr.infra import UserConfig
+    from autowsgr.application.combat import CombatResult
+    from autowsgr.common.device import AndroidController
+    from autowsgr.common.system import UserConfig
     from autowsgr.types import PageName
-    from autowsgr.infra.vision import OCREngine
+    from autowsgr.common.vision import OCREngine
 
 
 _log = get_logger('context')
@@ -98,7 +98,7 @@ class GameContext:
     """UI 导航栈 — 页面来路追踪。
 
     识别候选剪枝与 go_back 期望父页的来源, 由导航循环
-    (:func:`autowsgr.infra.ui.navigation._goto_page`) 维护。
+    (:func:`autowsgr.application.ui.navigation._goto_page`) 维护。
     """
     current_page: PageName | None = None
     """当前游戏页面。
@@ -262,7 +262,7 @@ class GameContext:
             战斗自行校准", 但战斗未必掉落, 计数器可能一直为 0 → 持续误触发。
         """
         # 已迁移到新方法: 导航器入口 (原 autowsgr.ops.goto_page)
-        from autowsgr.infra.ui.navigation import goto_page
+        from autowsgr.application.ui.navigation import goto_page
         from autowsgr.types import PageName
         from autowsgr.ui import MapPage, MapPanel
 

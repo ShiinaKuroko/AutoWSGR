@@ -2,7 +2,7 @@
 
 本包是 **决战** 玩法的完整过程控制器，衔接在
 :class:`~autowsgr.ui.decisive_battle_page.DecisiveBattlePage`
-（决战总览页 UI）与 :mod:`~autowsgr.infra.combat.engine.engine`（战斗引擎）之间，
+（决战总览页 UI）与 :mod:`~autowsgr.application.combat.engine.engine`（战斗引擎）之间，
 负责管理决战三小关 x 多节点的推进流程、弹窗 overlay 处理、
 战备舰队选择以及单次战斗调度。
 
@@ -56,7 +56,7 @@ UI 层 (autowsgr.ui.decisive)::
 ::
 
     from autowsgr.ops.decisive import DecisiveController
-    from autowsgr.infra import DecisiveConfig
+    from autowsgr.common.system import DecisiveConfig
 
     config = DecisiveConfig(
         chapter=6,
