@@ -253,6 +253,7 @@ class ExercisePanelMixin(BaseMapPage):
             source='演习-对手信息',
             target=PageName.BATTLE_PREP,
         )
+        self._ctx.ui_stack.push(PageName.BATTLE_PREP)
 
     # ═══════════════════════════════════════════════════════════════════════
     # 操作 — 在对手信息页刷新阵容

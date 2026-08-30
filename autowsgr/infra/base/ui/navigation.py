@@ -96,6 +96,12 @@ def _map_to_main(ctx: GameContext) -> None:
     MapPage(ctx).go_back()
 
 
+def _battle_prep_to_map(ctx: GameContext) -> None:
+    from autowsgr.infra.base.combat.battle_preparation import BattlePreparationPage
+
+    BattlePreparationPage(ctx).go_back()
+
+
 def _mission_to_main(ctx: GameContext) -> None:
     from autowsgr.infra.base.ui.pages.mission_page import MissionPage
 
@@ -209,6 +215,12 @@ NAV_GRAPH: list[NavEdge] = [
     NavEdge(PageName.MAIN, PageName.BACKYARD, _main_to_backyard, '主页面 → 后院'),
     NavEdge(PageName.MAIN, PageName.SIDEBAR, _main_to_sidebar, '主页面 → 侧边栏'),
     NavEdge(PageName.MAP, PageName.MAIN, _map_to_main, '地图 → 主页面'),
+    NavEdge(
+        PageName.BATTLE_PREP,
+        PageName.MAP,
+        _battle_prep_to_map,
+        '出征准备 → 地图',
+    ),
     NavEdge(PageName.MISSION, PageName.MAIN, _mission_to_main, '任务 → 主页面'),
     NavEdge(PageName.BACKYARD, PageName.MAIN, _backyard_to_main, '后院 → 主页面'),
     NavEdge(PageName.SIDEBAR, PageName.MAIN, _sidebar_to_main, '侧边栏 → 主页面'),

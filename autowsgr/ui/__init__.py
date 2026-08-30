@@ -117,10 +117,7 @@ OverlayType = OverlayKind
 
 register_page(PageName.MAIN, MainPage.is_current_page)
 register_page(PageName.MAP, MapPage.is_current_page)
-# BATTLE_PREP 不注册: 出征准备页在游戏流转中是单向中转 (战斗结束跳过它直接回
-# 准备页之前的 UI —— 演习/战役/决战/活动皆然), 不属于 UI 导航域。它是战斗
-# 流程的锚点: start_fight / wait_leave_page 等直接引用
-# BattlePreparationPage.is_current_page 签名 (不经过注册中心)。
+register_page(PageName.BATTLE_PREP, BattlePreparationPage.is_current_page)
 # 侧边栏是左侧抽屉, 不遮挡主页面右侧识别元素 — 双命中时主页面分数更高
 # (0.988 vs ~0.86), 注册为覆盖型: 命中时优先判侧边栏。否则导航会在
 # "已到达侧边栏"与"当前是主页面"间震荡, 反复点切换按钮把侧边栏开了又关
