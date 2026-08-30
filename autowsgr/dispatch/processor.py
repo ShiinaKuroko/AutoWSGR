@@ -105,6 +105,9 @@ class Request:
     params: Mapping[str, Any] = field(default_factory=dict)
     """任务参数快照 (不允许执行器在运行中改写)。"""
 
+    ship_name_aliases: Mapping[str, str] = field(default_factory=dict)
+    """本次任务的用户自定义舰名映射 (自定义名 -> 标准舰名)。"""
+
     priority: int | None = None
     """优先级, 数字越小越急; interrupt 会自动抬到当前任务之上。"""
 
@@ -120,7 +123,7 @@ class Request:
     progress: dict[str, Any] = field(default_factory=dict, compare=False)
     """任务级进度 (如 fought 计数); 暂停重跑时同一对象继续累积。"""
 
-    def __post_init__(self) -> None:
+    def __post_init__(self) -> None:  # noqa: PLR0912 - admission checks stay at the boundary
         if not isinstance(self.source, str) or not self.source.strip():
             raise ValueError('source 必须是非空字符串')
         if not isinstance(self.task_type, str) or not self.task_type.strip():
@@ -145,6 +148,21 @@ class Request:
             raise ValueError('params 必须是映射')
         _validate_params(self.task_type, params)
         object.__setattr__(self, 'params', MappingProxyType(params))
+        if self.ship_name_aliases is None:
+            aliases = {}
+        elif isinstance(self.ship_name_aliases, Mapping):
+            aliases = {}
+            for raw_alias, raw_standard_name in self.ship_name_aliases.items():
+                if not isinstance(raw_alias, str) or not isinstance(raw_standard_name, str):
+                    raise TypeError('ship_name_aliases 必须是字符串到字符串的映射')
+                alias = raw_alias.strip()
+                standard_name = raw_standard_name.strip()
+                if not alias or not standard_name:
+                    raise ValueError('ship_name_aliases 不允许空名称')
+                aliases[alias] = standard_name
+        else:
+            raise ValueError('ship_name_aliases 必须是映射')
+        object.__setattr__(self, 'ship_name_aliases', MappingProxyType(aliases))
         if self.priority is None:
             object.__setattr__(self, 'priority', priority_for(self.task_type))
         elif self.priority < 0:
@@ -159,6 +177,7 @@ class Request:
         count: int = 1,
         extre: bool = False,
         priority: int | None = None,
+        ship_name_aliases: Mapping[str, str] | None = None,
     ) -> Request:
         """从计划 YAML 构造请求 — 「读本地 YAML → 确认链路」的落点。
 
@@ -200,6 +219,7 @@ class Request:
             count=count,
             extre=extre,
             priority=priority,
+            ship_name_aliases=ship_name_aliases or {},
         )
 
 
@@ -390,23 +410,26 @@ class Processor:
         while True:
             if self._stop.is_set():
                 return 'stopped', None
-            executor = build_executor(
-                request.task_type,
-                self._ctx,
-                request.params,
-                pause=self._pause,
-                stop=self._stop,
-                progress=request.progress,
-                on_event=self._executor_event,
-            )
             try:
-                _log.info(
-                    '[Processor] 执行任务: {} (source={}, prio={})',
-                    request.task_type,
-                    request.source,
-                    request.priority,
-                )
-                result = executor.run()
+                from autowsgr.infra.vision.ocr_rules import ship_name_aliases_scope
+
+                with ship_name_aliases_scope(request.ship_name_aliases):
+                    executor = build_executor(
+                        request.task_type,
+                        self._ctx,
+                        request.params,
+                        pause=self._pause,
+                        stop=self._stop,
+                        progress=request.progress,
+                        on_event=self._executor_event,
+                    )
+                    _log.info(
+                        '[Processor] 执行任务: {} (source={}, prio={})',
+                        request.task_type,
+                        request.source,
+                        request.priority,
+                    )
+                    result = executor.run()
             except TaskPaused:
                 _log.info('[Processor] 任务被打断, 保留进度: {}', request.progress)
                 self._pause.clear()

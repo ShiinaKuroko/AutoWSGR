@@ -4,6 +4,8 @@
 仓库：`C:\ShiinaKuroko\01.Project\.worktrees\20260830-exercise-team-contract-4c71\AutoWSGR`<br>
 基线提交：`a1338a9 refactor(infra): split combat foundations`
 
+最新实机验证：`logs/e2e_tools/exercise/20260830_220134/`，5 个对手全部完成，五个断点接力通过。
+
 ## 结论
 
 演习主链路已经按新的单向依赖运行到编队选船阶段：
@@ -110,8 +112,8 @@ ExerciseOperations.configure_fleet
 | 导航到演习入口 | `executor.py:98-99`，事件 `panel_ready` | 已触发 |
 | 进入编队页面 | `executor.py:109-111`，事件 `formation_entered` | 已触发 |
 | 一次选船结束 | `fleet_change/_change.py` 回调 `ship_selected` | 已触发 |
-| 点击出征前 | `executor.py:121-125`，事件 `before_start` | 未到达，前置编队失败 |
-| 战斗结束后 | `executor.py:128-135`，事件 `rival_done` | 未到达，未进入战斗 |
+| 点击出征前 | `executor.py:121-125`，事件 `before_start` | 已触发 |
+| 战斗结束后 | `executor.py:128-135`，事件 `rival_done` | 已触发 |
 
 暂停控制由 `BaseExecutor._wait()` 和 `Processor.interrupt()` 共同完成；战斗动画本身是
 原子段，战斗中只检查停止请求，不响应暂停，请求在战斗结束后的安全断点交接。
@@ -126,5 +128,12 @@ ExerciseOperations.configure_fleet
 4. `autowsgr/infra/runtime/context/game_context.py` 仍是混合状态容器，尚未完全拆成 RuntimeSession 和领域状态。
 5. `autowsgr/scheduler/daily_plan.py` 的旧 `auto_exercise` 路径仍引用 `ExerciseOnceRunner`，属于旧调度资产。
 6. `CHOOSE_SHIP` 不是导航图节点，当前由准备页编队能力直接控制，后续需要补齐语义节点或明确继续保持中转页。
+
+## 请求级自定义舰名映射
+
+YAML 路径请求可携带 `ship_name_aliases`（自定义名 -> 标准舰名）。
+`YamlTaskRequest` 将其转给 `Request`，Processor 只在本次执行作用域内叠加
+OCR 舰名组并在结束后恢复启动配置；选船搜索框也用同一映射把标准名转换为
+账号实际搜索名。CLI/E2E 可重复传入 `--ship-name-alias CUSTOM=STANDARD`。
 
 这些残留没有被复制进新的演习 Executor，也没有改变本次已验证的 `business → infra` 方向。

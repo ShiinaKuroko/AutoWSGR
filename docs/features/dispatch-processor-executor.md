@@ -87,6 +87,9 @@
   (避免 dispatch ↔ business 循环依赖)。
 - YAML 驱动: `Request.from_yaml(path)` 解析计划 YAML
   (`task_type` 字段确定链路, 其余字段全部作为 params)。
+- YAML 路径请求可额外携带 `ship_name_aliases`（自定义名 -> 标准舰名）；映射
+  只在 Processor 当前执行作用域内生效，搜索框和 OCR 匹配共用该映射，任务结束
+  后恢复启动时的 OCR 配置。
 - 老调用方 (scheduler / server / examples / 旧测试) 通过**兼容层**
   (同名 Runner 类内部转调新执行器) 无缝过渡, 待后续统一迁移。
 

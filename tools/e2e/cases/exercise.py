@@ -79,7 +79,15 @@ _CHECK_TYPES = ('expedition_check', 'reward_check')
 def add_arguments(parser: argparse.ArgumentParser) -> None:
     """定义 case 专属命令行参数。"""
     parser.add_argument('--yaml', default=_DEFAULT_YAML, help='演习计划 YAML 路径')
+    parser.add_argument('--count', type=int, default=1, help='同一 YAML 的执行轮数')
     parser.add_argument('--fleet-id', type=int, default=None, help='仅本次 E2E 覆盖舰队编号')
+    parser.add_argument(
+        '--ship-name-alias',
+        action='append',
+        default=[],
+        metavar='CUSTOM=STANDARD',
+        help='用户舰名映射，可重复传入',
+    )
     parser.add_argument(
         '--rivals-limit',
         type=int,
@@ -132,8 +140,8 @@ def _resolve_checks(args: Any) -> tuple[str, ...]:
 
 def run(rt: Any) -> bool:  # noqa: C901, PLR0912, PLR0915 - one E2E case owns its assertions
     """执行演习断点打断验证 (单断点 / 接力 / 可带初始化前置)。"""
-    from autowsgr.infra.ui.navigation import identify_current_page
     from autowsgr.dispatch.processor import Processor, Request
+    from autowsgr.infra.ui.navigation import identify_current_page
     from autowsgr.types import PageName
 
     args = rt.args
@@ -161,7 +169,22 @@ def run(rt: Any) -> bool:  # noqa: C901, PLR0912, PLR0915 - one E2E case owns it
         )
 
     # ── 准备: 演习请求 (YAML 驱动) + 处理器 ─────────────────────
-    exercise_req = rt.action('加载演习计划 YAML', Request.from_yaml, args.yaml, source='cli')
+    ocr_config = getattr(getattr(ctx, 'config', None), 'ocr', None)
+    aliases = dict(getattr(ocr_config, 'ship_name_aliases', {}) or {})
+    for value in args.ship_name_alias:
+        alias, separator, standard = value.partition('=')
+        if not separator or not alias.strip() or not standard.strip():
+            rt.note(f'无效舰名映射: {value!r}')
+            return False
+        aliases[alias.strip()] = standard.strip()
+    exercise_req = rt.action(
+        '加载演习计划 YAML',
+        Request.from_yaml,
+        args.yaml,
+        source='cli',
+        count=args.count,
+        ship_name_aliases=aliases,
+    )
     if exercise_req is rt.FAILED:
         return False
     overrides: dict[str, Any] = {}
@@ -174,7 +197,10 @@ def run(rt: Any) -> bool:  # noqa: C901, PLR0912, PLR0915 - one E2E case owns it
             exercise_req,
             params={**exercise_req.params, **overrides},
         )
-    rt.note(f'task_type={exercise_req.task_type} params={exercise_req.params} → 持续打到没有对手')
+    rt.note(
+        f'task_type={exercise_req.task_type} count={exercise_req.count} '
+        f'params={exercise_req.params} → 持续打到没有对手',
+    )
 
     processor = Processor(ctx)
     events: list[tuple[str, dict]] = []  # 事件流水 (供断言与人工核对)
@@ -289,12 +315,14 @@ def run(rt: Any) -> bool:  # noqa: C901, PLR0912, PLR0915 - one E2E case owns it
     if args.relay or args.pause_at:
         rt.check(
             '后勤检查按断点顺序执行',
-            lambda: [
-                req.task_type
-                for status, req, _ in outcomes
-                if status == 'done' and req.task_type in _CHECK_TYPES
-            ]
-            == list(checks),
+            lambda: (
+                [
+                    req.task_type
+                    for status, req, _ in outcomes
+                    if status == 'done' and req.task_type in _CHECK_TYPES
+                ]
+                == list(checks)
+            ),
         )
     rt.check('终态: 主页面', lambda: identify_current_page(ctx) == PageName.MAIN)
 

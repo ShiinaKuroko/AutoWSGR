@@ -29,18 +29,17 @@ import enum
 import time
 from typing import TYPE_CHECKING
 
-from autowsgr.infra.vision.resources import Templates
 from autowsgr.infra.system.logger import get_logger
+from autowsgr.infra.ui.interaction import click_and_wait_for_page
 from autowsgr.infra.ui.pages.tabbed_page import (
     TabbedPageType,
     check_tabbed_page,
     get_active_tab_index,
     make_tab_checker,
 )
-from autowsgr.types import PageName, ShipType
 from autowsgr.infra.vision import ImageChecker, PageMatch
-
-from .page import click_and_wait_for_page
+from autowsgr.infra.vision.resources import Templates
+from autowsgr.types import PageName, ShipType
 
 
 if TYPE_CHECKING:

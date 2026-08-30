@@ -27,6 +27,7 @@
 from __future__ import annotations
 
 import re
+from contextlib import contextmanager
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import TYPE_CHECKING
@@ -34,13 +35,17 @@ from typing import TYPE_CHECKING
 from autowsgr.constants import (
     expand_ship_name_candidates as expand_group_candidates,
 )
-from autowsgr.constants import get_ship_name_group_id, set_ship_name_aliases
+from autowsgr.constants import (
+    get_ship_name_group_id,
+    normalize_ship_name,
+    set_ship_name_aliases,
+)
 from autowsgr.infra.system.logger import get_logger
 from autowsgr.types import ShipType
 
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
+    from collections.abc import Iterator, Mapping
 
 
 _log = get_logger('vision.ocr')
@@ -208,6 +213,32 @@ def set_user_ship_name_aliases(aliases: Mapping[str, str]) -> int:
     _USER_SHIP_NAME_ALIASES.clear()
     _USER_SHIP_NAME_ALIASES.update(loaded)
     return len(loaded)
+
+
+@contextmanager
+def ship_name_aliases_scope(aliases: Mapping[str, str]) -> Iterator[None]:
+    """在一次任务执行期间叠加别名，并在结束时恢复进程配置。"""
+    if not aliases:
+        yield
+        return
+
+    previous = dict(_USER_SHIP_NAME_ALIASES)
+    set_user_ship_name_aliases({**previous, **aliases})
+    try:
+        yield
+    finally:
+        set_user_ship_name_aliases(previous)
+
+
+def get_user_ship_name_alias(name: str) -> str | None:
+    """返回标准舰名对应的用户搜索名；无别名时返回 ``None``。"""
+    normalized = normalize_ship_name(name)
+    if normalized is None:
+        return None
+    for alias, standard_name in _USER_SHIP_NAME_ALIASES.items():
+        if normalize_ship_name(standard_name) == normalized:
+            return alias
+    return None
 
 
 def expand_ship_name_candidates(candidates: list[str]) -> list[str]:

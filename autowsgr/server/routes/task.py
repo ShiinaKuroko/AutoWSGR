@@ -110,6 +110,7 @@ async def _handle_running_task(request: TaskRequestUnion) -> ApiResponse:
             source='gui',
             count=request.count,
             extre=True,
+            ship_name_aliases=request.ship_name_aliases,
         )
     except (FileNotFoundError, ValueError) as error:
         raise HTTPException(status_code=422, detail=str(error)) from error
@@ -162,6 +163,7 @@ async def _start_yaml_task(ctx: Any, request: YamlTaskRequest) -> ApiResponse:
         source='gui',
         count=request.count,
         extre=request.extre,
+        ship_name_aliases=request.ship_name_aliases,
     )
 
     return _start_task(

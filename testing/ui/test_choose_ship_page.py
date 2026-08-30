@@ -41,6 +41,7 @@ class TestShipNameMatching:
         set_user_ship_name_aliases({'契卡洛夫': '85工程'})
 
         assert ChooseShipPage._normalize_search_keyword('契卡洛夫') == '契卡洛夫'
+        assert ChooseShipPage._normalize_search_keyword('85工程') == '契卡洛夫'
         assert ChooseShipPage._matches_ship_name('契卡洛夫', '85工程')
         assert ChooseShipPage._matches_ship_name('85工程', '契卡洛夫')
 

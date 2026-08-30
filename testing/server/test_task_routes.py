@@ -217,6 +217,45 @@ def test_yaml_task_route_submits_normalized_request(
     assert normalized.params == {'fleet_id': 2}
 
 
+def test_yaml_task_route_forwards_ship_name_aliases(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / 'exercise.yaml'
+    path.write_text('task_type: exercise\nfleet_id: 2\n', encoding='utf-8')
+    manager = _ExecutingTaskManager()
+    ctx = type('Context', (), {'stop_event': None})()
+    captured: list[object] = []
+
+    class ProcessorStub:
+        def __init__(self, _ctx: object, **kwargs: object) -> None:
+            self._on_event = kwargs['on_event']
+
+        def submit(self, request: object) -> None:
+            captured.append(request)
+
+        def interrupt(self, request: object) -> None:
+            captured.append(request)
+
+        def run_pending(self) -> list[tuple[str, object, object]]:
+            return [('done', captured[-1], {'result': 'ok'})]
+
+    monkeypatch.setattr(task, 'task_manager', manager)
+    monkeypatch.setattr(server_main, '_ctx', ctx)
+    monkeypatch.setattr(task, 'Processor', ProcessorStub)
+
+    asyncio.run(
+        task.task_start_yaml(
+            YamlTaskRequest(
+                yaml_path=str(path),
+                ship_name_aliases={' 契卡洛夫 ': ' 85工程 '},
+            ),
+        ),
+    )
+
+    assert captured[0].ship_name_aliases == {'契卡洛夫': '85工程'}
+
+
 def test_processor_exercise_with_no_rivals_is_a_successful_skip(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

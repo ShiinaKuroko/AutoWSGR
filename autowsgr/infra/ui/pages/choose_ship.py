@@ -21,7 +21,6 @@ from autowsgr.infra.ui.ship_list import (
     locate_ship_rows,
     read_ship_level_at_card,
 )
-from autowsgr.types import PageName
 from autowsgr.infra.vision import (
     MatchStrategy,
     PageMatch,
@@ -31,6 +30,7 @@ from autowsgr.infra.vision import (
 )
 from autowsgr.infra.vision.ocr import _fuzzy_match
 from autowsgr.infra.vision.ocr_rules import EasyOCRProfile
+from autowsgr.types import PageName
 
 
 if TYPE_CHECKING:
@@ -38,8 +38,8 @@ if TYPE_CHECKING:
 
     from autowsgr.infra.fleet import ShipSelector
     from autowsgr.infra.runtime.context import GameContext
-    from autowsgr.types import ShipType
     from autowsgr.infra.vision import OCREngine
+    from autowsgr.types import ShipType
 
 
 _log = get_logger('ui')
@@ -612,7 +612,10 @@ class ChooseShipPage:
     @staticmethod
     def _normalize_search_keyword(name: str) -> str:
         """保留用户在游戏内使用的自定义舰名作为搜索条件。"""
-        return name.strip()
+        name = name.strip()
+        from autowsgr.infra.vision.ocr_rules import get_user_ship_name_alias
+
+        return get_user_ship_name_alias(name) or name
 
     @classmethod
     def _matches_ship_name(cls, target: str, matched: str) -> bool:

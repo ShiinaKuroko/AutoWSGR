@@ -86,6 +86,20 @@ def test_request_from_yaml_drops_only_legacy_single_times(tmp_path: Path) -> Non
         Request.from_yaml(path)
 
 
+def test_request_from_yaml_keeps_task_ship_name_aliases(tmp_path: Path) -> None:
+    path = tmp_path / 'exercise.yaml'
+    path.write_text('task_type: exercise\nfleet_id: 2\n', encoding='utf-8')
+
+    request = Request.from_yaml(
+        path,
+        ship_name_aliases={' 契卡洛夫 ': ' 85工程 '},
+    )
+
+    assert request.ship_name_aliases == {'契卡洛夫': '85工程'}
+    with pytest.raises(TypeError):
+        request.ship_name_aliases['契卡洛夫'] = '胡德'  # type: ignore[index]
+
+
 def test_request_from_yaml_reports_syntax_errors(tmp_path: Path) -> None:
     path = tmp_path / 'broken.yaml'
     path.write_text('task_type: [', encoding='utf-8')
@@ -121,6 +135,35 @@ def test_processor_orders_requests_and_expands_count(
     assert [status for status, _request, _result in outcomes] == ['done'] * 4
     assert calls == ['reward_check', 'exercise', 'normal_fight', 'normal_fight']
     assert repeated.progress['_completed'] == 2
+
+
+def test_processor_scopes_task_ship_name_aliases(monkeypatch: pytest.MonkeyPatch) -> None:
+    from autowsgr.constants import SHIPNAMES
+    from autowsgr.infra.vision.ocr_rules import set_user_ship_name_aliases
+
+    set_user_ship_name_aliases({})
+    seen: list[bool] = []
+
+    class AliasAwareExecutor(_Executor):
+        def run(self) -> str:
+            seen.append('契卡洛夫' in SHIPNAMES)
+            return 'ok'
+
+    def build(*_args: Any, **_kwargs: Any) -> AliasAwareExecutor:
+        return AliasAwareExecutor()
+
+    monkeypatch.setattr(processor_module, 'build_executor', build)
+    processor = Processor(SimpleNamespace())
+    processor.submit(
+        Request(
+            task_type='exercise',
+            ship_name_aliases={'契卡洛夫': '85工程'},
+        ),
+    )
+
+    assert processor.run_pending()[0][0] == 'done'
+    assert seen == [True]
+    assert '契卡洛夫' not in SHIPNAMES
 
 
 def test_interrupt_requeues_paused_request_before_continuing(

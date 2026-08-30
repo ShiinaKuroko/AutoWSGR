@@ -295,6 +295,19 @@ class YamlTaskRequest(BaseModel):
     yaml_path: str = Field(min_length=1, description='任务 YAML 文件路径')
     count: int = Field(default=1, ge=1, description='本次提交执行次数')
     extre: bool = Field(default=False, description='是否作为插队请求')
+    ship_name_aliases: dict[str, str] = Field(
+        default_factory=dict,
+        description='本次任务的用户自定义舰名映射（自定义名 -> 标准舰名）',
+    )
+
+    @field_validator('ship_name_aliases')
+    @classmethod
+    def _normalize_ship_name_aliases(cls, value: dict[str, str]) -> dict[str, str]:
+        return {
+            alias.strip(): name.strip()
+            for alias, name in value.items()
+            if alias.strip() and name.strip()
+        }
 
     model_config = {'extra': 'forbid'}
 

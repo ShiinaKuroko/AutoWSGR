@@ -19,14 +19,38 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument('yaml_path', type=Path)
     run.add_argument('--count', type=int, default=1, help='执行次数')
     run.add_argument('--extre', action='store_true', help='作为插队请求提交')
+    run.add_argument(
+        '--ship-name-alias',
+        action='append',
+        default=[],
+        metavar='CUSTOM=STANDARD',
+        help='用户舰名映射，可重复传入',
+    )
     run.add_argument('--config', type=Path, default=None, help='用户配置路径')
 
     exercise = subparsers.add_parser('exercise', help='执行演习 YAML 任务')
     exercise.add_argument('--yaml', dest='yaml_path', type=Path, required=True)
     exercise.add_argument('--count', type=int, default=1, help='执行次数')
     exercise.add_argument('--extre', action='store_true', help='作为插队请求提交')
+    exercise.add_argument(
+        '--ship-name-alias',
+        action='append',
+        default=[],
+        metavar='CUSTOM=STANDARD',
+        help='用户舰名映射，可重复传入',
+    )
     exercise.add_argument('--config', type=Path, default=None, help='用户配置路径')
     return parser
+
+
+def _parse_ship_name_aliases(values: list[str]) -> dict[str, str]:
+    aliases: dict[str, str] = {}
+    for value in values:
+        alias, separator, standard = value.partition('=')
+        if not separator or not alias.strip() or not standard.strip():
+            raise ValueError(f'舰名映射必须使用 CUSTOM=STANDARD 格式: {value!r}')
+        aliases[alias.strip()] = standard.strip()
+    return aliases
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -40,6 +64,7 @@ def main(argv: list[str] | None = None) -> int:
             source='cli',
             count=args.count,
             extre=args.extre,
+            ship_name_aliases=_parse_ship_name_aliases(args.ship_name_alias),
         )
         ctx = launcher.launch()
         processor = Processor(ctx)
