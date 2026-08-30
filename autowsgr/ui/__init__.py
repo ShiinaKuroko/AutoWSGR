@@ -144,6 +144,7 @@ register_page(PageName.CHOOSE_SHIP, ChooseShipPage.is_current_page)
 # This runs after the package has finished importing, so it cannot participate
 # in the infra page import cycle.
 _MIGRATED_MODULE_ALIASES = {
+    'autowsgr.ui.stack': 'autowsgr.application.ui.navigation.stack',
     'autowsgr.common.ui.interaction.navigation': 'autowsgr.common.ui.interaction',
     'autowsgr.application.ui.ship_list': 'autowsgr.application.ui.ship_list',
     'autowsgr.ui.choose_ship_page': 'autowsgr.application.ui.pages.choose_ship',

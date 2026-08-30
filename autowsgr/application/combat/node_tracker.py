@@ -9,7 +9,7 @@
 索敌规则等。
 
 数据来源:
-  - 地图节点坐标: ``autowsgr/infra/data/map/normal/{chapter}-{map}.yaml``
+  - 地图节点坐标: ``autowsgr/common/data/map/normal/{chapter}-{map}.yaml``
 """
 
 from __future__ import annotations
@@ -38,7 +38,8 @@ from autowsgr.common.vision import (
 # ═══════════════════════════════════════════════════════════════════════════════
 
 # 地图数据根目录
-_MAP_DATA_ROOT = Path(__file__).resolve().parent.parent / 'data' / 'map' / 'normal'
+_DATA_ROOT = Path(__file__).resolve().parents[2] / 'common' / 'data'
+_MAP_DATA_ROOT = _DATA_ROOT / 'map' / 'normal'
 
 # 活动入口标识 (内部 a/b) ↔ 地图文件名希腊字母 (α/β)；仅活动地图有 α/β 入口概念
 ENTRANCE_TO_GREEK = {'a': 'α', 'b': 'β'}
@@ -217,7 +218,7 @@ class MapNodeData:
         MapNodeData | None
             加载成功返回数据对象；文件不存在或匹配歧义返回 ``None``。
         """
-        _event_root = Path(__file__).resolve().parent.parent / 'data' / 'map' / 'event'
+        _event_root = _DATA_ROOT / 'map' / 'event'
         path = _resolve_event_map_path(_event_root, event_name, chapter, map_id, entrance)
         if path is None or not path.exists():
             _log.warning(

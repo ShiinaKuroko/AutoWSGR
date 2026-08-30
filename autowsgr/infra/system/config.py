@@ -1,3 +1,8 @@
-"""Compatibility exports for :mod:`autowsgr.common.system.config`."""
+"""Compatibility module alias for :mod:`autowsgr.common.system.config`."""
 
-from autowsgr.common.system.config import *  # noqa: F403
+import sys
+
+from autowsgr.common.system import config as _module
+
+
+sys.modules[__name__] = _module

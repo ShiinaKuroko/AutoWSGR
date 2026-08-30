@@ -21,6 +21,7 @@ from autowsgr.application.combat.engine.state import (
     PhaseBranch,
     build_transitions,
 )
+from autowsgr.business.combat.fleet import FleetPreset, fleet_presets_from_yaml
 from autowsgr.business.combat.rules import RuleEngine
 from autowsgr.common.system import NodeConfig, load_yaml
 from autowsgr.common.system.logger import get_logger
@@ -313,7 +314,7 @@ class CombatPlan:
     """
     fleet_id: int = 1
     fleet: list[str] | None = None
-    fleet_presets: Any = None
+    fleet_presets: tuple[FleetPreset, ...] | None = None
     repair_mode: RepairMode | list[RepairMode] = RepairMode.severe_damage
     fight_condition: FightCondition = FightCondition.aim
     selected_nodes: list[str] = field(default_factory=list)
@@ -424,7 +425,7 @@ class CombatPlan:
         map_id, entrance = parse_map_value(data.get('map', 1))
         fleet_id = data.get('fleet_id', 1)
         fleet = data.get('fleet')
-        fleet_presets = data.get('fleet_presets')
+        fleet_presets = fleet_presets_from_yaml(data.get('fleet_presets'))
         fight_condition = FightCondition(data.get('fight_condition', 4))
         selected_nodes = data.get('selected_nodes', [])
 
