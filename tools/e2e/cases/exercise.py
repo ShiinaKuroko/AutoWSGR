@@ -79,7 +79,6 @@ _CHECK_TYPES = ('expedition_check', 'reward_check')
 def add_arguments(parser: argparse.ArgumentParser) -> None:
     """定义 case 专属命令行参数。"""
     parser.add_argument('--yaml', default=_DEFAULT_YAML, help='演习计划 YAML 路径')
-    parser.add_argument('--count', type=int, default=1, help='同一 YAML 的执行轮数')
     parser.add_argument('--fleet-id', type=int, default=None, help='仅本次 E2E 覆盖舰队编号')
     parser.add_argument(
         '--ship-name-alias',
@@ -182,7 +181,6 @@ def run(rt: Any) -> bool:  # noqa: C901, PLR0912, PLR0915 - one E2E case owns it
         Request.from_yaml,
         args.yaml,
         source='cli',
-        count=args.count,
         ship_name_aliases=aliases,
     )
     if exercise_req is rt.FAILED:
@@ -197,10 +195,7 @@ def run(rt: Any) -> bool:  # noqa: C901, PLR0912, PLR0915 - one E2E case owns it
             exercise_req,
             params={**exercise_req.params, **overrides},
         )
-    rt.note(
-        f'task_type={exercise_req.task_type} count={exercise_req.count} '
-        f'params={exercise_req.params} → 持续打到没有对手',
-    )
+    rt.note(f'task_type={exercise_req.task_type} params={exercise_req.params} → 持续打到没有对手')
 
     processor = Processor(ctx)
     events: list[tuple[str, dict]] = []  # 事件流水 (供断言与人工核对)

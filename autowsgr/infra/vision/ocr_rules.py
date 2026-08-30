@@ -218,6 +218,8 @@ def set_user_ship_name_aliases(aliases: Mapping[str, str]) -> int:
 @contextmanager
 def ship_name_aliases_scope(aliases: Mapping[str, str]) -> Iterator[None]:
     """在一次任务执行期间叠加别名，并在结束时恢复进程配置。"""
+    # ponytail: keep the existing process-local OCR registry; add per-worker
+    # context storage only if device tasks become concurrent.
     if not aliases:
         yield
         return
