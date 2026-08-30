@@ -6,7 +6,7 @@ import time
 from typing import TYPE_CHECKING
 
 from autowsgr.constants import ship_name_identity
-from autowsgr.infra.base.ui.pages.battle_preparation.constants import CLICK_SHIP_SLOT
+from autowsgr.infra.base.combat.battle_preparation.constants import CLICK_SHIP_SLOT
 from autowsgr.infra.logger import get_logger
 
 from ._selection import FleetSelectionMixin

@@ -17,12 +17,12 @@
             ↓
     BattlePreparationPage     (最终控制器)
 
-数据常量见 :mod:`autowsgr.infra.base.ui.pages.battle_preparation.constants`。
+数据常量见 :mod:`autowsgr.infra.base.combat.battle_preparation.constants`。
 """
 
 from __future__ import annotations
 
-from autowsgr.infra.base.ui.pages.battle_preparation.base import (
+from autowsgr.infra.base.combat.battle_preparation.base import (
     CLICK_PANEL,
     PAGE_SIGNATURE,
     PANEL_PROBE,
@@ -30,10 +30,10 @@ from autowsgr.infra.base.ui.pages.battle_preparation.base import (
     Panel,
     RepairStrategy,
 )
-from autowsgr.infra.base.ui.pages.battle_preparation.detection import DetectionMixin, FleetInfo
-from autowsgr.infra.base.ui.pages.battle_preparation.fleet_change import FleetChangeMixin
-from autowsgr.infra.base.ui.pages.battle_preparation.repair import RepairMixin
-from autowsgr.infra.base.ui.pages.battle_preparation.supply import SupplyMixin
+from autowsgr.infra.base.combat.battle_preparation.detection import DetectionMixin, FleetInfo
+from autowsgr.infra.base.combat.battle_preparation.fleet_change import FleetChangeMixin
+from autowsgr.infra.base.combat.battle_preparation.repair import RepairMixin
+from autowsgr.infra.base.combat.battle_preparation.supply import SupplyMixin
 
 
 __all__ = [

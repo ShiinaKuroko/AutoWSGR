@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import time
 
+from autowsgr.infra.base.combat.map.base import BaseMapPage
+from autowsgr.infra.base.combat.map.data import CLICK_ENTER_DECISIVE, MapPanel
 from autowsgr.infra.base.ui.interaction import click_and_wait_for_page
-from autowsgr.infra.base.ui.pages.map.base import BaseMapPage
-from autowsgr.infra.base.ui.pages.map.data import CLICK_ENTER_DECISIVE, MapPanel
 from autowsgr.infra.logger import get_logger
 from autowsgr.types import PageName
 

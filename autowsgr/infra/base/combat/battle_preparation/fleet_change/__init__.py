@@ -13,7 +13,7 @@
 - ``_change.py`` -- 换船主流程编排
 """
 
-from autowsgr.infra.base.ui.pages.battle_preparation.fleet_change._change import FleetChangeMixin
+from autowsgr.infra.base.combat.battle_preparation.fleet_change._change import FleetChangeMixin
 
 
 __all__ = ['FleetChangeMixin']

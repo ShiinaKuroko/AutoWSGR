@@ -249,7 +249,7 @@ python tools/e2e/run.py --with-ocr exercise --yaml <路径>
 - 数值换算: 旧相对坐标一律换算为 1280x720 绝对像素整数
   (960x540 分数坐标 ×4/3), 代码侧经 `point()` 归一化后与旧值 ≤1px 误差。
 - 迁移后原常量名全部保留 (数据源改为 YAML), 消费者与测试零改动。
-- **既有导入顺序敏感**: 先导入 `autowsgr.infra.base.ui.pages.map` 包再导入
+- **既有导入顺序敏感**: 先导入 `autowsgr.infra.base.combat.map` 包再导入
   `autowsgr.ui` 会触发循环导入 (map/base.py → ui.utils → ui/__init__ →
   ui/map → infra.map 部分初始化); 正常运行路径 (先 ui 后 infra) 不受影响,
   调试时注意导入顺序。

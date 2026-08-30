@@ -3,7 +3,7 @@
 与计数器相关的纯函数 (OCR 识别 LootShipCount) 已拆分至
 ``sortie_counters.py``, 本文件只保留 UI 导航 / 面板交互逻辑。
 对外 API（campaign / panels ``__init__`` / e2e 等调用方）的导入
-路径统一为: ``from autowsgr.infra.base.ui.pages.map.panels.sortie import X``,
+路径统一为: ``from autowsgr.infra.base.combat.map.panels.sortie import X``,
 本文件通过 ``from .sortie_counters import ...`` 重导出实现透明迁移。
 """
 
@@ -12,9 +12,8 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING
 
-from autowsgr.infra.base.ui.interaction import click_and_wait_for_page
-from autowsgr.infra.base.ui.pages.map.base import BaseMapPage
-from autowsgr.infra.base.ui.pages.map.data import (
+from autowsgr.infra.base.combat.map.base import BaseMapPage
+from autowsgr.infra.base.combat.map.data import (
     CHAPTER_MAP_COUNTS,
     CHAPTER_NAV_DELAY,
     CHAPTER_NAV_MAX_ATTEMPTS,
@@ -27,6 +26,7 @@ from autowsgr.infra.base.ui.pages.map.data import (
     TOTAL_CHAPTERS,
     MapPanel,
 )
+from autowsgr.infra.base.ui.interaction import click_and_wait_for_page
 from autowsgr.infra.logger import get_logger
 from autowsgr.types import PageName
 
@@ -505,7 +505,7 @@ class SortiePanelMixin(BaseMapPage):
         NavigationError
             导航超时。
         """
-        from autowsgr.infra.base.ui.pages.battle_preparation import BattlePreparationPage
+        from autowsgr.infra.base.combat.battle_preparation import BattlePreparationPage
 
         _log.info('[UI] 地图页面 → 进入出征 {}-{}', chapter, map_num)
 

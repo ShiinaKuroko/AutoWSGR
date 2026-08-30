@@ -8,8 +8,8 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING
 
-from autowsgr.infra.base.ui.pages.battle_preparation.base import BaseBattlePreparation
-from autowsgr.infra.base.ui.pages.battle_preparation.constants import (
+from autowsgr.infra.base.combat.battle_preparation.base import BaseBattlePreparation
+from autowsgr.infra.base.combat.battle_preparation.constants import (
     CLICK_SHIP_SLOT,
     CLICK_SUPPORT,
     SUPPORT_DISABLE,
@@ -31,7 +31,7 @@ _log = get_logger('ui.preparation')
 class SupplyMixin(BaseBattlePreparation):
     """补给与战役支援 Mixin。
 
-    依赖 :class:`~autowsgr.infra.base.ui.pages.battle_preparation.base.BaseBattlePreparation` 提供的
+    依赖 :class:`~autowsgr.infra.base.combat.battle_preparation.base.BaseBattlePreparation` 提供的
     ``_ctrl``, ``select_panel``, ``is_auto_supply_enabled``。
     """
 
@@ -60,7 +60,7 @@ class SupplyMixin(BaseBattlePreparation):
 
     def supply(self, ship_ids: list[int] | None = None) -> None:
         """切换到补给面板并补给指定舰船。"""
-        from autowsgr.infra.base.ui.pages.battle_preparation.base import Panel
+        from autowsgr.infra.base.combat.battle_preparation.base import Panel
 
         if ship_ids is None:
             ship_ids = [0, 1, 2, 3, 4, 5]

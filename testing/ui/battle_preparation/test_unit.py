@@ -2845,7 +2845,7 @@ class TestFleetAlignment:
         occupied = [True, False, False, False, False, False]
 
         with patch(
-            'autowsgr.infra.base.ui.pages.battle_preparation.fleet_change._change._log.error'
+            'autowsgr.infra.base.combat.battle_preparation.fleet_change._change._log.error'
         ) as log_error:
             page._log_final_result(current, occupied, assigned, set(), passed=False)
 

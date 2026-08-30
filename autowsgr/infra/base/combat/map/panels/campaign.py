@@ -7,9 +7,8 @@ import time
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from autowsgr.infra.base.ui.interaction import wait_for_page
-from autowsgr.infra.base.ui.pages.map.base import BaseMapPage
-from autowsgr.infra.base.ui.pages.map.data import (
+from autowsgr.infra.base.combat.map.base import BaseMapPage
+from autowsgr.infra.base.combat.map.data import (
     CAMPAIGN_POSITIONS,
     CAMPAIGN_REMAIN_CROP,
     CLICK_DIFFICULTY,
@@ -17,12 +16,13 @@ from autowsgr.infra.base.ui.pages.map.data import (
     DIFFICULTY_HARD_COLOR,
     MapPanel,
 )
-from autowsgr.infra.base.ui.pages.map.panels.sortie import (
+from autowsgr.infra.base.combat.map.panels.sortie import (
     LOOT_MAX,
     SHIP_MAX,
     recognize_loot_count,
     recognize_ship_count,
 )
+from autowsgr.infra.base.ui.interaction import wait_for_page
 from autowsgr.infra.logger import get_logger
 from autowsgr.types import PageName
 from autowsgr.vision import PixelChecker
@@ -125,7 +125,7 @@ class CampaignPanelMixin(BaseMapPage):
         NavigationError
             导航超时。
         """
-        from autowsgr.infra.base.ui.pages.battle_preparation import BattlePreparationPage
+        from autowsgr.infra.base.combat.battle_preparation import BattlePreparationPage
 
         if map_index not in CAMPAIGN_POSITIONS:
             raise ValueError(f'战役编号必须为 1-5，收到: {map_index}')

@@ -1,7 +1,7 @@
 """出征准备页面基类 — 声明共享依赖与公共查询 / 导航方法。
 
 所有准备页 Mixin 均继承 :class:`BaseBattlePreparation`，
-最终由 :class:`~autowsgr.infra.base.ui.pages.battle_preparation.BattlePreparationPage` 组合。
+最终由 :class:`~autowsgr.infra.base.combat.battle_preparation.BattlePreparationPage` 组合。
 """
 
 from __future__ import annotations
@@ -10,10 +10,7 @@ import enum
 from typing import TYPE_CHECKING
 
 from autowsgr.image_resources import Templates
-from autowsgr.infra.base.constants.coordinates import point
-from autowsgr.infra.base.constants.signatures import signature
-from autowsgr.infra.base.ui.interaction import click_and_wait_for_page
-from autowsgr.infra.base.ui.pages.battle_preparation.constants import (
+from autowsgr.infra.base.combat.battle_preparation.constants import (
     AUTO_SUPPLY_ON,
     AUTO_SUPPLY_PROBE,
     CLICK_AUTO_SUPPLY,
@@ -26,6 +23,9 @@ from autowsgr.infra.base.ui.pages.battle_preparation.constants import (
     PANEL_ACTIVE,
     STATE_TOLERANCE,
 )
+from autowsgr.infra.base.constants.coordinates import point
+from autowsgr.infra.base.constants.signatures import signature
+from autowsgr.infra.base.ui.interaction import click_and_wait_for_page
 from autowsgr.infra.logger import get_logger
 from autowsgr.types import PageName
 from autowsgr.vision import (
@@ -172,7 +172,7 @@ class BaseBattlePreparation:
         存在假成功——点击后画面仍在出征准备页时, ``MapPage.is_current_page``
         同样为 False, 第一帧就误判离开, 从未验证到达。
         """
-        from autowsgr.infra.base.ui.pages.map import MapPage
+        from autowsgr.infra.base.combat.map import MapPage
 
         _log.debug('[UI] 出征准备 → 回退')
         click_and_wait_for_page(

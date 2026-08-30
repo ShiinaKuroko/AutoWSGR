@@ -6,13 +6,13 @@ import time
 from typing import TYPE_CHECKING
 
 from autowsgr.image_resources import Templates
-from autowsgr.infra.base.ui.interaction import confirm_operation, wait_for_page
-from autowsgr.infra.base.ui.pages.map.base import BaseMapPage
-from autowsgr.infra.base.ui.pages.map.data import (
+from autowsgr.infra.base.combat.map.base import BaseMapPage
+from autowsgr.infra.base.combat.map.data import (
     EXPEDITION_READY_COLOR,
     EXPEDITION_SLOT_PROBES,
     EXPEDITION_SLOT_TOLERANCE,
 )
+from autowsgr.infra.base.ui.interaction import confirm_operation, wait_for_page
 from autowsgr.infra.logger import get_logger
 from autowsgr.types import PageName
 from autowsgr.vision import ImageChecker, PixelChecker

@@ -9,7 +9,7 @@
 
 from __future__ import annotations
 
-from autowsgr.infra.base.ui.pages.map.panels import (
+from autowsgr.infra.base.combat.map.panels import (
     CampaignPanelMixin,
     DecisivePanelMixin,
     ExercisePanelMixin,
@@ -36,7 +36,7 @@ class MapPage(
     - **远征** (:class:`ExpeditionPanelMixin`): 远征收取。
 
     公共查询方法 (页面识别、面板检测等) 和章节导航由
-    :class:`~autowsgr.infra.base.ui.pages.map.base.BaseMapPage` 提供。
+    :class:`~autowsgr.infra.base.combat.map.base.BaseMapPage` 提供。
 
     Parameters
     ----------

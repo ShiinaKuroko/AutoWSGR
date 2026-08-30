@@ -43,10 +43,10 @@ from autowsgr.business.system.navigate import goto_page
 from autowsgr.combat import CombatResult, run_combat
 from autowsgr.combat.fleet import exact_fleet_rules
 from autowsgr.dispatch.registry import register
+from autowsgr.infra.base.combat.battle_preparation import BattlePreparationPage
+from autowsgr.infra.base.combat.battle_preparation.base import RepairStrategy
+from autowsgr.infra.base.combat.map import MapPage, MapPanel
 from autowsgr.infra.base.ui.interaction import NavigationError
-from autowsgr.infra.base.ui.pages.battle_preparation import BattlePreparationPage
-from autowsgr.infra.base.ui.pages.battle_preparation.base import RepairStrategy
-from autowsgr.infra.base.ui.pages.map import MapPage, MapPanel
 from autowsgr.infra.logger import get_logger
 from autowsgr.types import ConditionFlag, PageName, RepairMode, ShipDamageState
 

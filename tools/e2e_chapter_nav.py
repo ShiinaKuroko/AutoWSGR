@@ -20,6 +20,7 @@ import sys
 import time
 from pathlib import Path
 
+
 # 确保 autowsgr 包可导入
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
@@ -32,11 +33,11 @@ from autowsgr.infra import (
     LogConfig,
     UserConfig,
 )
+from autowsgr.infra.base.combat.map.panels.sortie import SortiePanelMixin
 from autowsgr.infra.config import OCRConfig
-from autowsgr.types import GameAPP, PageName
-from autowsgr.scheduler.launcher import Launcher
 from autowsgr.ops.navigate import goto_page
-from autowsgr.infra.base.ui.pages.map.panels.sortie import SortiePanelMixin
+from autowsgr.scheduler.launcher import Launcher
+from autowsgr.types import GameAPP, PageName
 from autowsgr.ui.map.base import BaseMapPage
 
 

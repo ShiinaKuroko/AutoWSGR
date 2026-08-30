@@ -9,6 +9,7 @@ import inspect
 import sys
 from pathlib import Path
 
+
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
 
@@ -20,7 +21,7 @@ def main() -> int:
 
     # ── 1. counters 子模块必须存在（拆分后） ──
     try:
-        from autowsgr.infra.base.ui.pages.map.panels import sortie_counters  # noqa: F401
+        from autowsgr.infra.base.combat.map.panels import sortie_counters  # noqa: F401
         print('[OK]   sortie_counters.py 可导入')
     except Exception as e:  # noqa: BLE001
         errors.append(f'sortie_counters 不可导入: {e}')
@@ -28,7 +29,7 @@ def main() -> int:
     # ── 2. sortie.py 对外契约（3 调用方依赖）必须完全可导入 ──
     # panels/__init__.py 依赖
     try:
-        from autowsgr.infra.base.ui.pages.map.panels.sortie import (
+        from autowsgr.infra.base.combat.map.panels.sortie import (
             LootShipCount,
             SortiePanelMixin,
             recognize_loot_count,
@@ -40,7 +41,7 @@ def main() -> int:
 
     # campaign.py 依赖
     try:
-        from autowsgr.infra.base.ui.pages.map.panels.sortie import (
+        from autowsgr.infra.base.combat.map.panels.sortie import (
             LOOT_MAX,
             SHIP_MAX,
             recognize_loot_count,
@@ -56,7 +57,7 @@ def main() -> int:
 
     # e2e_chapter_nav.py 依赖
     try:
-        from autowsgr.infra.base.ui.pages.map.panels.sortie import SortiePanelMixin  # noqa: F811
+        from autowsgr.infra.base.combat.map.panels.sortie import SortiePanelMixin  # noqa: F811
         print('[OK]   e2e 需要的 SortiePanelMixin 可导入')
     except Exception as e:  # noqa: BLE001
         errors.append(f'e2e 导入失败: {e}')
@@ -125,7 +126,7 @@ def main() -> int:
 
     # ── 4. sortie_counters 必须真实导出同名符号（确保真的拆出去了） ──
     try:
-        import autowsgr.infra.base.ui.pages.map.panels.sortie_counters as sc
+        import autowsgr.infra.base.combat.map.panels.sortie_counters as sc
         required = ('LootShipCount', 'recognize_loot_count', 'recognize_ship_count',
                     'LOOT_MAX', 'SHIP_MAX')
         missing = [s for s in required if not hasattr(sc, s)]
@@ -134,7 +135,7 @@ def main() -> int:
         else:
             print('[OK]   sortie_counters 真正导出了 5 个计数器符号')
         # 必须与 sortie.py 重导出的是同一对象（不是重新定义的副本）
-        from autowsgr.infra.base.ui.pages.map.panels import sortie as so
+        from autowsgr.infra.base.combat.map.panels import sortie as so
         if sc.LOOT_MAX != so.LOOT_MAX or sc.SHIP_MAX != so.SHIP_MAX:
             errors.append('sortie_counters 的常量值与 sortie.py 不一致')
         if sc.LootShipCount is not so.LootShipCount:

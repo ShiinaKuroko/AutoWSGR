@@ -1,6 +1,6 @@
 """Compatibility exports for the migrated battle-preparation pages."""
 
-from autowsgr.infra.base.ui.pages.battle_preparation import (
+from autowsgr.infra.base.combat.battle_preparation import (
     CLICK_PANEL,
     PANEL_PROBE,
     BattlePreparationPage,

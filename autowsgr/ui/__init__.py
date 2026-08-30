@@ -147,35 +147,35 @@ register_page(PageName.CHOOSE_SHIP, ChooseShipPage.is_current_page)
 # in the infra page import cycle.
 _MIGRATED_MODULE_ALIASES = {
     'autowsgr.ui.utils.navigation': 'autowsgr.infra.base.ui.interaction',
-    'autowsgr.ui.utils.ship_list': 'autowsgr.infra.base.ui.ship_list',
-    'autowsgr.ui.choose_ship_page': 'autowsgr.infra.base.ui.pages.choose_ship',
-    'autowsgr.ui.battle.base': 'autowsgr.infra.base.ui.pages.battle_preparation.base',
-    'autowsgr.ui.battle.blood': 'autowsgr.infra.base.ui.pages.battle_preparation.blood',
-    'autowsgr.ui.battle.constants': 'autowsgr.infra.base.ui.pages.battle_preparation.constants',
-    'autowsgr.ui.battle.detection': 'autowsgr.infra.base.ui.pages.battle_preparation.detection',
-    'autowsgr.ui.battle.preparation': 'autowsgr.infra.base.ui.pages.battle_preparation.preparation',
-    'autowsgr.ui.battle.repair': 'autowsgr.infra.base.ui.pages.battle_preparation.repair',
-    'autowsgr.ui.battle.supply': 'autowsgr.infra.base.ui.pages.battle_preparation.supply',
+    'autowsgr.ui.utils.ship_list': 'autowsgr.infra.base.combat.ship_list',
+    'autowsgr.ui.choose_ship_page': 'autowsgr.infra.base.combat.choose_ship',
+    'autowsgr.ui.battle.base': 'autowsgr.infra.base.combat.battle_preparation.base',
+    'autowsgr.ui.battle.blood': 'autowsgr.infra.base.combat.battle_preparation.blood',
+    'autowsgr.ui.battle.constants': 'autowsgr.infra.base.combat.battle_preparation.constants',
+    'autowsgr.ui.battle.detection': 'autowsgr.infra.base.combat.battle_preparation.detection',
+    'autowsgr.ui.battle.preparation': 'autowsgr.infra.base.combat.battle_preparation.preparation',
+    'autowsgr.ui.battle.repair': 'autowsgr.infra.base.combat.battle_preparation.repair',
+    'autowsgr.ui.battle.supply': 'autowsgr.infra.base.combat.battle_preparation.supply',
     'autowsgr.ui.battle.fleet_change': (
-        'autowsgr.infra.base.ui.pages.battle_preparation.fleet_change'
+        'autowsgr.infra.base.combat.battle_preparation.fleet_change'
     ),
     'autowsgr.ui.battle.fleet_change._alignment': (
-        'autowsgr.infra.base.ui.pages.battle_preparation.fleet_change._alignment'
+        'autowsgr.infra.base.combat.battle_preparation.fleet_change._alignment'
     ),
     'autowsgr.ui.battle.fleet_change._change': (
-        'autowsgr.infra.base.ui.pages.battle_preparation.fleet_change._change'
+        'autowsgr.infra.base.combat.battle_preparation.fleet_change._change'
     ),
     'autowsgr.ui.battle.fleet_change._detect': (
-        'autowsgr.infra.base.ui.pages.battle_preparation.fleet_change._detect'
+        'autowsgr.infra.base.combat.battle_preparation.fleet_change._detect'
     ),
     'autowsgr.ui.battle.fleet_change._planning': (
-        'autowsgr.infra.base.ui.pages.battle_preparation.fleet_change._planning'
+        'autowsgr.infra.base.combat.battle_preparation.fleet_change._planning'
     ),
     'autowsgr.ui.battle.fleet_change._rules': (
-        'autowsgr.infra.base.ui.pages.battle_preparation.fleet_change._rules'
+        'autowsgr.infra.base.combat.battle_preparation.fleet_change._rules'
     ),
     'autowsgr.ui.battle.fleet_change._selection': (
-        'autowsgr.infra.base.ui.pages.battle_preparation.fleet_change._selection'
+        'autowsgr.infra.base.combat.battle_preparation.fleet_change._selection'
     ),
 }
 for _legacy_name, _migrated_name in _MIGRATED_MODULE_ALIASES.items():

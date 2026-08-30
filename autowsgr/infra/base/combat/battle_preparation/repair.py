@@ -12,7 +12,7 @@ from autowsgr.business.logistics.repair.quick_repair import (
     check_repair,
     repair_slots,
 )
-from autowsgr.infra.base.ui.pages.battle_preparation.base import (
+from autowsgr.infra.base.combat.battle_preparation.base import (
     BaseBattlePreparation,
     RepairStrategy,
 )

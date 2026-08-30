@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from autowsgr.combat.fleet import ShipSelector
-from autowsgr.infra.base.ui.pages.battle_preparation.constants import CLICK_BACK
+from autowsgr.infra.base.combat.battle_preparation.constants import CLICK_BACK
 from autowsgr.infra.logger import get_logger
 
 from ._planning import FleetPlanningMixin
@@ -19,7 +19,7 @@ from ._planning import FleetPlanningMixin
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from autowsgr.infra.base.ui.pages.choose_ship import ChooseShipPage
+    from autowsgr.infra.base.combat.choose_ship import ChooseShipPage
 
 
 _log = get_logger('ui.preparation')
@@ -41,8 +41,8 @@ class FleetSelectionMixin(FleetPlanningMixin):
 
     def _open_choose_page(self, slot: int) -> ChooseShipPage:
         """打开指定物理槽位的选船页面。"""
+        from autowsgr.infra.base.combat.choose_ship import ChooseShipPage
         from autowsgr.infra.base.ui.interaction import wait_for_page
-        from autowsgr.infra.base.ui.pages.choose_ship import ChooseShipPage
 
         self.click_ship_slot(slot)
         wait_for_page(

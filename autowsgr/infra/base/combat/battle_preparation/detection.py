@@ -12,8 +12,8 @@ from typing import TYPE_CHECKING
 
 import cv2
 
-from autowsgr.infra.base.ui.pages.battle_preparation.base import BaseBattlePreparation
-from autowsgr.infra.base.ui.ship_list import extract_ship_type_from_text
+from autowsgr.infra.base.combat.battle_preparation.base import BaseBattlePreparation
+from autowsgr.infra.base.combat.ship_list import extract_ship_type_from_text
 from autowsgr.infra.logger import get_logger
 from autowsgr.types import ShipDamageState, ShipType
 from autowsgr.vision import PixelChecker
@@ -103,7 +103,7 @@ class FleetInfo:
 class DetectionMixin(BaseBattlePreparation):
     """舰船状态检测 Mixin。
 
-    依赖 :class:`~autowsgr.infra.base.ui.pages.battle_preparation.base.BaseBattlePreparation` 提供的
+    依赖 :class:`~autowsgr.infra.base.combat.battle_preparation.base.BaseBattlePreparation` 提供的
     ``_ctrl``, ``_ocr``, ``get_selected_fleet``, ``select_fleet``。
     """
 

@@ -14,9 +14,8 @@ import time
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
-from autowsgr.infra.base.ui.interaction import click_and_wait_for_page
-from autowsgr.infra.base.ui.pages.map.base import BaseMapPage
-from autowsgr.infra.base.ui.pages.map.data import (
+from autowsgr.infra.base.combat.map.base import BaseMapPage
+from autowsgr.infra.base.combat.map.data import (
     EXERCISE_ARROW_DOWN_PROBE,
     EXERCISE_ARROW_GRAY,
     EXERCISE_ARROW_TOLERANCE,
@@ -30,6 +29,7 @@ from autowsgr.infra.base.ui.pages.map.data import (
     EXERCISE_SWIPE_TO_BOTTOM,
     EXERCISE_SWIPE_TO_TOP,
 )
+from autowsgr.infra.base.ui.interaction import click_and_wait_for_page
 from autowsgr.infra.logger import get_logger
 from autowsgr.types import PageName
 from autowsgr.vision import PixelChecker
@@ -243,7 +243,7 @@ class ExercisePanelMixin(BaseMapPage):
         NavigationError
             超时未到达出征准备页面。
         """
-        from autowsgr.infra.base.ui.pages.battle_preparation import BattlePreparationPage
+        from autowsgr.infra.base.combat.battle_preparation import BattlePreparationPage
 
         _log.info('[UI] 演习 → 开始战斗 (对手信息页 → 出征准备)')
         click_and_wait_for_page(

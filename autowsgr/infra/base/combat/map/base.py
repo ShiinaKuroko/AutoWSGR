@@ -9,8 +9,7 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING
 
-from autowsgr.infra.base.ui.interaction import NavigationError, click_and_wait_for_page
-from autowsgr.infra.base.ui.pages.map.data import (
+from autowsgr.infra.base.combat.map.data import (
     CLICK_BACK,
     CLICK_EXPEDITION_SKIP,
     CLICK_PANEL,
@@ -27,6 +26,7 @@ from autowsgr.infra.base.ui.pages.map.data import (
     MapPanel,
     parse_map_title,
 )
+from autowsgr.infra.base.ui.interaction import NavigationError, click_and_wait_for_page
 from autowsgr.infra.base.ui.pages.tabbed_page import (
     TabbedPageType,
     check_tabbed_page,

@@ -13,13 +13,13 @@ from typing import TYPE_CHECKING
 import cv2
 
 from autowsgr.constants import SHIPNAMES, normalize_ship_name
-from autowsgr.infra.base.ui.interaction import wait_for_page, wait_leave_page
-from autowsgr.infra.base.ui.ship_list import (
+from autowsgr.infra.base.combat.ship_list import (
     LevelOCRRetryNeededError,
     extract_ship_type_from_text,
     locate_ship_rows,
     read_ship_level_at_card,
 )
+from autowsgr.infra.base.ui.interaction import wait_for_page, wait_leave_page
 from autowsgr.infra.logger import get_logger
 from autowsgr.types import PageName
 from autowsgr.vision import (

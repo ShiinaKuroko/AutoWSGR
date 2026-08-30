@@ -19,8 +19,8 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from autowsgr.constants import SHIPNAMES, normalize_ship_name, ship_name_identity
-from autowsgr.infra.base.ui.pages.battle_preparation.base import BaseBattlePreparation
-from autowsgr.infra.base.ui.pages.battle_preparation.detection import DetectionMixin
+from autowsgr.infra.base.combat.battle_preparation.base import BaseBattlePreparation
+from autowsgr.infra.base.combat.battle_preparation.detection import DetectionMixin
 from autowsgr.infra.logger import get_logger
 from autowsgr.types import ShipDamageState, ShipType
 from autowsgr.vision.ocr import (
