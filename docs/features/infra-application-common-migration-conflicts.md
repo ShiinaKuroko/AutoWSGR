@@ -65,3 +65,16 @@
 ## 用户裁定
 
 2026-08-30：用户确认按新任务书执行，任务书中的 `application/common` 分层覆盖纪要旧归属。C1-C5 不再阻塞后续迁移；冲突记录保留作为历史依据。
+
+## 2026-08-31 执行结果
+
+- C1：按用户裁定执行，`application`/`common` 与 `business` 同级包已建立。
+- C2：语义 Navigator 已迁入 `application/ui/navigation`，旧路径为薄 alias。
+- C3：通用驱动/动作与业务计划、规则、历史拆分完成；业务结果入口位于
+  `business/combat`，application 驱动通过 factory 接收业务结果。
+- C4：页面、设备、OCR 基础路径已切换 canonical；战斗识别器仍保留一层
+  application 适配，底层 OCR/OpenCV 继续由 `common/vision` 提供。
+- C5：运行时类型边界和 alias 作用域已收口；混合 `GameContext` 的完整字段拆分留作后续
+  runtime 专项，不复制第二个上下文。
+
+本次执行未追加真实设备 E2E，沿用既有 `logs/e2e_tools/exercise/20260830_220134` 证据。

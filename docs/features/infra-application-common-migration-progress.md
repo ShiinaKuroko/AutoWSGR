@@ -51,3 +51,18 @@
 - 等待函数不再导入页面 registry；页面语义由 application Navigator 负责。
 - 旧 `autowsgr/infra/ui/interaction.py` 和 `infra/ui/profile/*` 仅指向 canonical 模块。
 - 检查：canonical/legacy 导入 smoke、坐标读取、compileall、Ruff check/format、`git diff --check` 通过。
+
+## 2026-08-31 执行批次
+
+- CP3：完成。语义导航、页面控制器、页面动作和选船公共入口迁移到
+  `application/ui`；旧 `ui`、`infra/ui` 路径仅保留薄 alias。提交 `b2373b9`。
+- CP4：完成。通用战斗驱动和动作位于 `application/combat`；计划、规则、历史、阶段处理和业务结果位于
+  `business/combat`；业务执行器改用业务入口，提交 `7f36d9f`、`1879b04`。
+- CP5：部分完成。评级模板已收口到 `CombatTemplates.Result`，旧
+  `Templates.FightResult` 仅为别名；坐标/ROI 的全量清单仍需后续专题处理。
+- CP6：完成本批范围。新增 `RuntimeContext` 类型边界；请求 alias 使用不可变映射和
+  `contextvars` 任务作用域，非法 alias 显式拒绝；生产导入已切换 canonical 路径。
+- CP7：待完整 pytest 和发布构建；本批目标文件的 pre-commit、compileall、导入 smoke、
+  架构 import graph 和 `git diff --check` 已通过。
+
+本批提交：`4ad5f52`、`03e1f84`、`b2373b9`、`7f36d9f`、`1879b04`。
