@@ -7,7 +7,8 @@
 
 - CP0：完成。基线 `78acc7a`，保留用户 dirty diff。
 - CP1：完成。提交 `234c11a`，两个正式 package 可导入。
-- CP2：进行中。`common/system`、`common/device`、`common/vision` 和只读资源已迁移；低层 UI 待处理。
+- CP2：完成。`common/system`、`common/device`、`common/vision`、`common/calibration`、`common/ui` 和只读资源已迁移。
+- CP3：进行中。语义导航和页面动作待迁移到 application。
 - CP3-CP7：待执行。
 
 ## 约束
@@ -43,3 +44,10 @@
 - OCR、OpenCV、ROI、像素/模板匹配和资源索引不导入 application、business、dispatch 或 server。
 - 旧 `autowsgr/infra/vision/` 路径通过子模块 alias 指向 canonical 实现，避免 patch 点和实现分叉。
 - 检查：canonical/legacy 导入 smoke、compileall、Ruff check/format、`git diff --check` 通过。
+
+## CP2d：common/ui 和 common/calibration
+
+- 低层点击、等待、确认和校准加载器分别位于 `autowsgr/common/ui/`、`autowsgr/common/calibration/`。
+- 等待函数不再导入页面 registry；页面语义由 application Navigator 负责。
+- 旧 `autowsgr/infra/ui/interaction.py` 和 `infra/ui/profile/*` 仅指向 canonical 模块。
+- 检查：canonical/legacy 导入 smoke、坐标读取、compileall、Ruff check/format、`git diff --check` 通过。
