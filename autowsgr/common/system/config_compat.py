@@ -67,7 +67,7 @@ def _is_empty_fleet_slot(value: object) -> bool:
 def detect_legacy_user_config(data: Any) -> list[str]:
     """返回 *data* 中命中的老版本用户配置项描述; 空列表 = 干净。
 
-    运行期 :meth:`UserConfig.from_yaml <autowsgr.infra.system.config.UserConfig.from_yaml>`
+    运行期 :meth:`UserConfig.from_yaml <autowsgr.common.system.config.UserConfig.from_yaml>`
     调用: 非空即抛 :class:`LegacyConfigError`。纯只读, 不修改 *data*。
     """
     if not isinstance(data, dict):
@@ -114,7 +114,7 @@ def migrate_raw_config(data: Any) -> Any:
 
     迁移工具调用; 与 :func:`detect_legacy_user_config` 对应。无副作用:
     不写文件、不改运行期全局 (``operation_delay`` 全局由
-    :class:`~autowsgr.infra.system.config.UserConfig` 字段 + 校验器接管)。
+    :class:`~autowsgr.common.system.config.UserConfig` 字段 + 校验器接管)。
     """
     if not isinstance(data, dict):
         return data
@@ -167,7 +167,7 @@ def _migrate_account(data: dict[str, Any]) -> None:
 def _migrate_delay(data: dict[str, Any]) -> None:
     """delay: classic 单值秒数 → operation_delay_min = operation_delay_max = delay。
 
-    纯字段赋值 (由 :class:`~autowsgr.infra.system.config.UserConfig` 校验器
+    纯字段赋值 (由 :class:`~autowsgr.common.system.config.UserConfig` 校验器
     ``_apply_operation_delay`` 把字段值写回运行期全局); 不在此设全局。
     """
     if 'delay' not in data:
@@ -197,7 +197,7 @@ def _migrate_emulator_legacy(data: dict[str, Any]) -> None:
     字段搬进嵌套块, 让老配置直接生效 (否则顶层字段被 ``extra='ignore'``
     静默丢弃, 模拟器会回退到默认雷电)。
 
-    值原样透传, 由 :class:`~autowsgr.infra.system.config.EmulatorConfig` 校验 /
+    值原样透传, 由 :class:`~autowsgr.common.system.config.EmulatorConfig` 校验 /
     解析 (如 ``"MuMu"`` → ``EmulatorType.mumu``)。``None`` 值不写, 让
     dev 自动检测。若已含嵌套 ``emulator`` 块, 以嵌套为准, 平铺仅补缺。
     """

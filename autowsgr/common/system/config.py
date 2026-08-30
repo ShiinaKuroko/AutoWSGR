@@ -162,7 +162,7 @@ class LogConfig(BaseModel):
     channels: dict[str, str] = {}
     """通道级别覆盖。键为通道名（支持前缀匹配），值为级别字符串，如
     ``{"vision.pixel": "TRACE", "emulator": "INFO"}``。
-    详见 :func:`~autowsgr.infra.system.logger.setup_logger`。
+    详见 :func:`~autowsgr.common.system.logger.setup_logger`。
     此处的显式配置优先级高于上方所有 show_*_debug 布尔开关。"""
 
     @model_validator(mode='after')
@@ -218,7 +218,7 @@ class NormalFightTaskConfig(BaseModel):
     model_config = {'frozen': True}
 
     name: str
-    """常规战计划名 (如 ``8-5AI-only1DD``), 解析为 ``autowsgr/infra/data/plan/normal_fight/`` 下的文件。"""
+    """常规战计划名 (如 ``8-5AI-only1DD``), 解析为 ``autowsgr/common/data/plan/normal_fight/`` 下的文件。"""
     fleet_id: int | None = None
     """出征舰队编号; 留空则用 plan 内配置。"""
     times: int | None = None
