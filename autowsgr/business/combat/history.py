@@ -17,8 +17,7 @@ from autowsgr.types import ConditionFlag, ShipDamageState
 
 
 if TYPE_CHECKING:
-    from autowsgr.application.combat.engine.plan import GradeCondition
-    from autowsgr.common.system.runtime.context.ship import Ship
+    from autowsgr.business.combat.plan import GradeCondition
 
 
 _log = get_logger('combat')
@@ -321,7 +320,7 @@ class CombatResult:
     node_count: int = 0
     loot_count: int | None = None
     ship_acquired_count: int | None = None
-    fleet: list[Ship] | None = None
+    fleet: list[Any] | None = None
     ship_full: bool = False
     dock_full_destroyed: bool = False
 

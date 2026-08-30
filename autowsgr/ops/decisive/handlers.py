@@ -19,7 +19,7 @@ from typing import TYPE_CHECKING
 
 import cv2
 
-from autowsgr.application.combat import CombatMode, CombatPlan, NodeDecision, run_combat
+from autowsgr.business.combat import CombatMode, CombatPlan, NodeDecision, run_combat
 from autowsgr.common.system.logger import get_logger
 from autowsgr.ops.decisive.base import DecisiveBase
 from autowsgr.types import (

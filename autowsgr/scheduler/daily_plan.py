@@ -21,7 +21,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from autowsgr.application.combat import CombatResult
+from autowsgr.business.combat import CombatResult
 from autowsgr.common.system.logger import get_logger
 from autowsgr.scheduler.triggers import (
     CampaignTrigger,

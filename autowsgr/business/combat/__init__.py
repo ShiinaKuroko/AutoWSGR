@@ -9,4 +9,34 @@
     decisive/      决战 (独立子包: 专属页面体系 + 阶段状态机)
 """
 
-__all__: list[str] = []
+from autowsgr.business.combat.engine import CombatEngine, run_combat
+from autowsgr.application.combat.engine.state import CombatPhase
+from autowsgr.business.combat.history import (
+    CombatEvent,
+    CombatHistory,
+    CombatResult,
+    EventType,
+    FightResult,
+    grade_condition_met,
+)
+from autowsgr.business.combat.plan import CombatMode, CombatPlan, GradeCondition, NodeDecision
+from autowsgr.business.combat.rules import RuleEngine, RuleResult
+
+
+__all__ = [
+    'CombatEngine',
+    'CombatEvent',
+    'CombatHistory',
+    'CombatMode',
+    'CombatPhase',
+    'CombatPlan',
+    'CombatResult',
+    'EventType',
+    'FightResult',
+    'GradeCondition',
+    'NodeDecision',
+    'RuleEngine',
+    'RuleResult',
+    'grade_condition_met',
+    'run_combat',
+]

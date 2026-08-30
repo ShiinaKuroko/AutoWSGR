@@ -11,7 +11,9 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING
 
-from autowsgr.application.combat.actions import (
+from autowsgr.application.combat import (
+    SHIP_DROP_PAGE_SIGNATURE,
+    CombatRecognizer,
     click_enter_fight,
     click_fight_condition,
     click_formation,
@@ -21,12 +23,6 @@ from autowsgr.application.combat.actions import (
     click_result,
     click_retreat,
     click_skip_missile_animation,
-)
-from autowsgr.application.combat.engine.plan import CombatMode, CombatPlan, NodeDecision
-from autowsgr.application.combat.engine.state import CombatPhase
-from autowsgr.application.combat.history import CombatEvent, CombatHistory, EventType, FightResult
-from autowsgr.application.combat.recognition import (
-    SHIP_DROP_PAGE_SIGNATURE,
     detect_mvp,
     detect_result_grade,
     detect_ship_stats,
@@ -35,8 +31,10 @@ from autowsgr.application.combat.recognition import (
     get_ship_drop,
     image_exist,
 )
-from autowsgr.application.combat.recognizer import CombatRecognizer
-from autowsgr.application.combat.rules import RuleResult, check_blood
+from autowsgr.business.combat.plan import CombatMode, CombatPlan, NodeDecision
+from autowsgr.application.combat.engine.state import CombatPhase
+from autowsgr.business.combat.history import CombatEvent, CombatHistory, EventType, FightResult
+from autowsgr.business.combat.rules import RuleResult, check_blood
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.ui.interaction import wait_leave_page
 from autowsgr.common.vision import ImageChecker

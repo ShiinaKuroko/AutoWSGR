@@ -11,7 +11,7 @@ import time
 from typing import TYPE_CHECKING, Literal
 
 from autowsgr.common.system import ActionFailedError
-from autowsgr.application.combat import CombatMode, CombatPlan, CombatResult, run_combat
+from autowsgr.business.combat import CombatMode, CombatPlan, CombatResult, run_combat
 from autowsgr.business.combat.fleet import (
     FleetSlotRule,
     ResolvedFleetSelection,

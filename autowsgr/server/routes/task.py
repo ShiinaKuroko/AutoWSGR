@@ -232,7 +232,7 @@ def _run_processor_request(ctx: Any, request: Request) -> TaskOutcome:  # noqa: 
 
 def _processor_details(raw: Any, first_round: int) -> list[dict[str, Any]]:
     """将一次 Processor 结果转换成 GUI 需要的扁平轮次记录。"""
-    from autowsgr.application.combat import CombatResult
+    from autowsgr.business.combat import CombatResult
 
     if isinstance(raw, list):
         details: list[dict[str, Any]] = []
@@ -266,7 +266,7 @@ def _processor_details(raw: Any, first_round: int) -> list[dict[str, Any]]:
 
 async def _start_normal_fight(ctx: Any, request: NormalFightRequest) -> ApiResponse:
     """启动常规战任务。"""
-    from autowsgr.application.combat import CombatPlan
+    from autowsgr.business.combat import CombatPlan
     from autowsgr.ops import run_normal_fight
 
     def executor(_task_info: Any) -> TaskOutcome:
@@ -310,7 +310,7 @@ async def _start_normal_fight(ctx: Any, request: NormalFightRequest) -> ApiRespo
 
 async def _start_event_fight(ctx: Any, request: EventFightRequest) -> ApiResponse:
     """启动活动战任务。"""
-    from autowsgr.application.combat import CombatPlan
+    from autowsgr.business.combat import CombatPlan
     from autowsgr.ops import run_event_fight
 
     def executor(_task_info: Any) -> TaskOutcome:

@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Any
 
 
 if TYPE_CHECKING:
-    from autowsgr.application.combat import CombatPlan
+    from autowsgr.business.combat import CombatPlan
     from autowsgr.business.combat.fleet import ResolvedFleetSelection
     from autowsgr.server.schemas import CombatPlanRequest
 
@@ -144,8 +144,8 @@ def convert_combat_result(result: Any, round_num: int) -> dict[str, Any]:
 
 def build_combat_plan(request: Any) -> Any:
     """从请求构建 CombatPlan 对象。"""
-    from autowsgr.application.combat import CombatPlan, NodeDecision
-    from autowsgr.application.combat.engine.plan import parse_map_value
+    from autowsgr.business.combat import CombatPlan, NodeDecision
+    from autowsgr.business.combat.plan import parse_map_value
     from autowsgr.types import RepairMode
 
     node_defaults = request.node_defaults.model_dump(exclude_none=True)
@@ -192,7 +192,7 @@ def build_combat_plan(request: Any) -> Any:
 
 def _overlay_node_decision_data(base: Any, data: dict[str, Any]) -> Any:
     """把明确提供的节点字段覆盖到默认决策。"""
-    from autowsgr.application.combat import NodeDecision
+    from autowsgr.business.combat import NodeDecision
 
     normalized_data = dict(data)
     legacy_sl_key = 'sl_when_detour_fails'
@@ -237,7 +237,7 @@ def apply_combat_plan_overrides(
         plan.selected_nodes = list(request.selected_nodes)
 
     if 'node_defaults' in fields:
-        from autowsgr.application.combat import NodeDecision
+        from autowsgr.business.combat import NodeDecision
 
         plan.default_node = NodeDecision.from_dict(
             request.node_defaults.model_dump(exclude_none=True),

@@ -1,7 +1,9 @@
 """Compatibility exports for :mod:`autowsgr.application.combat`."""
 
 from autowsgr.application.combat import *  # noqa: F403
-from autowsgr.application.combat import __all__ as _combat_all
+from autowsgr.application.combat import __all__ as _application_all
+from autowsgr.business.combat import *  # noqa: F403
+from autowsgr.business.combat import __all__ as _business_all
 from autowsgr.business.combat.fleet import (
     ALLOWED_SHIP_TYPE_CODES,
     FleetPreset,
@@ -16,7 +18,8 @@ from autowsgr.business.combat.fleet import (
 
 
 __all__ = [
-    *_combat_all,
+    *_application_all,
+    *_business_all,
     'ALLOWED_SHIP_TYPE_CODES',
     'FleetPreset',
     'FleetSelectionSource',

@@ -22,7 +22,7 @@ from autowsgr.types import ShipType
 if TYPE_CHECKING:
     from autowsgr_native.vessel_type import VesselType
 
-    from autowsgr.application.combat.engine.plan import CombatPlan
+    from autowsgr.business.combat.plan import CombatPlan
 
 
 _NATIVE_CODE_TO_SHIP_TYPE: Mapping[str, ShipType] = MappingProxyType(

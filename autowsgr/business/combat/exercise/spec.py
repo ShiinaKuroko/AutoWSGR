@@ -10,7 +10,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
-from autowsgr.application.combat import CombatMode, CombatPlan
+from autowsgr.business.combat.plan import CombatMode, CombatPlan
 from autowsgr.business.combat.fleet import (
     ResolvedFleetSelection,
     resolve_fleet_selection,

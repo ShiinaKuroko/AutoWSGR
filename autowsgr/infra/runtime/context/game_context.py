@@ -22,7 +22,7 @@ from .ship import Ship
 if TYPE_CHECKING:
     from datetime import date
 
-    from autowsgr.application.combat import CombatResult
+    from autowsgr.business.combat import CombatResult
     from autowsgr.common.device import AndroidController
     from autowsgr.common.system import UserConfig
     from autowsgr.types import PageName

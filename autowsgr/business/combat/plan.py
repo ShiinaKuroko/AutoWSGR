@@ -22,7 +22,7 @@ from autowsgr.application.combat.engine.state import (
     PhaseBranch,
     build_transitions,
 )
-from autowsgr.application.combat.rules import RuleEngine
+from autowsgr.business.combat.rules import RuleEngine
 from autowsgr.common.system.logger import get_logger
 from autowsgr.types import FightCondition, Formation, RepairMode
 

@@ -7,7 +7,7 @@
 3. **操作动作** — 点击按钮、切换标签等
 
 状态查询为 ``staticmethod``，只需截图数组即可调用；
-操作动作需要 :class:`~autowsgr.infra.emulator.controller.AndroidController` 实例。
+操作动作需要 :class:`~autowsgr.common.device.controller.AndroidController` 实例。
 
 导航操作 (``go_back``、``navigate_to`` 等) 内置截图验证，
 点击后反复截图确认页面已切换，超时抛出 :class:`NavigationError`。

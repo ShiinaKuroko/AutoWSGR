@@ -22,7 +22,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Literal
 
-from autowsgr.application.combat import CombatPlan, CombatResult
+from autowsgr.business.combat import CombatPlan, CombatResult
 from autowsgr.business.combat.fleet import (
     FleetSlotRule,
     ResolvedFleetSelection,

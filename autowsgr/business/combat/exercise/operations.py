@@ -11,7 +11,6 @@ from autowsgr.infra.ui.pages.battle_preparation.base import RepairStrategy
 from autowsgr.infra.ui.pages.map import MapPage, MapPanel
 from autowsgr.types import PageName, RepairMode, ShipDamageState
 
-
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
@@ -19,9 +18,7 @@ if TYPE_CHECKING:
     from autowsgr.infra.fleet import FleetSlotRule
     from autowsgr.infra.runtime.context import GameContext
 
-
 _log = get_logger('business.combat.exercise')
-
 
 class ExerciseOperations:
     """提供演习流程所需的页面操作，不决定任务循环和终态。"""

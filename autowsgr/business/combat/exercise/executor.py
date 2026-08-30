@@ -39,7 +39,7 @@ from typing import TYPE_CHECKING, Any
 from autowsgr.business.base import BaseExecutor
 from autowsgr.business.combat.exercise.spec import ExerciseSpec
 from autowsgr.dispatch.registry import register
-from autowsgr.application.combat import CombatResult, run_combat
+from autowsgr.business.combat import CombatResult, run_combat
 from autowsgr.business.combat.fleet import exact_fleet_rules
 from autowsgr.common.system.logger import get_logger
 from autowsgr.types import ConditionFlag, ShipDamageState

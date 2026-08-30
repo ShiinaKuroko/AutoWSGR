@@ -3,13 +3,11 @@
 from __future__ import annotations
 
 import time
-from typing import TYPE_CHECKING
+from collections.abc import Callable, Mapping
+from typing import TYPE_CHECKING, Any
 
 from autowsgr.application.combat.actions import click_speed_up, dismiss_resource_confirm
-from autowsgr.application.combat.engine.plan import MODE_CATEGORIES, CombatMode, CombatPlan, NodeDecision
 from autowsgr.application.combat.engine.state import CombatPhase, ModeCategory, resolve_successors
-from autowsgr.application.combat.handlers import PhaseHandlersMixin
-from autowsgr.application.combat.history import CombatHistory, CombatResult
 from autowsgr.application.combat.node_tracker import MapNodeData, NodeTracker
 from autowsgr.application.combat.recognizer import (
     CombatRecognitionTimeoutError,
@@ -21,8 +19,6 @@ from autowsgr.types import ConditionFlag, Formation, ShipDamageState
 
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
-
     import numpy as np
 
     from autowsgr.common.device import AndroidController
@@ -35,11 +31,10 @@ _log_sm = get_logger('combat.engine')  # 状态机转移专用，可单独静默
 # ═══════════════════════════════════════════════════════════════════════════════
 # 战斗引擎
 # ═══════════════════════════════════════════════════════════════════════════════
-class CombatEngine(PhaseHandlersMixin):
-    """自包含的战斗状态机引擎。
+class CombatEngine:
+    """Generic combat state-machine driver.
 
-    引擎内部自行完成图像匹配、敌方编成/阵型识别、战果等级检测等，
-    无需外部注入回调函数，沿袭旧代码 ``Timer`` 内置识别能力的设计。
+    Business code supplies the phase decision mixin and result factories.
 
     Parameters
     ----------
@@ -55,19 +50,25 @@ class CombatEngine(PhaseHandlersMixin):
         ocr: OCREngine | None = None,
         *,
         stop_requested: Callable[[], bool] | None = None,
+        history_factory: Callable[[], Any] | None = None,
+        result_factory: Callable[[Any], Any] | None = None,
+        mode_categories: Mapping[str, ModeCategory] | None = None,
     ) -> None:
         self._device = device
         self._ocr = ocr
         self._stop_requested = stop_requested or (lambda: False)
+        self._history_factory = history_factory
+        self._result_factory = result_factory
+        self._mode_categories = mode_categories or {}
 
         # 运行时状态 (由 fight() 重置)
-        self._plan: CombatPlan = CombatPlan(name='', mode=CombatMode.BATTLE)
+        self._plan: Any = None
         self._recognizer: CombatRecognizer = None  # type: ignore[assignment]  # set in fight()
         self._phase = CombatPhase.PROCEED
         self._last_action = 'yes'
         self._node = '0'
         self._ship_stats: list[ShipDamageState] = [ShipDamageState.NORMAL] * 6
-        self._history = CombatHistory()
+        self._history: Any = None
         self._node_count = 0
 
         # 节点跟踪器 (仅常规战模式有效，由 fight() 初始化)
@@ -82,9 +83,9 @@ class CombatEngine(PhaseHandlersMixin):
 
     def fight(  # noqa: PLR0912
         self,
-        plan: CombatPlan,
+        plan: Any,
         initial_ship_stats: list[ShipDamageState],
-    ) -> CombatResult:
+    ) -> Any:
         """执行一次完整的战斗循环。
 
         从当前状态开始，循环执行:
@@ -106,10 +107,13 @@ class CombatEngine(PhaseHandlersMixin):
             self._device,
             stop_requested=self._stop_requested,
         )
+        if self._history_factory is None or self._result_factory is None:
+            raise RuntimeError('CombatEngine 需要业务层提供 history/result factory')
+        self._history = self._history_factory()
         self._reset()
 
         # 常规战 / 活动战模式下加载地图节点数据并初始化节点追踪器
-        if plan.mode == CombatMode.NORMAL:
+        if plan.mode == 'normal':
             map_data = MapNodeData.load(plan.chapter, plan.map_id)
             if map_data is not None:
                 self._tracker = NodeTracker(map_data)
@@ -126,7 +130,7 @@ class CombatEngine(PhaseHandlersMixin):
                     plan.chapter,
                     plan.map_id,
                 )
-        elif plan.mode == CombatMode.EVENT and plan.event_name:
+        elif plan.mode == 'event' and plan.event_name:
             map_data = MapNodeData.load_event(
                 plan.event_name,
                 plan.chapter,
@@ -156,7 +160,7 @@ class CombatEngine(PhaseHandlersMixin):
         if initial_ship_stats is not None:
             self._ship_stats = initial_ship_stats[:]
 
-        result = CombatResult(history=self._history)
+        result = self._result_factory(self._history)
 
         while True:
             try:
@@ -257,7 +261,7 @@ class CombatEngine(PhaseHandlersMixin):
         MAP 模式下，地图移动期间执行加速点击、节点追踪、资源弹窗点掉；
         SINGLE 模式下仅加速点击。
         """
-        category = MODE_CATEGORIES.get(self._plan.mode)
+        category = self._mode_categories.get(self._plan.mode)
         if self._phase is CombatPhase.FIGHT_PERIOD:
             return lambda _: time.sleep(0.5)
         if category is ModeCategory.MAP:
@@ -289,9 +293,9 @@ class CombatEngine(PhaseHandlersMixin):
     # 辅助方法
     # ═══════════════════════════════════════════════════════════════════════════
 
-    def _get_current_decision(self) -> NodeDecision:
-        """获取当前节点的决策。"""
-        return self._plan.get_node_decision(self._node)
+    def _get_current_decision(self) -> Any:
+        """Return the current business decision (implemented by the host)."""
+        raise NotImplementedError
 
     def _try_recovery(self) -> bool:
         """尝试从错误中恢复。"""
@@ -316,28 +320,6 @@ class CombatEngine(PhaseHandlersMixin):
         return self._node
 
     @property
-    def history(self) -> CombatHistory:
+    def history(self) -> Any:
         """战斗历史。"""
         return self._history
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# 便捷函数
-# ═══════════════════════════════════════════════════════════════════════════════
-
-
-def run_combat(
-    device: AndroidController,
-    plan: CombatPlan,
-    *,
-    ship_stats: list[ShipDamageState],
-    ocr: OCREngine | None = None,
-    stop_requested: Callable[[], bool] | None = None,
-) -> CombatResult:
-    """执行一次完整战斗的便捷函数。"""
-    engine = CombatEngine(
-        device,
-        ocr,
-        stop_requested=stop_requested,
-    )
-    return engine.fight(plan, initial_ship_stats=ship_stats)
