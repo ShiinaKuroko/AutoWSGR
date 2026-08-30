@@ -1,6 +1,6 @@
-"""兼容 shim — 实现已迁移至 :mod:`autowsgr.infra.ui.pages.tabbed_page`。"""
+"""兼容 shim — 实现已迁移至 :mod:`autowsgr.application.ui.pages.tabbed_page`。"""
 
-from autowsgr.infra.ui.pages.tabbed_page import (
+from autowsgr.application.ui.pages.tabbed_page import (
     TabbedPageType,
     check_tabbed_page,
     get_active_tab_index,

@@ -1,10 +1,10 @@
-"""兼容 shim — 实现已迁移至 :mod:`autowsgr.infra.ui.pages.bath_page`。
+"""兼容 shim — 实现已迁移至 :mod:`autowsgr.application.ui.pages.bath_page`。
 
 老代码仍可 ``from autowsgr.ui.bath_page import BathPage``，
 新代码请直接使用新路径。
 """
 
-from autowsgr.infra.ui.pages.bath_page import (
+from autowsgr.application.ui.pages.bath_page import (
     CHOOSE_REPAIR_OVERLAY_SIGNATURE,
     PAGE_SIGNATURE,
     BathPage,

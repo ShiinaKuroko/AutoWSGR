@@ -9,9 +9,4 @@
     decisive/      决战 (独立子包: 专属页面体系 + 阶段状态机)
 """
 
-from autowsgr.business.combat.exercise import ExerciseExecutor
-
-
-__all__ = [
-    'ExerciseExecutor',
-]
+__all__: list[str] = []

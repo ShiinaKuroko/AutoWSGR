@@ -17,11 +17,11 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from autowsgr.business.base import BaseExecutor
-from autowsgr.infra.ui.navigation import goto_page
+from autowsgr.application.ui.navigation import goto_page
 from autowsgr.dispatch.registry import register
-from autowsgr.infra.system.logger import get_logger
-from autowsgr.infra.ui.pages.main_page import MainPage
-from autowsgr.infra.ui.pages.mission_page import MissionPage
+from autowsgr.common.system.logger import get_logger
+from autowsgr.application.ui.pages.main_page import MainPage
+from autowsgr.application.ui.pages.mission_page import MissionPage
 from autowsgr.types import PageName
 
 

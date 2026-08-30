@@ -20,9 +20,9 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING
 
-from autowsgr.infra.ui.navigation import goto_page
-from autowsgr.infra.system.logger import get_logger
-from autowsgr.infra.ui.pages.bath_page import BathPage
+from autowsgr.application.ui.navigation import goto_page
+from autowsgr.common.system.logger import get_logger
+from autowsgr.application.ui.pages.bath_page import BathPage
 from autowsgr.types import PageName, ShipDamageState
 
 

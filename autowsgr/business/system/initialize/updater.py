@@ -22,7 +22,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     import numpy as np
 
-    from autowsgr.infra.emulator import AndroidController
+    from autowsgr.common.device import AndroidController
 
 
 def needs_update(screen: np.ndarray) -> bool:

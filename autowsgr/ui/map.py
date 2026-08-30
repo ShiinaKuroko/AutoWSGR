@@ -1,18 +1,18 @@
-"""兼容 shim — 实现已迁移至 :mod:`autowsgr.infra.ui.pages.map`。
+"""兼容 shim — 实现已迁移至 :mod:`autowsgr.application.ui.pages.map`。
 
 老代码仍可 ``from autowsgr.ui.map import MapPage ...`` 或
 ``from autowsgr.ui.map.data import X ...``，新代码请直接使用新路径。
 """
 
-from autowsgr.infra.ui.pages.map import data as _data
-from autowsgr.infra.ui.pages.map import (  # noqa: F401
+from autowsgr.application.ui.pages.map import data as _data
+from autowsgr.application.ui.pages.map import (  # noqa: F401
     BaseMapPage,
     MapIdentity,
     MapPage,
     MapPanel,
     parse_map_title,
 )
-from autowsgr.infra.ui.pages.map.data import (  # noqa: F401
+from autowsgr.application.ui.pages.map.data import (  # noqa: F401
     CAMPAIGN_POSITIONS,
     CHAPTER_MAP_COUNTS,
     CLICK_BACK,

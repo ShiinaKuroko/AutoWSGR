@@ -1,6 +1,6 @@
 """UI 工具函数包。
 
-汇总导航工具与选船列表 OCR 工具，对外保持与原 ``autowsgr.infra.ui.interaction`` 完全一致的公共 API。
+汇总导航工具与选船列表 OCR 工具，对外保持与原 ``autowsgr.common.ui.interaction`` 完全一致的公共 API。
 """
 
 from .navigation import (

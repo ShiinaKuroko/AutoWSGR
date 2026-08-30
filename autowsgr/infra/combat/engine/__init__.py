@@ -1,16 +1,13 @@
-"""战斗驱动子系统：状态机、计划和阶段转移。"""
+"""Compatibility aliases for :mod:`autowsgr.application.combat.engine`."""
 
-from autowsgr.infra.combat.engine.engine import CombatEngine, run_combat
-from autowsgr.infra.combat.engine.plan import CombatMode, CombatPlan, GradeCondition, NodeDecision
-from autowsgr.infra.combat.engine.state import CombatPhase
+import importlib
+import sys
+
+from autowsgr.application.combat import engine as _engine
 
 
-__all__ = [
-    'CombatEngine',
-    'CombatMode',
-    'CombatPhase',
-    'CombatPlan',
-    'GradeCondition',
-    'NodeDecision',
-    'run_combat',
-]
+sys.modules[__name__] = _engine
+for _name in ('engine', 'plan', 'state'):
+    sys.modules[f'{__name__}.{_name}'] = importlib.import_module(
+        f'autowsgr.application.combat.engine.{_name}'
+    )

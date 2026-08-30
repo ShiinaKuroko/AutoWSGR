@@ -16,16 +16,16 @@ from dataclasses import dataclass
 from datetime import date
 from typing import TYPE_CHECKING
 
-from autowsgr.infra.system.logger import get_logger
-from autowsgr.infra.ui.pages.main_page.overlays import (
+from autowsgr.common.system.logger import get_logger
+from autowsgr.application.ui.pages.main_page.overlays import (
     detect_overlay,
     dismiss_overlay,
 )
-from autowsgr.infra.ui.interaction import confirm_operation
+from autowsgr.common.ui.interaction import confirm_operation
 
 
 if TYPE_CHECKING:
-    from autowsgr.infra.emulator import AndroidController
+    from autowsgr.common.device import AndroidController
 
 
 _log = get_logger('business.overlays')
