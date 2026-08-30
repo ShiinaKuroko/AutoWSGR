@@ -27,7 +27,7 @@ from autowsgr.types import PageName, ShipDamageState
 
 
 if TYPE_CHECKING:
-    from autowsgr.infra.runtime.context import GameContext
+    from autowsgr.application.runtime import RuntimeContext as GameContext
 
 _log = get_logger('business.logistics.repair')
 

@@ -32,7 +32,7 @@ from autowsgr.types import PageName
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from autowsgr.infra.runtime.context import GameContext
+    from autowsgr.application.runtime import RuntimeContext as GameContext
 
 
 class BaseExecutor:
