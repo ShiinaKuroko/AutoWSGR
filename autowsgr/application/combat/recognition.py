@@ -18,9 +18,9 @@ from typing import TYPE_CHECKING
 import numpy as np
 from PIL import Image
 
-from autowsgr.common.system import get_logger
 from autowsgr.application.combat.recognizer import CombatRecognitionTimeoutError
 from autowsgr.application.ui.pages.battle_preparation.blood import classify_blood
+from autowsgr.common.system import get_logger
 from autowsgr.common.vision import ROI, ApiDll, ImageChecker, PixelChecker, get_api_dll
 from autowsgr.common.vision.pixel import MatchStrategy, PixelRule, PixelSignature
 from autowsgr.common.vision.resources import TemplateKey

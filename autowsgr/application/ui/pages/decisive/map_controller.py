@@ -20,19 +20,10 @@ import cv2
 import numpy as np
 
 import autowsgr.application.ui.pages.decisive.fleet_ocr as _fleet_ocr
-from autowsgr.common.system.logger import get_logger
-from autowsgr.common.ui.interaction import click_and_wait_for_page
-from autowsgr.application.ui.ship_list import recognize_ships_in_list as _recognize_ships
-from autowsgr.common.vision import (
-    ImageChecker,
-    MatchStrategy,
-    PixelChecker,
-    PixelRule,
-    PixelSignature,
-    get_api_dll,
+from autowsgr.application.ui.pages.battle_preparation.preparation import (
+    BattlePreparationPage,
+    RepairStrategy,
 )
-from autowsgr.types import DecisivePhase, FleetSelection, ShipDamageState
-from autowsgr.application.ui.pages.battle_preparation.preparation import BattlePreparationPage, RepairStrategy
 from autowsgr.application.ui.pages.decisive.overlay import (
     ADVANCE_CARD_POSITIONS,
     CLICK_ADVANCE_CONFIRM,
@@ -50,11 +41,23 @@ from autowsgr.application.ui.pages.decisive.overlay import (
     is_fleet_acquisition,
 )
 from autowsgr.application.ui.pages.decisive.preparation import DecisiveBattlePreparationPage
+from autowsgr.application.ui.ship_list import recognize_ships_in_list as _recognize_ships
+from autowsgr.common.system.logger import get_logger
+from autowsgr.common.ui.interaction import click_and_wait_for_page
+from autowsgr.common.vision import (
+    ImageChecker,
+    MatchStrategy,
+    PixelChecker,
+    PixelRule,
+    PixelSignature,
+    get_api_dll,
+)
+from autowsgr.types import DecisivePhase, FleetSelection, ShipDamageState
 
 
 if TYPE_CHECKING:
-    from autowsgr.common.system import DecisiveConfig
     from autowsgr.application.ui.context import UIContext as GameContext
+    from autowsgr.common.system import DecisiveConfig
     from autowsgr.common.vision.api_dll import ApiDll
 
 

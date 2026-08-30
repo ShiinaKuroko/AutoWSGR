@@ -41,10 +41,10 @@ from typing import TYPE_CHECKING
 # 已迁移到新方法: 导航器入口 (原 autowsgr.ops.navigate.goto_page)
 from autowsgr.application.ui.navigation import goto_page
 from autowsgr.common.system.logger import get_logger
+from autowsgr.common.ui.interaction import NavigationError
 from autowsgr.types import GameAPP, PageName
 from autowsgr.ui.main_page import MainPage
 from autowsgr.ui.start_screen_page import StartScreenPage
-from autowsgr.common.ui.interaction import NavigationError
 
 
 if TYPE_CHECKING:
@@ -150,8 +150,8 @@ def wait_for_game_ui(
         超时前成功检测到返回 ``True``，超时返回 ``False``。
     """
     # 延迟导入避免循环依赖 (ui 层反向引用 ops 的模块)
-    from autowsgr.ui.main_page.overlays import detect_overlay
     from autowsgr.application.ui.navigation.registry import get_current_page
+    from autowsgr.ui.main_page.overlays import detect_overlay
 
     _log.info('[Startup] 等待游戏 UI 就绪 (超时 {:.0f}s)…', timeout)
     deadline = time.monotonic() + timeout

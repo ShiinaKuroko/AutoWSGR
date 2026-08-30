@@ -7,9 +7,9 @@ import time
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
+from autowsgr.application.ui.navigation.stack import UIStack
 from autowsgr.common.system.logger import get_logger
 from autowsgr.types import ShipDamageState
-from autowsgr.application.ui.navigation.stack import UIStack
 
 from .bathroom import BathRoom
 from .build import BuildQueue
@@ -25,8 +25,8 @@ if TYPE_CHECKING:
     from autowsgr.business.combat import CombatResult
     from autowsgr.common.device import AndroidController
     from autowsgr.common.system import UserConfig
-    from autowsgr.types import PageName
     from autowsgr.common.vision import OCREngine
+    from autowsgr.types import PageName
 
 
 _log = get_logger('context')

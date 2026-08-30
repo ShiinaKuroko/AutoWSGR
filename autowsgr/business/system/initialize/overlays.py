@@ -16,11 +16,11 @@ from dataclasses import dataclass
 from datetime import date
 from typing import TYPE_CHECKING
 
-from autowsgr.common.system.logger import get_logger
 from autowsgr.application.ui.pages.main_page.overlays import (
     detect_overlay,
     dismiss_overlay,
 )
+from autowsgr.common.system.logger import get_logger
 from autowsgr.common.ui.interaction import confirm_operation
 
 

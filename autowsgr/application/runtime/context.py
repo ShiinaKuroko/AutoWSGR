@@ -24,4 +24,3 @@ class RuntimeContext(Protocol):
 
     def update_ship_damage(self, name: str, state: Any) -> None:
         """Update a ship's damage state in the session."""
-

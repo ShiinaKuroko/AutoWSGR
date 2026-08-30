@@ -16,8 +16,6 @@ from typing import TYPE_CHECKING
 
 import cv2
 
-from autowsgr.common.system.logger import get_logger
-from autowsgr.types import FleetSelection
 from autowsgr.application.ui.pages.decisive.overlay import (
     COST_AREA,
     FLEET_CARD_CLICK_Y,
@@ -26,7 +24,9 @@ from autowsgr.application.ui.pages.decisive.overlay import (
     SHIP_NAME_X_RANGES,
     SHIP_NAME_Y_RANGE,
 )
+from autowsgr.common.system.logger import get_logger
 from autowsgr.common.vision import ROI, OCREngine
+from autowsgr.types import FleetSelection
 
 
 if TYPE_CHECKING:

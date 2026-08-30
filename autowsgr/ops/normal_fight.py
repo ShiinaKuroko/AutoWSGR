@@ -10,7 +10,8 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING, Literal
 
-from autowsgr.common.system import ActionFailedError
+# 已迁移到新方法: 导航器入口 (原 autowsgr.ops.navigate.goto_page)
+from autowsgr.application.ui.navigation import goto_page
 from autowsgr.business.combat import CombatMode, CombatPlan, CombatResult, run_combat
 from autowsgr.business.combat.fleet import (
     FleetSlotRule,
@@ -19,11 +20,9 @@ from autowsgr.business.combat.fleet import (
     resolve_fleet_selection,
     validate_fleet_selection_arguments,
 )
+from autowsgr.common.system import ActionFailedError
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.ui.interaction import NavigationError
-
-# 已迁移到新方法: 导航器入口 (原 autowsgr.ops.navigate.goto_page)
-from autowsgr.application.ui.navigation import goto_page
 from autowsgr.types import ConditionFlag, PageName, RepairMode, ShipDamageState
 from autowsgr.ui import BaseEventPage, BattlePreparationPage, MapPage, MapPanel, RepairStrategy
 

@@ -21,4 +21,6 @@ __all__ = [
 
 sys.modules[f'{__name__}.engine'] = importlib.import_module('autowsgr.business.combat.engine')
 sys.modules[f'{__name__}.plan'] = importlib.import_module('autowsgr.business.combat.plan')
-sys.modules[f'{__name__}.state'] = importlib.import_module('autowsgr.application.combat.engine.state')
+sys.modules[f'{__name__}.state'] = importlib.import_module(
+    'autowsgr.application.combat.engine.state'
+)

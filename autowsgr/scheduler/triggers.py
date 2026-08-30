@@ -33,8 +33,8 @@ from autowsgr.types import ConditionFlag
 
 
 if TYPE_CHECKING:
-    from autowsgr.business.combat import CombatResult, GradeCondition
     from autowsgr.application.runtime import RuntimeContext as GameContext
+    from autowsgr.business.combat import CombatResult, GradeCondition
 
 _log = get_logger('scheduler')
 

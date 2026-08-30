@@ -37,8 +37,8 @@ from autowsgr.constants import (
     expand_ship_name_candidates as expand_group_candidates,
 )
 from autowsgr.constants import (
-    get_ship_name_group_id,
     get_active_ship_name_aliases,
+    get_ship_name_group_id,
     normalize_ship_name,
     set_ship_name_aliases,
 )

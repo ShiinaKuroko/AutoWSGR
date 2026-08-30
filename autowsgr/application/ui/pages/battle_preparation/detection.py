@@ -39,8 +39,6 @@ if TYPE_CHECKING:
 
     import numpy as np
 
-    from autowsgr.application.ui.context import UIContext
-
 
 _log = get_logger('ui.preparation')
 

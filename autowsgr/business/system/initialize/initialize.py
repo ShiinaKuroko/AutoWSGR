@@ -26,11 +26,11 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING
 
-from autowsgr.business.system.initialize import overlays, updater
 from autowsgr.application.ui.navigation import goto_page, identify_current_page
+from autowsgr.business.system.initialize import overlays, updater
 from autowsgr.common.system.logger import get_logger
-from autowsgr.types import GameAPP, PageName
 from autowsgr.common.ui.interaction import NavigationError
+from autowsgr.types import GameAPP, PageName
 
 
 if TYPE_CHECKING:
@@ -136,9 +136,10 @@ def _try_reach_main(ctx: GameContext) -> bool:
     while time.monotonic() < deadline:
         try:
             goto_page(ctx, PageName.MAIN)
-            return True
         except NavigationError:
             time.sleep(_RECOVERY_RETRY_INTERVAL)
+        else:
+            return True
 
     _log.warning('[Initialize] 恢复主页面超时 ({:.0f}s)', _RECOVERY_TIMEOUT)
     return False

@@ -26,9 +26,9 @@ from typing import TYPE_CHECKING, Any
 
 import yaml
 
-from autowsgr.dispatch.registry import build_executor
 from autowsgr.common.system.file_utils import load_yaml
 from autowsgr.common.system.logger import get_logger
+from autowsgr.dispatch.registry import build_executor
 
 
 if TYPE_CHECKING:

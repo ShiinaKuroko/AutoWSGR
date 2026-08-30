@@ -23,7 +23,6 @@ from typing import TYPE_CHECKING, Literal
 
 from autowsgr.common.system.exceptions import ActionFailedError
 from autowsgr.common.system.logger import get_logger
-from autowsgr.types import PageName
 from autowsgr.common.ui.interaction import click_and_wait_for_page
 from autowsgr.common.vision import (
     ROI,
@@ -33,6 +32,7 @@ from autowsgr.common.vision import (
     PageMatch,
     PixelChecker,
 )
+from autowsgr.types import PageName
 
 
 if TYPE_CHECKING:
@@ -309,7 +309,9 @@ class BaseEventPage:
             if entrance is not None:
                 self._select_entrance(entrance)
 
-        from autowsgr.application.ui.pages.battle_preparation.preparation import BattlePreparationPage
+        from autowsgr.application.ui.pages.battle_preparation.preparation import (
+            BattlePreparationPage,
+        )
 
         # 优先点击模板匹配位置 (跨活动布局变化免疫), 匹配失败回退固定坐标
         screen = self._ctrl.screenshot()

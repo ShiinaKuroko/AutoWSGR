@@ -1,7 +1,7 @@
 import re
+from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
 from contextvars import ContextVar
-from collections.abc import Iterator, Mapping
 from pathlib import Path
 from types import MappingProxyType
 

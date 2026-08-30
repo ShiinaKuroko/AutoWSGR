@@ -71,18 +71,10 @@
 import importlib as _importlib
 import sys as _sys
 
-# ── 控制器 ─────────────────────────────────────────────────────────────
-from autowsgr.types import PageName
-from autowsgr.ui.main_page.constants import OverlayKind
 from autowsgr.application.ui.navigation.registry import (
     get_current_page,
     get_registered_pages,
     register_page,
-)
-
-# ── 标签页统一检测层 ──────────────────────────────────────────────
-from autowsgr.ui.tabbed_page import (
-    TabbedPageType,
 )
 from autowsgr.common.ui.interaction import (
     NavConfig,
@@ -90,6 +82,15 @@ from autowsgr.common.ui.interaction import (
     click_and_wait_for_page,
     wait_for_page,
     wait_leave_page,
+)
+
+# ── 控制器 ─────────────────────────────────────────────────────────────
+from autowsgr.types import PageName
+from autowsgr.ui.main_page.constants import OverlayKind
+
+# ── 标签页统一检测层 ──────────────────────────────────────────────
+from autowsgr.ui.tabbed_page import (
+    TabbedPageType,
 )
 
 from .backyard_page import BackyardPage, BackyardTarget
@@ -153,7 +154,9 @@ _MIGRATED_MODULE_ALIASES = {
     'autowsgr.ui.battle.preparation': 'autowsgr.application.ui.pages.battle_preparation.preparation',
     'autowsgr.ui.battle.repair': 'autowsgr.application.ui.pages.battle_preparation.repair',
     'autowsgr.ui.battle.supply': 'autowsgr.application.ui.pages.battle_preparation.supply',
-    'autowsgr.ui.battle.fleet_change': ('autowsgr.application.ui.pages.battle_preparation.fleet_change'),
+    'autowsgr.ui.battle.fleet_change': (
+        'autowsgr.application.ui.pages.battle_preparation.fleet_change'
+    ),
     'autowsgr.ui.battle.fleet_change._alignment': (
         'autowsgr.application.ui.pages.battle_preparation.fleet_change._alignment'
     ),

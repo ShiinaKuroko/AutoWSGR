@@ -16,9 +16,9 @@ from typing import TYPE_CHECKING
 # 已迁移到新方法: 导航器入口 (原 autowsgr.ops.navigate.goto_page)
 from autowsgr.application.ui.navigation import goto_page
 from autowsgr.common.system.logger import get_logger
+from autowsgr.common.ui.interaction import click_and_wait_for_page
 from autowsgr.types import DestroyShipWorkMode, PageName, ShipType
 from autowsgr.ui.build_page import BuildPage, BuildTab
-from autowsgr.common.ui.interaction import click_and_wait_for_page
 
 
 if TYPE_CHECKING:

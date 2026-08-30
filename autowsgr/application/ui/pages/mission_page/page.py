@@ -42,8 +42,8 @@ from autowsgr.types import PageName
 if TYPE_CHECKING:
     import numpy as np
 
-    from autowsgr.application.ui.pages.mission_page.data import MissionInfo
     from autowsgr.application.ui.context import UIContext as GameContext
+    from autowsgr.application.ui.pages.mission_page.data import MissionInfo
 
 
 _log = get_logger('ui')

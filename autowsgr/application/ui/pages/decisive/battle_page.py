@@ -18,9 +18,7 @@ import re
 import time
 from typing import TYPE_CHECKING
 
-from autowsgr.common.vision.resources import Templates
 from autowsgr.common.system.logger import get_logger
-from autowsgr.types import DecisiveEntryStatus, PageName
 from autowsgr.common.ui.interaction import click_and_wait_for_page, confirm_operation
 from autowsgr.common.vision import (
     Color,
@@ -32,6 +30,8 @@ from autowsgr.common.vision import (
     PixelRule,
     PixelSignature,
 )
+from autowsgr.common.vision.resources import Templates
+from autowsgr.types import DecisiveEntryStatus, PageName
 
 
 if TYPE_CHECKING:

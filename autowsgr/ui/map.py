@@ -4,7 +4,6 @@
 ``from autowsgr.ui.map.data import X ...``，新代码请直接使用新路径。
 """
 
-from autowsgr.application.ui.pages.map import data as _data
 from autowsgr.application.ui.pages.map import (  # noqa: F401
     BaseMapPage,
     MapIdentity,
@@ -12,6 +11,7 @@ from autowsgr.application.ui.pages.map import (  # noqa: F401
     MapPanel,
     parse_map_title,
 )
+from autowsgr.application.ui.pages.map import data as _data
 from autowsgr.application.ui.pages.map.data import (  # noqa: F401
     CAMPAIGN_POSITIONS,
     CHAPTER_MAP_COUNTS,

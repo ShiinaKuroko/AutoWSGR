@@ -36,9 +36,9 @@ from autowsgr.types import PageName
 if TYPE_CHECKING:
     import numpy as np
 
+    from autowsgr.application.ui.context import UIContext as GameContext
     from autowsgr.application.ui.fleet import ShipSelector
     from autowsgr.common.vision import OCREngine
-    from autowsgr.application.ui.context import UIContext as GameContext
     from autowsgr.types import ShipType
 
 

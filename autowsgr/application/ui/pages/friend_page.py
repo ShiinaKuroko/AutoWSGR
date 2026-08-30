@@ -19,7 +19,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from autowsgr.common.system.logger import get_logger
-from autowsgr.types import PageName
 from autowsgr.common.ui.interaction import click_and_wait_for_page
 from autowsgr.common.vision import (
     MatchStrategy,
@@ -27,6 +26,7 @@ from autowsgr.common.vision import (
     PixelRule,
     PixelSignature,
 )
+from autowsgr.types import PageName
 
 
 if TYPE_CHECKING:

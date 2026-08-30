@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import time
-from collections.abc import Callable, Mapping
 from typing import TYPE_CHECKING, Any
 
 from autowsgr.application.combat.actions import click_speed_up, dismiss_resource_confirm
@@ -19,6 +18,8 @@ from autowsgr.types import ConditionFlag, Formation, ShipDamageState
 
 
 if TYPE_CHECKING:
+    from collections.abc import Callable, Mapping
+
     import numpy as np
 
     from autowsgr.common.device import AndroidController

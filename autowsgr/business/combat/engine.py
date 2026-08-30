@@ -2,17 +2,17 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from autowsgr.application.combat import CombatEngine as ApplicationCombatEngine
-from autowsgr.application.combat.engine.state import ModeCategory
 from autowsgr.business.combat.handlers import PhaseHandlersMixin
 from autowsgr.business.combat.history import CombatHistory, CombatResult
 from autowsgr.business.combat.plan import MODE_CATEGORIES, CombatPlan
 
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from autowsgr.common.device import AndroidController
     from autowsgr.common.vision import OCREngine
     from autowsgr.types import ShipDamageState
@@ -37,7 +37,7 @@ class CombatEngine(PhaseHandlersMixin, ApplicationCombatEngine):
             mode_categories=MODE_CATEGORIES,
         )
 
-    def _get_current_decision(self):
+    def _get_current_decision(self) -> Any:
         return self._plan.get_node_decision(self._node)
 
 

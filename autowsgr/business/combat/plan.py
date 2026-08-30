@@ -15,7 +15,6 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from autowsgr.common.system import NodeConfig, load_yaml
 from autowsgr.application.combat.engine.state import (
     CombatPhase,
     ModeCategory,
@@ -23,6 +22,7 @@ from autowsgr.application.combat.engine.state import (
     build_transitions,
 )
 from autowsgr.business.combat.rules import RuleEngine
+from autowsgr.common.system import NodeConfig, load_yaml
 from autowsgr.common.system.logger import get_logger
 from autowsgr.types import FightCondition, Formation, RepairMode
 

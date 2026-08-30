@@ -19,15 +19,15 @@ from __future__ import annotations
 import enum
 from typing import TYPE_CHECKING
 
-from autowsgr.common.system.logger import get_logger
 from autowsgr.application.ui.pages.tabbed_page import (
     TabbedPageType,
     check_tabbed_page,
     get_active_tab_index,
     make_tab_checker,
 )
-from autowsgr.types import PageName
+from autowsgr.common.system.logger import get_logger
 from autowsgr.common.ui.interaction import click_and_wait_for_page
+from autowsgr.types import PageName
 
 
 if TYPE_CHECKING:

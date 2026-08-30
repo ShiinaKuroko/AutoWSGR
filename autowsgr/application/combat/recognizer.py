@@ -6,8 +6,8 @@ import time
 from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING
 
-from autowsgr.common.system import get_logger
 from autowsgr.application.combat.engine.state import CombatPhase
+from autowsgr.common.system import get_logger
 from autowsgr.common.vision import (
     ImageChecker,
     MatchStrategy,

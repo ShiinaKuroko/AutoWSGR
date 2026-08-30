@@ -9,8 +9,8 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING
 
-from autowsgr.common.system import get_logger
 from autowsgr.common.calibration.coordinates import point
+from autowsgr.common.system import get_logger
 from autowsgr.common.vision import ImageChecker
 from autowsgr.common.vision.resources import TemplateKey, Templates
 

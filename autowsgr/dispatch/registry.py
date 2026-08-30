@@ -15,8 +15,8 @@ if TYPE_CHECKING:
     import threading
     from collections.abc import Callable
 
-    from autowsgr.business.base import BaseExecutor
     from autowsgr.application.runtime import RuntimeContext as GameContext
+    from autowsgr.business.base import BaseExecutor
 
 
 # task_type → 执行器所在的业务模块 (首次使用时延迟 import 并自注册)
