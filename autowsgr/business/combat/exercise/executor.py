@@ -5,8 +5,7 @@
         迭代执行单场挑战直至无可挑战对手。一次 Processor 请求就是一轮
         完整演习; 重复次数由请求的 count 字段控制, 不写入 YAML。
     限额模式 (rivals_limit=N):
-        累计挑战 N 个对手后即视为完成; N=1 为单次模式
-        (兼容定时触发器 ExerciseOnceRunner)。
+        累计挑战 N 个对手后即视为完成; N=1 为单场模式。
 
 计数粒度: 以单场为计数单位, _fight_one() 每完成一场挑战即将
 progress['fought'] 累加一次; 任务被暂停后重跑时计数延续,
@@ -74,7 +73,7 @@ class ExerciseExecutor(BaseExecutor):
         self.rivals_limit = self.spec.rivals_limit
         """单轮挑战数量上限 (None=完整模式不限; N=限额模式, 1 为单次)。"""
         self.rival = self.spec.rival
-        """指定对手编号 (兼容 run_exercise 的 rival 参数; None 为自动选择)。"""
+        """指定对手编号; ``None`` 表示自动选择。"""
         self._prep_active = False
 
     # ── 主流程 ─────────────────────────────────────────────────
