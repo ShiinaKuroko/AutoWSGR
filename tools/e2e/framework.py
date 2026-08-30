@@ -193,6 +193,7 @@ class E2ERunner:
             if not self._ensure_game_running():
                 raise RuntimeError('操作后游戏进程已退出且重新初始化失败')
         except Exception as exc:
+            self._recover_after_error()
             self._record(label, ok=False, error=str(exc), t0=t0)
             print(f'  [FAIL] {label}: {exc}')
             self._error_screenshot(label)
@@ -213,6 +214,7 @@ class E2ERunner:
                 passed = False
                 error = '检查后游戏进程已退出且重新初始化失败'
         except Exception as exc:
+            self._recover_after_error()
             passed = False
             error = str(exc)
         self._record(label, ok=passed, error=error, t0=t0)
@@ -337,6 +339,15 @@ class E2ERunner:
             return True
         finally:
             self._recovery_in_progress = False
+
+    def _recover_after_error(self) -> None:
+        """在步骤异常后尝试恢复已退出的游戏进程。"""
+        if self.no_launch or self.ctx is None or self._recovery_in_progress:
+            return
+        try:
+            self._ensure_game_running()
+        except Exception as recovery_error:
+            self.note(f'异常后恢复失败: {recovery_error}')
 
     # ── 内部工具 ───────────────────────────────────────────────────
 
