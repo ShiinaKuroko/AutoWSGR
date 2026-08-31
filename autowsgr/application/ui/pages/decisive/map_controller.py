@@ -41,7 +41,6 @@ from autowsgr.application.ui.pages.decisive.overlay import (
     is_fleet_acquisition,
 )
 from autowsgr.application.ui.pages.decisive.preparation import DecisiveBattlePreparationPage
-from autowsgr.application.ui.ship_list import recognize_ships_in_list as _recognize_ships
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.ui.interaction import click_and_wait_for_page
 from autowsgr.common.vision import (
@@ -52,6 +51,7 @@ from autowsgr.common.vision import (
     PixelSignature,
     get_api_dll,
 )
+from autowsgr.common.vision.ship_list import recognize_ships_in_list as _recognize_ships
 from autowsgr.types import DecisivePhase, FleetSelection, ShipDamageState
 
 

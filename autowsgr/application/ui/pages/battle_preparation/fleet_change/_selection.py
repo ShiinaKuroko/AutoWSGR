@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from autowsgr.application.ui.fleet import ShipSelector
-from autowsgr.application.ui.pages.battle_preparation.constants import CLICK_BACK
+from autowsgr.common.calibration.battle_preparation import CLICK_BACK
 from autowsgr.common.system.logger import get_logger
 
 from ._planning import FleetPlanningMixin

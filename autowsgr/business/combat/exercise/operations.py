@@ -4,21 +4,22 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from autowsgr.infra.system.logger import get_logger
-from autowsgr.infra.ui.navigation import goto_page
-from autowsgr.infra.ui.pages.battle_preparation import BattlePreparationPage
-from autowsgr.infra.ui.pages.battle_preparation.base import RepairStrategy
-from autowsgr.infra.ui.pages.map import MapPage, MapPanel
+from autowsgr.application.ui.navigation import goto_page
+from autowsgr.application.ui.pages.battle_preparation import BattlePreparationPage, RepairStrategy
+from autowsgr.application.ui.pages.map import MapPage, MapPanel
+from autowsgr.common.system.logger import get_logger
 from autowsgr.types import PageName, RepairMode, ShipDamageState
+
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from autowsgr.infra.combat import CombatPlan
-    from autowsgr.infra.fleet import FleetSlotRule
-    from autowsgr.infra.runtime.context import GameContext
+    from autowsgr.application.runtime import RuntimeContext as GameContext
+    from autowsgr.business.combat.fleet import FleetSlotRule
+    from autowsgr.business.combat.plan import CombatPlan
 
 _log = get_logger('business.combat.exercise')
+
 
 class ExerciseOperations:
     """提供演习流程所需的页面操作，不决定任务循环和终态。"""

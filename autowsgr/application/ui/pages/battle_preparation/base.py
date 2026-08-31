@@ -9,7 +9,7 @@ from __future__ import annotations
 import enum
 from typing import TYPE_CHECKING
 
-from autowsgr.application.ui.pages.battle_preparation.constants import (
+from autowsgr.common.calibration.battle_preparation import (
     AUTO_SUPPLY_ON,
     AUTO_SUPPLY_PROBE,
     CLICK_AUTO_SUPPLY,

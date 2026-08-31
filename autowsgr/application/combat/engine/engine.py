@@ -5,7 +5,7 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING, Any
 
-from autowsgr.application.combat.actions import click_speed_up, dismiss_resource_confirm
+from autowsgr.application.combat.actions import click_speed_up
 from autowsgr.application.combat.engine.state import CombatPhase, ModeCategory, resolve_successors
 from autowsgr.application.combat.node_tracker import MapNodeData, NodeTracker
 from autowsgr.application.combat.recognizer import (
@@ -14,6 +14,7 @@ from autowsgr.application.combat.recognizer import (
     CombatStopRequestedError,
 )
 from autowsgr.common.system.logger import get_logger
+from autowsgr.common.ui.combat import dismiss_resource_confirm
 from autowsgr.types import ConditionFlag, Formation, ShipDamageState
 
 

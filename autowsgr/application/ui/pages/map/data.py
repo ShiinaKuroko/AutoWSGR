@@ -2,7 +2,7 @@
 
 从 ``map_page.py`` 中分离的纯数据与解析逻辑，供 ``MapPage`` 及其他模块引用。
 
-坐标/颜色数据源统一为 infra/data/calibration 分类 YAML:
+坐标/颜色数据源统一为 common/data/calibration 分类 YAML:
     - coordinates/map.yaml      — 回退/面板标签点击坐标
     - coordinates/exercise.yaml — 演习面板坐标
     - colors/exercise.yaml      — 演习挑战/箭头检测颜色
@@ -15,9 +15,25 @@ import enum
 import re
 from dataclasses import dataclass
 
-from autowsgr.common.calibration.colors import color as _color
-from autowsgr.common.calibration.colors import tolerance as _color_tolerance
-from autowsgr.common.calibration.coordinates import point, points
+from autowsgr.common.calibration.coordinates import point
+
+# Compatibility re-exports; new page code imports common calibration directly.
+from autowsgr.common.calibration.exercise import (  # noqa: F401
+    CLICK_CHALLENGE,
+    EXERCISE_ARROW_DOWN_PROBE,
+    EXERCISE_ARROW_GRAY,
+    EXERCISE_ARROW_TOLERANCE,
+    EXERCISE_ARROW_UP_PROBE,
+    EXERCISE_CHALLENGE_COLOR,
+    EXERCISE_CHALLENGE_PROBES,
+    EXERCISE_CHALLENGE_TOLERANCE,
+    EXERCISE_CLICK_RIVAL_INFO,
+    EXERCISE_CLICK_START_BATTLE,
+    EXERCISE_SWIPE_DELAY,
+    EXERCISE_SWIPE_TO_BOTTOM,
+    EXERCISE_SWIPE_TO_TOP,
+    RIVAL_POSITIONS,
+)
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.vision import Color
 
@@ -354,59 +370,6 @@ MAP_NODE_POSITIONS: dict[int, tuple[float, float]] = {
     5: (0.500, 0.800),
 }
 """出征面板中各地图节点的点击位置 (1-5, 从上到下)。"""
-
-# ── 演习坐标 (数据源: coordinates/exercise.yaml) ──
-
-RIVAL_POSITIONS: list[tuple[float, float]] = points('exercise', 'rival_positions')
-"""演习面板中 4 个对手位置的「挑战」按钮。"""
-
-CLICK_CHALLENGE: tuple[float, float] = point('exercise', 'click_challenge')
-"""演习面板 — 通用挑战按钮。"""
-
-# ── 演习 — 对手挑战状态检测 (数据源: colors/exercise.yaml) ──
-
-EXERCISE_CHALLENGE_COLOR = _color('exercise', 'challenge_blue')
-"""演习挑战按钮颜色 — 蓝色 (表示可挑战)。"""
-
-EXERCISE_CHALLENGE_TOLERANCE: float = _color_tolerance('exercise', 'challenge_blue')
-"""演习挑战按钮颜色检测容差。"""
-
-EXERCISE_ARROW_GRAY = _color('exercise', 'arrow_gray')
-"""演习列表上下箭头灰色 (表示已到顶/底端)。"""
-
-EXERCISE_ARROW_TOLERANCE: float = _color_tolerance('exercise', 'arrow_gray')
-"""演习箭头灰色检测容差。"""
-
-EXERCISE_ARROW_UP_PROBE: tuple[float, float] = point('exercise', 'arrow_up_probe')
-"""演习列表上箭头探测点 (~0.9719, 0.1093)。灰色说明已在顶部。"""
-
-EXERCISE_ARROW_DOWN_PROBE: tuple[float, float] = point('exercise', 'arrow_down_probe')
-"""演习列表下箭头探测点 (~0.9719, 0.9056)。灰色说明已在底部。"""
-
-EXERCISE_CHALLENGE_PROBES: list[tuple[float, float]] = points('exercise', 'challenge_probes')
-"""演习面板 4 个可见对手位置的挑战按钮探测点。
-
-屏幕一次显示 4 个对手, 第 5 个需要滚动才能看到。
-"""
-
-EXERCISE_SWIPE_TO_TOP: tuple[float, float, float, float] = point(
-    'exercise', 'swipe_to_top.start'
-) + point('exercise', 'swipe_to_top.end')
-"""演习列表滑动: 上滑至顶部 (起点→终点)。"""
-
-EXERCISE_SWIPE_TO_BOTTOM: tuple[float, float, float, float] = point(
-    'exercise', 'swipe_to_bottom.start'
-) + point('exercise', 'swipe_to_bottom.end')
-"""演习列表滑动: 下滑至底部 (起点→终点)。"""
-
-EXERCISE_CLICK_RIVAL_INFO: tuple[float, float] = point('exercise', 'click_rival_info')
-"""演习对手信息页 — 刷新对手阵容按钮 (~0.6927, 0.7407)。"""
-
-EXERCISE_CLICK_START_BATTLE: tuple[float, float] = point('exercise', 'click_start_battle')
-"""演习对手信息页 — 开始战斗按钮 (~0.8375, 0.7222)。"""
-
-EXERCISE_SWIPE_DELAY: float = 0.8
-"""演习列表滑动后等待动画的延迟 (秒)。"""
 
 # ── 远征 ──
 

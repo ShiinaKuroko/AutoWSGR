@@ -5,30 +5,30 @@
 
 from __future__ import annotations
 
-import math
 import time
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-import cv2
-
-from autowsgr.application.ui.ship_list import (
-    LevelOCRRetryNeededError,
-    extract_ship_type_from_text,
-    locate_ship_rows,
-    read_ship_level_at_card,
+from autowsgr.application.ui.ship_list import extract_ship_type_from_text
+from autowsgr.common.calibration.choose_ship import (
+    CLICK_DISMISS_KEYBOARD,
+    CLICK_REMOVE_SHIP,
+    CLICK_SEARCH_BOX,
+    INPUT_SIGNATURE,
+    PAGE_SIGNATURE,
+    SCROLL_FROM_Y,
+    SCROLL_TO_Y,
 )
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.ui.interaction import wait_for_page, wait_leave_page
-from autowsgr.common.vision import (
-    MatchStrategy,
-    PageMatch,
-    PixelChecker,
-    PixelRule,
-    PixelSignature,
-)
+from autowsgr.common.vision import PageMatch, PixelChecker
 from autowsgr.common.vision.ocr import _fuzzy_match
-from autowsgr.common.vision.ocr_rules import EasyOCRProfile
+from autowsgr.common.vision.ship_list import (
+    LevelOCRRetryNeededError,
+    locate_ship_rows,
+    read_ship_level_at_card,
+    recognize_card_type_texts,
+)
 from autowsgr.constants import SHIPNAMES, normalize_ship_name
 from autowsgr.types import PageName
 
@@ -44,52 +44,8 @@ if TYPE_CHECKING:
 
 _log = get_logger('ui')
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# 点击坐标 (960x540 基准)
-# ═══════════════════════════════════════════════════════════════════════════════
-
-CLICK_SEARCH_BOX: tuple[float, float] = (700 / 960, 30 / 540)
-"""搜索框。"""
-
-CLICK_DISMISS_KEYBOARD: tuple[float, float] = (500 / 960, 50 / 540)
-"""点击空白区域关闭键盘。"""
-
-CLICK_REMOVE_SHIP: tuple[float, float] = (83 / 960, 167 / 540)
-"""「移除」按钮 — 将当前槽位舰船移除。"""
-
-#: 选船列表滚动参数
-_SCROLL_FROM_Y: float = 0.55
-_SCROLL_TO_Y: float = 0.30
+# 选船列表操作重试次数
 _OCR_MAX_ATTEMPTS: int = 3
-
-#: 船池卡片信息区域，以 1280x720 截图为校准基准。
-_CARD_REFERENCE_WIDTH = 1280
-_CARD_REFERENCE_HEIGHT = 720
-_SHIP_TYPE_CROP_OFFSETS = (-62, -59, -13, -34.5)
-"""舰种区域相对舰名中心 X 和 DLL 横带 Y 的偏移量 (x1, y1, x2, y2)。"""
-_SHIP_TYPE_OCR_SCALES = (2, 3, 4)
-
-PAGE_SIGNATURE = PixelSignature(
-    name='choose_ship_page',
-    strategy=MatchStrategy.ALL,
-    rules=[
-        PixelRule.of(0.8594, 0.1514, (31, 46, 69), tolerance=30.0),
-        PixelRule.of(0.8602, 0.3167, (31, 139, 238), tolerance=30.0),
-        PixelRule.of(0.8578, 0.5306, (57, 57, 57), tolerance=30.0),
-        PixelRule.of(0.8594, 0.6736, (54, 54, 54), tolerance=30.0),
-        PixelRule.of(0.8656, 0.8014, (35, 57, 81), tolerance=30.0),
-    ],
-)
-
-INPUT_SIGNATURE = PixelSignature(
-    name='choose_ship_input',
-    strategy=MatchStrategy.ALL,
-    rules=[
-        PixelRule.of(0.3109, 0.9417, (253, 253, 253), tolerance=30.0),
-        PixelRule.of(0.4437, 0.9417, (253, 253, 253), tolerance=30.0),
-        PixelRule.of(0.5883, 0.9347, (253, 253, 253), tolerance=30.0),
-    ],
-)
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # 页面控制器
@@ -522,7 +478,7 @@ class ChooseShipPage:
                 _OCR_MAX_ATTEMPTS,
             )
             if attempt < _OCR_MAX_ATTEMPTS - 1:
-                self._ctrl.swipe(0.4, _SCROLL_FROM_Y, 0.4, _SCROLL_TO_Y, duration=0.4)
+                self._ctrl.swipe(0.4, SCROLL_FROM_Y, 0.4, SCROLL_TO_Y, duration=0.4)
                 time.sleep(0.5)
 
         return None
@@ -538,42 +494,14 @@ class ChooseShipPage:
         ocr = self._preferred_ocr
         assert ocr is not None
 
-        h, w = screen.shape[:2]
-        x_px = max(0, min(w - 1, round(cx * w)))
-        y_px = max(0, min(h - 1, round(cy * h)))
-        row_y = max(0, min(h - 1, round(row_key * h))) if row_key >= 0 else y_px
-
-        left, top, right, bottom = _SHIP_TYPE_CROP_OFFSETS
-        x1 = max(0.0, min(float(w), x_px + left * w / _CARD_REFERENCE_WIDTH))
-        x2 = max(0.0, min(float(w), x_px + right * w / _CARD_REFERENCE_WIDTH))
-        y1 = max(0.0, min(float(h), row_y + top * h / _CARD_REFERENCE_HEIGHT))
-        y2 = max(0.0, min(float(h), row_y + bottom * h / _CARD_REFERENCE_HEIGHT))
-        if x2 - x1 < 16 or y2 - y1 < 16:
-            return None
-
-        source_x1 = math.floor(x1)
-        source_x2 = math.ceil(x2)
-        source_y1 = math.floor(y1)
-        source_y2 = math.ceil(y2)
-        source_crop = screen[source_y1:source_y2, source_x1:source_x2]
-        for scale in _SHIP_TYPE_OCR_SCALES:
-            enlarged_source = cv2.resize(
-                source_crop,
-                None,
-                fx=scale,
-                fy=scale,
-                interpolation=cv2.INTER_CUBIC,
-            )
-            crop_x1 = round((x1 - source_x1) * scale)
-            crop_x2 = round((x2 - source_x1) * scale)
-            crop_y1 = round((y1 - source_y1) * scale)
-            crop_y2 = round((y2 - source_y1) * scale)
-            enlarged = enlarged_source[crop_y1:crop_y2, crop_x1:crop_x2]
+        for scale, results in recognize_card_type_texts(
+            ocr,
+            screen,
+            card_x=cx,
+            card_y=cy,
+            row_key=row_key,
+        ):
             detected_types: set[ShipType] = set()
-            results = ocr.recognize_line(
-                enlarged,
-                easyocr_profile=EasyOCRProfile.SHIP_POOL_TYPE,
-            )
             for result in results:
                 text = str(getattr(result, 'text', '')).strip()
                 ship_type = self._extract_ship_type_from_text(text)

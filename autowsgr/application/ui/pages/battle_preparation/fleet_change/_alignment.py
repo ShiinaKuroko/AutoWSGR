@@ -5,7 +5,7 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING
 
-from autowsgr.application.ui.pages.battle_preparation.constants import CLICK_SHIP_SLOT
+from autowsgr.common.calibration.battle_preparation import CLICK_SHIP_SLOT
 from autowsgr.common.system.logger import get_logger
 from autowsgr.constants import ship_name_identity
 

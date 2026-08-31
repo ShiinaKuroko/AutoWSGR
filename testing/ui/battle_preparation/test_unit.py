@@ -9,16 +9,21 @@ import cv2
 import numpy as np
 import pytest
 
+from autowsgr.constants import normalize_ship_name, ship_name_identity
+from autowsgr.infra import DecisiveConfig
+from autowsgr.infra.emulator import AndroidController
 from autowsgr.infra.fleet import (
     FleetSlotRule,
     ShipSelector,
     exact_fleet_rules,
     fleet_slot_from_api,
 )
-from autowsgr.constants import normalize_ship_name, ship_name_identity
 from autowsgr.infra.runtime.context import GameContext
-from autowsgr.infra.emulator import AndroidController
-from autowsgr.infra import DecisiveConfig
+from autowsgr.infra.vision import OCRResult
+from autowsgr.infra.vision.ocr_rules import (
+    EasyOCRProfile,
+    set_user_ship_name_aliases,
+)
 from autowsgr.server.schemas import FleetRuleRequest
 from autowsgr.types import ShipDamageState, ShipType
 from autowsgr.ui.battle.constants import (
@@ -41,11 +46,6 @@ from autowsgr.ui.battle.preparation import (
 )
 from autowsgr.ui.decisive.legacy_fleet_change import change_fleet_legacy
 from autowsgr.ui.decisive.preparation import DecisiveBattlePreparationPage
-from autowsgr.infra.vision import OCRResult
-from autowsgr.infra.vision.ocr_rules import (
-    EasyOCRProfile,
-    set_user_ship_name_aliases,
-)
 
 
 if TYPE_CHECKING:
@@ -211,7 +211,7 @@ class TestLevelOCRRouting:
                 return_value=self._single_ship_damage(),
             ),
             patch(
-                'autowsgr.ui.battle.detection.cv2.threshold',
+                'autowsgr.common.vision.ship_list.cv2.threshold',
                 wraps=cv2.threshold,
             ) as threshold,
         ):
@@ -247,7 +247,7 @@ class TestLevelOCRRouting:
                 'detect_ship_damage',
                 return_value=self._single_ship_damage(),
             ),
-            patch('autowsgr.ui.battle.detection.cv2.threshold') as threshold,
+            patch('autowsgr.common.vision.ship_list.cv2.threshold') as threshold,
         ):
             levels = page._recognize_fleet_levels(screen)
 
@@ -408,8 +408,8 @@ class TestActions:
         pg, ctrl = page
         # go_back 用到达验证 (click_and_wait_for_page): 点击后需识别为 MAP 才算成功。
         # MapPage 识别走 tabbed 模板匹配, 构造假帧太重, 直接 mock checker 命中。
-        from autowsgr.ui.map import MapPage
         from autowsgr.infra.ui.navigation.registry import PageMatch
+        from autowsgr.ui.map import MapPage
 
         monkeypatch.setattr(
             MapPage,
@@ -429,9 +429,9 @@ class TestActions:
     ) -> None:
         """到达验证: 点击后画面仍在准备页 (MAP 不命中) → NavigationError, 不再假成功。"""
         pg, ctrl = page
-        from autowsgr.ui.map import MapPage
-        from autowsgr.infra.ui.navigation.registry import PageMatch
         from autowsgr.infra.ui.interaction import NavigationError
+        from autowsgr.infra.ui.navigation.registry import PageMatch
+        from autowsgr.ui.map import MapPage
 
         monkeypatch.setattr(
             MapPage,

@@ -15,7 +15,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 from autowsgr.application.ui.pages.map.base import BaseMapPage
-from autowsgr.application.ui.pages.map.data import (
+from autowsgr.common.calibration.exercise import (
     EXERCISE_ARROW_DOWN_PROBE,
     EXERCISE_ARROW_GRAY,
     EXERCISE_ARROW_TOLERANCE,

@@ -11,13 +11,10 @@ from typing import TYPE_CHECKING
 
 from autowsgr.common.calibration.coordinates import point
 from autowsgr.common.system import get_logger
-from autowsgr.common.vision import ImageChecker
-from autowsgr.common.vision.resources import TemplateKey, Templates
+from autowsgr.common.ui.combat import click_image, dismiss_resource_confirm
 
 
 if TYPE_CHECKING:
-    from numpy import ndarray
-
     from autowsgr.common.device import AndroidController
     from autowsgr.types import FightCondition, Formation
 
@@ -144,60 +141,16 @@ def click_skip_missile_animation(device: AndroidController) -> None:
     device.click(*_combat_point('speed_up_battle'), delay=False)
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# 图像动作（接收 device 和 template_key，内部完成匹配）
-# ═══════════════════════════════════════════════════════════════════════════════
-
-
-def click_image(device: AndroidController, template_key: TemplateKey, timeout: float) -> bool:
-    """等待并点击模板图像中心。
-
-    Parameters
-    ----------
-    device:
-        设备控制器。
-    template_key:
-        模板标识符。
-    timeout:
-        最大等待时间（秒）。
-
-    Returns
-    -------
-    bool
-        ``True`` = 成功点击，``False`` = 超时未找到。
-    """
-
-    if isinstance(template_key, str):
-        template_key = TemplateKey(template_key)
-    deadline = time.time() + timeout
-    while time.time() < deadline:
-        screen = device.screenshot()
-        templates = template_key.templates
-        detail = ImageChecker.find_any(screen, templates, confidence=0.8)
-        if detail is not None:
-            device.click(*detail.center)
-            return True
-        time.sleep(0.3)
-    return False
-
-
-def dismiss_resource_confirm(device: AndroidController, screen: ndarray) -> None:
-    """检测并关闭地图移动中弹出的资源获取/失去确认弹窗。
-
-    仅对当前帧做一次快速检测（不阻塞等待），找到任意确认按钮模板就点击。
-    """
-    detail = ImageChecker.find_any(
-        screen,
-        [Templates.Confirm.CONFIRM_1],
-        confidence=0.75,
-    )
-    if detail is not None:
-        time.sleep(0.25)
-
-        # 由于在地图移动的过程中，点击后必须立刻获取当前画面，因此不能加延迟
-        device.click(*detail.center, delay=False)
-        _log.info(
-            "[Combat] 点掉资源确认弹窗: '{}' ({:.4f}, {:.4f})",
-            detail.template_name,
-            *detail.center,
-        )
+__all__ = [
+    'click_enter_fight',
+    'click_fight_condition',
+    'click_formation',
+    'click_image',
+    'click_night_battle',
+    'click_proceed',
+    'click_result',
+    'click_retreat',
+    'click_skip_missile_animation',
+    'click_speed_up',
+    'dismiss_resource_confirm',
+]

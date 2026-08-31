@@ -24,7 +24,7 @@ from autowsgr.application.ui.pages.battle_preparation.base import (
     Panel,
     RepairStrategy,
 )
-from autowsgr.application.ui.pages.battle_preparation.constants import BLOOD_BAR_PROBE
+from autowsgr.common.calibration.battle_preparation import BLOOD_BAR_PROBE
 from autowsgr.common.system import ActionFailedError
 from autowsgr.common.system.logger import get_logger
 from autowsgr.types import ShipDamageState

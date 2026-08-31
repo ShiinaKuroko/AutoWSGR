@@ -7,8 +7,8 @@ from unittest.mock import MagicMock
 import numpy as np
 import pytest
 
-from autowsgr.infra.combat import recognition as recognition_mod
-from autowsgr.infra.combat.recognition import ShipDropResult
+from autowsgr.common.vision import combat as recognition_mod
+from autowsgr.common.vision.combat import ShipDropResult
 
 
 @pytest.fixture(autouse=True)
@@ -20,7 +20,7 @@ def _no_sleep(monkeypatch: pytest.MonkeyPatch) -> list[float]:
 
 def test_get_ship_drop_retries_five_frames_before_giving_up(
     monkeypatch: pytest.MonkeyPatch,
-    _no_sleep: list[float],
+    _no_sleep: list[float],  # noqa: PT019 - assertions inspect recorded sleeps
 ) -> None:
     device = MagicMock()
     device.screenshot.return_value = np.zeros((540, 960, 3), dtype=np.uint8)
@@ -37,7 +37,7 @@ def test_get_ship_drop_retries_five_frames_before_giving_up(
 
 def test_get_ship_drop_returns_none_after_five_misses(
     monkeypatch: pytest.MonkeyPatch,
-    _no_sleep: list[float],
+    _no_sleep: list[float],  # noqa: PT019 - assertions inspect recorded sleeps
 ) -> None:
     device = MagicMock()
     device.screenshot.return_value = np.zeros((540, 960, 3), dtype=np.uint8)

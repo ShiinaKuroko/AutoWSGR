@@ -20,6 +20,11 @@ from typing import TYPE_CHECKING
 
 from autowsgr.application.ui.pages.battle_preparation.base import BaseBattlePreparation
 from autowsgr.application.ui.pages.battle_preparation.detection import DetectionMixin
+from autowsgr.common.calibration.choose_ship import (
+    FLEET_NAME_STRIP_Y,
+    FLEET_SLOT_X_CENTERS,
+    SHIP_FUZZY_THRESHOLD,
+)
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.vision.ocr import (
     _fuzzy_match,
@@ -37,20 +42,6 @@ if TYPE_CHECKING:
 
 
 _log = get_logger('ui.preparation')
-
-_NAME_STRIP_Y1: float = 435 / 720
-_NAME_STRIP_Y2: float = 462 / 720
-
-_SLOT_X_CENTERS: tuple[float, ...] = (
-    0.1146,
-    0.2292,
-    0.3438,
-    0.4583,
-    0.5729,
-    0.6875,
-)
-
-_SHIP_FUZZY_THRESHOLD: int = 2
 
 
 @dataclass(slots=True)
@@ -140,8 +131,8 @@ class FleetDetectMixin(BaseBattlePreparation):
             screen = self._ctrl.screenshot()
 
         h, w = screen.shape[:2]
-        y1 = int(_NAME_STRIP_Y1 * h)
-        y2 = int(_NAME_STRIP_Y2 * h)
+        y1 = int(FLEET_NAME_STRIP_Y[0] * h)
+        y2 = int(FLEET_NAME_STRIP_Y[1] * h)
         strip = screen[y1:y2, :]
 
         results = sorted(
@@ -166,7 +157,7 @@ class FleetDetectMixin(BaseBattlePreparation):
             raw_text = result.text.strip()
             patched_text = apply_ship_patches(raw_text)
             pool_match = (
-                _fuzzy_match(patched_text, SHIPNAMES, _SHIP_FUZZY_THRESHOLD)
+                _fuzzy_match(patched_text, SHIPNAMES, SHIP_FUZZY_THRESHOLD)
                 if raw_text and result.bbox is not None
                 else None
             )
@@ -185,7 +176,7 @@ class FleetDetectMixin(BaseBattlePreparation):
             cx_rel = (r.bbox[0] + r.bbox[2]) / 2 / w
             slot = min(
                 range(6),
-                key=lambda i, cx=cx_rel: abs(_SLOT_X_CENTERS[i] - cx),
+                key=lambda i, cx=cx_rel: abs(FLEET_SLOT_X_CENTERS[i] - cx),
             )
             matched = pool_match
             expected_name = expected_slots[slot]
@@ -242,14 +233,14 @@ class FleetDetectMixin(BaseBattlePreparation):
             if (normalized := normalize_ship_name(name)) is not None
         ]
         h, w = screen.shape[:2]
-        y1 = int(_NAME_STRIP_Y1 * h)
-        y2 = int(_NAME_STRIP_Y2 * h)
+        y1 = int(FLEET_NAME_STRIP_Y[0] * h)
+        y2 = int(FLEET_NAME_STRIP_Y[1] * h)
         for slot in target_slots:
-            if not 0 <= slot < len(_SLOT_X_CENTERS):
+            if not 0 <= slot < len(FLEET_SLOT_X_CENTERS):
                 continue
-            center = _SLOT_X_CENTERS[slot]
-            left_center = _SLOT_X_CENTERS[max(slot - 1, 0)]
-            right_center = _SLOT_X_CENTERS[min(slot + 1, 5)]
+            center = FLEET_SLOT_X_CENTERS[slot]
+            left_center = FLEET_SLOT_X_CENTERS[max(slot - 1, 0)]
+            right_center = FLEET_SLOT_X_CENTERS[min(slot + 1, 5)]
             left = center - (right_center - center) / 2 if slot == 0 else (left_center + center) / 2
             right = (
                 center + (center - left_center) / 2 if slot == 5 else (center + right_center) / 2
@@ -266,7 +257,7 @@ class FleetDetectMixin(BaseBattlePreparation):
             matched = _fuzzy_match(
                 patched_text,
                 SHIPNAMES,
-                _SHIP_FUZZY_THRESHOLD,
+                SHIP_FUZZY_THRESHOLD,
             )
             if matched is None and normalized_pool:
                 matched = self._match_context_ship_name(patched_text, normalized_pool)

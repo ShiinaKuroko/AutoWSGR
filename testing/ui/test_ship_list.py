@@ -5,15 +5,15 @@ from unittest.mock import MagicMock
 import numpy as np
 import pytest
 
-from autowsgr.infra.ui.ship_list import (
+from autowsgr.common.vision import OCREngine, OCRResult
+from autowsgr.common.vision.ocr import EasyOCREngine
+from autowsgr.common.vision.ocr_rules import EasyOCRProfile, set_user_ship_name_aliases
+from autowsgr.common.vision.ship_list import (
     _parse_level_with_status,
     _probe_level_near_name,
     locate_ship_rows,
     read_ship_level_at_card,
 )
-from autowsgr.infra.vision import OCREngine, OCRResult
-from autowsgr.infra.vision.ocr import EasyOCREngine
-from autowsgr.infra.vision.ocr_rules import EasyOCRProfile, set_user_ship_name_aliases
 
 
 @pytest.fixture(autouse=True)
@@ -202,7 +202,7 @@ def _single_row_screen(monkeypatch: pytest.MonkeyPatch) -> np.ndarray:
     dll = MagicMock()
     dll.locate.return_value = [(100, 120)]
     monkeypatch.setattr(
-        'autowsgr.infra.ui.ship_list.get_api_dll',
+        'autowsgr.common.vision.ship_list.get_api_dll',
         lambda: dll,
     )
     monkeypatch.setattr('urllib.request.urlopen', MagicMock())
@@ -269,7 +269,7 @@ def test_read_ship_level_at_card_converts_relative_card_position(
     screen = np.zeros((720, 1280, 3), dtype=np.uint8)
     ocr = MagicMock()
     probe = MagicMock(return_value=101)
-    monkeypatch.setattr('autowsgr.infra.ui.ship_list._probe_level_near_name', probe)
+    monkeypatch.setattr('autowsgr.common.vision.ship_list._probe_level_near_name', probe)
 
     level = read_ship_level_at_card(
         ocr,

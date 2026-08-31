@@ -9,7 +9,7 @@ import time
 from typing import TYPE_CHECKING
 
 from autowsgr.application.ui.pages.battle_preparation.base import BaseBattlePreparation
-from autowsgr.application.ui.pages.battle_preparation.constants import (
+from autowsgr.common.calibration.battle_preparation import (
     CLICK_SHIP_SLOT,
     CLICK_SUPPORT,
     SUPPORT_DISABLE,

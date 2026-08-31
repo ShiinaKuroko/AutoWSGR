@@ -18,6 +18,10 @@ from autowsgr.application.combat.actions import (
 from autowsgr.application.combat.engine import (
     CombatEngine,
     CombatPhase,
+    ModeCategory,
+    PhaseBranch,
+    build_transitions,
+    resolve_successors,
 )
 from autowsgr.application.combat.node_tracker import MapNodeData, NodeTracker
 from autowsgr.application.combat.recognition import (
@@ -49,8 +53,11 @@ __all__ = [
     'CombatRecognizer',
     'CombatStopRequestedError',
     'MapNodeData',
+    'ModeCategory',
     'NodeTracker',
+    'PhaseBranch',
     'ShipDropResult',
+    'build_transitions',
     'click_enter_fight',
     'click_fight_condition',
     'click_formation',
@@ -70,4 +77,5 @@ __all__ = [
     'recognize_enemy_formation',
     'recognize_enemy_ships',
     'recognize_ship_drop',
+    'resolve_successors',
 ]

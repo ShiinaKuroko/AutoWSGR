@@ -5,33 +5,31 @@
 
 from __future__ import annotations
 
-import re
 import time
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
-import cv2
-
 from autowsgr.application.ui.pages.battle_preparation.base import BaseBattlePreparation
 from autowsgr.application.ui.ship_list import extract_ship_type_from_text
-from autowsgr.common.system.logger import get_logger
-from autowsgr.common.vision import PixelChecker
-from autowsgr.common.vision.ocr_rules import (
-    LEVEL_NOISY_PATTERN,
-    LEVEL_PATTERN,
-    LEVEL_SHORT_PATTERN,
-    EasyOCRProfile,
-    is_valid_ship_level,
-    normalize_level_digits,
-)
-from autowsgr.types import ShipDamageState, ShipType
-
-from .blood import classify_blood
-from .constants import (
+from autowsgr.common.calibration.battle_preparation import (
     BLOOD_BAR_PROBE,
     SHIP_LEVEL_CROP,
     SHIP_TYPE_CROP,
 )
+from autowsgr.common.system.logger import get_logger
+from autowsgr.common.vision import PixelChecker
+from autowsgr.common.vision.ocr_rules import (
+    EasyOCRProfile,
+)
+from autowsgr.common.vision.ship_list import (
+    best_fleet_level,
+    parse_fleet_level,
+    prepare_level_crop,
+    upscale_text_crop,
+)
+from autowsgr.types import ShipDamageState, ShipType
+
+from .blood import classify_blood
 
 
 if TYPE_CHECKING:
@@ -167,21 +165,7 @@ class DetectionMixin(BaseBattlePreparation):
 
             prepared = PixelChecker.crop(screen, *crop_region)
             if self._ship_ocr is None:
-                prepared = cv2.resize(
-                    prepared,
-                    None,
-                    fx=2,
-                    fy=2,
-                    interpolation=cv2.INTER_CUBIC,
-                )
-                gray = cv2.cvtColor(prepared, cv2.COLOR_RGB2GRAY)
-                _, binary = cv2.threshold(
-                    gray,
-                    0,
-                    255,
-                    cv2.THRESH_BINARY + cv2.THRESH_OTSU,
-                )
-                prepared = cv2.cvtColor(binary, cv2.COLOR_GRAY2RGB)
+                prepared = prepare_level_crop(prepared)
 
             # 两种引擎统一使用等级字符集和同一套结果解析规则。
             ocr_results = ocr.recognize_line(
@@ -233,10 +217,7 @@ class DetectionMixin(BaseBattlePreparation):
 
             cropped = PixelChecker.crop(screen, *crop_region)
             # 4x 上采样提升小字 OCR 准确率 (对齐等级识别)
-            upscaled = cv2.resize(
-                cropped,
-                (cropped.shape[1] * 4, cropped.shape[0] * 4),
-            )
+            upscaled = upscale_text_crop(cropped, 4)
             ocr_results = ocr.recognize(upscaled)
             ship_type = self._best_ship_type_from_results(ocr_results)
             ship_types[slot] = ship_type
@@ -318,86 +299,10 @@ class DetectionMixin(BaseBattlePreparation):
 
     @staticmethod
     def _parse_level(text: str) -> int | None:
-        """解析等级文本。
-
-        支持格式: ``"Lv.120"``, ``"Lv120"``, ``"lv 98"``, ``"120"`` 等。
-        OCR 常见噪声: ``"0.106"`` (L 误识为 0), ``"1V.31"`` (前缀数字),
-        ``"497"`` (星级数字粘连) 等。
-        """
-
-        def parse_digits(raw: str) -> int | None:
-            normalized = normalize_level_digits(raw)
-            if normalized is None:
-                return None
-            value = int(normalized)
-            return value if is_valid_ship_level(value) else None
-
-        # 1) 优先使用共享规则解析标准、噪声和缺失 V 的等级标签。
-        for pattern in (LEVEL_PATTERN, LEVEL_NOISY_PATTERN, LEVEL_SHORT_PATTERN):
-            match = pattern.search(text)
-            if match is None:
-                continue
-            level = parse_digits(match.group(1))
-            if level is not None:
-                return level
-
-        # 2) 兼容缺失 L、只剩 V.XX 的结果。
-        m = re.search(r'(?i)v\.?\s*([0-9liodsb]{1,3})', text)
-        if m:
-            return parse_digits(m.group(1))
-
-        # 3) 回退: 取最后一个合法数字 (跳过星级等前缀噪声)
-        for m in reversed(list(re.finditer(r'\d+', text))):
-            val = int(m.group())
-            if is_valid_ship_level(val):
-                return val
-            # 3 位以上超出等级上限时尝试去掉首位 (星级粘连)
-            s = m.group()
-            if len(s) >= 3:
-                val2 = int(s[1:])
-                if is_valid_ship_level(val2):
-                    return val2
-
-        return None
+        """解析准备页等级文本。"""
+        return parse_fleet_level(text)
 
     @classmethod
     def _best_level_from_results(cls, results: list) -> int | None:
-        """从多个 OCR 结果中选取最佳等级值。
-
-        优先选择包含 LV/V 模式或可完整拼接的结果。独立数字结果按
-        OCR 置信度排序，避免低置信度噪声抢在真实等级前面。
-        """
-        combined = ''.join(r.text.strip() for r in results)
-        if re.search(r'(?i)v', combined) or LEVEL_SHORT_PATTERN.search(combined):
-            combined_level = cls._parse_level(combined)
-            if combined_level is not None:
-                return combined_level
-
-        compact = re.sub(r'[.\s]', '', combined)
-        if re.fullmatch(r'(?i)(?:[dsb]|[0-9liodsb]{2,3})', compact):
-            normalized = normalize_level_digits(compact)
-            if normalized is not None:
-                combined_level = int(normalized)
-                if is_valid_ship_level(combined_level):
-                    return combined_level
-
-        # 按优先级分桶: lv_match > fallback；桶内按置信度选择。
-        lv_candidates: list[tuple[float, int]] = []
-        fallback_candidates: list[tuple[float, int]] = []
-
-        for r in results:
-            text = r.text.strip()
-            if not text:
-                continue
-
-            val = cls._parse_level(text)
-            if val is None:
-                continue
-            candidates = lv_candidates if re.search(r'(?i)v', text) else fallback_candidates
-            candidates.append((r.confidence, val))
-
-        if lv_candidates:
-            return max(lv_candidates, key=lambda item: item[0])[1]
-        if fallback_candidates:
-            return max(fallback_candidates, key=lambda item: item[0])[1]
-        return None
+        """从多个 OCR 结果中选取最佳等级值。"""
+        return best_fleet_level(results)

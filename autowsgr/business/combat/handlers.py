@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING
 
 from autowsgr.application.combat import (
     SHIP_DROP_PAGE_SIGNATURE,
+    CombatPhase,
     CombatRecognizer,
     click_enter_fight,
     click_fight_condition,
@@ -31,7 +32,6 @@ from autowsgr.application.combat import (
     get_ship_drop,
     image_exist,
 )
-from autowsgr.application.combat.engine.state import CombatPhase
 from autowsgr.business.combat.history import CombatEvent, CombatHistory, EventType, FightResult
 from autowsgr.business.combat.plan import CombatMode, CombatPlan, NodeDecision
 from autowsgr.business.combat.rules import RuleResult, check_blood
