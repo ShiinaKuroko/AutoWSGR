@@ -15,7 +15,7 @@ import autowsgr.business.combat.exercise.operations as operations_module
 import autowsgr.business.system.initialize.initialize as initialize_module
 from autowsgr.dispatch import TaskPaused
 from autowsgr.infra.combat import CombatResult
-from autowsgr.types import ConditionFlag, ShipDamageState
+from autowsgr.types import ConditionFlag, PageName, ShipDamageState
 
 
 if TYPE_CHECKING:
@@ -118,6 +118,7 @@ def _patch_pages(monkeypatch: pytest.MonkeyPatch) -> None:
     _PreparationPage.on_preparation_page = False
     monkeypatch.setattr(operations_module, 'MapPage', _MapPage)
     monkeypatch.setattr(operations_module, 'BattlePreparationPage', _PreparationPage)
+    monkeypatch.setattr(executor_module, 'goto_page', MagicMock())
     monkeypatch.setattr(initialize_module, 'initialize', lambda _ctx: None)
     monkeypatch.setattr(operations_module, 'goto_page', lambda *_args: None)
     monkeypatch.setattr(base_module, 'goto_page', MagicMock())
@@ -193,16 +194,22 @@ def test_ship_selection_checkpoint_honors_pause_and_returns_home() -> None:
     base_module.goto_page.assert_called_once()
 
 
-def test_failure_cleanup_uses_navigation_node(
+def test_failure_cleanup_uses_shared_navigation_entry(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     executor = executor_module.ExerciseExecutor(_ctx(), {'fleet_id': 2})
     home = MagicMock()
-    monkeypatch.setattr(operations_module, 'goto_page', home)
 
-    executor._operations.return_home()
+    def fail(_ctx: object) -> None:
+        raise RuntimeError('boom')
 
-    home.assert_called_once()
+    monkeypatch.setattr(executor_module, 'goto_page', home)
+    monkeypatch.setattr(initialize_module, 'initialize', fail)
+
+    with pytest.raises(RuntimeError, match='boom'):
+        executor.run()
+
+    home.assert_called_once_with(executor.ctx, PageName.MAIN)
 
 
 def test_pause_after_battle_keeps_completed_result() -> None:

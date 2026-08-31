@@ -21,7 +21,7 @@ from autowsgr.business.combat.campaign.spec import (
     parse_campaign_name,
 )
 from autowsgr.business.combat.fleet import exact_fleet_rules
-from autowsgr.dispatch import TaskPaused
+from autowsgr.dispatch import Processor, Request, TaskPaused
 from autowsgr.types import ConditionFlag, RepairMode, ShipDamageState, ShipType
 
 
@@ -102,11 +102,13 @@ def test_hard_campaign_applies_fixed_slot_types(
     )
 
     assert spec.fleet_selection.slot_rules is not None
-    assert [
-        rule.primary.ship_types[0]
+    actual_types = [
+        rule.primary.ship_types[0] if rule.primary.ship_types else None
         for rule in spec.fleet_selection.slot_rules
         if rule.primary is not None
-    ] == list(expected_types)
+    ]
+    expected = [None] * len(expected_types) if campaign_name == '困难驱逐' else list(expected_types)
+    assert actual_types == expected
 
 
 def test_hard_campaign_without_names_validates_the_current_fleet() -> None:
@@ -174,7 +176,7 @@ def test_campaign_fleet_changes_each_physical_slot_without_dragging(
         exact_fleet_rules(['A', 'B']),
         task_type='campaign',
     )
-    assert changes == [(1, None), (0, None), (0, 'A'), (1, 'B'), (2, None)]
+    assert changes == [(2, None), (1, None), (0, None), (0, 'A'), (1, 'B')]
     ctrl.swipe.assert_not_called()
 
 
@@ -223,16 +225,19 @@ def test_campaign_spec_rejects_invalid_params(params: dict[str, object]) -> None
 def test_campaign_executor_runs_battle_plan(monkeypatch: pytest.MonkeyPatch) -> None:
     page = MagicMock()
     events: list[str] = []
+    prepare_kwargs: list[dict[str, object]] = []
     monkeypatch.setattr(initialize_module, 'initialize', lambda _ctx: None)
     monkeypatch.setattr(base_module.time, 'sleep', lambda _seconds: None)
     monkeypatch.setattr(operations_module.CampaignOperations, 'enter_campaign', lambda *_args: None)
     monkeypatch.setattr(
         operations_module.CampaignOperations,
         'prepare_battle',
-        lambda *_args: (page, [ShipDamageState.NORMAL] * 6, []),
+        lambda *_args, **kwargs: (
+            prepare_kwargs.append(kwargs) or (page, [ShipDamageState.NORMAL] * 6, [])
+        ),
     )
     monkeypatch.setattr(operations_module.CampaignOperations, 'start_battle', lambda *_args: True)
-    monkeypatch.setattr(operations_module.CampaignOperations, 'return_home', lambda *_args: None)
+    monkeypatch.setattr(executor_module, 'goto_page', lambda *_args: None)
     monkeypatch.setattr(
         executor_module,
         'run_combat',
@@ -242,6 +247,7 @@ def test_campaign_executor_runs_battle_plan(monkeypatch: pytest.MonkeyPatch) -> 
     executor = executor_module.CampaignExecutor(
         _ctx(),
         {'campaign_name': '困难航母'},
+        progress={'_campaign_fleet': {'stage': 'selected', 'slot': 1, 'members': ['A']}},
         on_event=lambda event, **_data: events.append(event),
     )
 
@@ -249,6 +255,8 @@ def test_campaign_executor_runs_battle_plan(monkeypatch: pytest.MonkeyPatch) -> 
 
     assert result.flag is ConditionFlag.OPERATION_SUCCESS
     assert events == ['before_start', 'battle_done']
+    assert prepare_kwargs[0]['reset_fleet'] is False
+    assert executor.progress['_campaign_completed'] == 1
 
 
 def test_campaign_operations_use_page_difficulty_contract(
@@ -258,6 +266,9 @@ def test_campaign_operations_use_page_difficulty_contract(
 
     class MapPageStub:
         def __init__(self, _ctx: object) -> None:
+            pass
+
+        def ensure_panel(self, _panel: object) -> None:
             pass
 
         def enter_campaign(self, **kwargs: object) -> None:
@@ -293,7 +304,95 @@ def test_campaign_operations_checks_unconfigured_hard_fleet(
     with pytest.raises(RuntimeError, match='困难战役'):
         operations.prepare_battle(spec)
 
-    page.validate_campaign_fleet.assert_called_once_with(spec.required_ship_types)
+    page.validate_campaign_fleet.assert_called_once_with(
+        spec.required_ship_types,
+        validate_types=True,
+    )
+
+
+def test_campaign_operations_forwards_fleet_id_and_actual_members(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    page = MagicMock()
+    page.change_fleet.return_value = True
+    page.last_changed_fleet = ['实际舰船', None, None, None, None, None]
+    info = MagicMock()
+    info.ship_damage = {}
+    page.detect_fleet_info.return_value = info
+    monkeypatch.setattr(operations_module, 'BattlePreparationPage', lambda _ctx: page)
+
+    spec = CampaignSpec.from_params(
+        {
+            'campaign_name': '简单驱逐',
+            'fleet_id': 2,
+            'fleet': ['目标舰船'],
+        },
+    )
+    operations = operations_module.CampaignOperations(
+        _ctx(),
+        wait=lambda _seconds: None,
+        report=lambda *_args, **_kwargs: None,
+    )
+
+    operations.prepare_battle(spec)
+
+    call = page.change_fleet.call_args
+    assert call.args[0] == 2
+    assert call.kwargs['task_type'] == 'campaign'
+    assert call.kwargs['recognize_ship_types'] is True
+    info.to_ships.assert_called_once_with(page.last_changed_fleet)
+
+
+def test_destroyer_campaign_disables_ship_type_ocr(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    page = MagicMock()
+    page.change_fleet.return_value = True
+    page.last_changed_fleet = ['目标舰船'] + [None] * 5
+    info = MagicMock()
+    info.ship_damage = {}
+    page.detect_fleet_info.return_value = info
+    monkeypatch.setattr(operations_module, 'BattlePreparationPage', lambda _ctx: page)
+
+    rules = [{'name': f'舰船-{index}', 'min_level': 100} for index in range(6)]
+    spec = CampaignSpec.from_params(
+        {
+            'campaign_name': '困难驱逐',
+            'fleet_rules': rules,
+        },
+    )
+    operations = operations_module.CampaignOperations(
+        _ctx(),
+        wait=lambda _seconds: None,
+        report=lambda *_args, **_kwargs: None,
+    )
+
+    operations.prepare_battle(spec)
+
+    assert page.change_fleet.call_args.kwargs['recognize_ship_types'] is False
+
+
+def test_campaign_operations_saves_fleet_checkpoint() -> None:
+    saved: list[dict[str, object]] = []
+    waited: list[float] = []
+    reported: list[str] = []
+    operations = operations_module.CampaignOperations(
+        _ctx(),
+        wait=waited.append,
+        report=lambda event, **_data: reported.append(event),
+        save_progress=saved.append,
+    )
+
+    operations._on_fleet_event(
+        'fleet_checkpoint',
+        stage='selected',
+        slot=2,
+        members=['A', 'B', None],
+    )
+
+    assert reported == ['fleet_checkpoint']
+    assert saved == [{'stage': 'selected', 'slot': 2, 'members': ['A', 'B', None]}]
+    assert waited == [0]
 
 
 def test_campaign_executor_keeps_result_across_pause(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -307,10 +406,10 @@ def test_campaign_executor_keeps_result_across_pause(monkeypatch: pytest.MonkeyP
     monkeypatch.setattr(
         operations_module.CampaignOperations,
         'prepare_battle',
-        lambda *_args: (MagicMock(), [ShipDamageState.NORMAL] * 6, []),
+        lambda *_args, **_kwargs: (MagicMock(), [ShipDamageState.NORMAL] * 6, []),
     )
     monkeypatch.setattr(operations_module.CampaignOperations, 'start_battle', lambda *_args: True)
-    monkeypatch.setattr(operations_module.CampaignOperations, 'return_home', lambda *_args: None)
+    monkeypatch.setattr(executor_module, 'goto_page', lambda *_args: None)
     monkeypatch.setattr(executor_module, 'run_combat', lambda *_args, **_kwargs: result)
 
     def pause_after_battle(event: str, **_data: object) -> None:
@@ -337,3 +436,84 @@ def test_campaign_executor_keeps_result_across_pause(monkeypatch: pytest.MonkeyP
 
     assert resumed.run() is result
     assert '_result' not in progress
+
+
+def test_campaign_executor_stops_after_daily_limit(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(initialize_module, 'initialize', lambda _ctx: None)
+    monkeypatch.setattr(executor_module, 'goto_page', lambda *_args: None)
+    executor = executor_module.CampaignExecutor(
+        _ctx(),
+        {'campaign_name': '困难航母'},
+        progress={'_campaign_completed': 8},
+    )
+
+    result = executor.run()
+
+    assert result.flag is ConditionFlag.BATTLE_TIMES_EXCEED
+
+
+def test_campaign_executor_keeps_page_for_next_count(monkeypatch: pytest.MonkeyPatch) -> None:
+    initialized: list[bool] = []
+    home = MagicMock()
+    monkeypatch.setattr(initialize_module, 'initialize', lambda _ctx: initialized.append(True))
+    monkeypatch.setattr(operations_module.CampaignOperations, 'enter_campaign', lambda *_args: None)
+    monkeypatch.setattr(
+        operations_module.CampaignOperations,
+        'prepare_battle',
+        lambda *_args, **_kwargs: (MagicMock(), [ShipDamageState.NORMAL] * 6, []),
+    )
+    monkeypatch.setattr(operations_module.CampaignOperations, 'start_battle', lambda *_args: True)
+    monkeypatch.setattr(executor_module, 'goto_page', home)
+    monkeypatch.setattr(
+        executor_module,
+        'run_combat',
+        lambda *_args, **_kwargs: CombatResult(flag=ConditionFlag.OPERATION_SUCCESS),
+    )
+
+    progress: dict[str, object] = {'_reuse_campaign_page': True}
+
+    def report(event: str, **_data: object) -> None:
+        if event == 'battle_done':
+            progress['_reuse_campaign_page'] = True
+
+    executor = executor_module.CampaignExecutor(
+        _ctx(),
+        {'campaign_name': '简单驱逐'},
+        progress=progress,
+        on_event=report,
+    )
+
+    executor.run()
+
+    assert initialized == []
+    home.assert_not_called()
+    assert progress['_reuse_campaign_page'] is True
+
+
+def test_processor_marks_continuous_campaign_page_reuse() -> None:
+    processor = Processor(SimpleNamespace())
+    request = Request(
+        task_type='campaign',
+        params={'campaign_name': '简单驱逐'},
+        count=2,
+    )
+    processor._current_request = request
+    processor._current_priority = request.priority or 0
+
+    processor._executor_event('battle_done')
+
+    assert request.progress['_reuse_campaign_page'] is True
+
+
+def test_processor_marks_next_campaign_request_for_page_reuse() -> None:
+    processor = Processor(SimpleNamespace())
+    current = Request(task_type='campaign', params={'campaign_name': '简单驱逐'})
+    following = Request(task_type='campaign', params={'campaign_name': '简单航母'})
+    processor._current_request = current
+    processor._current_priority = current.priority or 0
+    processor.submit(following)
+
+    processor._executor_event('battle_done')
+
+    assert current.progress['_reuse_campaign_page'] is True
+    assert following.progress['_reuse_campaign_page'] is True

@@ -49,6 +49,21 @@ class TestShipNameMatching:
         assert ChooseShipPage._normalize_search_keyword(' 岛风 ') == '岛风'
 
 
+def test_choose_ship_page_signature_matches_current_720p_layout():
+    screen = np.zeros((720, 1280, 3), dtype=np.uint8)
+    rules = (
+        (0.88, 0.24, (0, 122, 238)),
+        (0.86, 0.40, (58, 58, 58)),
+        (0.86, 0.50, (59, 59, 59)),
+        (0.86, 0.70, (53, 53, 53)),
+        (0.98, 0.90, (24, 41, 58)),
+    )
+    for x, y, color in rules:
+        screen[int(y * 720), int(x * 1280)] = color
+
+    assert ChooseShipPage.is_current_page(screen).matched
+
+
 class TestShipTypeProbeRoutes:
     @staticmethod
     def _build_page() -> tuple[ChooseShipPage, MagicMock]:

@@ -45,7 +45,9 @@ _HANDOFF_EVENTS = frozenset(
         'rival_confirmed',
         'formation_entered',
         'ship_selected',
+        'fleet_checkpoint',
         'before_start',
+        'battle_done',
         'rival_done',
     },
 )
@@ -364,9 +366,29 @@ class Processor:
         self._report(event, **payload)
         if event == 'stop_after_current' and current is not None:
             current.progress['_stop_after_current'] = True
+        if event == 'battle_done' and current is not None:
+            if self._can_reuse_campaign_page(current):
+                current.progress['_reuse_campaign_page'] = True
+            else:
+                current.progress.pop('_reuse_campaign_page', None)
         if event in _HANDOFF_EVENTS and self._has_higher_waiting_request():
             self._pause.set()
             _log.info('[Processor] 安全断点 {} 检测到更高优先级任务, 请求暂停', event)
+
+    def _can_reuse_campaign_page(self, request: Request) -> bool:
+        """没有插队且仍有战役时保留战役页面。"""
+        if request.task_type != 'campaign':
+            return False
+        if self._has_higher_waiting_request():
+            return False
+        completed = request.progress.get('_completed', 0) + 1
+        if completed < request.count:
+            return True
+        with self._lock:
+            if not self._heap or self._heap[0][3].task_type != 'campaign':
+                return False
+            self._heap[0][3].progress['_reuse_campaign_page'] = True
+            return True
 
     def _has_higher_waiting_request(self) -> bool:
         """判断队首任务是否应在当前安全断点让路。"""

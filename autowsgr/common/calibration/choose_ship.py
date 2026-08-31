@@ -27,11 +27,11 @@ PAGE_SIGNATURE = PixelSignature(
     name='choose_ship_page',
     strategy=MatchStrategy.ALL,
     rules=[
-        PixelRule.of(0.8594, 0.1514, (31, 46, 69), tolerance=30.0),
-        PixelRule.of(0.8602, 0.3167, (31, 139, 238), tolerance=30.0),
-        PixelRule.of(0.8578, 0.5306, (57, 57, 57), tolerance=30.0),
-        PixelRule.of(0.8594, 0.6736, (54, 54, 54), tolerance=30.0),
-        PixelRule.of(0.8656, 0.8014, (35, 57, 81), tolerance=30.0),
+        PixelRule.of(0.8800, 0.2400, (0, 122, 238), tolerance=30.0),
+        PixelRule.of(0.8600, 0.4000, (58, 58, 58), tolerance=30.0),
+        PixelRule.of(0.8600, 0.5000, (59, 59, 59), tolerance=30.0),
+        PixelRule.of(0.8600, 0.7000, (53, 53, 53), tolerance=30.0),
+        PixelRule.of(0.9800, 0.9000, (24, 41, 58), tolerance=30.0),
     ],
 )
 

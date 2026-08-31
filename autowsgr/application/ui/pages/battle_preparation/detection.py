@@ -115,7 +115,7 @@ class DetectionMixin(BaseBattlePreparation):
             pixel = PixelChecker.get_pixel(screen, x, y)
             result[slot] = classify_blood(pixel)
         _log.debug(
-            '[准备页] 血量检测: {}',
+            '[Fleet] 血量检测: {}',
             ' | '.join(f'槽{i}={result[i].name}' for i in range(len(result))),
         )
         return result
@@ -176,7 +176,7 @@ class DetectionMixin(BaseBattlePreparation):
             levels[slot] = level
 
             _log.debug(
-                '[准备页] 等级OCR原始及后处理: 物理槽位={} raw={} parsed={}',
+                '[Fleet] 等级OCR原始及后处理: 物理槽位={} raw={} parsed={}',
                 slot + 1,
                 ocr_results,
                 level,
@@ -223,7 +223,7 @@ class DetectionMixin(BaseBattlePreparation):
             ship_types[slot] = ship_type
 
             _log.debug(
-                '[准备页] 舰种OCR原始及后处理: 物理槽位={} raw={} parsed={}',
+                '[Fleet] 舰种OCR原始及后处理: 物理槽位={} raw={} parsed={}',
                 slot + 1,
                 ocr_results,
                 ship_type.value if ship_type is not None else None,

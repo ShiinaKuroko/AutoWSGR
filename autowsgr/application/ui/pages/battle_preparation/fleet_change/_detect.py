@@ -114,7 +114,7 @@ class FleetDetectMixin(BaseBattlePreparation):
 
         matched = _fuzzy_match(apply_ship_patches(text), candidates, threshold=3)
         if matched is not None:
-            _log.debug("[准备页] 目标槽位匹配: '{}' -> '{}'", text, matched)
+            _log.debug("[Fleet] 目标槽位匹配: '{}' -> '{}'", text, matched)
         return matched
 
     # 识别截图中的六个舰队槽位，并按需使用目标上下文补全舰名。
@@ -172,7 +172,7 @@ class FleetDetectMixin(BaseBattlePreparation):
                 continue
             # 文本补丁改变识别结果时记录调试日志。
             if text != raw_text:
-                _log.debug("[准备页] OCR raw='{}' -> patched='{}'", raw_text, text)
+                _log.debug("[Fleet] OCR raw='{}' -> patched='{}'", raw_text, text)
             cx_rel = (r.bbox[0] + r.bbox[2]) / 2 / w
             slot = min(
                 range(6),
@@ -200,16 +200,16 @@ class FleetDetectMixin(BaseBattlePreparation):
             )
             # 完整船池和目标上下文都无法识别时跳过该文字。
             if matched is None:
-                _log.debug("[准备页] OCR '{}' -> 无匹配, 跳过", raw_text)
+                _log.debug("[Fleet] OCR '{}' -> 无匹配, 跳过", raw_text)
                 continue
             ships[slot] = matched
-            _log.debug("[准备页] 物理槽位 {} 舰名 OCR -> '{}'", slot + 1, matched)
+            _log.debug("[Fleet] 物理槽位 {} 舰名 OCR -> '{}'", slot + 1, matched)
 
         _log.debug(
-            '[准备页] 舰名OCR原始及后处理: {}',
+            '[Fleet] 舰名OCR原始及后处理: {}',
             recognized_ocr,
         )
-        _log.debug('[准备页] 舰名OCR后处理编队: {}', ships)
+        _log.debug('[Fleet] 舰名OCR后处理编队: {}', ships)
         return ships
 
     def _recognize_fleet_names_at_slots(
@@ -224,7 +224,7 @@ class FleetDetectMixin(BaseBattlePreparation):
         target_slots = sorted(set(slots))
         names: dict[int, str | None] = dict.fromkeys(target_slots)
         if ocr is None:
-            _log.warning('[准备页] 未提供 OCR 引擎，无法补识别舰名')
+            _log.warning('[Fleet] 未提供 OCR 引擎，无法补识别舰名')
             return names
 
         normalized_pool = [
@@ -248,7 +248,7 @@ class FleetDetectMixin(BaseBattlePreparation):
             crop = screen[y1:y2, max(0, int(left * w)) : min(w, int(right * w))]
             results = [result for result in ocr.recognize(crop) if result.text.strip()]
             if not results:
-                _log.debug('[准备页] 物理槽位 {} 舰名单槽OCR无文本', slot + 1)
+                _log.debug('[Fleet] 物理槽位 {} 舰名单槽OCR无文本', slot + 1)
                 continue
 
             result = max(results, key=lambda item: item.confidence)
@@ -263,7 +263,7 @@ class FleetDetectMixin(BaseBattlePreparation):
                 matched = self._match_context_ship_name(patched_text, normalized_pool)
             names[slot] = matched
             _log.debug(
-                '[准备页] 舰名单槽OCR原始及后处理: 物理槽位={} raw={} patched={} '
+                '[Fleet] 舰名单槽OCR原始及后处理: 物理槽位={} raw={} patched={} '
                 'matched={} confidence={} bbox={}',
                 slot + 1,
                 raw_text,
@@ -336,6 +336,7 @@ class FleetDetectMixin(BaseBattlePreparation):
         *,
         expected_pool: Sequence[str] | None = None,
         detail_requirements: Mapping[str, tuple[bool, bool]] | None = None,
+        recognize_ship_types: bool = True,
     ) -> FleetSnapshot:
         """获取新截图，只补充已有快照中仍为 ``None`` 的字段。
 
@@ -349,7 +350,8 @@ class FleetDetectMixin(BaseBattlePreparation):
 
         def required_detail_slots() -> tuple[list[int], list[int]]:
             if detail_requirements is None:
-                return snapshot.unknown_type_slots, snapshot.unknown_level_slots
+                type_slots = snapshot.unknown_type_slots if recognize_ship_types else []
+                return type_slots, snapshot.unknown_level_slots
 
             type_slots: list[int] = []
             level_slots: list[int] = []
@@ -361,7 +363,7 @@ class FleetDetectMixin(BaseBattlePreparation):
                 if not occupied or requirements is None:
                     continue
                 needs_type, needs_level = requirements
-                if needs_type and ship_types[slot] is None:
+                if recognize_ship_types and needs_type and ship_types[slot] is None:
                     type_slots.append(slot)
                 if needs_level and ship_levels[slot] is None:
                     level_slots.append(slot)

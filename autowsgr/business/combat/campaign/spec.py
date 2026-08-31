@@ -25,6 +25,8 @@ CAMPAIGN_NAMES: dict[int, str] = {
     4: '航母',
     5: '潜艇',
 }
+CAMPAIGN_DAILY_LIMIT = 8
+
 CAMPAIGN_NAME_MAP = {
     f'{label}{name}': (index, difficulty)
     for index, name in CAMPAIGN_NAMES.items()
@@ -59,7 +61,6 @@ CAMPAIGN_FIELDS = frozenset(
         'node_args',
         'selected_nodes',
         'event',
-        'auto_support',
     },
 )
 
@@ -85,10 +86,10 @@ class CampaignSpec:
     plan: CombatPlan
     fleet_selection: ResolvedFleetSelection
     required_ship_types: tuple[ShipType, ...] | None = None
-    auto_support: bool | None = None
+    skip_ship_type_validation: bool = False
 
     @classmethod
-    def from_params(  # noqa: PLR0912 - admission normalization stays at the boundary
+    def from_params(
         cls,
         params: Mapping[str, Any],
     ) -> CampaignSpec:
@@ -99,9 +100,6 @@ class CampaignSpec:
 
         campaign_name = params.get('campaign_name')
         map_index, difficulty = parse_campaign_name(campaign_name)
-        auto_support = params.get('auto_support')
-        if auto_support is not None and not isinstance(auto_support, bool):
-            raise ValueError('战役字段 auto_support 必须是布尔值')
         try:
             _validate_fleet_sources(params)
         except (TypeError, ValueError) as exc:
@@ -110,7 +108,6 @@ class CampaignSpec:
         data = dict(params)
         data.pop('campaign_name', None)
         data.pop('name', None)
-        data.pop('auto_support', None)
 
         raw_mode = data.get('mode')
         if raw_mode is not None and raw_mode != CombatMode.BATTLE:
@@ -153,10 +150,15 @@ class CampaignSpec:
             raise ValueError(f'战役 YAML 字段校验失败: {exc}') from exc
         selection = resolve_fleet_selection(plan, fleet_id=plan.fleet_id)
         required_ship_types = CAMPAIGN_FLEET_TYPES.get(map_index) if difficulty == 'hard' else None
+        skip_ship_type_validation = difficulty == 'hard' and map_index == 1
         if required_ship_types and (
             selection.slot_rules is not None or selection.plain_fleet is not None
         ):
-            selection = _apply_hard_campaign_rules(selection, required_ship_types)
+            selection = _apply_hard_campaign_rules(
+                selection,
+                required_ship_types,
+                enforce_types=not skip_ship_type_validation,
+            )
         return cls(
             campaign_name=campaign_name.strip(),
             map_index=map_index,
@@ -164,7 +166,7 @@ class CampaignSpec:
             plan=plan,
             fleet_selection=selection,
             required_ship_types=required_ship_types,
-            auto_support=auto_support,
+            skip_ship_type_validation=skip_ship_type_validation,
         )
 
 
@@ -210,6 +212,8 @@ def _validate_fleet_sources(params: Mapping[str, Any]) -> None:
 def _apply_hard_campaign_rules(
     selection: ResolvedFleetSelection,
     required_types: tuple[ShipType, ...],
+    *,
+    enforce_types: bool,
 ) -> ResolvedFleetSelection:
     """把困难战役的固定舰种约束叠加到用户舰队规则。"""
     rules = selection.slot_rules
@@ -222,21 +226,36 @@ def _apply_hard_campaign_rules(
         )
 
     constrained = tuple(
-        _restrict_campaign_slot(rule, expected)
+        _restrict_campaign_slot(rule, expected, enforce_types=enforce_types)
         for rule, expected in zip(rules, required_types, strict=True)
     )
     return replace(selection, slot_rules=constrained, plain_fleet=None)
 
 
-def _restrict_campaign_slot(rule: FleetSlotRule, expected: ShipType) -> FleetSlotRule:
+def _restrict_campaign_slot(
+    rule: FleetSlotRule,
+    expected: ShipType,
+    *,
+    enforce_types: bool,
+) -> FleetSlotRule:
     """校验并固定一个槽位的困难战役舰种。"""
-    options = tuple(_restrict_campaign_selector(option, expected) for option in rule.options)
+    options = tuple(
+        _restrict_campaign_selector(option, expected, enforce_types=enforce_types)
+        for option in rule.options
+    )
     primary = options[0] if rule.primary is not None else None
     candidates = options[1:] if rule.primary is not None else options
     return FleetSlotRule(primary=primary, candidates=candidates)
 
 
-def _restrict_campaign_selector(selector: ShipSelector, expected: ShipType) -> ShipSelector:
+def _restrict_campaign_selector(
+    selector: ShipSelector,
+    expected: ShipType,
+    *,
+    enforce_types: bool,
+) -> ShipSelector:
+    if not enforce_types:
+        return replace(selector, ship_types=())
     if selector.ship_types and expected not in selector.ship_types:
         raise ValueError(
             f'困难战役槽位要求 {expected.value}，舰船 {selector.name} 的舰种规则不匹配',

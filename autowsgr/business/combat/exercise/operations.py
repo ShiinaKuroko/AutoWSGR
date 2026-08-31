@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from autowsgr.application.ui.navigation import goto_page
 from autowsgr.application.ui.pages.battle_preparation import BattlePreparationPage, RepairStrategy
 from autowsgr.application.ui.pages.map import MapPage, MapPanel
+from autowsgr.business.navigation import goto_page
 from autowsgr.common.system.logger import get_logger
 from autowsgr.types import PageName, RepairMode, ShipDamageState
 
@@ -112,10 +112,6 @@ class ExerciseOperations:
         page.start_battle()
         _log.info('[Exercise] 进入战斗')
         self._report('battle_started', rival=rival)
-
-    def return_home(self) -> None:
-        """通过导航节点从当前页面回到首页。"""
-        goto_page(self.ctx, PageName.MAIN)
 
     @staticmethod
     def repair_strategy(plan: CombatPlan) -> RepairStrategy | None:

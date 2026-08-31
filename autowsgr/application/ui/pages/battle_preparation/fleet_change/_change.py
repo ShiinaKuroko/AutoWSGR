@@ -167,7 +167,7 @@ class FleetChangeMixin(FleetAlignmentMixin):
             ship_type = ship_types[slot]
             match = self._snapshot_slot_match_result(snapshot, slot, selector)
             _log.debug(
-                '[准备页] {} OCR后处理: 物理槽位={} occupied={} name={} type={} '
+                '[Fleet] {} OCR后处理: 物理槽位={} occupied={} name={} type={} '
                 'level={} rule={} match={}',
                 stage,
                 slot + 1,
@@ -273,13 +273,13 @@ class FleetChangeMixin(FleetAlignmentMixin):
         passed: bool,
     ) -> None:
         """统一输出最终编队和 YAML 校验结论。"""
-        _log.info('[准备页] 最终编队: {}', list(current))
+        _log.info('[Fleet] 最终编队: {}', list(current))
         self._emit_fleet_event('fleet_result', members=list(current), passed=passed)
         if passed:
-            _log.info('[准备页] YAML校验: 通过')
+            _log.info('[Fleet] YAML校验: 通过')
             return
         _log.error(
-            '[准备页] YAML校验: 不通过，{}',
+            '[Fleet] YAML校验: 不通过，{}',
             self._assignment_failure_reason(
                 current,
                 occupied,
@@ -321,7 +321,7 @@ class FleetChangeMixin(FleetAlignmentMixin):
     ) -> tuple[list[str | None], list[bool]]:
         """记录并执行一轮最终位置 OCR，合并已确认的舰名。"""
         _log.debug(
-            '[准备页] {}OCR开始: 轮次={}/{}',
+            '[Fleet] {}OCR开始: 轮次={}/{}',
             stage,
             round_number,
             _MAX_SET_RETRIES + 1,
@@ -329,7 +329,7 @@ class FleetChangeMixin(FleetAlignmentMixin):
         snapshot = self.detect_fleet_snapshot(expected_names=names)
         merged, occupied = self._merge_position_snapshot(current, snapshot)
         _log.debug(
-            '[准备页] {}OCR后处理: 轮次={} current={} occupied={} target={}',
+            '[Fleet] {}OCR后处理: 轮次={} current={} occupied={} target={}',
             stage,
             round_number,
             merged,
@@ -357,7 +357,7 @@ class FleetChangeMixin(FleetAlignmentMixin):
             assigned,
             verified_slots,
         ):
-            _log.debug('[准备页] 目标成员已齐全, 直接调整舰船顺序')
+            _log.debug('[Fleet] 目标成员已齐全, 直接调整舰船顺序')
             return current, occupied
 
         # 第一轮执行完整对齐，重试轮只处理错误槽位。
@@ -373,7 +373,7 @@ class FleetChangeMixin(FleetAlignmentMixin):
                 deferred_primary_slots,
             )
         else:
-            _log.debug('[准备页] 第 {} 次重试: 局部修正', attempt)
+            _log.debug('[Fleet] 第 {} 次重试: 局部修正', attempt)
             self._local_fix(
                 current,
                 occupied,
@@ -410,7 +410,7 @@ class FleetChangeMixin(FleetAlignmentMixin):
         # Step 3：主选全部保留，candidate-only 通过全局回溯分配唯一备选。
         assigned = self._plan_target_options(selectors)
         if assigned is None:
-            _log.error('[准备页] YAML校验: 不通过，目标编队无法满足主选和同舰唯一约束')
+            _log.error('[Fleet] YAML校验: 不通过，目标编队无法满足主选和同舰唯一约束')
             return False
         # 第一舰队最后一艘舰船不能移除，但第一舰队本身允许更换编成。
         if fleet_id == 1 and assigned[0] is None:
@@ -420,19 +420,19 @@ class FleetChangeMixin(FleetAlignmentMixin):
         snapshot = self._detect_initial_snapshot(expected_pool, selectors)
         current = snapshot.names
         occupied = snapshot.occupied
-        _log.info('[准备页] 当前编队: {}', current)
+        _log.info('[Fleet] 当前编队: {}', current)
         assigned = self._plan_target_options(
             selectors,
             current,
         )
         if assigned is None:
-            _log.info('[准备页] 最终编队: {}', current)
+            _log.info('[Fleet] 最终编队: {}', current)
             _log.error(
-                '[准备页] YAML校验: 不通过，当前舰队无法分配为主选优先的不重名编成',
+                '[Fleet] YAML校验: 不通过，当前舰队无法分配为主选优先的不重名编成',
             )
             return False
         _log.info(
-            '[准备页] YAML目标编队: {}',
+            '[Fleet] YAML目标编队: {}',
             self._target_names(assigned),
         )
 
@@ -448,7 +448,7 @@ class FleetChangeMixin(FleetAlignmentMixin):
             verified_slots,
         )
         _log.info(
-            '[准备页] OCR校验: {}',
+            '[Fleet] OCR校验: {}',
             '通过' if initial_valid else '不通过，进入换船流程',
         )
         self._emit_fleet_event(
@@ -496,7 +496,7 @@ class FleetChangeMixin(FleetAlignmentMixin):
                     deferred_primary_slots,
                 )
             except _UnresolvedPrimaryError as error:
-                _log.error('[准备页] 换船失败: {}', error)
+                _log.error('[Fleet] 换船失败: {}', error)
                 self._log_final_result(
                     current,
                     occupied,
@@ -506,7 +506,7 @@ class FleetChangeMixin(FleetAlignmentMixin):
                 )
                 return False
             except RuntimeError as error:
-                _log.error('[准备页] 换船失败: {}', error)
+                _log.error('[Fleet] 换船失败: {}', error)
                 self._log_final_result(
                     current,
                     occupied,
@@ -547,7 +547,7 @@ class FleetChangeMixin(FleetAlignmentMixin):
             # 仍有重试次数时，等待页面稳定后进入下一轮局部修正。
             if attempt < _MAX_SET_RETRIES:
                 _log.debug(
-                    '[准备页] YAML校验第 {}/{} 次未通过，重新截图并局部修正',
+                    '[Fleet] YAML校验第 {}/{} 次未通过，重新截图并局部修正',
                     attempt + 1,
                     _MAX_SET_RETRIES + 1,
                 )
@@ -561,7 +561,7 @@ class FleetChangeMixin(FleetAlignmentMixin):
 
             # 所有重试都失败时，记录当前舰队并退出。
             else:
-                _log.error('[准备页] 换船失败: 已达到 {} 次尝试上限', _MAX_SET_RETRIES + 1)
+                _log.error('[Fleet] 换船失败: 已达到 {} 次尝试上限', _MAX_SET_RETRIES + 1)
                 self._log_final_result(
                     current,
                     occupied,
@@ -635,7 +635,7 @@ class FleetChangeMixin(FleetAlignmentMixin):
                 and not any(ship_type in option.ship_types for option in type_options)
             ):
                 _log.debug(
-                    '[准备页] {} 槽位 {} 舰种 {} 不符合 strict YAML，下一阶段重识别',
+                    '[Fleet] {} 槽位 {} 舰种 {} 不符合 strict YAML，下一阶段重识别',
                     level,
                     slot + 1,
                     ship_type,
@@ -659,7 +659,7 @@ class FleetChangeMixin(FleetAlignmentMixin):
                 )
             ):
                 _log.debug(
-                    '[准备页] {} 槽位 {} 等级 {} 不符合 strict YAML，下一阶段重识别',
+                    '[Fleet] {} 槽位 {} 等级 {} 不符合 strict YAML，下一阶段重识别',
                     level,
                     slot + 1,
                     ship_level,
@@ -680,6 +680,8 @@ class FleetChangeMixin(FleetAlignmentMixin):
         self,
         expected_pool: Sequence[str],
         selectors: Sequence[FleetSlotRule | None],
+        *,
+        recognize_ship_types: bool = True,
     ) -> FleetSnapshot:
         """通过四次独立截图累计舰队信息，只补仍未确认的字段。
 
@@ -688,16 +690,18 @@ class FleetChangeMixin(FleetAlignmentMixin):
         LEVEL3 再补充一次；LEVEL4 最后补舰名，并只补主选或纯备选规则实际
         需要的舰种、等级。
         """
-        _log.debug('[准备页] LEVEL1 开始: 全局识别舰名并检测槽位占用')
+        _log.debug('[Fleet] LEVEL1 开始: 全局识别舰名并检测槽位占用')
+        detail_kwargs = {} if recognize_ship_types else {'recognize_ship_types': False}
         snapshot = self.detect_fleet_snapshot(
             expected_pool=expected_pool,
         )
         self._log_snapshot_debug('LEVEL1', snapshot, selectors, 1)
 
-        _log.debug('[准备页] LEVEL2 开始: 新截图补识别舰名、舰种和等级')
+        _log.debug('[Fleet] LEVEL2 开始: 新截图补识别舰名、舰种和等级')
         snapshot = self.fill_missing_fleet_snapshot(
             snapshot,
             expected_pool=expected_pool,
+            **detail_kwargs,
         )
         snapshot = self._retry_invalid_strict_details(
             snapshot,
@@ -706,9 +710,14 @@ class FleetChangeMixin(FleetAlignmentMixin):
         )
         self._log_snapshot_debug('LEVEL2', snapshot, selectors, 2)
 
-        if snapshot.has_unknown_details:
+        needs_more_details = bool(
+            snapshot.unknown_slots
+            or snapshot.unknown_level_slots
+            or (recognize_ship_types and snapshot.unknown_type_slots)
+        )
+        if needs_more_details:
             _log.debug(
-                '[准备页] LEVEL3 开始: 舰名槽位={}, 舰种槽位={}, 等级槽位={}',
+                '[Fleet] LEVEL3 开始: 舰名槽位={}, 舰种槽位={}, 等级槽位={}',
                 snapshot.unknown_slots,
                 snapshot.unknown_type_slots,
                 snapshot.unknown_level_slots,
@@ -716,6 +725,7 @@ class FleetChangeMixin(FleetAlignmentMixin):
             snapshot = self.fill_missing_fleet_snapshot(
                 snapshot,
                 expected_pool=expected_pool,
+                **detail_kwargs,
             )
             snapshot = self._retry_invalid_strict_details(
                 snapshot,
@@ -724,16 +734,17 @@ class FleetChangeMixin(FleetAlignmentMixin):
             )
             self._log_snapshot_debug('LEVEL3', snapshot, selectors, 3)
         else:
-            _log.debug('[准备页] LEVEL3 跳过: LEVEL2 已取得全部字段')
+            _log.debug('[Fleet] LEVEL3 跳过: LEVEL2 已取得全部字段')
 
         _log.debug(
-            '[准备页] LEVEL4 开始: 最后补识别舰名槽位={}',
+            '[Fleet] LEVEL4 开始: 最后补识别舰名槽位={}',
             snapshot.unknown_slots,
         )
         snapshot = self.fill_missing_fleet_snapshot(
             snapshot,
             expected_pool=expected_pool,
             detail_requirements=self._level4_detail_requirements(selectors),
+            **detail_kwargs,
         )
         self._log_snapshot_debug('LEVEL4', snapshot, selectors, 4)
         return snapshot

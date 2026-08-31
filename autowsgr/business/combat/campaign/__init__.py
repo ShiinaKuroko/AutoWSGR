@@ -2,6 +2,7 @@
 
 from autowsgr.business.combat.campaign.executor import CampaignExecutor
 from autowsgr.business.combat.campaign.spec import (
+    CAMPAIGN_DAILY_LIMIT,
     CAMPAIGN_FLEET_TYPES,
     CAMPAIGN_NAME_MAP,
     CAMPAIGN_NAMES,
@@ -11,6 +12,7 @@ from autowsgr.business.combat.campaign.spec import (
 
 
 __all__ = [
+    'CAMPAIGN_DAILY_LIMIT',
     'CAMPAIGN_FLEET_TYPES',
     'CAMPAIGN_NAMES',
     'CAMPAIGN_NAME_MAP',

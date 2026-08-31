@@ -43,6 +43,7 @@ from autowsgr.application.combat.recognizer import (
     CombatRecognizer,
     CombatStopRequestedError,
 )
+from autowsgr.application.combat.support import ensure_battle_support
 
 
 __all__ = [
@@ -70,6 +71,7 @@ __all__ = [
     'detect_mvp',
     'detect_result_grade',
     'detect_ship_stats',
+    'ensure_battle_support',
     'get_enemy_formation',
     'get_enemy_info',
     'get_ship_drop',

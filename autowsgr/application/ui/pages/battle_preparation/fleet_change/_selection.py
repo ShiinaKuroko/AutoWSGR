@@ -129,5 +129,5 @@ class FleetSelectionMixin(FleetPlanningMixin):
 
         candidates = [option.name for option in options]
         self._cancel_choose_page()
-        _log.error('[准备页] 未在选船列表中找到满足规则的候选: {}', candidates)
+        _log.error('[Fleet] 未在选船列表中找到满足规则的候选: {}', candidates)
         raise RuntimeError(f'未找到满足条件的目标舰船: {candidates}')

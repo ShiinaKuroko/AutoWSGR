@@ -10,7 +10,6 @@ from autowsgr.business.combat.campaign import (
     CampaignExecutor,
     parse_campaign_name,
 )
-from autowsgr.business.combat.campaign.operations import ensure_battle_support
 from autowsgr.types import ConditionFlag, Formation, RepairMode
 
 
@@ -65,6 +64,5 @@ __all__ = [
     'CAMPAIGN_NAMES',
     'CAMPAIGN_NAME_MAP',
     'CampaignRunner',
-    'ensure_battle_support',
     'parse_campaign_name',
 ]

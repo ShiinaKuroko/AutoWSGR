@@ -83,7 +83,7 @@ class FleetAlignmentMixin(FleetSelectionMixin):
                 continue
 
             _log.debug(
-                "[准备页] 槽位 {} 身份未知，先用备选 '{}' 释放原舰船",
+                "[Fleet] 槽位 {} 身份未知，先用备选 '{}' 释放原舰船",
                 target_slot + 1,
                 candidate.name,
             )
@@ -100,7 +100,7 @@ class FleetAlignmentMixin(FleetSelectionMixin):
             current[target_slot] = selection.name
             occupied[target_slot] = True
             _log.info(
-                "[准备页] 换船: 槽位{} '{}' -> '{}'",
+                "[Fleet] 换船: 槽位{} '{}' -> '{}'",
                 target_slot + 1,
                 previous_name or '未知舰船',
                 selection.name,
@@ -129,7 +129,7 @@ class FleetAlignmentMixin(FleetSelectionMixin):
 
         current[target_slot] = selection.name
         _log.info(
-            "[准备页] 换船: 槽位{} '{}' -> '{}'",
+            "[Fleet] 换船: 槽位{} '{}' -> '{}'",
             target_slot + 1,
             previous_name or '未知舰船',
             selection.name,
@@ -178,18 +178,18 @@ class FleetAlignmentMixin(FleetSelectionMixin):
                 )
                 if fallback is None:
                     _log.debug(
-                        '[准备页] 槽位 {} 没有可用备选，保留原换船流程',
+                        '[Fleet] 槽位 {} 没有可用备选，保留原换船流程',
                         target_slot + 1,
                     )
                     continue
                 _log.debug(
-                    "[准备页] 槽位 {} 已释放，重新尝试主选 '{}'",
+                    "[Fleet] 槽位 {} 已释放，重新尝试主选 '{}'",
                     target_slot + 1,
                     primary.name,
                 )
             else:
                 _log.debug(
-                    "[准备页] 槽位 {} 身份未知且没有备选，最后搜索一次主选 '{}'",
+                    "[Fleet] 槽位 {} 身份未知且没有备选，最后搜索一次主选 '{}'",
                     target_slot + 1,
                     primary.name,
                 )
@@ -236,7 +236,7 @@ class FleetAlignmentMixin(FleetSelectionMixin):
                     verified_slots,
                 )
             _log.info(
-                '[准备页] YAML目标编队调整: {} -> {}',
+                '[Fleet] YAML目标编队调整: {} -> {}',
                 self._target_names(previous),
                 self._target_names(replanned),
             )
@@ -293,7 +293,7 @@ class FleetAlignmentMixin(FleetSelectionMixin):
             )
             if ship_slot is None:
                 _log.debug(
-                    "[准备页] 目标槽位 {} 的规则 '{}' 不可用，重新规划备选",
+                    "[Fleet] 目标槽位 {} 的规则 '{}' 不可用，重新规划备选",
                     target_slot + 1,
                     option.name,
                 )
@@ -326,14 +326,14 @@ class FleetAlignmentMixin(FleetSelectionMixin):
                         verified_slots,
                     )
                 _log.info(
-                    '[准备页] YAML目标编队调整: {} -> {}',
+                    '[Fleet] YAML目标编队调整: {} -> {}',
                     self._target_names(previous),
                     self._target_names(replanned),
                 )
                 continue
 
             _log.debug(
-                "[准备页] 更换物理槽位 {} <- '{}' (逻辑槽位 {}, 原: '{}')",
+                "[Fleet] 更换物理槽位 {} <- '{}' (逻辑槽位 {}, 原: '{}')",
                 ship_slot + 1,
                 option.name,
                 target_slot + 1,
@@ -355,7 +355,7 @@ class FleetAlignmentMixin(FleetSelectionMixin):
             current[ship_slot] = selection.name
             occupied[ship_slot] = True
             _log.info(
-                "[准备页] 换船: 槽位{} '{}' -> '{}'",
+                "[Fleet] 换船: 槽位{} '{}' -> '{}'",
                 ship_slot + 1,
                 previous_name or '空槽',
                 selection.name,
@@ -388,7 +388,7 @@ class FleetAlignmentMixin(FleetSelectionMixin):
             previous_name = current[slot]
             self._change_single_ship(slot, None, slot_occupied=True)
             _log.info(
-                "[准备页] 换船: 槽位{} '{}' -> 空槽",
+                "[Fleet] 换船: 槽位{} '{}' -> 空槽",
                 slot + 1,
                 previous_name or '未知舰船',
             )
@@ -470,19 +470,19 @@ class FleetAlignmentMixin(FleetSelectionMixin):
             # 当前舰队中找不到目标舰船时，保留现场交给最终验证处理。
             except StopIteration:
                 _log.warning(
-                    "[准备页] 位置对齐: '{}' 不在当前舰队中, 跳过",
+                    "[Fleet] 位置对齐: '{}' 不在当前舰队中, 跳过",
                     target,
                 )
                 continue
             _log.debug(
-                "[准备页] 位置对齐: 槽位 {} <- '{}' (从槽位 {})",
+                "[Fleet] 位置对齐: 槽位 {} <- '{}' (从槽位 {})",
                 i + 1,
                 target,
                 src + 1,
             )
             self._circular_move(src, i, current)
             _log.info(
-                "[准备页] 调整位置: '{}' 槽位{} -> 槽位{}",
+                "[Fleet] 调整位置: '{}' 槽位{} -> 槽位{}",
                 target,
                 src + 1,
                 i + 1,
