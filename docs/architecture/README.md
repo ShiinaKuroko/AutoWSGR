@@ -157,9 +157,11 @@ autowsgr/
 │   ├── rules.py             #   RuleEngine (索敌规则)
 │   ├── history.py           #   CombatHistory + CombatResult
 │   └── node_tracker.py      #   MapNodeData + NodeTracker
+├── business/                # 可调度业务用例
+│   └── combat/campaign/     #   CampaignExecutor 战役链路
 ├── ops/                     # 游戏操作
 │   ├── normal_fight.py      #   NormalFightRunner
-│   ├── campaign.py          #   CampaignRunner
+│   ├── campaign.py          #   CampaignRunner 兼容入口
 │   ├── exercise.py          #   ExerciseRunner
 │   ├── event_fight.py       #   EventFightRunner
 │   ├── decisive/            #   DecisiveController

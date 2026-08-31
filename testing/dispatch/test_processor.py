@@ -154,6 +154,38 @@ def test_processor_orders_requests_and_expands_count(
     assert repeated.progress['_completed'] == 2
 
 
+def test_processor_stops_count_after_terminal_executor_event(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class TerminalExecutor:
+        def __init__(self, *_args: Any, on_event: Any, **_kwargs: Any) -> None:
+            self._on_event = on_event
+
+        def run(self) -> str:
+            self._on_event('stop_after_current', reason='out of times')
+            return 'terminal'
+
+    monkeypatch.setattr(
+        processor_module,
+        'build_executor',
+        lambda *_args, **kwargs: TerminalExecutor(on_event=kwargs['on_event']),
+    )
+    processor = Processor(SimpleNamespace())
+    request = Request(
+        task_type='campaign',
+        params={'campaign_name': '困难航母'},
+        count=3,
+    )
+    processor.submit(request)
+
+    outcomes = processor.run_pending()
+
+    assert [(status, result) for status, _request, result in outcomes] == [
+        ('done', 'terminal'),
+    ]
+    assert request.progress['_completed'] == 1
+
+
 def test_processor_scopes_task_ship_name_aliases(monkeypatch: pytest.MonkeyPatch) -> None:
     from autowsgr.constants import SHIPNAMES
     from autowsgr.infra.vision.ocr_rules import set_user_ship_name_aliases

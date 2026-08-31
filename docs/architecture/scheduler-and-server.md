@@ -107,7 +107,8 @@ class FightRunnerProtocol(Protocol):
 ```
 
 - `NormalFightRunner` / `EventFightRunner` → 天然满足
-- `CampaignRunner` / `ExerciseRunner` → 返回 `list[CombatResult]`，调度器自动使用 `BatchRunnerAdapter` 包装
+- 服务入口中的 `CampaignExecutor` / `ExerciseExecutor` → 由 `Processor` 按 `count` 逐次调用；
+  旧 Runner 仅作为兼容入口
 
 ### BatchRunnerAdapter
 

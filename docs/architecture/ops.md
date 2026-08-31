@@ -57,18 +57,22 @@ goto_page(MAP)
   → 处理船坞满 (dock_full_destroy)
 ```
 
-### CampaignRunner — 战役
+### CampaignExecutor — 战役
 
-**文件**: `autowsgr/ops/campaign.py`
+**文件**: `autowsgr/business/combat/campaign/executor.py`
 
 ```python
-CampaignRunner(ctx, campaign_name='困难航母', times=3, formation, night, repair_mode)
-    .run() -> list[CombatResult]
+CampaignExecutor(ctx, params={'campaign_name': '困难航母'})
+    .run() -> CombatResult
 ```
 
-- 支持 "简单/困难" + "驱逐/巡洋/战列/航母/潜艇" 组合
-- 内部自带循环，一次 `run()` 执行 N 场
-- `CombatMode = BATTLE`，无多节点逻辑
+- `Processor` 的 `count` 控制重复次数；一次执行器运行只完成一场战役
+- `CampaignSpec` 解析 "简单/困难" + "驱逐/巡洋/战列/航母/潜艇"
+- `CampaignOperations` 组合地图面板、编队、修理和出征准备页
+- `CombatMode = BATTLE`，战斗阶段复用统一战斗引擎
+
+`autowsgr/ops/campaign.py` 只保留旧 `CampaignRunner` 的薄转发，实际业务实现不再位于
+`ops`。
 
 ### ExerciseRunner — 演习
 
@@ -277,7 +281,7 @@ infra/data/plan/
 ```python
 from autowsgr.ops import (
     NormalFightRunner,
-    CampaignRunner,
+    CampaignRunner,  # 旧入口兼容壳；新任务走 CampaignExecutor
     ExerciseRunner,
     EventFightRunner,
     DecisiveController,

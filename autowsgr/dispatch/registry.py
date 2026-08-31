@@ -21,6 +21,7 @@ if TYPE_CHECKING:
 
 # task_type → 执行器所在的业务模块 (首次使用时延迟 import 并自注册)
 _TASK_MODULES: dict[str, str] = {
+    'campaign': 'autowsgr.business.combat.campaign',
     'exercise': 'autowsgr.business.combat.exercise',
     'expedition_check': 'autowsgr.business.logistics.expedition',
     'reward_check': 'autowsgr.business.logistics.reward',

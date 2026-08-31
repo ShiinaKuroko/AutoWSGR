@@ -1,140 +1,26 @@
-"""战役战斗操作 — 单点战役战斗。
-
-涉及跨页面操作: 主页面 → 地图页面(战役面板) → 选择战役 → 出征准备 → 战斗 → 战役页面。
-
-旧代码参考: ``fight/battle.py`` (BattlePlan)
-
-使用方式::
-
-    runner = CampaignRunner(ctx, "困难航母")
-    results = runner.run()
-"""
+"""战役旧入口兼容壳。"""
 
 from __future__ import annotations
 
-import time
 from typing import TYPE_CHECKING
 
-# 已迁移到新方法: 导航器入口 (原 autowsgr.ops.navigate.goto_page)
-from autowsgr.application.ui.navigation import goto_page
-from autowsgr.business.combat import (
-    CombatEngine,
-    CombatMode,
-    CombatPlan,
-    CombatResult,
-    NodeDecision,
+from autowsgr.business.combat.campaign import (
+    CAMPAIGN_NAME_MAP,
+    CAMPAIGN_NAMES,
+    CampaignExecutor,
+    parse_campaign_name,
 )
-from autowsgr.common.system.logger import get_logger
-from autowsgr.types import ConditionFlag, Formation, PageName, RepairMode, ShipDamageState
-from autowsgr.ui import (
-    BattlePreparationPage,
-    MapPage,
-    NavigationError,
-    RepairStrategy,
-    wait_leave_page,
-)
-from autowsgr.ui.battle.base import BaseBattlePreparation
+from autowsgr.business.combat.campaign.operations import ensure_battle_support
+from autowsgr.types import ConditionFlag, Formation, RepairMode
 
 
 if TYPE_CHECKING:
     from autowsgr.application.runtime import RuntimeContext as GameContext
-
-
-_log = get_logger('ops')
-
-CAMPAIGN_NAMES: dict[int, str] = {
-    1: '驱逐',
-    2: '巡洋',
-    3: '战列',
-    4: '航母',
-    5: '潜艇',
-}
-"""战役编号 → 中文名称。"""
-
-
-def ensure_battle_support(ctx: GameContext, *, enabled: bool = True) -> None:
-    """确保战役支援开关处于目标状态 (在出征准备页面调用)。
-
-    读取当前支援状态, 不符则切换。对应 classic ``set_support``:
-    受 ``daily_automation.auto_set_support`` 控制, 由
-    :meth:`CampaignRunner._prepare_for_battle` 在出征前一次性调用。
-
-    Parameters
-    ----------
-    ctx:
-        游戏上下文 (需已在出征准备页面)。
-    enabled:
-        目标状态, 默认 ``True`` (开启)。
-    """
-    page = BattlePreparationPage(ctx)
-    screen = ctx.ctrl.screenshot()
-    if page.is_support_enabled(screen) == enabled:
-        _log.debug('[OPS] 战役支援已为目标状态 {}', enabled)
-        return
-    _log.info('[OPS] 战役支援状态不符, 切换 → {}', enabled)
-    page.toggle_battle_support()
-    time.sleep(0.5)
-
-
-# 用户友好的战役名称 → (map_index, difficulty)
-# 支持 "困难航母"、"简单驱逐" 等名称直接映射
-CAMPAIGN_NAME_MAP: dict[str, tuple[int, str]] = {}
-"""战役中文名 → ``(map_index, difficulty)``。"""
-
-for _idx, _short_name in CAMPAIGN_NAMES.items():
-    CAMPAIGN_NAME_MAP[f'简单{_short_name}'] = (_idx, 'easy')
-    CAMPAIGN_NAME_MAP[f'困难{_short_name}'] = (_idx, 'hard')
-
-
-def parse_campaign_name(name: str) -> tuple[int, str]:
-    """解析战役名称为 ``(map_index, difficulty)``。
-
-    Parameters
-    ----------
-    name:
-        战役名称，如 ``"困难航母"``、``"简单驱逐"``。
-
-    Returns
-    -------
-    tuple[int, str]
-        ``(map_index, difficulty)``
-
-    Raises
-    ------
-    ValueError
-        名称无法识别。
-    """
-    result = CAMPAIGN_NAME_MAP.get(name)
-    if result is None:
-        raise ValueError(
-            f'无法识别的战役名称: {name!r}，可选: {", ".join(sorted(CAMPAIGN_NAME_MAP))}'
-        )
-    return result
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# 战役执行器
-# ═══════════════════════════════════════════════════════════════════════════════
+    from autowsgr.business.combat.history import CombatResult
 
 
 class CampaignRunner:
-    """战役战斗执行器。
-
-    Parameters
-    ----------
-    ctx:
-        游戏上下文。
-    campaign_name:
-        战役名称，如 ``"困难航母"``、``"简单驱逐"``。
-    times:
-        重复次数。
-    formation:
-        战斗阵型。
-    night:
-        是否夜战。
-    repair_mode:
-        修理模式。
-    """
+    """兼容旧 ``CampaignRunner`` 调用方式，实际执行委托给新执行器。"""
 
     def __init__(
         self,
@@ -145,193 +31,40 @@ class CampaignRunner:
         night: bool = True,
         repair_mode: RepairMode = RepairMode.moderate_damage,
     ) -> None:
+        if isinstance(times, bool) or not isinstance(times, int) or times < 1:
+            raise ValueError('times 必须是正整数')
+        parse_campaign_name(campaign_name)
         self._ctx = ctx
-        self._ctrl = ctx.ctrl
-        self._engine = CombatEngine(
-            ctx.ctrl,
-            ctx.ocr,
-            stop_requested=ctx.stop_event.is_set,
-        )
         self._campaign_name = campaign_name
         self._times = times
         self._formation = formation
         self._night = night
         self._repair_mode = repair_mode
 
-        # 解析战役名称
-        self._map_index, self._difficulty = parse_campaign_name(campaign_name)
-        self._fleet_ships = None
-
-    # ── 公共接口 ──
-
     def run(self) -> list[CombatResult]:
-        """执行战役。
-
-        Returns
-        -------
-        list[CombatResult]
-        """
-        _log.info(
-            '[OPS] 战役: {} 阵型={} 夜战={} 共 {} 次',
-            self._campaign_name,
-            self._formation.name,
-            self._night,
-            self._times,
-        )
+        """执行旧接口请求指定的战役次数。"""
+        params = {
+            'campaign_name': self._campaign_name,
+            'formation': self._formation.value,
+            'night': self._night,
+            'repair_mode': self._repair_mode.value,
+        }
+        stop = getattr(self._ctx, 'stop_event', None)
         results: list[CombatResult] = []
-
-        for i in range(self._times):
-            _log.info('[OPS] 战役第 {}/{} 次', i + 1, self._times)
-
-            # 1. 进入战役
-            self._enter_battle()
-
-            # 2. 出征准备
-            ship_stats, started = self._prepare_for_battle()
-
-            if not started:
-                result = CombatResult(
-                    flag=ConditionFlag.BATTLE_TIMES_EXCEED,
-                    ship_stats=ship_stats,
-                )
-                results.append(result)
-                _log.info('[OPS] 战役次数已用完')
-                # 主动退回地图页面: 此时仍停在出征准备页, 不退的话下一个
-                # 任务的导航要靠漂移对账兜底 (栈预测与实际不符)。
-                try:
-                    BattlePreparationPage(self._ctx).go_back()
-                except NavigationError as e:
-                    _log.warning('[OPS] 战役次数用尽后回退地图失败: {}', e)
+        for _ in range(self._times):
+            if stop is not None and stop.is_set():
                 break
-
-            # 同步战前信息到上下文
-            self._ctx.sync_before_combat(1, self._fleet_ships)
-
-            # 3. 构建计划并执行战斗
-            result = self._do_combat(ship_stats)
-            result.fleet = self._fleet_ships
-
-            # 同步战后信息到上下文
-            self._ctx.sync_after_combat(1, result)
-
+            result = CampaignExecutor(self._ctx, params, stop=stop).run()
             results.append(result)
-
-            if result.flag == ConditionFlag.BATTLE_TIMES_EXCEED:
-                _log.info('[OPS] 战役次数已用完')
+            if result.flag in {ConditionFlag.BATTLE_TIMES_EXCEED, ConditionFlag.DOCK_FULL}:
                 break
-
-            if result.flag == ConditionFlag.DOCK_FULL:
-                _log.warning('[OPS] 船坞已满, 停止战役')
-                break
-
-        _log.info(
-            '[OPS] 战役完成: {} 次 (成功 {} 次)',
-            len(results),
-            sum(1 for r in results if r.flag == ConditionFlag.OPERATION_SUCCESS),
-        )
         return results
 
-    # ── 进入战役 ──
 
-    def _enter_battle(self) -> None:
-        """导航到战役面板并选择战役。"""
-        goto_page(self._ctx, PageName.MAP)
-        map_page = MapPage(self._ctx)
-        map_page.enter_campaign(
-            map_index=self._map_index,
-            difficulty=self._difficulty,
-            campaign_name=self._campaign_name,
-        )
-
-    # ── 出征准备 ──
-
-    def _prepare_for_battle(self) -> tuple[list[ShipDamageState], bool]:
-        """出征准备: 修理、出征，并确认离开准备页面。
-
-        点击出征后通过 ``wait_leave_page`` 确认离开；若超时则重试一次。
-        两次均失败视为战役次数用尽。
-
-        Returns
-        -------
-        tuple[list[ShipDamageState], bool]
-            ``(战前血量状态, 是否成功出征)``。
-            当 ``False`` 时表示战役次数已用完。
-        """
-        time.sleep(0.25)  # 等待页面稳定
-        page = BattlePreparationPage(self._ctx)
-
-        # 战役支援 (auto_set_support): 出征前一次性开启
-        da = self._ctx.config.daily_automation
-        if da is not None and da.auto_set_support:
-            ensure_battle_support(self._ctx, enabled=True)
-
-        # 修理策略
-        if self._repair_mode == RepairMode.moderate_damage:
-            page.apply_repair(RepairStrategy.MODERATE)
-        elif self._repair_mode == RepairMode.severe_damage:
-            page.apply_repair(RepairStrategy.SEVERE)
-
-        # 检测战前舰队信息 (血量 + 等级)
-        fleet_info = page.detect_fleet_info()
-        ship_stats = [fleet_info.ship_damage.get(i, ShipDamageState.NORMAL) for i in range(6)]
-        self._fleet_ships = fleet_info.to_ships()
-
-        # 出征 + 确认离开
-        left = self._start_battle_with_retry(page)
-
-        return ship_stats, left
-
-    def _try_start_battle(self, page: BattlePreparationPage) -> bool:
-        """点击出征并等待离开准备页面。
-
-        Returns
-        -------
-        bool
-            ``True`` 表示已成功离开出征准备页面。
-            ``False`` 表示超时仍在当前页面 (可能是战役次数用尽)。
-        """
-        page.start_battle()
-        # probe 模式: 次数用尽时超时是预期结果, 不抛 NavigationError
-        # (构造该异常会 ERROR 记录 + NavError 截图, 污染错误日志)
-        screen = wait_leave_page(
-            self._ctrl,
-            checker=BaseBattlePreparation.is_current_page,
-            timeout=1.5,
-            source=PageName.BATTLE_PREP,
-            target='combat',
-            probe=True,
-        )
-        return screen is not None
-
-    def _start_battle_with_retry(self, page: BattlePreparationPage) -> bool:
-        """尝试出征，失败后重试一次。
-
-        Returns
-        -------
-        bool
-            ``True`` 成功出征；``False`` 战役次数用尽。
-        """
-        if self._try_start_battle(page):
-            return True
-
-        _log.warning('[OPS] 出征后未离开准备页面，重试一次')
-        if self._try_start_battle(page):
-            return True
-
-        _log.info('[OPS] 两次出征均未离开准备页面，判定为战役次数已用完')
-        return False
-
-    # ── 战斗 ──
-
-    def _do_combat(self, ship_stats: list[ShipDamageState]) -> CombatResult:
-        """构建 CombatPlan 并执行战斗。"""
-        plan = CombatPlan(
-            name=f'战役-{self._campaign_name}',
-            mode=CombatMode.BATTLE,
-            default_node=NodeDecision(
-                formation=self._formation,
-                night=self._night,
-            ),
-        )
-
-        return self._engine.fight(plan, initial_ship_stats=ship_stats)
+__all__ = [
+    'CAMPAIGN_NAMES',
+    'CAMPAIGN_NAME_MAP',
+    'CampaignRunner',
+    'ensure_battle_support',
+    'parse_campaign_name',
+]

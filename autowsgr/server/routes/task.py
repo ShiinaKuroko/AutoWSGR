@@ -87,7 +87,10 @@ async def task_start(request: TaskRequestUnion) -> ApiResponse:  # type: ignore[
             elif isinstance(request, EventFightRequest):
                 return await _start_event_fight(ctx, request)
             elif isinstance(request, CampaignRequest):
-                return await _start_campaign(ctx, request)
+                try:
+                    return await _start_campaign(ctx, request)
+                except ValueError as error:
+                    raise HTTPException(status_code=422, detail=str(error)) from error
             elif isinstance(request, ExerciseRequest):
                 return await _start_exercise(ctx, request)
             elif isinstance(request, DecisiveRequest):
@@ -205,7 +208,11 @@ def _run_processor_request(ctx: Any, request: Request) -> TaskOutcome:  # noqa: 
             if _request.task_type != request.task_type:
                 continue
             completed += 1
-            converted = _processor_details(raw, len(details) + 1)
+            converted = _processor_details(
+                raw,
+                len(details) + 1,
+                include_flag=request.task_type == 'campaign',
+            )
             if not converted and request.task_type == 'exercise':
                 converted = [
                     {
@@ -230,7 +237,12 @@ def _run_processor_request(ctx: Any, request: Request) -> TaskOutcome:  # noqa: 
     return TaskOutcome.from_results(details, error=error)
 
 
-def _processor_details(raw: Any, first_round: int) -> list[dict[str, Any]]:
+def _processor_details(
+    raw: Any,
+    first_round: int,
+    *,
+    include_flag: bool = False,
+) -> list[dict[str, Any]]:
     """将一次 Processor 结果转换成 GUI 需要的扁平轮次记录。"""
     from autowsgr.business.combat import CombatResult
 
@@ -238,7 +250,10 @@ def _processor_details(raw: Any, first_round: int) -> list[dict[str, Any]]:
         details: list[dict[str, Any]] = []
         for index, item in enumerate(raw, 1):
             if isinstance(item, CombatResult):
-                details.append(convert_combat_result(item, first_round + index - 1))
+                detail = convert_combat_result(item, first_round + index - 1)
+                if include_flag:
+                    detail['result'] = item.flag.value
+                details.append(detail)
             elif isinstance(item, dict):
                 detail = dict(item)
                 detail.setdefault('round', first_round + index - 1)
@@ -250,7 +265,10 @@ def _processor_details(raw: Any, first_round: int) -> list[dict[str, Any]]:
                 )
         return details
     if isinstance(raw, CombatResult):
-        return [convert_combat_result(raw, first_round)]
+        detail = convert_combat_result(raw, first_round)
+        if include_flag:
+            detail['result'] = raw.flag.value
+        return [detail]
     if isinstance(raw, dict):
         detail = dict(raw)
         detail.setdefault('round', first_round)
@@ -357,38 +375,18 @@ async def _start_event_fight(ctx: Any, request: EventFightRequest) -> ApiRespons
 
 
 async def _start_campaign(ctx: Any, request: CampaignRequest) -> ApiResponse:
-    """启动战役任务。"""
-    from autowsgr.ops import CampaignRunner
-
-    def executor(_task_info: Any) -> TaskOutcome:
-        runner = CampaignRunner(
-            ctx,
-            campaign_name=request.campaign_name,
-            times=1,
-        )
-
-        results = []
-        for i in range(request.times):
-            if task_manager.should_stop():
-                break
-
-            task_manager.update_progress(current_round=i + 1)
-            _log.info('[Task] 战役第 {}/{} 轮', i + 1, request.times)
-
-            try:
-                result = runner.run()
-                for j, r in enumerate(result):
-                    converted = convert_combat_result(r, i * len(result) + j + 1)
-                    converted['result'] = r.flag.value
-                    results.append(converted)
-                    task_manager.add_result(converted)
-            except Exception as e:
-                _log.error('[Task] 第 {} 轮失败: {}', i + 1, e)
-                results.append({'round': i + 1, 'success': False, 'error': str(e)})
-
-        return TaskOutcome.from_results(results)
-
-    return _start_task('campaign', request.times, executor)
+    """把战役请求交给 Processor 执行。"""
+    task_request = Request(
+        source='gui',
+        task_type='campaign',
+        params={'campaign_name': request.campaign_name},
+        count=request.times,
+    )
+    return _start_task(
+        task_request.task_type,
+        task_request.count,
+        lambda _task_info: _run_processor_request(ctx, task_request),
+    )
 
 
 async def _start_exercise(ctx: Any, request: ExerciseRequest) -> ApiResponse:

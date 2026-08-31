@@ -86,10 +86,19 @@ def _validate_exercise_params(params: Mapping[str, Any]) -> None:
     ExerciseSpec.from_params(params)
 
 
+def _validate_campaign_params(params: Mapping[str, Any]) -> None:
+    """校验战役任务的业务字段。"""
+    from autowsgr.business.combat.campaign.spec import CampaignSpec
+
+    CampaignSpec.from_params(params)
+
+
 def _validate_params(task_type: str, params: Mapping[str, Any]) -> None:
     """运行当前已迁移链路的字段校验; 其他链路保留其既有校验器。"""
     if task_type == 'exercise':
         _validate_exercise_params(params)
+    elif task_type == 'campaign':
+        _validate_campaign_params(params)
 
 
 @dataclass(frozen=True, slots=True)
@@ -353,6 +362,8 @@ class Processor:
         payload.setdefault('task_type', current.task_type if current is not None else None)
         payload.setdefault('task_id', current.request_id if current is not None else None)
         self._report(event, **payload)
+        if event == 'stop_after_current' and current is not None:
+            current.progress['_stop_after_current'] = True
         if event in _HANDOFF_EVENTS and self._has_higher_waiting_request():
             self._pause.set()
             _log.info('[Processor] 安全断点 {} 检测到更高优先级任务, 请求暂停', event)
@@ -413,6 +424,8 @@ class Processor:
                 total=request.count,
             )
             outcomes.append(('done', request, result))
+            if request.progress.pop('_stop_after_current', False):
+                return outcomes
         return outcomes
 
     def _run_one(self, request: Request) -> tuple[str, Any]:  # noqa: PLR0911 - state machine exits

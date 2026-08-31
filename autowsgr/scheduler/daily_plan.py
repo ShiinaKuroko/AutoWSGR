@@ -160,13 +160,17 @@ def build_daily_plan(
 
     # ── 战役 (条件, prio 5) ──
     if cfg.auto_battle:
-        from autowsgr.ops.campaign import CampaignRunner
+        from autowsgr.business.combat.campaign import CampaignExecutor
 
         battle_type = cfg.battle_type
         scheduler.register_trigger(
             CampaignTrigger(
                 # times=1: 每个任务打一场, 场间允许远征插队; 次数耗尽由 BATTLE_TIMES_EXCEED 自适应
-                task_factory=lambda c: CampaignRunner(c, battle_type, times=1),
+                task_factory=lambda c: CampaignExecutor(
+                    c,
+                    {'campaign_name': battle_type},
+                    stop=getattr(c, 'stop_event', None),
+                ),
                 priority=PRIO_CAMPAIGN,
                 name=f'战役/{battle_type}',
             ),

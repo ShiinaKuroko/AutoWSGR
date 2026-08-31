@@ -8,19 +8,21 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from autowsgr.application.ui.pages.map.base import BaseMapPage
-from autowsgr.application.ui.pages.map.data import (
-    CAMPAIGN_POSITIONS,
-    CAMPAIGN_REMAIN_CROP,
-    CLICK_DIFFICULTY,
-    DIFFICULTY_EASY_COLOR,
-    DIFFICULTY_HARD_COLOR,
-    MapPanel,
-)
+from autowsgr.application.ui.pages.map.data import MapPanel
 from autowsgr.application.ui.pages.map.panels.sortie import (
     LOOT_MAX,
     SHIP_MAX,
     recognize_loot_count,
     recognize_ship_count,
+)
+from autowsgr.common.calibration.map import (
+    CAMPAIGN_POSITIONS,
+    CAMPAIGN_REMAIN_CROP,
+    CLICK_DIFFICULTY,
+    DIFFICULTY_EASY_COLOR,
+    DIFFICULTY_EASY_TOLERANCE,
+    DIFFICULTY_HARD_COLOR,
+    DIFFICULTY_HARD_TOLERANCE,
 )
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.ui.interaction import wait_for_page
@@ -89,9 +91,9 @@ class CampaignPanelMixin(BaseMapPage):
         while retry < 10:
             screen = self._ctrl.screenshot()
             px = PixelChecker.get_pixel(screen, *CLICK_DIFFICULTY)
-            if px.near(DIFFICULTY_EASY_COLOR, tolerance=50):
+            if px.near(DIFFICULTY_EASY_COLOR, tolerance=DIFFICULTY_EASY_TOLERANCE):
                 return 'hard'
-            elif px.near(DIFFICULTY_HARD_COLOR, tolerance=50):
+            elif px.near(DIFFICULTY_HARD_COLOR, tolerance=DIFFICULTY_HARD_TOLERANCE):
                 return 'easy'
             time.sleep(0.25)
             retry += 1

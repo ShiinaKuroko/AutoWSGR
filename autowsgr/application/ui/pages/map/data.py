@@ -32,7 +32,15 @@ from autowsgr.common.calibration.exercise import (  # noqa: F401
     EXERCISE_SWIPE_TO_TOP,
     RIVAL_POSITIONS,
 )
-from autowsgr.common.calibration.map import CLICK_BACK, PANEL_POSITIONS  # noqa: F401
+from autowsgr.common.calibration.map import (  # noqa: F401
+    CAMPAIGN_POSITIONS,
+    CAMPAIGN_REMAIN_CROP,
+    CLICK_BACK,
+    CLICK_DIFFICULTY,
+    DIFFICULTY_EASY_COLOR,
+    DIFFICULTY_HARD_COLOR,
+    PANEL_POSITIONS,
+)
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.vision import Color
 
@@ -154,12 +162,6 @@ EXPEDITION_READY_COLOR = Color.of(253, 228, 66)
 
 EXPEDITION_IDLE_COLOR = Color.of(38, 147, 250)
 """远征槽位空闲颜色 — 蓝色 (表示该槽位无远征或进行中)。"""
-
-DIFFICULTY_EASY_COLOR = Color.of(29, 139, 234)
-"""难度按钮「简单」状态颜色 — 蓝色。"""
-
-DIFFICULTY_HARD_COLOR = Color.of(141, 46, 52)
-"""难度按钮「困难」状态颜色 — 红色。"""
 
 EXPEDITION_SLOT_TOLERANCE = 30.0
 """远征槽位颜色检测容差。"""
@@ -322,25 +324,6 @@ def parse_map_title(text: str) -> MapIdentity | None:
 # ═══════════════════════════════════════════════════════════════════════════════
 # 地图页面点击坐标
 # ═══════════════════════════════════════════════════════════════════════════════
-
-# ── 战役坐标 ──
-
-CAMPAIGN_POSITIONS: dict[int, tuple[float, float]] = {
-    1: (0.17, 0.5),  # 驱逐 (carrier)
-    2: (0.34, 0.5),  # 巡洋 (submarine)
-    3: (0.51, 0.5),  # 战列 (destroyer)
-    4: (0.68, 0.5),  # 航母 (cruiser)
-    5: (0.85, 0.5),  # 潜艇 (battleship)
-}
-"""5 种战役类型的点击位置。"""
-
-
-CLICK_DIFFICULTY: tuple[float, float] = (0.800, 0.130)
-"""切换难度。"""
-
-CAMPAIGN_REMAIN_CROP: tuple[float, float, float, float] = (0.08, 0.82, 0.25, 0.92)
-"""战役剩余次数 OCR 裁剪区域 (第一列战役的底部文本区)。"""
-
 
 # ── 出征地图节点切换 ──
 

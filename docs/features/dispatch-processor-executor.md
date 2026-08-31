@@ -329,7 +329,9 @@ reward E2E 11/11 PASS。注意: 与 map 同款**导入顺序敏感**
       `TaskCommand`; 保留所有原命令兼容。
 - [ ] **定时器接入**: `scheduler/daily_plan.py` 的 TimerTrigger 产物
       (远征检查/浴场修理等) 转为 `Request` 走处理器, 替代旧优先级队列。
-- [ ] **其他模式迁移**: 按同一骨架迁移战役 (campaign)、普通出征 (normal)、
+- [x] **战役迁移**: `business/combat/campaign/CampaignExecutor` 已接入 Processor；旧
+      `ops/campaign.py` 仅保留薄兼容入口。
+- [ ] **其他模式迁移**: 按同一骨架迁移普通出征 (normal)、
       决战 (decisive, 保持独立子包); 差异压缩进画像数据, 禁止 if-mode 散弹枪。
 - [ ] **任务上下文管理**: 处理器的"查上下文"目前只有优先级 + progress,
       后续需完整的任务状态机 (排队/运行/暂停/完成) 供 GUI 查询。
