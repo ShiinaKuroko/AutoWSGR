@@ -15,8 +15,6 @@ import enum
 import re
 from dataclasses import dataclass
 
-from autowsgr.common.calibration.coordinates import point
-
 # Compatibility re-exports; new page code imports common calibration directly.
 from autowsgr.common.calibration.exercise import (  # noqa: F401
     CLICK_CHALLENGE,
@@ -34,6 +32,7 @@ from autowsgr.common.calibration.exercise import (  # noqa: F401
     EXERCISE_SWIPE_TO_TOP,
     RIVAL_POSITIONS,
 )
+from autowsgr.common.calibration.map import CLICK_BACK, PANEL_POSITIONS  # noqa: F401
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.vision import Color
 
@@ -216,8 +215,7 @@ SIDEBAR_CLICK_X: float = 0.10
 # 点击坐标
 # ═══════════════════════════════════════════════════════════════════════════════
 
-CLICK_BACK: tuple[float, float] = point('map', 'back')
-"""回退按钮 (◁)。"""
+"""回退按钮 (◁)，由 common 校准资源提供。"""
 
 CHAPTER_NAV_DELAY: float = 0.5
 """章节切换后等待动画的延迟 (秒)。"""
@@ -413,6 +411,6 @@ PANEL_LIST: list[MapPanel] = list(MapPanel)
 PANEL_TO_INDEX: dict[MapPanel, int] = {panel: i for i, panel in enumerate(PANEL_LIST)}
 
 CLICK_PANEL: dict[MapPanel, tuple[float, float]] = {
-    panel: point('map', f'panel.{panel.name.lower()}') for panel in MapPanel
+    panel: PANEL_POSITIONS[panel.name.lower()] for panel in MapPanel
 }
 """面板标签点击位置 — 数据源: coordinates/map.yaml。"""

@@ -195,7 +195,7 @@ def _run_multiple_rounds(  # noqa: PLR0915 - one E2E case owns the full scenario
     aliases: dict[str, str],
     checks: tuple[str, ...],
 ) -> bool:
-    """提交六个单场请求，验证队伍切换和连续/非连续任务衔接。"""
+    """提交多个单场请求，验证队伍切换和连续/非连续任务衔接。"""
     from autowsgr.application.ui.navigation import identify_current_page
     from autowsgr.dispatch.processor import Processor, Request
     from autowsgr.types import PageName
@@ -278,7 +278,7 @@ def _run_multiple_rounds(  # noqa: PLR0915 - one E2E case owns the full scenario
 
     processor.on_event = on_event
     processor.submit(requests[0])
-    outcomes = rt.action('执行六轮单场演习任务', processor.run_pending)
+    outcomes = rt.action(f'执行{rounds}轮单场演习任务', processor.run_pending)
     if outcomes is rt.FAILED:
         return False
 
@@ -291,9 +291,9 @@ def _run_multiple_rounds(  # noqa: PLR0915 - one E2E case owns the full scenario
     expected_fleets = [fleet_sequence[i % len(fleet_sequence)] for i in range(rounds)]
     actual_fleets = [request.params.get('fleet_id') for request, _ in done_exercises]
 
-    rt.note(f'六轮事件流水: {[event for event, _ in events]}')
+    rt.note(f'{rounds}轮事件流水: {[event for event, _ in events]}')
     rt.note(f'任务完成流水: {done_types}')
-    rt.check('六轮演习全部完成', lambda: len(done_exercises) == rounds)
+    rt.check(f'{rounds}轮演习全部完成', lambda: len(done_exercises) == rounds)
     rt.check(
         '每轮只挑战一个对手',
         lambda: all(isinstance(result, list) and len(result) == 1 for _, result in done_exercises),
@@ -339,7 +339,7 @@ def _run_multiple_rounds(  # noqa: PLR0915 - one E2E case owns the full scenario
             '断点后勤检查按顺序执行',
             lambda: completed_checks[: len(checks)] == list(checks),
         )
-    rt.check('六轮任务最终回到首页', lambda: identify_current_page(ctx) == PageName.MAIN)
+    rt.check(f'{rounds}轮任务最终回到首页', lambda: identify_current_page(ctx) == PageName.MAIN)
     return rt.state.failed == 0
 
 

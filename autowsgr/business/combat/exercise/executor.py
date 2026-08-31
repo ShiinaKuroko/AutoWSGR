@@ -76,7 +76,10 @@ class ExerciseExecutor(BaseExecutor):
     # ── 主流程 ─────────────────────────────────────────────────
 
     def _execute(self) -> list[CombatResult]:
-        results: list[CombatResult] = []
+        previous = self.progress.get('_results', [])
+        if not isinstance(previous, list):
+            raise TypeError('任务进度 _results 必须是列表')
+        results: list[CombatResult] = list(previous)
 
         # 每张任务单都从初始化后的首页开始，避免复用过期页面上下文。
         from autowsgr.business.system.initialize.initialize import initialize
@@ -100,6 +103,7 @@ class ExerciseExecutor(BaseExecutor):
                 if target is None:
                     break  # 无可挑战对手, 本轮结束
                 results.append(self._fight_one(target))
+                self.progress['_results'] = results
                 self._wait(1.0)  # 断点④: 战斗完成后 (强制检查, 含最后一场)
                 if not self._has_quota():
                     break  # 配额耗尽, 无需复位面板
@@ -110,6 +114,7 @@ class ExerciseExecutor(BaseExecutor):
                 len(results),
                 self.progress.get('fought', 0),
             )
+            self.progress.pop('_results', None)
             return results
         finally:
             # 任务异常、停止或暂停都不能把设备留在演习链路中；清理错误

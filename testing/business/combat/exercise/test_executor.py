@@ -199,3 +199,35 @@ def test_failure_cleanup_uses_navigation_node(
     executor._operations.return_home()
 
     home.assert_called_once()
+
+
+def test_pause_after_battle_keeps_completed_result() -> None:
+    progress: dict[str, object] = {}
+    pause = threading.Event()
+
+    def pause_after_result(event: str, **_data: object) -> None:
+        if event == 'rival_done':
+            pause.set()
+
+    _MapPage.statuses = [[True, False, False, False, False]]
+    first = executor_module.ExerciseExecutor(
+        _ctx(),
+        {'fleet_id': 2, 'rivals_limit': 1},
+        pause=pause,
+        progress=progress,
+        on_event=pause_after_result,
+    )
+    with pytest.raises(TaskPaused):
+        first.run()
+
+    pause.clear()
+    _MapPage.statuses = [[False] * 5]
+    resumed = executor_module.ExerciseExecutor(
+        _ctx(),
+        {'fleet_id': 2, 'rivals_limit': 1},
+        pause=pause,
+        progress=progress,
+    )
+
+    assert len(resumed.run()) == 1
+    assert '_results' not in progress

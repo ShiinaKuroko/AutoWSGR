@@ -10,9 +10,7 @@ import time
 from typing import TYPE_CHECKING
 
 from autowsgr.application.ui.pages.map.data import (
-    CLICK_BACK,
     CLICK_EXPEDITION_SKIP,
-    CLICK_PANEL,
     EXPEDITION_NOTIF_COLOR,
     EXPEDITION_NOTIF_PROBE,
     EXPEDITION_TOLERANCE,
@@ -32,6 +30,7 @@ from autowsgr.application.ui.pages.tabbed_page import (
     get_active_tab_index,
     make_tab_checker,
 )
+from autowsgr.common.calibration.map import CLICK_BACK, PANEL_POSITIONS
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.ui.interaction import NavigationError, click_and_wait_for_page
 from autowsgr.common.vision import OCREngine, PageMatch, PixelChecker
@@ -295,7 +294,7 @@ class BaseMapPage:
             try:
                 click_and_wait_for_page(
                     self._ctrl,
-                    click_coord=CLICK_PANEL[panel],
+                    click_coord=PANEL_POSITIONS[panel.name.lower()],
                     checker=make_tab_checker(TabbedPageType.MAP, target_idx),
                     source=source,
                     target=target,
