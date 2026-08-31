@@ -55,6 +55,7 @@ class _PreparationPage:
     def __init__(self, _ctx: object) -> None:
         self.instances.append(self)
         self.rules = None
+        self.task_type = None
         self.events: list[str] = []
 
     @staticmethod
@@ -69,9 +70,11 @@ class _PreparationPage:
         fleet_id: int,
         rules: object,
         *,
+        task_type: str = 'normal',
         on_event: Callable[..., None] | None = None,
     ) -> bool:
         self.events.append(f'change:{fleet_id}')
+        self.task_type = task_type
         self.rules = rules
         if on_event is not None:
             on_event('fleet_validation', passed=True, members=['A'])
@@ -150,6 +153,7 @@ def test_executor_uses_yaml_fleet_and_exercise_combat_plan() -> None:
     assert len(result) == 1
     assert _MapPage.selected == [1]
     page = _PreparationPage.instances[0]
+    assert page.task_type == 'exercise'
     assert page.rules is not None
     assert page.rules[0].primary.name == 'U-177'
     assert page.events[-1] == 'start'

@@ -68,7 +68,10 @@ CampaignExecutor(ctx, params={'campaign_name': '困难航母'})
 
 - `Processor` 的 `count` 控制重复次数；一次执行器运行只完成一场战役
 - `CampaignSpec` 解析 "简单/困难" + "驱逐/巡洋/战列/航母/潜艇"
-- `CampaignOperations` 组合地图面板、编队、修理和出征准备页
+- `CampaignOperations` 组合地图面板、编队、修理和出征准备页；编队通过
+  `task_type='campaign'` 切换固定槽位点对点分支
+- 普通战役无舰种限制，可只配置 1 艘舰船；困难战役按战役类型校验固定槽位和数量，
+  困难潜艇只允许 3 艘潜艇
 - `CombatMode = BATTLE`，战斗阶段复用统一战斗引擎
 
 `autowsgr/ops/campaign.py` 只保留旧 `CampaignRunner` 的薄转发，实际业务实现不再位于

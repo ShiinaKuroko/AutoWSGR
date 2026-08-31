@@ -3,16 +3,19 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any
 
 from autowsgr.business.combat.fleet import (
+    FleetSlotRule,
     ResolvedFleetSelection,
+    ShipSelector,
+    exact_fleet_rules,
     fleet_presets_from_yaml,
     resolve_fleet_selection,
 )
 from autowsgr.business.combat.plan import CombatMode, CombatPlan
-from autowsgr.types import Formation, RepairMode
+from autowsgr.types import Formation, RepairMode, ShipType
 
 
 CAMPAIGN_NAMES: dict[int, str] = {
@@ -26,6 +29,14 @@ CAMPAIGN_NAME_MAP = {
     f'{label}{name}': (index, difficulty)
     for index, name in CAMPAIGN_NAMES.items()
     for label, difficulty in (('简单', 'easy'), ('困难', 'hard'))
+}
+
+CAMPAIGN_FLEET_TYPES: dict[int, tuple[ShipType, ...]] = {
+    1: (ShipType.DD,) * 6,
+    2: (ShipType.BB, ShipType.CA, ShipType.CA, ShipType.CL, ShipType.CL, ShipType.DD),
+    3: (ShipType.BC, ShipType.BB, ShipType.CA, ShipType.CA, ShipType.DD, ShipType.DD),
+    4: (ShipType.CV, ShipType.CV, ShipType.DD, ShipType.DD, ShipType.DD, ShipType.DD),
+    5: (ShipType.SS,) * 3,
 }
 
 CAMPAIGN_FIELDS = frozenset(
@@ -73,10 +84,14 @@ class CampaignSpec:
     difficulty: str
     plan: CombatPlan
     fleet_selection: ResolvedFleetSelection
+    required_ship_types: tuple[ShipType, ...] | None = None
     auto_support: bool | None = None
 
     @classmethod
-    def from_params(cls, params: Mapping[str, Any]) -> CampaignSpec:
+    def from_params(  # noqa: PLR0912 - admission normalization stays at the boundary
+        cls,
+        params: Mapping[str, Any],
+    ) -> CampaignSpec:
         """把 API/YAML 参数转换为单次战役计划。"""
         unknown = sorted(set(params) - CAMPAIGN_FIELDS)
         if unknown:
@@ -137,12 +152,18 @@ class CampaignSpec:
         except (TypeError, ValueError) as exc:
             raise ValueError(f'战役 YAML 字段校验失败: {exc}') from exc
         selection = resolve_fleet_selection(plan, fleet_id=plan.fleet_id)
+        required_ship_types = CAMPAIGN_FLEET_TYPES.get(map_index) if difficulty == 'hard' else None
+        if required_ship_types and (
+            selection.slot_rules is not None or selection.plain_fleet is not None
+        ):
+            selection = _apply_hard_campaign_rules(selection, required_ship_types)
         return cls(
             campaign_name=campaign_name.strip(),
             map_index=map_index,
             difficulty=difficulty,
             plan=plan,
             fleet_selection=selection,
+            required_ship_types=required_ship_types,
             auto_support=auto_support,
         )
 
@@ -184,3 +205,40 @@ def _validate_fleet_sources(params: Mapping[str, Any]) -> None:
     assert presets is not None
     if any(len(preset.slots) > 6 for preset in presets):
         raise ValueError('战役舰队 ships 必须包含 1-6 个槽位')
+
+
+def _apply_hard_campaign_rules(
+    selection: ResolvedFleetSelection,
+    required_types: tuple[ShipType, ...],
+) -> ResolvedFleetSelection:
+    """把困难战役的固定舰种约束叠加到用户舰队规则。"""
+    rules = selection.slot_rules
+    if rules is None:
+        assert selection.plain_fleet is not None
+        rules = exact_fleet_rules(selection.plain_fleet)
+    if len(rules) != len(required_types):
+        raise ValueError(
+            f'困难战役必须提供 {len(required_types)} 个舰队槽位，当前为 {len(rules)} 个',
+        )
+
+    constrained = tuple(
+        _restrict_campaign_slot(rule, expected)
+        for rule, expected in zip(rules, required_types, strict=True)
+    )
+    return replace(selection, slot_rules=constrained, plain_fleet=None)
+
+
+def _restrict_campaign_slot(rule: FleetSlotRule, expected: ShipType) -> FleetSlotRule:
+    """校验并固定一个槽位的困难战役舰种。"""
+    options = tuple(_restrict_campaign_selector(option, expected) for option in rule.options)
+    primary = options[0] if rule.primary is not None else None
+    candidates = options[1:] if rule.primary is not None else options
+    return FleetSlotRule(primary=primary, candidates=candidates)
+
+
+def _restrict_campaign_selector(selector: ShipSelector, expected: ShipType) -> ShipSelector:
+    if selector.ship_types and expected not in selector.ship_types:
+        raise ValueError(
+            f'困难战役槽位要求 {expected.value}，舰船 {selector.name} 的舰种规则不匹配',
+        )
+    return replace(selector, ship_types=(expected,))

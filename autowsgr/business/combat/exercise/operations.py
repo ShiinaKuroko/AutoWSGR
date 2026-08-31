@@ -36,7 +36,7 @@ class ExerciseOperations:
         self._report = report
 
     def goto_exercise_panel(self) -> None:
-        """从当前页面到达稳定的演习面板。"""
+        """从当前页面调用导航器到达演习入口"""
         goto_page(self.ctx, PageName.MAP)
         MapPage(self.ctx).switch_panel(MapPanel.EXERCISE)
         self._report('panel_ready')
@@ -85,7 +85,12 @@ class ExerciseOperations:
                     '宽泛' if option.relaxed_constraints else '严格',
                 )
 
-        if not page.change_fleet(fleet_id, slot_rules, on_event=self._on_fleet_event):
+        if not page.change_fleet(
+            fleet_id,
+            slot_rules,
+            task_type='exercise',
+            on_event=self._on_fleet_event,
+        ):
             raise RuntimeError('演习编队未满足 YAML 规则')
         return page
 

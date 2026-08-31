@@ -12,10 +12,17 @@ import autowsgr.business.base as base_module
 import autowsgr.business.combat.campaign.executor as executor_module
 import autowsgr.business.combat.campaign.operations as operations_module
 import autowsgr.business.system.initialize.initialize as initialize_module
+from autowsgr.application.ui.pages.battle_preparation import BattlePreparationPage
+from autowsgr.application.ui.pages.battle_preparation.fleet_change._detect import FleetSnapshot
 from autowsgr.business.combat import CombatResult
-from autowsgr.business.combat.campaign.spec import CampaignSpec, parse_campaign_name
+from autowsgr.business.combat.campaign.spec import (
+    CAMPAIGN_FLEET_TYPES,
+    CampaignSpec,
+    parse_campaign_name,
+)
+from autowsgr.business.combat.fleet import exact_fleet_rules
 from autowsgr.dispatch import TaskPaused
-from autowsgr.types import ConditionFlag, RepairMode, ShipDamageState
+from autowsgr.types import ConditionFlag, RepairMode, ShipDamageState, ShipType
 
 
 def _ctx() -> SimpleNamespace:
@@ -49,12 +56,13 @@ def test_campaign_spec_builds_single_point_plan() -> None:
     assert spec.plan.default_node.formation.value == 1
     assert spec.plan.default_node.night is False
     assert spec.plan.repair_mode == [RepairMode.moderate_damage] * 6
+    assert spec.required_ship_types == CAMPAIGN_FLEET_TYPES[4]
 
 
 def test_campaign_spec_accepts_fleet_rules() -> None:
     spec = CampaignSpec.from_params(
         {
-            'campaign_name': '困难航母',
+            'campaign_name': '简单航母',
             'fleet_rules': [
                 {
                     'name': 'U-177',
@@ -70,6 +78,113 @@ def test_campaign_spec_accepts_fleet_rules() -> None:
     assert selection.slot_rules[0].primary is not None
     assert selection.slot_rules[0].primary.name == 'U-177'
     assert selection.slot_rules[0].primary.min_level == 69
+
+
+@pytest.mark.parametrize(
+    ('campaign_name', 'expected_types'),
+    [
+        ('困难驱逐', CAMPAIGN_FLEET_TYPES[1]),
+        ('困难巡洋', CAMPAIGN_FLEET_TYPES[2]),
+        ('困难战列', CAMPAIGN_FLEET_TYPES[3]),
+        ('困难航母', CAMPAIGN_FLEET_TYPES[4]),
+        ('困难潜艇', CAMPAIGN_FLEET_TYPES[5]),
+    ],
+)
+def test_hard_campaign_applies_fixed_slot_types(
+    campaign_name: str,
+    expected_types: tuple[ShipType, ...],
+) -> None:
+    spec = CampaignSpec.from_params(
+        {
+            'campaign_name': campaign_name,
+            'fleet': [f'ship-{index}' for index in range(len(expected_types))],
+        },
+    )
+
+    assert spec.fleet_selection.slot_rules is not None
+    assert [
+        rule.primary.ship_types[0]
+        for rule in spec.fleet_selection.slot_rules
+        if rule.primary is not None
+    ] == list(expected_types)
+
+
+def test_hard_campaign_without_names_validates_the_current_fleet() -> None:
+    spec = CampaignSpec.from_params({'campaign_name': '困难潜艇'})
+
+    assert spec.required_ship_types == (ShipType.SS, ShipType.SS, ShipType.SS)
+    assert spec.fleet_selection.slot_rules is None
+
+
+def test_hard_campaign_rejects_wrong_fleet_size() -> None:
+    with pytest.raises(ValueError, match='必须提供 6 个'):
+        CampaignSpec.from_params(
+            {
+                'campaign_name': '困难驱逐',
+                'fleet': ['ship-1'],
+            },
+        )
+
+
+def test_campaign_type_validation_preserves_physical_empty_slots(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    ctx = _ctx()
+    ctx.ocr = object()
+    page = BattlePreparationPage(ctx)
+    monkeypatch.setattr(
+        page,
+        'detect_fleet_snapshot',
+        lambda **_kwargs: FleetSnapshot(
+            names=['A', None, 'C', None, None, None],
+            occupied=[True, False, True, False, False, False],
+            ship_types=[ShipType.SS, None, ShipType.SS, None, None, None],
+        ),
+    )
+    assert not page.validate_campaign_fleet((ShipType.SS, ShipType.SS, ShipType.SS))
+
+
+def test_campaign_fleet_changes_each_physical_slot_without_dragging(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    ctrl = MagicMock()
+    ctx = _ctx()
+    ctx.ctrl = ctrl
+    page = BattlePreparationPage(ctx)
+    initial = FleetSnapshot(
+        names=['B', 'A', 'X', None, None, None],
+        occupied=[True, True, True, False, False, False],
+    )
+    changes: list[tuple[int, str | None]] = []
+
+    monkeypatch.setattr(page, '_detect_initial_snapshot', lambda *_args: initial)
+    monkeypatch.setattr(
+        page,
+        '_detect_position_snapshot',
+        lambda current, _names, **_kwargs: (list(current), [name is not None for name in current]),
+    )
+    monkeypatch.setattr(
+        page,
+        '_change_single_ship',
+        lambda slot, name, **_kwargs: changes.append((slot, name)) or name,
+    )
+
+    assert page.change_fleet(
+        None,
+        exact_fleet_rules(['A', 'B']),
+        task_type='campaign',
+    )
+    assert changes == [(1, None), (0, None), (0, 'A'), (1, 'B'), (2, None)]
+    ctrl.swipe.assert_not_called()
+
+
+def test_campaign_fleet_rejects_more_than_six_slots() -> None:
+    with pytest.raises(ValueError, match='最多包含 6 个'):
+        BattlePreparationPage(_ctx()).change_fleet(
+            None,
+            exact_fleet_rules([f'ship-{index}' for index in range(7)]),
+            task_type='campaign',
+        )
 
 
 @pytest.mark.parametrize(
@@ -159,6 +274,26 @@ def test_campaign_operations_use_page_difficulty_contract(
     operations.enter_campaign(CampaignSpec.from_params({'campaign_name': '困难航母'}))
 
     assert captured['difficulty'] == 'hard'
+
+
+def test_campaign_operations_checks_unconfigured_hard_fleet(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    page = MagicMock()
+    page.validate_campaign_fleet.return_value = False
+    monkeypatch.setattr(operations_module, 'BattlePreparationPage', lambda _ctx: page)
+
+    spec = CampaignSpec.from_params({'campaign_name': '困难潜艇'})
+    operations = operations_module.CampaignOperations(
+        _ctx(),
+        wait=lambda _seconds: None,
+        report=lambda *_args, **_kwargs: None,
+    )
+
+    with pytest.raises(RuntimeError, match='困难战役'):
+        operations.prepare_battle(spec)
+
+    page.validate_campaign_fleet.assert_called_once_with(spec.required_ship_types)
 
 
 def test_campaign_executor_keeps_result_across_pause(monkeypatch: pytest.MonkeyPatch) -> None:

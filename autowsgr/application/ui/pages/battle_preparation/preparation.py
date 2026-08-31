@@ -8,7 +8,8 @@
     ├── DetectionMixin        (血量 / 等级识别)
     ├── SupplyMixin           (补给 / 支援)
     ├── RepairMixin           (修理, 依赖 DetectionMixin)
-    └── FleetChangeMixin         (换船主流程编排)
+    └── CampaignFleetChangeMixin (按 task_type 选择战役或通用流程)
+        └── FleetChangeMixin     (普通/活动/演习/决战换船)
         └── FleetAlignmentMixin  (成员更换与位置调整)
             └── FleetSelectionMixin  (船池选择页面操作)
                 └── FleetPlanningMixin  (目标分配与槽位规划)
@@ -31,7 +32,9 @@ from autowsgr.application.ui.pages.battle_preparation.base import (
     RepairStrategy,
 )
 from autowsgr.application.ui.pages.battle_preparation.detection import DetectionMixin, FleetInfo
-from autowsgr.application.ui.pages.battle_preparation.fleet_change import FleetChangeMixin
+from autowsgr.application.ui.pages.battle_preparation.fleet_change import (
+    CampaignFleetChangeMixin,
+)
 from autowsgr.application.ui.pages.battle_preparation.repair import RepairMixin
 from autowsgr.application.ui.pages.battle_preparation.supply import SupplyMixin
 
@@ -51,7 +54,7 @@ class BattlePreparationPage(
     DetectionMixin,
     SupplyMixin,
     RepairMixin,
-    FleetChangeMixin,
+    CampaignFleetChangeMixin,
     BaseBattlePreparation,
 ):
     """出征准备页面控制器。
@@ -64,7 +67,7 @@ class BattlePreparationPage(
       ``supply``, ``apply_supply``, ``toggle_battle_support``, ``is_support_enabled``
     - **修理** (:class:`RepairMixin`):
       ``repair_slots``, ``apply_repair``
-    - **换船** (:class:`FleetChangeMixin`):
+    - **换船** (:class:`CampaignFleetChangeMixin`):
       ``change_fleet``
     - **基础** (:class:`BaseBattlePreparation`):
       ``go_back``, ``start_battle``, ``select_fleet``, ``select_panel`` 等

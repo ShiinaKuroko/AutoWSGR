@@ -71,9 +71,13 @@ class CampaignOperations:
             slot_rules = exact_fleet_rules(selection.plain_fleet)
         if slot_rules is not None:
             _log.info('[Campaign] 开始编成战役舰队')
-            if not page.change_fleet(None, slot_rules):
+            if not page.change_fleet(None, slot_rules, task_type='campaign'):
                 raise RuntimeError('战役编队未满足任务规则')
             self._report('fleet_ready', members=page.last_changed_fleet)
+        elif spec.required_ship_types is not None and not page.validate_campaign_fleet(
+            spec.required_ship_types,
+        ):
+            raise RuntimeError('当前舰队不满足困难战役舰种和数量限制')
         else:
             self._report('fleet_ready')
 
