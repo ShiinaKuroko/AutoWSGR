@@ -433,7 +433,7 @@ class NormalFightRunner:
     # ── 战斗 ──
 
     def _do_combat(self, ship_stats: list[ShipDamageState]) -> CombatResult:
-        """构建 CombatEngine 并执行战斗。"""
+        """构建战斗运行器并执行战斗。"""
         return run_combat(
             self._ctx.ctrl,
             self._plan,

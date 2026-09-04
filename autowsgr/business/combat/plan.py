@@ -44,7 +44,7 @@ class NodeDecision:
     """单个地图节点的战术决策。
 
     与旧代码 ``DecisionBlock`` 的配置对应，但不包含运行时状态。
-    运行时状态由 ``CombatEngine`` 管理。
+    运行时状态由 application combat driver 管理。
 
     Attributes
     ----------

@@ -5,6 +5,7 @@
     decisive/      决战链路 (独立阶段状态机)
     exercise/      演习链路
     bettle/        普通出征 + 活动战 (多节点地图)
+    runner.py      战斗业务运行入口
 """
 
 from autowsgr.application.combat import CombatPhase
@@ -16,9 +17,12 @@ from autowsgr.application.combat.history import (
     FightResult,
     grade_condition_met,
 )
-from autowsgr.business.combat.engine import CombatEngine, run_combat
 from autowsgr.business.combat.plan import CombatMode, CombatPlan, GradeCondition, NodeDecision
 from autowsgr.business.combat.rules import RuleEngine, RuleResult
+from autowsgr.business.combat.runner import CombatRunner, run_combat
+
+
+CombatEngine = CombatRunner
 
 
 __all__ = [
@@ -29,6 +33,7 @@ __all__ = [
     'CombatPhase',
     'CombatPlan',
     'CombatResult',
+    'CombatRunner',
     'EventType',
     'FightResult',
     'GradeCondition',

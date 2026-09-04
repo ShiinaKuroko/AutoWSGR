@@ -53,6 +53,18 @@ def test_runtime_and_combat_support_stay_below_business() -> None:
     assert (_ROOT / 'application' / 'combat' / 'engine' / 'phase_handlers.py').is_file()
 
 
+def test_combat_handlers_and_runner_have_single_owners() -> None:
+    combat = _ROOT / 'business' / 'combat'
+    handlers = combat / 'handlers'
+
+    assert (handlers / '__init__.py').is_file()
+    assert (handlers / 'decision.py').is_file()
+    assert (handlers / 'settlement.py').is_file()
+    assert not (combat / 'handlers.py').exists()
+    assert (combat / 'runner.py').is_file()
+    assert not (combat / 'engine.py').exists()
+
+
 def test_layer_imports_only_point_downward() -> None:
     violations: list[str] = []
 

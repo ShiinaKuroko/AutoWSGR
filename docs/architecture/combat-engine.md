@@ -13,25 +13,27 @@
 ## 架构概览
 
 ```
-CombatEngine
-├── engine/                 状态机驱动、阶段转移与作战计划
+application.combat.engine.CombatEngine
+├── engine/                 状态机驱动、阶段转移与运行循环
 ├── actions.py              战斗页面物理动作
-├── handlers.py             阶段编排与领域数据采集
+├── phase_handlers.py       通用阶段推进和终态动作
 ├── recognizer.py           阶段视觉状态识别
 ├── recognition.py          敌舰、阵型、战果和掉落识别
 ├── history.py              战斗事件和结果记录
 ├── node_tracker.py         多节点地图位置追踪
-└── rules.py                纯战斗规则评估
+└── ...
 ```
 
-`business/*Executor` 只依赖 `autowsgr.infra.combat` 的公开入口。
-战斗基建内部的依赖方向固定为：
+`business/*Executor` 通过 `business.combat.runner` 组装业务决策和
+`application.combat.engine.CombatEngine`。战斗基建内部的依赖方向固定为：
 
 ```text
-engine → handlers / actions / recognizer / history
-handlers → actions / recognition / rules
-actions → ui.profile / vision / emulator
-recognition → vision / data
+business/combat/runner → business/combat/handlers + application/combat/engine
+business/combat/handlers/decision → application/combat/actions + business rules
+business/combat/handlers/settlement → application/combat/recognition + history
+application/combat/engine → phase_handlers / recognizer / history
+actions → common/calibration / common/vision / common/device
+recognition → common/vision / common/data
 ```
 
 这些模块都不是可调度任务，不拥有队列、优先级或任务生命周期。
@@ -40,7 +42,7 @@ recognition → vision / data
 
 ## 状态机核心循环
 
-**文件**: `autowsgr/infra/combat/engine/engine.py`
+**文件**: `autowsgr/application/combat/engine/engine.py`
 
 `CombatEngine.fight(plan, initial_ship_stats)` 执行完整战斗：
 
@@ -255,9 +257,10 @@ nodes:
 
 ## 阶段处理器 (PhaseHandlersMixin)
 
-**文件**: `autowsgr/infra/combat/handlers.py`
+**文件**: `autowsgr/application/combat/engine/phase_handlers.py`
 
-`_make_decision(phase)` 根据当前阶段分发到对应 handler：
+`_make_decision(phase)` 根据当前阶段分发到对应 handler。业务处理器位于
+`autowsgr/business/combat/handlers/`：
 
 | 阶段                    | 处理器                          | 职责                                |
 |-------------------------|--------------------------------|-------------------------------------|
@@ -447,5 +450,5 @@ class RuleEngine:
 
 - **下游**: [vision](vision.md) 提供模板匹配、像素匹配、OCR
 - **下游**: [emulator](emulator.md) 提供截图和触控
-- **上游**: `business/*Executor` 调用 `CombatEngine.fight()`
+- **上游**: `business/*Executor` 调用 `business.combat.runner.run_combat()`
 - **下游**: `RuntimeSession` 提供设备、OCR 和停止查询能力

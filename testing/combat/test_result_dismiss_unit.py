@@ -20,9 +20,9 @@ import numpy as np
 import pytest
 
 import autowsgr.application.combat.engine.phase_handlers as phase_handlers_mod
+import autowsgr.business.combat.handlers.settlement as settlement_mod
 from autowsgr.application.combat.engine.state import CombatPhase
 from autowsgr.application.combat.history import CombatEvent, CombatHistory, EventType
-from autowsgr.business.combat import handlers as handlers_mod
 from autowsgr.business.combat.handlers import PhaseHandlersMixin
 
 
@@ -64,7 +64,7 @@ def _make_host(
 
 @pytest.fixture(autouse=True)
 def _no_sleep(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr('autowsgr.business.combat.handlers.time.sleep', lambda *_: None)
+    monkeypatch.setattr(settlement_mod.time, 'sleep', lambda *_: None)
     monkeypatch.setattr(phase_handlers_mod, 'time', MagicMock(sleep=lambda *_: None))
 
 
@@ -166,9 +166,9 @@ class TestHandleResultModes:
 
     @pytest.fixture(autouse=True)
     def _stub_detectors(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.setattr(handlers_mod, 'detect_ship_stats', lambda *_a: _a[1])
-        monkeypatch.setattr(handlers_mod, 'detect_result_grade', lambda *_a, **_k: 'S')
-        monkeypatch.setattr(handlers_mod, 'detect_mvp', lambda *_a, **_k: '鲃鱼')
+        monkeypatch.setattr(settlement_mod, 'detect_ship_stats', lambda *_a: _a[1])
+        monkeypatch.setattr(settlement_mod, 'detect_result_grade', lambda *_a, **_k: 'S')
+        monkeypatch.setattr(settlement_mod, 'detect_mvp', lambda *_a, **_k: '鲃鱼')
 
     def test_fast_passes_through_exp(self):
         """快速: 仍采集评级/MVP (始终采集), 但经验页穿行 (pass_through)。"""
@@ -201,7 +201,7 @@ class TestDropCapture:
     def _stub_ocr(self, monkeypatch: pytest.MonkeyPatch) -> None:
         self._ocr_calls: list = []
         monkeypatch.setattr(
-            handlers_mod,
+            settlement_mod,
             'get_ship_drop',
             lambda *_a, **_k: self._ocr_calls.append(1) or 'SKR6',
         )
@@ -257,7 +257,7 @@ class TestDropCapture:
         """快速捕获失败后, GET_SHIP 处理器应在稳定页面重试 OCR。"""
         results = iter([None, 'SKR6'])
         monkeypatch.setattr(
-            handlers_mod,
+            settlement_mod,
             'get_ship_drop',
             lambda *_a, **_k: self._ocr_calls.append(1) or next(results),
         )
@@ -278,7 +278,7 @@ class TestDropCapture:
 
     def test_get_ship_clicks_after_ocr_exhaustion(self, monkeypatch: pytest.MonkeyPatch):
         """掉落/上限提示页 OCR 无结果后仍应点击离开。"""
-        monkeypatch.setattr(handlers_mod, 'get_ship_drop', lambda *_a, **_k: None)
+        monkeypatch.setattr(settlement_mod, 'get_ship_drop', lambda *_a, **_k: None)
         host, device = self._make_host_with_history([CombatPhase.PROCEED])
 
         host._handle_get_ship()

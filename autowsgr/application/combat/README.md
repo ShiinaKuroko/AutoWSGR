@@ -7,7 +7,7 @@
 
 ```text
 business/*Executor
-        ↓ CombatPlan / business CombatEngine
+        ↓ CombatPlan / business CombatRunner
 application/combat/
         ├── engine/           状态机驱动与阶段转移
         │   └── phase_handlers.py 通用阶段点击、推进和终态动作
@@ -23,7 +23,7 @@ application/combat/
 `engine` 只负责驱动状态机。它组合其他子系统，但不直接定义坐标、OCR ROI、
 页面路径或任务生命周期。`actions` 只产生设备动作；`recognition` 只返回观测；
 `phase_handlers` 负责通用阶段推进；业务规则和战果解释留在
-`business/combat/handlers.py`。
+`business/combat/handlers/`。
 
 ## 公开入口
 
@@ -31,9 +31,9 @@ application/combat/
 `autowsgr.application.combat.history`：
 
 ```python
-from autowsgr.business.combat import CombatEngine, CombatPlan, CombatResult
+from autowsgr.business.combat import CombatPlan, CombatResult, CombatRunner
 
-result = CombatEngine(
+result = CombatRunner(
     device,
     ocr,
     stop_requested=stop_requested,

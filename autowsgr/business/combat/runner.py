@@ -1,13 +1,13 @@
-"""Business-owned combat engine and result boundary."""
+"""业务战斗运行入口。"""
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from autowsgr.application.combat import CombatEngine as ApplicationCombatEngine
 from autowsgr.application.combat.history import CombatHistory, CombatResult
 from autowsgr.business.combat.handlers import PhaseHandlersMixin
-from autowsgr.business.combat.plan import MODE_CATEGORIES, CombatPlan
+from autowsgr.business.combat.plan import MODE_CATEGORIES, CombatPlan, NodeDecision
 
 
 if TYPE_CHECKING:
@@ -18,8 +18,8 @@ if TYPE_CHECKING:
     from autowsgr.common.vision import OCREngine
 
 
-class CombatEngine(PhaseHandlersMixin, ApplicationCombatEngine):
-    """Run the generic application driver with business phase decisions."""
+class CombatRunner(PhaseHandlersMixin, ApplicationCombatEngine):
+    """组合业务决策和 application 战斗驱动。"""
 
     def __init__(
         self,
@@ -37,7 +37,8 @@ class CombatEngine(PhaseHandlersMixin, ApplicationCombatEngine):
             mode_categories=MODE_CATEGORIES,
         )
 
-    def _get_current_decision(self) -> Any:
+    def _get_current_decision(self) -> NodeDecision:
+        """返回当前节点的业务决策。"""
         return self._plan.get_node_decision(self._node)
 
 
@@ -50,5 +51,5 @@ def run_combat(
     stop_requested: Callable[[], bool] | None = None,
 ) -> CombatResult:
     """Execute one business combat run."""
-    engine = CombatEngine(device, ocr, stop_requested=stop_requested)
-    return engine.fight(plan, initial_ship_stats=ship_stats)
+    runner = CombatRunner(device, ocr, stop_requested=stop_requested)
+    return runner.fight(plan, initial_ship_stats=ship_stats)

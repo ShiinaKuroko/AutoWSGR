@@ -1,31 +1,24 @@
-"""战斗业务处理器。
+"""战斗业务决策。
 
-本模块只保留依赖战斗计划和业务规则的决策；阶段驱动、通用页面操作和结算页
-推进由 :mod:`autowsgr.application.combat.engine.phase_handlers` 提供。
+本模块只保留依赖战斗计划和业务规则的节点决策；通用阶段动作由 application
+提供。
 """
 
 from __future__ import annotations
 
-import time
 from typing import TYPE_CHECKING
 
 from autowsgr.application.combat import (
-    CombatPhase,
     click_enter_fight,
     click_formation,
     click_image,
     click_proceed,
     click_retreat,
-    detect_mvp,
-    detect_result_grade,
-    detect_ship_stats,
     get_enemy_formation,
     get_enemy_info,
-    get_ship_drop,
     image_exist,
 )
-from autowsgr.application.combat.engine.phase_handlers import CombatPhaseHandlersMixin
-from autowsgr.application.combat.history import CombatEvent, CombatHistory, EventType, FightResult
+from autowsgr.application.combat.history import CombatEvent, CombatHistory, EventType
 from autowsgr.business.combat.plan import CombatMode, CombatPlan, NodeDecision
 from autowsgr.business.combat.rules import RuleResult, check_blood
 from autowsgr.common.system.logger import get_logger
@@ -43,10 +36,10 @@ if TYPE_CHECKING:
 _log = get_logger('combat')
 
 
-class PhaseHandlersMixin(CombatPhaseHandlersMixin):
-    """战斗业务决策处理器。
+class CombatDecisionMixin:
+    """战斗节点的业务决策。
 
-    计划、规则和战果解释留在业务层；通用阶段动作由 application mixin 提供。
+    计划和规则留在业务层；阶段分发和结算动作由 application mixin 提供。
     """
 
     _device: AndroidController
@@ -221,57 +214,6 @@ class PhaseHandlersMixin(CombatPhaseHandlersMixin):
         )
         return ConditionFlag.FIGHT_CONTINUE
 
-    # ── 战果解释 ─────────────────────────────────────────────
-
-    def _handle_result(self) -> ConditionFlag:
-        """识别战果并记录业务结果。"""
-        time.sleep(1.5)
-        grade = detect_result_grade(self._device)
-        self._ship_stats = detect_ship_stats(self._device, self._ship_stats)
-        mvp = detect_mvp(self._device.screenshot())
-        fight_result = FightResult(
-            node=self._node,
-            mvp=mvp,
-            grade=grade,
-            ship_stats=self._ship_stats[:],
-        )
-        self._history.add(
-            CombatEvent(
-                event_type=EventType.RESULT,
-                node=self._node,
-                result=grade,
-                ship_stats=self._ship_stats[:],
-                extra={'mvp': mvp},
-            )
-        )
-        _log.info('[Combat] 战果: {} 节点: {}', fight_result, self._node)
-        if self._plan.collect_result_info:
-            self._click_result_until_closed(CombatPhase.RESULT)
-        else:
-            self._click_result_until_closed(
-                CombatPhase.RESULT,
-                pass_through=(CombatPhase.EXP_SETTLEMENT,),
-            )
-        return ConditionFlag.FIGHT_CONTINUE
-
-    def _capture_get_ship(self) -> str | None:
-        """识别并幂等记录掉落舰船。"""
-        existing = self._history.get_event(EventType.GET_SHIP, self._node)
-        if existing is not None:
-            return existing.result or None
-        ship_name = get_ship_drop(self._device, self._ocr)
-        if not ship_name:
-            return None
-        _log.info('[Combat] 获得舰船: {}', ship_name)
-        self._history.add(
-            CombatEvent(
-                event_type=EventType.GET_SHIP,
-                node=self._node,
-                result=ship_name,
-            )
-        )
-        return ship_name
-
     # ── 节点推进 ─────────────────────────────────────────────
 
     def _handle_proceed(self) -> ConditionFlag:
@@ -300,4 +242,4 @@ class PhaseHandlersMixin(CombatPhaseHandlersMixin):
         raise NotImplementedError
 
 
-__all__ = ['PhaseHandlersMixin']
+__all__ = ['CombatDecisionMixin']
