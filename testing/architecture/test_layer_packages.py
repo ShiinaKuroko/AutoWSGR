@@ -37,6 +37,14 @@ def test_business_has_only_combat_and_logistics_domains() -> None:
     assert domains == {'combat', 'logistics'}
 
 
+def test_combat_shared_fleet_rules_are_flat_files() -> None:
+    combat = _ROOT / 'business' / 'combat'
+
+    assert (combat / 'fleet.py').is_file()
+    assert not (combat / 'fleet').exists()
+    assert (_ROOT / 'business' / 'fleet_policy.py').is_file()
+
+
 def test_layer_imports_only_point_downward() -> None:
     violations: list[str] = []
 

@@ -1286,7 +1286,7 @@ class TestContextShipNameMatch:
 
         try:
             with patch(
-                'autowsgr.application.ui.legacy.battle.fleet_change._detect._log.debug',
+                'autowsgr.application.ui.pages.battle_preparation.fleet_change._detect._log.debug',
             ) as log_debug:
                 detected = page.detect_fleet(
                     np.zeros((720, 1280, 3), dtype=np.uint8),
@@ -1297,7 +1297,7 @@ class TestContextShipNameMatch:
 
         assert detected == ['85工程', None, None, None, None, None]
         log_debug.assert_any_call(
-            '[准备页] 舰名OCR原始及后处理: {}',
+            '[Fleet] 舰名OCR原始及后处理: {}',
             [
                 {
                     'physical_slot': 1,
@@ -1310,7 +1310,7 @@ class TestContextShipNameMatch:
             ],
         )
         log_debug.assert_any_call(
-            '[准备页] 舰名OCR后处理编队: {}',
+            '[Fleet] 舰名OCR后处理编队: {}',
             ['85工程', None, None, None, None, None],
         )
 

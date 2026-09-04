@@ -114,7 +114,7 @@
 | `autowsgr/business/logistics/reward.py` | `RewardCheckExecutor` (见 3.6) + 兼容层 `collect_rewards` (auto_daily 调用方式不变) | 完成 |
 | `autowsgr/ops/reward.py` | 兼容 shim: re-export `RewardCheckExecutor` / `collect_rewards` | 完成 |
 | `tools/e2e/cases/reward.py` | 奖励收取 E2E: 处理器路径 + 兼容层路径 (见 3.8) | 完成 |
-| `autowsgr/business/combat/fleet_policy.py` | `FleetPolicy` 编队策略查表 (五模式) | 完成 (前序工作) |
+| `autowsgr/business/fleet_policy.py` | `FleetPolicy` 编队策略查表 (五模式) | 完成 (前序工作) |
 | `tools/e2e/cases/exercise.py` | E2E 断点打断用例 (见 3.3) | 完成 |
 
 ### 3.2 演习执行器核心逻辑 (`ExerciseExecutor`)
@@ -200,9 +200,9 @@ python tools/e2e/run.py --with-ocr exercise --yaml <路径>
 
 1. `dispatch/__init__.py` 引用已不存在的 `registry.resolve` → 重写导出。
 2. `dispatch/contract.py` 废弃编排器残留 (TaskChain/Step 旧方案,
-   FleetPolicy 已迁至 `business/combat/fleet_policy.py`) → 已删除。
+   FleetPolicy 已迁至 `business/fleet_policy.py`) → 已删除。
    若发现 `from autowsgr.dispatch import FleetPolicy` 的引用, 改为
-   `from autowsgr.infra.fleet.policy import FleetPolicy`。
+   `from autowsgr.business.fleet_policy import FleetPolicy`。
 3. `infra/ui/pages/tabbed_page.py` 模板目录相对路径在目录迁移后失效
    (`ui/map.png` 找不到) → 改为 `parents[4] / 'data' / 'images' / 'ui'`。
 4. `exercise.py` 的 `ConditionFlag` 应从 `autowsgr.types` 导入

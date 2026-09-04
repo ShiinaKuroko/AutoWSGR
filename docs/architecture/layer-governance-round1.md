@@ -64,4 +64,6 @@ server -> dispatch -> business -> application -> common
   架构层；后续按业务逐个删除或重写。
 - 新业务不得从 legacy 包取实现。已迁移的演习、战役和决战入口使用 business 下的
   Executor；决战旧状态机已位于 `business/combat/decisive`。
+- 战斗共享的编队解析位于 `business/combat/fleet.py`，跨域编队策略位于
+  `business/fleet_policy.py`；不再使用额外的 `combat/fleet` 包层。
 - 本轮不细拆页面内部职责，不改变 GUI 契约，也不重做普通出征、活动战和后勤业务。

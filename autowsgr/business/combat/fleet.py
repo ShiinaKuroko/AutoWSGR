@@ -16,7 +16,9 @@ from autowsgr.application.ui.fleet import (
     FleetSlotRule,
     ResolvedFleetSelection,
     ShipSelector,
+    exact_fleet_rules,
 )
+from autowsgr.business.fleet_policy import FLEET_POLICIES, FleetPolicy
 from autowsgr.common.contracts.vessel_types import (
     FLEET_VESSEL_TYPE_BY_CODE,
     FLEET_VESSEL_TYPES,
@@ -361,3 +363,23 @@ def validate_fleet_selection_arguments(
         value is not None for value in (fleet_id, fleet, slot_rules)
     ):
         raise ValueError('fleet_selection 不能同时传入 fleet_id、fleet 或 fleet_rules')
+
+
+__all__ = [
+    'ALLOWED_SHIP_TYPE_CODES',
+    'FLEET_POLICIES',
+    'NATIVE_VESSEL_TYPE_BY_CODE',
+    'FleetPolicy',
+    'FleetPreset',
+    'FleetSelectionSource',
+    'FleetSlotRule',
+    'ResolvedFleetSelection',
+    'ShipSelector',
+    'exact_fleet_rules',
+    'fleet_presets_from_yaml',
+    'fleet_slot_from_api',
+    'fleet_slot_from_yaml',
+    'resolve_fleet_selection',
+    'ship_type_from_native',
+    'validate_fleet_selection_arguments',
+]

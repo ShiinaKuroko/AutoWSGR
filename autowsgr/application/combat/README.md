@@ -7,16 +7,13 @@
 
 ```text
 business/*Executor
-        ↓ CombatPlan / CombatEngine
-infra/combat/
-        ├── engine/           状态机驱动、阶段转移与作战计划
-        ├── handlers.py       阶段编排与数据采集
+        ↓ CombatPlan / business CombatEngine
+application/combat/
+        ├── engine/           状态机驱动与阶段转移
         ├── actions.py        战斗页面物理动作
         ├── recognizer.py     阶段视觉状态识别
-        ├── recognition.py    敌舰、阵型、战果和掉落识别
-        ├── history.py        战斗事件与结果记录
-        ├── node_tracker.py   多节点地图位置追踪
-        └── rules.py          纯规则评估
+        ├── recognition.py    视觉观测适配
+        └── node_tracker.py   多节点地图位置追踪
                 ↓
         common/calibration → common/vision → common/device
 ```
@@ -50,13 +47,13 @@ result = CombatEngine(
 
 ## 编队基建
 
-`business/combat/fleet/model.py` 保存不可变舰船/槽位规则和 YAML/HTTP 入口转换；
-`business/combat/fleet/policy.py` 保存普通出征、演习、远征、战役和决战的编队策略。它们
+`business/combat/fleet.py` 保存不可变舰船/槽位规则和 YAML/HTTP 入口转换；
+`business/fleet_policy.py` 保存普通出征、演习、远征、战役和决战的编队策略。它们
 不创建 Executor，也不维护任务状态。
 
 ## 最小验证
 
 ```text
 uv run pytest testing/combat testing/business/combat/exercise -q
-uv run python -m compileall -q autowsgr/application/combat autowsgr/business/combat/fleet
+uv run python -m compileall -q autowsgr/application/combat autowsgr/business/combat/fleet.py
 ```
