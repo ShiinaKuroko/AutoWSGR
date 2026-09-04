@@ -66,4 +66,6 @@ server -> dispatch -> business -> application -> common
   Executor；决战旧状态机已位于 `business/combat/decisive`。
 - 战斗共享的编队解析位于 `business/combat/fleet.py`，跨域编队策略位于
   `business/fleet_policy.py`；不再使用额外的 `combat/fleet` 包层。
+- `BaseExecutor` 位于 `application/runtime/executor.py`，战斗历史和通用阶段处理
+  位于 `application/combat`；`business/combat` 只保留业务规则和场景决策。
 - 本轮不细拆页面内部职责，不改变 GUI 契约，也不重做普通出征、活动战和后勤业务。

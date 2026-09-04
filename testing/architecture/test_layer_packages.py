@@ -45,6 +45,14 @@ def test_combat_shared_fleet_rules_are_flat_files() -> None:
     assert (_ROOT / 'business' / 'fleet_policy.py').is_file()
 
 
+def test_runtime_and_combat_support_stay_below_business() -> None:
+    assert (_ROOT / 'application' / 'runtime' / 'executor.py').is_file()
+    assert not (_ROOT / 'business' / 'base.py').exists()
+    assert (_ROOT / 'application' / 'combat' / 'history.py').is_file()
+    assert not (_ROOT / 'business' / 'combat' / 'history.py').exists()
+    assert (_ROOT / 'application' / 'combat' / 'engine' / 'phase_handlers.py').is_file()
+
+
 def test_layer_imports_only_point_downward() -> None:
     violations: list[str] = []
 
