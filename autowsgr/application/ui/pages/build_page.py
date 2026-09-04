@@ -36,10 +36,10 @@ from autowsgr.application.ui.pages.tabbed_page import (
     make_tab_checker,
 )
 from autowsgr.common.system.logger import get_logger
+from autowsgr.common.types import PageName, ShipType
 from autowsgr.common.ui.interaction import click_and_wait_for_page
 from autowsgr.common.vision import ImageChecker, PageMatch
 from autowsgr.common.vision.resources import Templates
-from autowsgr.types import PageName, ShipType
 
 
 if TYPE_CHECKING:

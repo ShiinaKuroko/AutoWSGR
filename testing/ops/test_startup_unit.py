@@ -8,9 +8,9 @@ from unittest.mock import MagicMock, call
 
 import pytest
 
-import autowsgr.infra.ui.interaction as ui_utils
-from autowsgr.ops import startup
-from autowsgr.types import PageName
+import autowsgr.common.ui.interaction as ui_utils
+from autowsgr.business.legacy_ops import startup
+from autowsgr.common.types import PageName
 
 
 _TODAY = date(2026, 8, 8)

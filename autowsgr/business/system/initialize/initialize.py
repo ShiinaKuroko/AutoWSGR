@@ -29,8 +29,8 @@ from typing import TYPE_CHECKING
 from autowsgr.application.ui.navigation import goto_page, identify_current_page
 from autowsgr.business.system.initialize import overlays, updater
 from autowsgr.common.system.logger import get_logger
+from autowsgr.common.types import GameAPP, PageName
 from autowsgr.common.ui.interaction import NavigationError
-from autowsgr.types import GameAPP, PageName
 
 
 if TYPE_CHECKING:

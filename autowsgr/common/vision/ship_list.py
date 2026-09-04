@@ -18,6 +18,7 @@ from autowsgr.common.calibration.choose_ship import (
     SHIP_LEVEL_CROP_OFFSETS,
     SHIP_LEVEL_OCR_SCALES,
 )
+from autowsgr.common.constants import SHIPNAMES
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.vision.api_dll import get_api_dll
 from autowsgr.common.vision.ocr import EasyOCREngine, OCRResult, _fuzzy_match, apply_ship_patches
@@ -32,7 +33,6 @@ from autowsgr.common.vision.ocr_rules import (
 )
 from autowsgr.common.vision.ocr_rules import LEVEL_PATTERN as _LEVEL_PATTERN
 from autowsgr.common.vision.ocr_rules import LEVEL_SHORT_PATTERN as _LEVEL_SHORT_PATTERN
-from autowsgr.constants import SHIPNAMES
 
 
 if TYPE_CHECKING:

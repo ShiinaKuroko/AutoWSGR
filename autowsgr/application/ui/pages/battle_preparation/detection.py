@@ -17,6 +17,7 @@ from autowsgr.common.calibration.battle_preparation import (
     SHIP_TYPE_CROP,
 )
 from autowsgr.common.system.logger import get_logger
+from autowsgr.common.types import ShipDamageState, ShipType
 from autowsgr.common.vision import PixelChecker
 from autowsgr.common.vision.ocr_rules import (
     EasyOCRProfile,
@@ -27,7 +28,6 @@ from autowsgr.common.vision.ship_list import (
     prepare_level_crop,
     upscale_text_crop,
 )
-from autowsgr.types import ShipDamageState, ShipType
 
 from .blood import classify_blood
 

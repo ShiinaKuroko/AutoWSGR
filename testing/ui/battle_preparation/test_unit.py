@@ -9,24 +9,8 @@ import cv2
 import numpy as np
 import pytest
 
-from autowsgr.constants import normalize_ship_name, ship_name_identity
-from autowsgr.infra import DecisiveConfig
-from autowsgr.infra.emulator import AndroidController
-from autowsgr.infra.fleet import (
-    FleetSlotRule,
-    ShipSelector,
-    exact_fleet_rules,
-    fleet_slot_from_api,
-)
-from autowsgr.infra.runtime.context import GameContext
-from autowsgr.infra.vision import OCRResult
-from autowsgr.infra.vision.ocr_rules import (
-    EasyOCRProfile,
-    set_user_ship_name_aliases,
-)
-from autowsgr.server.schemas import FleetRuleRequest
-from autowsgr.types import ShipDamageState, ShipType
-from autowsgr.ui.battle.constants import (
+from autowsgr.application.runtime.context import GameContext
+from autowsgr.application.ui.legacy.battle.constants import (
     AUTO_SUPPLY_PROBE,
     CLICK_AUTO_SUPPLY,
     CLICK_BACK,
@@ -36,20 +20,36 @@ from autowsgr.ui.battle.constants import (
     FLEET_PROBE,
     SHIP_LEVEL_CROP,
 )
-from autowsgr.ui.battle.fleet_change._change import _ShipSelection
-from autowsgr.ui.battle.fleet_change._detect import FleetSnapshot
-from autowsgr.ui.battle.preparation import (
+from autowsgr.application.ui.legacy.battle.fleet_change._change import _ShipSelection
+from autowsgr.application.ui.legacy.battle.fleet_change._detect import FleetSnapshot
+from autowsgr.application.ui.legacy.battle.preparation import (
     CLICK_PANEL,
     PANEL_PROBE,
     BattlePreparationPage,
     Panel,
 )
-from autowsgr.ui.decisive.legacy_fleet_change import change_fleet_legacy
-from autowsgr.ui.decisive.preparation import DecisiveBattlePreparationPage
+from autowsgr.application.ui.legacy.decisive.legacy_fleet_change import change_fleet_legacy
+from autowsgr.application.ui.legacy.decisive.preparation import DecisiveBattlePreparationPage
+from autowsgr.business.combat.fleet import (
+    FleetSlotRule,
+    ShipSelector,
+    exact_fleet_rules,
+    fleet_slot_from_api,
+)
+from autowsgr.common.constants import normalize_ship_name, ship_name_identity
+from autowsgr.common.device import AndroidController
+from autowsgr.common.system import DecisiveConfig
+from autowsgr.common.types import ShipDamageState, ShipType
+from autowsgr.common.vision import OCRResult
+from autowsgr.common.vision.ocr_rules import (
+    EasyOCRProfile,
+    set_user_ship_name_aliases,
+)
+from autowsgr.server.schemas import FleetRuleRequest
 
 
 if TYPE_CHECKING:
-    from autowsgr.infra.vision.ocr import OCREngine
+    from autowsgr.common.vision.ocr import OCREngine
 
 
 # ─────────────────────────────────────────────
@@ -157,7 +157,7 @@ def _make_screen(
 
     # 出征准备页面模板 (使 is_current_page 模板匹配命中)。
     # 贴到右上角空白区, 避开舰队/面板/补给探测点 (均在中下及左侧)。
-    from autowsgr.infra.vision.resources._lazy import load_template
+    from autowsgr.common.vision.resources._lazy import load_template
 
     tmpl = load_template('page/fight_prepare_540p.png')
     th, tw = tmpl.image.shape[:2]
@@ -408,8 +408,8 @@ class TestActions:
         pg, ctrl = page
         # go_back 用到达验证 (click_and_wait_for_page): 点击后需识别为 MAP 才算成功。
         # MapPage 识别走 tabbed 模板匹配, 构造假帧太重, 直接 mock checker 命中。
-        from autowsgr.infra.ui.navigation.registry import PageMatch
-        from autowsgr.ui.map import MapPage
+        from autowsgr.application.ui.legacy.map import MapPage
+        from autowsgr.application.ui.navigation.registry import PageMatch
 
         monkeypatch.setattr(
             MapPage,
@@ -418,7 +418,7 @@ class TestActions:
         )
         ctrl.screenshot.return_value = np.zeros((540, 960, 3), dtype=np.uint8)
 
-        with patch('autowsgr.infra.ui.interaction.navigation.time.sleep'):
+        with patch('autowsgr.common.ui.interaction.navigation.time.sleep'):
             pg.go_back()
         ctrl.click.assert_called_with(*CLICK_BACK)
 
@@ -429,9 +429,9 @@ class TestActions:
     ) -> None:
         """到达验证: 点击后画面仍在准备页 (MAP 不命中) → NavigationError, 不再假成功。"""
         pg, ctrl = page
-        from autowsgr.infra.ui.interaction import NavigationError
-        from autowsgr.infra.ui.navigation.registry import PageMatch
-        from autowsgr.ui.map import MapPage
+        from autowsgr.application.ui.legacy.map import MapPage
+        from autowsgr.application.ui.navigation.registry import PageMatch
+        from autowsgr.common.ui.interaction import NavigationError
 
         monkeypatch.setattr(
             MapPage,
@@ -441,7 +441,7 @@ class TestActions:
         ctrl.screenshot.return_value = np.zeros((540, 960, 3), dtype=np.uint8)
 
         with (
-            patch('autowsgr.infra.ui.interaction.navigation.time.sleep'),
+            patch('autowsgr.common.ui.interaction.navigation.time.sleep'),
             pytest.raises(NavigationError),
         ):
             pg.go_back()
@@ -561,7 +561,7 @@ class TestContextShipNameMatch:
         }
 
         with patch(
-            'autowsgr.ui.battle.fleet_change._detect._fuzzy_match',
+            'autowsgr.application.ui.legacy.battle.fleet_change._detect._fuzzy_match',
             side_effect=lambda text, *_args: pool_matches[text],
         ):
             detected = page.detect_fleet(
@@ -633,7 +633,7 @@ class TestContextShipNameMatch:
         page = BattlePreparationPage(_make_ctx(ctrl, ocr))
 
         with patch(
-            'autowsgr.ui.battle.fleet_change._detect._fuzzy_match',
+            'autowsgr.application.ui.legacy.battle.fleet_change._detect._fuzzy_match',
             side_effect=[None, '雪风'],
         ):
             detected = page.detect_fleet(
@@ -652,7 +652,7 @@ class TestContextShipNameMatch:
         page = BattlePreparationPage(_make_ctx(ctrl, ocr))
 
         with patch(
-            'autowsgr.ui.battle.fleet_change._detect._fuzzy_match',
+            'autowsgr.application.ui.legacy.battle.fleet_change._detect._fuzzy_match',
             return_value='岛风',
         ):
             detected = page.detect_fleet(
@@ -672,7 +672,7 @@ class TestContextShipNameMatch:
         screen = np.zeros((720, 1280, 3), dtype=np.uint8)
 
         with patch(
-            'autowsgr.ui.battle.fleet_change._detect._fuzzy_match',
+            'autowsgr.application.ui.legacy.battle.fleet_change._detect._fuzzy_match',
             return_value='雪风',
         ):
             names = page._recognize_fleet_names_at_slots(screen, [1])
@@ -693,11 +693,11 @@ class TestContextShipNameMatch:
 
         with (
             patch(
-                'autowsgr.ui.battle.fleet_change._detect.apply_ship_patches',
+                'autowsgr.application.ui.legacy.battle.fleet_change._detect.apply_ship_patches',
                 return_value='岛风',
             ) as apply_patches,
             patch(
-                'autowsgr.ui.battle.fleet_change._detect._fuzzy_match',
+                'autowsgr.application.ui.legacy.battle.fleet_change._detect._fuzzy_match',
                 return_value='岛风',
             ),
         ):
@@ -721,7 +721,7 @@ class TestContextShipNameMatch:
         with (
             patch.object(page, 'detect_fleet', return_value=names) as detect,
             patch(
-                'autowsgr.ui.battle.fleet_change._detect.DetectionMixin.detect_ship_damage',
+                'autowsgr.application.ui.legacy.battle.fleet_change._detect.DetectionMixin.detect_ship_damage',
                 return_value=damage,
             ) as detect_damage,
         ):
@@ -744,7 +744,7 @@ class TestContextShipNameMatch:
         with (
             patch.object(page, 'detect_fleet', return_value=['岛风', None, None, None, None, None]),
             patch(
-                'autowsgr.ui.battle.fleet_change._detect.DetectionMixin.detect_ship_damage',
+                'autowsgr.application.ui.legacy.battle.fleet_change._detect.DetectionMixin.detect_ship_damage',
                 return_value={
                     0: ShipDamageState.NORMAL,
                     **dict.fromkeys(range(1, 6), ShipDamageState.NO_SHIP),
@@ -788,7 +788,7 @@ class TestContextShipNameMatch:
         with (
             patch.object(page, 'detect_fleet', return_value=names),
             patch(
-                'autowsgr.ui.battle.fleet_change._detect.DetectionMixin.detect_ship_damage',
+                'autowsgr.application.ui.legacy.battle.fleet_change._detect.DetectionMixin.detect_ship_damage',
                 return_value=damage,
             ),
             patch.object(
@@ -834,7 +834,7 @@ class TestContextShipNameMatch:
                 return_value=['岛风', None, None, None, None, None],
             ),
             patch(
-                'autowsgr.ui.battle.fleet_change._detect.DetectionMixin.detect_ship_damage',
+                'autowsgr.application.ui.legacy.battle.fleet_change._detect.DetectionMixin.detect_ship_damage',
                 return_value=dict.fromkeys(range(6), ShipDamageState.NO_SHIP),
             ),
         ):
@@ -859,7 +859,7 @@ class TestContextShipNameMatch:
         with (
             patch.object(page, 'detect_fleet', return_value=[None] * 6) as detect_names,
             patch(
-                'autowsgr.ui.battle.fleet_change._detect.DetectionMixin.detect_ship_damage',
+                'autowsgr.application.ui.legacy.battle.fleet_change._detect.DetectionMixin.detect_ship_damage',
                 return_value={
                     0: ShipDamageState.NORMAL,
                     **dict.fromkeys(range(1, 6), ShipDamageState.NO_SHIP),
@@ -1235,7 +1235,7 @@ class TestContextShipNameMatch:
         page = BattlePreparationPage(_make_ctx(ctrl, ocr))
 
         with patch(
-            'autowsgr.ui.battle.fleet_change._detect.DetectionMixin.detect_ship_damage',
+            'autowsgr.application.ui.legacy.battle.fleet_change._detect.DetectionMixin.detect_ship_damage',
             return_value=dict.fromkeys(range(6), ShipDamageState.NORMAL),
         ):
             ship_types = page._recognize_fleet_ship_types(screen)
@@ -1286,7 +1286,7 @@ class TestContextShipNameMatch:
 
         try:
             with patch(
-                'autowsgr.ui.battle.fleet_change._detect._log.debug',
+                'autowsgr.application.ui.legacy.battle.fleet_change._detect._log.debug',
             ) as log_debug:
                 detected = page.detect_fleet(
                     np.zeros((720, 1280, 3), dtype=np.uint8),
@@ -1340,7 +1340,7 @@ class TestDecisiveFleetChangeFeatureGate:
         page._match_existing_members.return_value = ([False] * 6, set())
         page._change_single_ship.return_value = 'A'
 
-        with patch('autowsgr.ui.decisive.legacy_fleet_change.time.sleep'):
+        with patch('autowsgr.application.ui.legacy.decisive.legacy_fleet_change.time.sleep'):
             assert change_fleet_legacy(page, 2, [' A '])
 
         page.select_fleet.assert_called_once_with(2)
@@ -1362,7 +1362,7 @@ class TestDecisiveFleetChangeFeatureGate:
         page._match_existing_members.return_value = ([False] * 6, set())
         page._change_single_ship.side_effect = ['C', None]
 
-        with patch('autowsgr.ui.decisive.legacy_fleet_change.time.sleep'):
+        with patch('autowsgr.application.ui.legacy.decisive.legacy_fleet_change.time.sleep'):
             assert change_fleet_legacy(page, 1, ['C'])
 
         actions = [
@@ -1387,7 +1387,7 @@ class TestDecisiveFleetChangeFeatureGate:
         )
 
         with patch(
-            'autowsgr.ui.decisive.preparation.change_fleet_legacy',
+            'autowsgr.application.ui.legacy.decisive.preparation.change_fleet_legacy',
             return_value=True,
         ) as legacy_change:
             assert page.change_fleet(None, ['A'])
@@ -1441,7 +1441,7 @@ class TestSmartFleetChange:
                 side_effect=lambda _slot, option: _ShipSelection('85工程', option),
             ) as select_option,
             patch.object(page, '_change_single_ship', return_value=None) as change_ship,
-            patch('autowsgr.ui.battle.fleet_change._change.time.sleep'),
+            patch('autowsgr.application.ui.legacy.battle.fleet_change._change.time.sleep'),
         ):
             assert page.change_fleet(
                 1,
@@ -1482,7 +1482,7 @@ class TestSmartFleetChange:
             patch.object(page, '_full_align') as full_align,
             patch.object(page, '_local_fix') as local_fix,
             patch.object(page, '_circular_move', side_effect=move_ship) as circular_move,
-            patch('autowsgr.ui.battle.fleet_change._change.time.sleep'),
+            patch('autowsgr.application.ui.legacy.battle.fleet_change._change.time.sleep'),
         ):
             assert page.change_fleet(
                 1,
@@ -1573,7 +1573,7 @@ class TestSmartFleetChange:
             patch.object(page, '_try_select_option') as select_option,
             patch.object(page, '_change_single_ship') as change_ship,
             patch.object(page, '_circular_move', side_effect=move_ship) as circular_move,
-            patch('autowsgr.ui.battle.fleet_change._change.time.sleep'),
+            patch('autowsgr.application.ui.legacy.battle.fleet_change._change.time.sleep'),
         ):
             assert page.change_fleet(
                 None,
@@ -1620,7 +1620,7 @@ class TestSmartFleetChange:
             ) as detect,
             patch.object(page, '_try_select_option', side_effect=select_option),
             patch.object(page, '_change_single_ship', side_effect=change_ship),
-            patch('autowsgr.ui.battle.fleet_change._change.time.sleep'),
+            patch('autowsgr.application.ui.legacy.battle.fleet_change._change.time.sleep'),
         ):
             assert page.change_fleet(1, exact_fleet_rules(['C']))
 
@@ -1680,7 +1680,7 @@ class TestSmartFleetChange:
             patch.object(page, '_full_align') as full_align,
             patch.object(page, '_local_fix') as local_fix,
             patch.object(page, '_reorder'),
-            patch('autowsgr.ui.battle.fleet_change._change.time.sleep'),
+            patch('autowsgr.application.ui.legacy.battle.fleet_change._change.time.sleep'),
         ):
             assert not page.change_fleet(None, exact_fleet_rules(['A']))
 
@@ -1936,7 +1936,7 @@ class TestSmartFleetChange:
 
         with (
             patch.object(page, '_try_select_option', side_effect=select_option),
-            patch('autowsgr.ui.battle.fleet_change._change.time.sleep'),
+            patch('autowsgr.application.ui.legacy.battle.fleet_change._change.time.sleep'),
         ):
             page._align_member_set(
                 current,
@@ -1990,7 +1990,7 @@ class TestSmartFleetChange:
                 '_try_select_option',
                 return_value=_ShipSelection('A', primary),
             ) as select_option,
-            patch('autowsgr.ui.battle.fleet_change._change.time.sleep'),
+            patch('autowsgr.application.ui.legacy.battle.fleet_change._change.time.sleep'),
         ):
             page._resolve_deferred_primaries(
                 current,
@@ -2026,7 +2026,9 @@ class TestSmartFleetChange:
                 return_value=_ShipSelection(None, primary),
             ) as select_option,
             patch.object(page, 'detect_fleet_snapshot') as detect,
-            patch('autowsgr.ui.battle.fleet_change._change._log.error') as log_error,
+            patch(
+                'autowsgr.application.ui.legacy.battle.fleet_change._change._log.error'
+            ) as log_error,
         ):
             assert not page.change_fleet(None, [rule])
 
@@ -2061,7 +2063,7 @@ class TestSmartFleetChange:
                     _ShipSelection('A', primary),
                 ],
             ) as select_option,
-            patch('autowsgr.ui.battle.fleet_change._change.time.sleep'),
+            patch('autowsgr.application.ui.legacy.battle.fleet_change._change.time.sleep'),
         ):
             page._align_member_set(
                 current,
@@ -2107,7 +2109,7 @@ class TestSmartFleetChange:
                     _ShipSelection(None, primary),
                 ],
             ) as select_option,
-            patch('autowsgr.ui.battle.fleet_change._change.time.sleep'),
+            patch('autowsgr.application.ui.legacy.battle.fleet_change._change.time.sleep'),
         ):
             page._align_member_set(
                 current,
@@ -2168,7 +2170,7 @@ class TestSmartFleetChange:
                     _ShipSelection('A', primary_a),
                 ],
             ) as select_option,
-            patch('autowsgr.ui.battle.fleet_change._change.time.sleep'),
+            patch('autowsgr.application.ui.legacy.battle.fleet_change._change.time.sleep'),
         ):
             page._resolve_deferred_primaries(
                 current,
@@ -2212,7 +2214,7 @@ class TestSmartFleetChange:
                     _ShipSelection('A', primary),
                 ],
             ) as select_option,
-            patch('autowsgr.ui.battle.fleet_change._change.time.sleep'),
+            patch('autowsgr.application.ui.legacy.battle.fleet_change._change.time.sleep'),
         ):
             page._resolve_deferred_primaries(
                 current,
@@ -2351,7 +2353,7 @@ class TestFleetSlotRules:
                 return_value=_ShipSelection('密苏里', option),
             ) as select_option,
             patch.object(page, '_change_single_ship') as change_ship,
-            patch('autowsgr.ui.battle.fleet_change._change.time.sleep'),
+            patch('autowsgr.application.ui.legacy.battle.fleet_change._change.time.sleep'),
         ):
             assert page.change_fleet(None, [rule])
 
@@ -2431,7 +2433,7 @@ class TestFleetSlotRules:
                 return_value=_ShipSelection('密苏里', primary),
             ) as select_option,
             patch.object(page, '_change_single_ship', return_value=None),
-            patch('autowsgr.ui.battle.fleet_change._change.time.sleep'),
+            patch('autowsgr.application.ui.legacy.battle.fleet_change._change.time.sleep'),
         ):
             assert page.change_fleet(None, [rule])
 
@@ -2464,7 +2466,7 @@ class TestFleetSlotRules:
                 return_value=_ShipSelection(None, primary),
             ) as select_option,
             patch.object(page, '_change_single_ship') as change_ship,
-            patch('autowsgr.ui.battle.fleet_change._change.time.sleep'),
+            patch('autowsgr.application.ui.legacy.battle.fleet_change._change.time.sleep'),
         ):
             assert page.change_fleet(None, [rule])
 
@@ -2605,9 +2607,9 @@ class TestFleetAlignment:
 
         with (
             patch.object(page, 'click_ship_slot'),
-            patch('autowsgr.infra.ui.interaction.wait_for_page'),
+            patch('autowsgr.common.ui.interaction.wait_for_page'),
             patch(
-                'autowsgr.ui.choose_ship_page.ChooseShipPage.change_single_ship',
+                'autowsgr.application.ui.legacy.choose_ship_page.ChooseShipPage.change_single_ship',
                 side_effect=[None, 'U-96'],
             ) as change_single_ship,
         ):
@@ -2682,7 +2684,7 @@ class TestFleetAlignment:
 
         with (
             patch.object(page, '_try_select_option', side_effect=select_option),
-            patch('autowsgr.ui.battle.fleet_change._change.time.sleep'),
+            patch('autowsgr.application.ui.legacy.battle.fleet_change._change.time.sleep'),
         ):
             page._align_member_set(
                 current,
@@ -2697,7 +2699,7 @@ class TestFleetAlignment:
         assert selected == [(0, 'B'), (4, 'D'), (5, 'F')]
         assert current == ['B', 'A', 'C', 'E', 'D', 'F']
 
-        with patch('autowsgr.ui.battle.fleet_change._change.time.sleep'):
+        with patch('autowsgr.application.ui.legacy.battle.fleet_change._change.time.sleep'):
             page._reorder(current, ['A', 'B', 'C', 'D', 'E', 'F'])
 
         assert current == ['A', 'B', 'C', 'D', 'E', 'F']
@@ -2765,7 +2767,7 @@ class TestFleetAlignment:
                 page,
                 'detect_fleet_snapshot',
             ) as detect,
-            patch('autowsgr.ui.battle.fleet_change._change.time.sleep'),
+            patch('autowsgr.application.ui.legacy.battle.fleet_change._change.time.sleep'),
         ):
             page._local_fix(
                 current,
@@ -2825,7 +2827,7 @@ class TestFleetAlignment:
         page = BattlePreparationPage(_make_ctx(ctrl))
         current = ['B', 'A', None, None, None, None]
 
-        with patch('autowsgr.ui.battle.fleet_change._change.time.sleep'):
+        with patch('autowsgr.application.ui.legacy.battle.fleet_change._change.time.sleep'):
             page._reorder(current, ['A', 'B', None, None, None, None])
 
         assert current == ['A', 'B', None, None, None, None]
@@ -2845,7 +2847,7 @@ class TestFleetAlignment:
         occupied = [True, False, False, False, False, False]
 
         with patch(
-            'autowsgr.infra.ui.pages.battle_preparation.fleet_change._change._log.error'
+            'autowsgr.application.ui.pages.battle_preparation.fleet_change._change._log.error'
         ) as log_error:
             page._log_final_result(current, occupied, assigned, set(), passed=False)
 

@@ -30,7 +30,7 @@ async def expedition_check() -> ApiResponse:
     """检查并收取已完成的远征。"""
     ctx = require_context(get_context)
 
-    # 已迁移到新方法: 远征检查执行器入口 (原 autowsgr.ops.expedition.collect_expedition)
+    # 已迁移到新方法: 远征检查执行器入口 (原 autowsgr.business.legacy_ops.expedition.collect_expedition)
     from autowsgr.business.logistics.expedition import collect_expedition
 
     try:
@@ -61,7 +61,7 @@ async def expedition_auto_check(request: ExpeditionAutoCheckRequest) -> ApiRespo
     """
     ctx = require_context(get_context)
 
-    # 已迁移到新方法: 原 autowsgr.ops.expedition / ops.repair / ops.reward
+    # 已迁移到新方法: 原 autowsgr.business.legacy_ops.expedition / ops.repair / ops.reward
     from autowsgr.business.logistics.expedition import collect_expedition
     from autowsgr.business.logistics.repair.bath_repair import repair_in_bath
     from autowsgr.business.logistics.reward import collect_rewards
@@ -122,7 +122,7 @@ async def build_collect() -> ApiResponse:
     """收取已完成的建造。"""
     ctx = require_context(get_context)
 
-    from autowsgr.ops import collect_built_ships
+    from autowsgr.business.legacy_ops import collect_built_ships
 
     try:
         count = await asyncio.to_thread(collect_built_ships, ctx)
@@ -138,7 +138,7 @@ async def build_start(request: BuildStartRequest) -> ApiResponse:
     """开始建造。"""
     ctx = require_context(get_context)
 
-    from autowsgr.ops import BuildRecipe, build_ship
+    from autowsgr.business.legacy_ops import BuildRecipe, build_ship
 
     recipe = BuildRecipe(
         fuel=request.fuel,
@@ -170,7 +170,7 @@ async def reward_collect() -> ApiResponse:
     """收取任务奖励。"""
     ctx = require_context(get_context)
 
-    # 已迁移到新方法: 奖励收取执行器入口 (原 autowsgr.ops.collect_rewards)
+    # 已迁移到新方法: 奖励收取执行器入口 (原 autowsgr.business.legacy_ops.collect_rewards)
     from autowsgr.business.logistics.reward import collect_rewards
 
     try:
@@ -197,7 +197,7 @@ async def cook_action(request: CookRequest) -> ApiResponse:
     """食堂烹饪。"""
     ctx = require_context(get_context)
 
-    from autowsgr.ops import cook
+    from autowsgr.business.legacy_ops import cook
 
     try:
         result = await asyncio.to_thread(
@@ -218,7 +218,7 @@ async def repair_bath() -> ApiResponse:
     """浴室修理。"""
     ctx = require_context(get_context)
 
-    # 已迁移到新方法: 浴场修理 (原 autowsgr.ops.repair_in_bath)
+    # 已迁移到新方法: 浴场修理 (原 autowsgr.business.legacy_ops.repair_in_bath)
     from autowsgr.business.logistics.repair.bath_repair import repair_in_bath
 
     try:
@@ -245,7 +245,7 @@ async def repair_ship(request: RepairShipRequest) -> ApiResponse:
     """
     ctx = require_context(get_context)
 
-    # 已迁移到新方法: 浴场修理 (原 autowsgr.ops.repair.repair_ship_by_name)
+    # 已迁移到新方法: 浴场修理 (原 autowsgr.business.legacy_ops.repair.repair_ship_by_name)
     from autowsgr.business.logistics.repair.bath_repair import repair_ship_by_name
 
     try:
@@ -281,8 +281,8 @@ async def destroy_action(request: DestroyRequest) -> ApiResponse:
     """解装/解体舰船。"""
     ctx = require_context(get_context)
 
-    from autowsgr.ops import destroy_ships
-    from autowsgr.types import ShipType
+    from autowsgr.business.legacy_ops import destroy_ships
+    from autowsgr.common.types import ShipType
 
     ship_types = None
     if request.ship_types:

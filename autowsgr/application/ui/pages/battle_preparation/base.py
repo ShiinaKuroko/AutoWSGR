@@ -25,14 +25,14 @@ from autowsgr.common.calibration.battle_preparation import (
 from autowsgr.common.calibration.coordinates import point
 from autowsgr.common.calibration.signatures import signature
 from autowsgr.common.system.logger import get_logger
-from autowsgr.common.ui.interaction import click_and_wait_for_page
+from autowsgr.common.types import PageName
+from autowsgr.common.ui.interaction import click_and_wait_for_page, wait_leave_page
 from autowsgr.common.vision import (
     ImageChecker,
     PageMatch,
     PixelChecker,
 )
 from autowsgr.common.vision.resources import Templates
-from autowsgr.types import PageName
 
 
 if TYPE_CHECKING:
@@ -187,6 +187,26 @@ class BaseBattlePreparation:
         """点击「开始出征」按钮。"""
         _log.info('[UI] 出征准备 → 开始出征')
         self._ctrl.click(*CLICK_START_BATTLE)
+
+    def try_start_battle(
+        self,
+        *,
+        timeout: float = 1.5,
+        target: str = 'combat',
+    ) -> bool:
+        """点击出征并确认已离开准备页。"""
+        self.start_battle()
+        return (
+            wait_leave_page(
+                self._ctrl,
+                checker=self.is_current_page,
+                timeout=timeout,
+                source=PageName.BATTLE_PREP,
+                target=target,
+                probe=True,
+            )
+            is not None
+        )
 
     # ── 动作 — 舰队 / 面板选择 ───────────────────────────────────────────
 

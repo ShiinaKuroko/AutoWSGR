@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 from autowsgr.application.combat.recognizer import CombatRecognitionTimeoutError
 from autowsgr.application.ui.pages.battle_preparation.blood import classify_blood
 from autowsgr.common.system import get_logger
+from autowsgr.common.types import ShipDamageState
 from autowsgr.common.vision import ImageChecker, PixelChecker
 from autowsgr.common.vision.combat import (
     RESULT_BLOOD_BAR_PROBE,
@@ -23,7 +24,6 @@ from autowsgr.common.vision.combat import (
     recognize_ship_drop,
 )
 from autowsgr.common.vision.resources.keys import RESULT_GRADE_KEYS
-from autowsgr.types import ShipDamageState
 
 
 if TYPE_CHECKING:

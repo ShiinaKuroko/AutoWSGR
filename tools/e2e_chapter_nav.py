@@ -27,18 +27,18 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 from loguru import logger
 
-from autowsgr.infra import (
+from autowsgr.application.runtime.launcher import Launcher
+from autowsgr.application.ui.legacy.map.base import BaseMapPage
+from autowsgr.application.ui.pages.map.panels.sortie import SortiePanelMixin
+from autowsgr.business.legacy_ops.navigate import goto_page
+from autowsgr.common.system import (
     AccountConfig,
     EmulatorConfig,
     LogConfig,
     UserConfig,
 )
-from autowsgr.infra.system.config import OCRConfig
-from autowsgr.infra.ui.pages.map.panels.sortie import SortiePanelMixin
-from autowsgr.ops.navigate import goto_page
-from autowsgr.scheduler.launcher import Launcher
-from autowsgr.types import GameAPP, PageName
-from autowsgr.ui.map.base import BaseMapPage
+from autowsgr.common.system.config import OCRConfig
+from autowsgr.common.types import GameAPP, PageName
 
 
 def build_cfg() -> UserConfig:
@@ -58,7 +58,7 @@ def main() -> int:
     launcher = Launcher()
     launcher.set_config(cfg)
     # 手动触发日志初始化 (load_config 会做, 这里 set_config 后手动调)
-    from autowsgr.infra.system.logger import setup_logger
+    from autowsgr.common.system.logger import setup_logger
 
     setup_logger(cfg.log.dir, cfg.log.level, save_images=True, channels=cfg.log.effective_channels)
 
@@ -163,7 +163,7 @@ def main() -> int:
         logger.info('[E2E] Test 6: enter_sortie 无异常, 尝试返回地图页')
         ctx.ctrl.press_back()
         time.sleep(1.2)
-        from autowsgr.infra.ui.interaction import wait_for_page
+        from autowsgr.common.ui.interaction import wait_for_page
 
         wait_for_page(
             ctx.ctrl,

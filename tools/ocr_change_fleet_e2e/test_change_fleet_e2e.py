@@ -22,17 +22,17 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-# 已迁移到新方法: 导航器入口 (原 autowsgr.ops.goto_page)
-from autowsgr.infra.ui.navigation import goto_page
-from autowsgr.types import PageName
-from autowsgr.ui.battle.preparation import BattlePreparationPage
-from autowsgr.ui.main_page import MainPage
-from autowsgr.infra.ui.navigation.registry import get_current_page
+# 已迁移到新方法: 导航器入口 (原 autowsgr.business.legacy_ops.goto_page)
+from autowsgr.application.ui.navigation import goto_page
+from autowsgr.common.types import PageName
+from autowsgr.application.ui.legacy.battle.preparation import BattlePreparationPage
+from autowsgr.application.ui.legacy.main_page import MainPage
+from autowsgr.application.ui.navigation.registry import get_current_page
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from autowsgr.infra.runtime.context import GameContext
+    from autowsgr.application.runtime.context import GameContext
 
 
 def _current_page(ctx: GameContext) -> str:

@@ -101,7 +101,7 @@ def register_default_pages() -> None:
     from autowsgr.application.ui.pages.main_page import MainPage
     from autowsgr.application.ui.pages.map import MapPage
     from autowsgr.application.ui.pages.mission_page import MissionPage
-    from autowsgr.types import PageName
+    from autowsgr.common.types import PageName
 
     register_page(PageName.MAIN, MainPage.is_current_page)
     register_page(PageName.MAP, MapPage.is_current_page)

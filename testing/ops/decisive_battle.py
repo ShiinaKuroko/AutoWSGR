@@ -36,8 +36,8 @@ except Exception:  # noqa: S110
     pass
 from loguru import logger
 
-from autowsgr.infra import DecisiveConfig
-from autowsgr.ops.decisive import DecisiveController, DecisiveResult
+from autowsgr.business.combat.decisive import DecisiveController, DecisiveResult
+from autowsgr.common.system import DecisiveConfig
 from testing.ops._framework import launch_for_test
 
 
@@ -148,9 +148,9 @@ def main() -> None:
     try:
         ctx = launch_for_test(args.serial, log_dir=log_dir, with_ocr=True)
         ctrl = ctx.ctrl
-        ocr = ctx.ocr
-        logger.info('已连接: {}', ctrl.serial)
-        print(f'  [OK] 已连接: {ctrl.serial}')
+        device_serial = args.serial or ctx.config.emulator.serial or 'auto'
+        logger.info('已连接: {}', device_serial)
+        print(f'  [OK] 已连接: {device_serial}')
         print('  [OK] OCR 引擎已就绪')
     except Exception as exc:
         logger.opt(exception=True).error('启动失败: {}', exc)
@@ -165,7 +165,7 @@ def main() -> None:
         flagship_priority=args.flagship,
         repair_level=args.repair_level,
     )
-    controller = DecisiveController(ctx, config, ocr=ocr)
+    controller = DecisiveController(ctx, config)
     logger.info('DecisiveController 构建完成 (章节 {})', args.chapter)
     print(f'  [OK] 控制器就绪 (章节 {args.chapter})')
     print()

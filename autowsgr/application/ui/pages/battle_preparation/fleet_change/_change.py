@@ -20,8 +20,8 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING
 
+from autowsgr.common.constants import ship_name_identity
 from autowsgr.common.system.logger import get_logger
-from autowsgr.constants import ship_name_identity
 
 from ._alignment import (
     FleetAlignmentMixin,
@@ -345,6 +345,7 @@ class FleetChangeMixin(FleetAlignmentMixin):
         occupied: list[bool],
         assigned: list[ShipSelector | None],
         selectors: list[FleetSlotRule | None],
+        *,
         verified_slots: set[int],
         unavailable: set[tuple[int, ShipSelector]],
         locked: dict[int, ShipSelector],
@@ -387,14 +388,22 @@ class FleetChangeMixin(FleetAlignmentMixin):
         return current, occupied
 
     # 执行一套六槽舰队的完整换船、排序和验证流程。
-    def change_fleet(
+    def change_fleet(  # noqa: PLR0911, PLR0915
         self,
         fleet_id: int | None,
-        ship_names: Sequence[FleetSlotRule],
+        ship_names: Sequence[FleetSlotRule | str | None],
         *,
+        task_type: str = 'normal',
         on_event: Callable[..., None] | None = None,
     ) -> bool:
-        """返回最终舰队是否符合六个目标槽位。"""
+        """按任务类型选择编队分支，并返回最终舰队是否符合规则。"""
+        if task_type == 'decisive':
+            from autowsgr.application.ui.pages.battle_preparation.fleet_change.decisive import (
+                change_decisive_fleet,
+            )
+
+            return change_decisive_fleet(self, ship_names, on_event=on_event)
+
         self._last_changed_fleet = None
         self._on_fleet_event = on_event
         # Step 1：切换到 YAML 指定的舰队。
@@ -490,10 +499,10 @@ class FleetChangeMixin(FleetAlignmentMixin):
                     occupied,
                     assigned,
                     selectors,
-                    verified_slots,
-                    unavailable,
-                    locked,
-                    deferred_primary_slots,
+                    verified_slots=verified_slots,
+                    unavailable=unavailable,
+                    locked=locked,
+                    deferred_primary_slots=deferred_primary_slots,
                 )
             except _UnresolvedPrimaryError as error:
                 _log.error('[Fleet] 换船失败: {}', error)

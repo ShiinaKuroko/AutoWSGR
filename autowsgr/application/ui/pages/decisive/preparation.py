@@ -6,7 +6,7 @@
 与普通换船的差异
 ---------------
 - 普通换船: 点击搜索框 -> 输入舰船名 -> 等待筛选结果 -> 点击第一项
-- 决战换船: 直接 OCR 识别选船列表 -> 按编辑距离模糊匹配 -> 点击目标坐标
+- 决战换船: 统一编队入口识别 ``task_type='decisive'`` 后，直接 OCR 选船列表
 
 这是因为决战选船流程没有搜索框（界面为直接列表展示），
 且候选集合相对固定（由配置 level1/level2 决定）。
@@ -66,8 +66,8 @@ class DecisiveBattlePreparationPage(BattlePreparationPage):
         fleet_id: int | None,
         ship_names: Sequence[str | None],
     ) -> bool:
-        """按配置选择决战原有流程或新的换船算法。"""
-        if self._config.use_new_fleet_change_algorithm:
-            rules = exact_fleet_rules([name for name in ship_names if name])
-            return super().change_fleet(fleet_id, rules)
-        return change_fleet_legacy(self, fleet_id, ship_names)
+        """按 ``task_type='decisive'`` 进入统一决战编队分支。"""
+        if not self._config.use_new_fleet_change_algorithm:
+            return change_fleet_legacy(self, fleet_id, ship_names)
+        rules = exact_fleet_rules([name for name in ship_names if name])
+        return super().change_fleet(fleet_id, rules)

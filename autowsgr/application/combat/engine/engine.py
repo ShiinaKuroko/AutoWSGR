@@ -14,8 +14,8 @@ from autowsgr.application.combat.recognizer import (
     CombatStopRequestedError,
 )
 from autowsgr.common.system.logger import get_logger
+from autowsgr.common.types import ConditionFlag, Formation, ShipDamageState
 from autowsgr.common.ui.combat import dismiss_resource_confirm
-from autowsgr.types import ConditionFlag, Formation, ShipDamageState
 
 
 if TYPE_CHECKING:

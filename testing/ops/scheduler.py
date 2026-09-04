@@ -41,11 +41,11 @@ except Exception:
         pass
 from loguru import logger
 
-from autowsgr.infra.combat import CombatPlan
-from autowsgr.infra.fleet import resolve_fleet_selection
-from autowsgr.ops.event_fight import EventFightRunner
-from autowsgr.scheduler import FightTask, TaskScheduler
-from autowsgr.types import ConditionFlag
+from autowsgr.business.combat import CombatPlan
+from autowsgr.business.combat.fleet import resolve_fleet_selection
+from autowsgr.business.legacy_ops.event_fight import EventFightRunner
+from autowsgr.common.types import ConditionFlag
+from autowsgr.dispatch.legacy_scheduler import FightTask, TaskScheduler
 from testing.ops._framework import launch_for_test
 
 

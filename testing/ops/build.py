@@ -54,7 +54,7 @@ def main() -> None:
         logger.info(f'已连接: {ctrl.serial}')
         print(f'  [OK] 已连接: {ctrl.serial}')
 
-        from autowsgr.ops.build import collect_built_ships
+        from autowsgr.business.legacy_ops.build import collect_built_ships
 
         result = collect_built_ships(ctrl, build_type='ship', allow_fast_build=False)
         logger.info(f'collect_built_ships() 返回: {result}')

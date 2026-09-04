@@ -40,8 +40,8 @@ from autowsgr.application.ui.pages.decisive.overlay import (
     is_decisive_map_page,
     is_fleet_acquisition,
 )
-from autowsgr.application.ui.pages.decisive.preparation import DecisiveBattlePreparationPage
 from autowsgr.common.system.logger import get_logger
+from autowsgr.common.types import DecisivePhase, FleetSelection, ShipDamageState
 from autowsgr.common.ui.interaction import click_and_wait_for_page
 from autowsgr.common.vision import (
     ImageChecker,
@@ -52,7 +52,6 @@ from autowsgr.common.vision import (
     get_api_dll,
 )
 from autowsgr.common.vision.ship_list import recognize_ships_in_list as _recognize_ships
-from autowsgr.types import DecisivePhase, FleetSelection, ShipDamageState
 
 
 if TYPE_CHECKING:
@@ -454,7 +453,7 @@ class DecisiveMapController:
 
         self.enter_formation()
         time.sleep(0.5)  # 等待编队页加载完成
-        page = DecisiveBattlePreparationPage(self._ctx, self._config, self._ocr)
+        page = BattlePreparationPage(self._ctx, self._ocr)
 
         screen = self._ctrl.screenshot()
         fleet = page.detect_fleet(screen)
@@ -697,25 +696,21 @@ class DecisiveMapController:
 
     def change_fleet(
         self,
-        fleet_id: int | None,
         ship_names: list[str | None],
     ) -> None:
         """进入出征准备页 → 执行决战专用换船 → 保持在准备页。
 
-        使用 :class:`~autowsgr.application.ui.pages.decisive.preparation.DecisiveBattlePreparationPage`
+        使用统一准备页的 ``task_type='decisive'`` 分支
         执行换船，原理是 OCR 选船列表直接点击目标，无需输入搜索框。
 
         Parameters
         ----------
-        fleet_id:
-            舰队编号 (1-4)；``None`` 代表不指定舰队。
-            更换 1 队时槽位 0 必须保留目标舰船。
         ship_names:
             目标舰船名列表 (按槽位 0-5)；``None``/``""`` 表示该位留空。
         """
-        _log.info('[地图控制器] 进入准备页换船: {} 队 → {}', fleet_id, ship_names)
-        page = DecisiveBattlePreparationPage(self._ctx, self._config, self._ocr)
-        page.change_fleet(fleet_id, ship_names)
+        _log.info('[地图控制器] 进入准备页换船: {}', ship_names)
+        page = BattlePreparationPage(self._ctx, self._ocr)
+        page.change_fleet(None, ship_names, task_type='decisive')
 
     # ══════════════════════════════════════════════════════════════════════
     # 等待方法

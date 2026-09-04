@@ -36,15 +36,15 @@ from testing.ui._framework import (
 
 
 if TYPE_CHECKING:
-    from autowsgr.infra.emulator import AndroidController
+    from autowsgr.common.device import AndroidController
 
 
 def run_test(runner: UIControllerTestRunner) -> None:  # noqa: PLR0911
-    from autowsgr.ui.build_page import BuildPage, BuildTab
-    from autowsgr.ui.friend_page import FriendPage
-    from autowsgr.ui.intensify_page import IntensifyPage, IntensifyTab
-    from autowsgr.ui.main_page import MainPage
-    from autowsgr.ui.sidebar_page import SidebarPage, SidebarTarget
+    from autowsgr.application.ui.legacy.build_page import BuildPage, BuildTab
+    from autowsgr.application.ui.legacy.friend_page import FriendPage
+    from autowsgr.application.ui.legacy.intensify_page import IntensifyPage, IntensifyTab
+    from autowsgr.application.ui.legacy.main_page import MainPage
+    from autowsgr.application.ui.legacy.sidebar_page import SidebarPage, SidebarTarget
 
     sidebar_page = SidebarPage(runner.ctx)
     build_page = BuildPage(runner.ctx)
@@ -151,9 +151,9 @@ def _navigate_to(ctrl: AndroidController, pause: float) -> None:
     """从任意已知页面导航到侧边栏。"""
     import time
 
-    from autowsgr.infra.runtime.context import GameContext
-    from autowsgr.infra import UserConfig
-    from autowsgr.ui.main_page import MainPage
+    from autowsgr.application.runtime.context import GameContext
+    from autowsgr.application.ui.legacy.main_page import MainPage
+    from autowsgr.common.system import UserConfig
 
     if not reset_to_main_page(ctrl, pause):
         return
@@ -174,7 +174,7 @@ def main() -> None:
     from loguru import logger
 
     logger.info('=== 侧边栏 e2e 测试开始 ===')
-    from autowsgr.ui.sidebar_page import SidebarPage
+    from autowsgr.application.ui.legacy.sidebar_page import SidebarPage
 
     if not ensure_page(
         ctrl,

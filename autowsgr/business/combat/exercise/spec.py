@@ -20,6 +20,7 @@ from autowsgr.business.combat.plan import CombatMode, CombatPlan
 EXERCISE_FIELDS = frozenset(
     {
         'name',
+        'task_type',
         'mode',
         'schema_version',
         'fleet_id',
@@ -28,6 +29,12 @@ EXERCISE_FIELDS = frozenset(
         'fleet_presets',
         'rival',
         'rivals_limit',
+        'formation',
+        'formation_strategy',
+        'night',
+        'sl_when_failed',
+        'enemy_rules',
+        'enemy_formation_rules',
         'repair_mode',
         'fight_condition',
         'node_defaults',
@@ -45,6 +52,8 @@ class ExerciseSpec:
     fleet_selection: ResolvedFleetSelection
     rival: int | None = None
     rivals_limit: int | None = None
+    formation_strategy: str = 'fixed'
+    sl_when_failed: bool = False
 
     @classmethod
     def from_params(cls, params: Mapping[str, Any]) -> ExerciseSpec:
@@ -54,13 +63,24 @@ class ExerciseSpec:
             raise ValueError(f'演习 YAML 包含未知字段: {", ".join(unknown)}')
 
         data = dict(params)
+        task_type = data.pop('task_type', 'exercise')
+        if task_type != 'exercise':
+            raise ValueError('演习 YAML 的 task_type 必须为 exercise')
+        if 'task_type' in params and 'fleet_id' not in data:
+            raise ValueError('演习 YAML 缺少必填字段: fleet_id')
         _validate_positive_optional(data, 'rival', maximum=5)
         _validate_positive_optional(data, 'rivals_limit', maximum=5)
         _normalize_fleet_sources(data)
 
         fleet_id = data.get('fleet_id', 1)
         _validate_fleet_id(fleet_id)
-        _normalize_plan_data(data)
+        formation_strategy = data.pop('formation_strategy', 'fixed')
+        if formation_strategy != 'fixed':
+            raise ValueError('演习字段 formation_strategy 当前只支持 fixed')
+        sl_when_failed = data.pop('sl_when_failed', False)
+        if not isinstance(sl_when_failed, bool):
+            raise TypeError('演习字段 sl_when_failed 必须是布尔值')
+        _normalize_plan_data(data, sl_when_failed=sl_when_failed)
 
         try:
             plan = CombatPlan.from_dict(data, name=str(data.get('name') or '演习'))
@@ -73,6 +93,8 @@ class ExerciseSpec:
             fleet_selection=selection,
             rival=data.get('rival'),
             rivals_limit=data.get('rivals_limit'),
+            formation_strategy=formation_strategy,
+            sl_when_failed=sl_when_failed,
         )
 
 
@@ -114,15 +136,35 @@ def _validate_fleet_id(value: object) -> None:
         raise ValueError('演习字段 fleet_id 必须在 1-4 范围内')
 
 
-def _normalize_plan_data(data: dict[str, Any]) -> None:
+def _normalize_plan_data(data: dict[str, Any], *, sl_when_failed: bool) -> None:
     raw_mode = data.get('mode')
     if raw_mode is not None and raw_mode != CombatMode.EXERCISE:
         raise ValueError('演习 YAML 的 mode 必须为 exercise')
     data['mode'] = CombatMode.EXERCISE
 
     defaults = dict(data.get('node_defaults') or {})
-    defaults.setdefault('formation', 1)
+    if 'formation' in data:
+        formation = data.pop('formation')
+        if isinstance(formation, bool) or not isinstance(formation, int) or not 1 <= formation <= 5:
+            raise ValueError('演习字段 formation 必须在 1-5 范围内')
+        defaults['formation'] = formation
+    defaults.setdefault('formation', 2)
+    if 'night' in data:
+        night = data.pop('night')
+        if not isinstance(night, bool):
+            raise ValueError('演习字段 night 必须是布尔值')
+        defaults['night'] = night
     defaults.setdefault('night', True)
+    for field in ('enemy_rules', 'enemy_formation_rules'):
+        if field not in data:
+            continue
+        rules = data.pop(field)
+        if not isinstance(rules, list):
+            raise TypeError(f'演习字段 {field} 必须是列表')
+        defaults[field] = rules
+    if sl_when_failed:
+        defaults['SL_when_spot_enemy_fails'] = True
+        defaults['SL_when_enter_fight'] = True
     data['node_defaults'] = defaults
 
 

@@ -33,10 +33,10 @@ from autowsgr.application.ui.pages.mission_page.recognition import (
 )
 from autowsgr.application.ui.pages.tabbed_page import TabbedPageType, check_tabbed_page
 from autowsgr.common.system.logger import get_logger
+from autowsgr.common.types import PageName
 from autowsgr.common.ui.interaction import click_and_wait_for_page
 from autowsgr.common.vision import ImageChecker, PageMatch
 from autowsgr.common.vision.resources import Templates
-from autowsgr.types import PageName
 
 
 if TYPE_CHECKING:

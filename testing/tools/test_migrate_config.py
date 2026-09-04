@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from autowsgr.infra.system.file_utils import load_yaml
+from autowsgr.common.system.file_utils import load_yaml
 
 from tools import migrate_config
 

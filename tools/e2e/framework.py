@@ -110,8 +110,8 @@ class E2ERunner:
         流程与生产 launch() 对齐: 读配置 → 初始化日志 → 连接设备 → 游戏就绪。
         ``no_launch=True`` 时只连接不启动游戏 (截图/页面识别等只读验证)。
         """
+        from autowsgr.application.runtime.launcher import Launcher
         from autowsgr.common.system.logger import setup_logger
-        from autowsgr.scheduler.launcher import Launcher
 
         launcher = Launcher()
         # Keep the handle before connect so a partially connected controller is
@@ -150,7 +150,7 @@ class E2ERunner:
 
         try:
             # 组装 GameContext (与 testing/ops 的 launch_for_test 同款流程)
-            from autowsgr.infra.runtime.context import GameContext
+            from autowsgr.application.runtime.context import GameContext
 
             if self.with_ocr:
                 self.ctx = launcher.build_context()  # 含 OCR 引擎
@@ -289,7 +289,7 @@ class E2ERunner:
         app = self.ctx.config.account.game_app
         package = getattr(app, 'package_name', None)
         if package is None:
-            from autowsgr.types import GameAPP
+            from autowsgr.common.types import GameAPP
 
             package = GameAPP(str(app)).package_name
         return package

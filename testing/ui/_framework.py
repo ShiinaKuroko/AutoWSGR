@@ -11,7 +11,7 @@
     from testing.ui._framework import UIControllerTestRunner, parse_e2e_args
 
     def run_test(runner: UIControllerTestRunner) -> None:
-        from autowsgr.ui.xxx_page import XxxPage
+        from autowsgr.application.ui.legacy.xxx_page import XxxPage
         page = XxxPage(runner.ctx)
 
         runner.verify_current("初始验证: Xxx页面", "Xxx页面", XxxPage.is_current_page)
@@ -42,7 +42,7 @@ from typing import TYPE_CHECKING
 
 
 if TYPE_CHECKING:
-    from autowsgr.infra.runtime.context import GameContext
+    from autowsgr.application.runtime.context import GameContext
 
 
 try:
@@ -67,7 +67,7 @@ if TYPE_CHECKING:
 
     import numpy as np
 
-    from autowsgr.infra.emulator import ADBController
+    from autowsgr.common.device import ADBController
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -232,7 +232,7 @@ class UIControllerTestRunner:
         auto_mode: bool = False,
         pause: float = 1.5,
     ) -> None:
-        from autowsgr.infra import save_image as _save_image  # lazy import
+        from autowsgr.common.system import save_image as _save_image  # lazy import
 
         self.ctrl = ctrl
         self.auto_mode = auto_mode
@@ -252,8 +252,8 @@ class UIControllerTestRunner:
     def ctx(self) -> GameContext:
         """懒加载 GameContext (测试用)。"""
         if self._ctx is None:
-            from autowsgr.infra.runtime.context import GameContext
-            from autowsgr.infra import UserConfig
+            from autowsgr.application.runtime.context import GameContext
+            from autowsgr.common.system import UserConfig
 
             self._ctx = GameContext(ctrl=self.ctrl, config=UserConfig())
         return self._ctx
@@ -330,7 +330,7 @@ class UIControllerTestRunner:
             rec.screenshot_path = str(path) if path else None
             rec.duration_ms = int((time.monotonic() - t0) * 1000)
 
-            from autowsgr.infra.ui.navigation.registry import get_current_page
+            from autowsgr.application.ui.navigation.registry import get_current_page
 
             rec.page_check = checker(screen)
             rec.actual_page = get_current_page(screen)
@@ -488,21 +488,21 @@ def reset_to_main_page(ctrl: ADBController, pause: float = 1.5) -> bool:  # noqa
     bool
         成功回到主页面时返回 ``True``，超出重试次数仍未到达则返回 ``False``。
     """
-    from autowsgr.infra.runtime.context import GameContext
-    from autowsgr.infra import UserConfig
-    from autowsgr.ui.backyard_page import BackyardPage
-    from autowsgr.ui.bath_page import BathPage
-    from autowsgr.ui.battle.preparation import BattlePreparationPage
-    from autowsgr.ui.build_page import BuildPage
-    from autowsgr.ui.canteen_page import CanteenPage
-    from autowsgr.ui.decisive.battle_page import DecisiveBattlePage
-    from autowsgr.ui.event.event_page import BaseEventPage
-    from autowsgr.ui.friend_page import FriendPage
-    from autowsgr.ui.intensify_page import IntensifyPage
-    from autowsgr.ui.main_page import MainPage
-    from autowsgr.ui.map import MapPage
-    from autowsgr.ui.mission_page import MissionPage
-    from autowsgr.ui.sidebar_page import SidebarPage
+    from autowsgr.application.runtime.context import GameContext
+    from autowsgr.application.ui.legacy.backyard_page import BackyardPage
+    from autowsgr.application.ui.legacy.bath_page import BathPage
+    from autowsgr.application.ui.legacy.battle.preparation import BattlePreparationPage
+    from autowsgr.application.ui.legacy.build_page import BuildPage
+    from autowsgr.application.ui.legacy.canteen_page import CanteenPage
+    from autowsgr.application.ui.legacy.decisive.battle_page import DecisiveBattlePage
+    from autowsgr.application.ui.legacy.event.event_page import BaseEventPage
+    from autowsgr.application.ui.legacy.friend_page import FriendPage
+    from autowsgr.application.ui.legacy.intensify_page import IntensifyPage
+    from autowsgr.application.ui.legacy.main_page import MainPage
+    from autowsgr.application.ui.legacy.map import MapPage
+    from autowsgr.application.ui.legacy.mission_page import MissionPage
+    from autowsgr.application.ui.legacy.sidebar_page import SidebarPage
+    from autowsgr.common.system import UserConfig
 
     ctx = GameContext(ctrl=ctrl, config=UserConfig())
 
@@ -690,7 +690,7 @@ def parse_e2e_args(
 
 def connect_device(serial: str | None, *, timeout: float = 15.0) -> ADBController:
     """创建并连接 ADB 控制器，失败时退出进程。"""
-    from autowsgr.infra.emulator import ADBController
+    from autowsgr.common.device import ADBController
 
     ctrl = ADBController(serial=serial, screenshot_timeout=timeout)
     try:
@@ -732,9 +732,9 @@ def connect_via_launcher(
     ADBController
         已建立连接的设备控制器。
     """
-    from autowsgr.infra.emulator import ADBController
-    from autowsgr.infra import ConfigManager
-    from autowsgr.infra.system.logger import setup_logger
+    from autowsgr.common.device import ADBController
+    from autowsgr.common.system import ConfigManager
+    from autowsgr.common.system.logger import setup_logger
 
     # 加载配置（自动检测当前目录下的 usersettings.yaml，不存在则用默认值）
     cfg = ConfigManager.load()

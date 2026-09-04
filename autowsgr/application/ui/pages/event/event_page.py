@@ -23,6 +23,7 @@ from typing import TYPE_CHECKING, Literal
 
 from autowsgr.common.system.exceptions import ActionFailedError
 from autowsgr.common.system.logger import get_logger
+from autowsgr.common.types import PageName
 from autowsgr.common.ui.interaction import click_and_wait_for_page
 from autowsgr.common.vision import (
     ROI,
@@ -32,7 +33,6 @@ from autowsgr.common.vision import (
     PageMatch,
     PixelChecker,
 )
-from autowsgr.types import PageName
 
 
 if TYPE_CHECKING:

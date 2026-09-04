@@ -13,7 +13,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, ValidationError, field_validator, model_validator
 
-from autowsgr.types import (
+from autowsgr.common.types import (
     DestroyShipWorkMode,
     EmulatorType,
     GameAPP,

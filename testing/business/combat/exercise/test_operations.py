@@ -5,11 +5,11 @@ from __future__ import annotations
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
-from autowsgr.infra.fleet import FleetSlotRule, ShipSelector
-from autowsgr.infra.ui.pages.battle_preparation import BattlePreparationPage
-from autowsgr.infra.ui.pages.battle_preparation.fleet_change import _change
-from autowsgr.infra.ui.pages.battle_preparation.fleet_change._detect import FleetSnapshot
-from autowsgr.types import ShipType
+from autowsgr.application.ui.pages.battle_preparation import BattlePreparationPage
+from autowsgr.application.ui.pages.battle_preparation.fleet_change import _change
+from autowsgr.application.ui.pages.battle_preparation.fleet_change._detect import FleetSnapshot
+from autowsgr.business.combat.fleet import FleetSlotRule, ShipSelector
+from autowsgr.common.types import ShipType
 
 
 def _page() -> BattlePreparationPage:

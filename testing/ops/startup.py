@@ -46,10 +46,10 @@ except Exception:
         pass
 from loguru import logger
 
-from autowsgr.infra.emulator import ADBController
-from autowsgr.infra import ConfigManager, setup_logger
-from autowsgr.ops.startup import restart_game
-from autowsgr.types import GameAPP
+from autowsgr.application.runtime.startup import restart_game
+from autowsgr.common.device import ADBController
+from autowsgr.common.system import ConfigManager, setup_logger
+from autowsgr.common.types import GameAPP
 
 
 def _parse_args() -> argparse.Namespace:

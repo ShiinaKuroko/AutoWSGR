@@ -71,8 +71,8 @@ from typing import TYPE_CHECKING
 import cv2
 import numpy as np
 
+from autowsgr.common.types import PageName
 from autowsgr.common.vision import Color, PageMatch, PixelChecker
-from autowsgr.types import PageName
 
 
 # from autowsgr.common.system.logger import get_logger
@@ -136,7 +136,7 @@ TAB_DARK = (22, 37, 62)
 # ═══════════════════════════════════════════════════════════════════════════════
 
 _TEMPLATE_DIR = Path(__file__).resolve().parents[3] / 'common' / 'data' / 'images' / 'ui'
-"""参考模板目录 (autowsgr/infra/data/images/ui/, 随仓库布局)。"""
+"""参考模板目录 (autowsgr/common/data/images/ui/, 随仓库布局)。"""
 
 _CROP_Y: float = 0.075
 """标签栏裁剪高度比例 (顶部 7.5%)。"""
@@ -158,7 +158,7 @@ _ADAPTIVE_C: int = -5
 
 
 def _load_templates() -> dict[TabbedPageType, np.ndarray]:
-    """从 ``autowsgr/ui/templates/`` 加载 5 个参考模板。
+    """从 ``autowsgr/common/data/images/ui/`` 加载 5 个参考模板。
 
     模板为二值 PNG (0/255)，尺寸 600x40。
 

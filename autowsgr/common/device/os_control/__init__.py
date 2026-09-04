@@ -20,7 +20,7 @@
 from __future__ import annotations
 
 from autowsgr.common.system import EmulatorConfig, EmulatorError
-from autowsgr.types import OSType
+from autowsgr.common.types import OSType
 
 from .base import EmulatorProcessManager
 from .linux import LinuxEmulatorManager

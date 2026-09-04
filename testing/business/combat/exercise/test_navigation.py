@@ -1,8 +1,8 @@
 """演习准备页导航节点的无设备回归。"""
 
-from autowsgr.infra.ui.navigation.graph import find_path
-from autowsgr.infra.ui.navigation.registry import get_registered_pages, register_default_pages
-from autowsgr.types import PageName
+from autowsgr.application.ui.navigation.graph import find_path
+from autowsgr.application.ui.navigation.registry import get_registered_pages, register_default_pages
+from autowsgr.common.types import PageName
 
 
 def test_battle_preparation_is_registered_and_returns_via_map() -> None:

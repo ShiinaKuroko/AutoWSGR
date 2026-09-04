@@ -21,8 +21,7 @@ from autowsgr.application.ui.pages.main_page import MainPage
 from autowsgr.application.ui.pages.mission_page import MissionPage
 from autowsgr.business.base import BaseExecutor
 from autowsgr.common.system.logger import get_logger
-from autowsgr.dispatch.registry import register
-from autowsgr.types import PageName
+from autowsgr.common.types import PageName
 
 
 if TYPE_CHECKING:
@@ -56,9 +55,6 @@ class RewardCheckExecutor(BaseExecutor):
         _log.info('[Reward] 任务奖励收取完成, 收取={}', collected)
         self._report('checked', collected=1 if collected else 0)
         return collected
-
-
-register('reward_check', RewardCheckExecutor)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

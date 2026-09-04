@@ -15,7 +15,7 @@ DESC = '链路自检: 连接 + 截图 + 页面识别 (建议 --no-launch)'
 
 def run(rt: Any) -> bool:
     """执行链路自检步骤。"""
-    from autowsgr.infra.ui.navigation.registry import get_current_page
+    from autowsgr.application.ui.navigation.registry import get_current_page
 
     # 步骤1: 截图 (失败时框架自动截图存证并返回 rt.FAILED)
     screen = rt.action('截图', rt.ctx.ctrl.screenshot)

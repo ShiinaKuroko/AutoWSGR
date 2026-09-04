@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from autowsgr.scheduler.launcher import Launcher
+from autowsgr.application.runtime.launcher import Launcher
 
 
 def test_launch_disconnects_controller_after_connect_failure(
@@ -41,7 +41,7 @@ def _launcher_with_enhanced_ship_ocr(enabled: bool) -> Launcher:
 def test_create_ship_ocr_disabled_uses_default_easyocr():
     launcher = _launcher_with_enhanced_ship_ocr(False)
 
-    with patch('autowsgr.scheduler.launcher.OCREngine.create') as create:
+    with patch('autowsgr.application.runtime.launcher.OCREngine.create') as create:
         assert launcher.create_ship_ocr() is None
 
     create.assert_not_called()
@@ -81,11 +81,11 @@ def test_create_ocr_missing_enhanced_ship_ocr_attr_no_throw():
 
     with (
         patch(
-            'autowsgr.scheduler.launcher.EasyOCREngine.create',
+            'autowsgr.application.runtime.launcher.EasyOCREngine.create',
             side_effect=_capture_easy_ocr,
         ) as easy_create,
         patch(
-            'autowsgr.scheduler.launcher.OCREngine.create',
+            'autowsgr.application.runtime.launcher.OCREngine.create',
         ) as fastocr_create,
         patch.dict(
             'os.environ',
@@ -103,7 +103,7 @@ def test_create_ocr_missing_enhanced_ship_ocr_attr_no_throw():
     )
 
     # create_ship_ocr 也必须不抛 AttributeError
-    with patch('autowsgr.scheduler.launcher.OCREngine.create'):
+    with patch('autowsgr.application.runtime.launcher.OCREngine.create'):
         assert launcher.create_ship_ocr() is None
 
 
@@ -148,11 +148,11 @@ def test_gui_runtime_contract_probe_compatible():
     try:
         with (
             patch(
-                'autowsgr.scheduler.launcher.ConfigManager.load',
+                'autowsgr.application.runtime.launcher.ConfigManager.load',
                 return_value=fake_config,
             ),
             patch(
-                'autowsgr.scheduler.launcher.setup_logger',
+                'autowsgr.application.runtime.launcher.setup_logger',
                 side_effect=_capture_setup_logger,
             ),
         ):
@@ -167,7 +167,7 @@ def test_gui_runtime_contract_probe_compatible():
         launcher = Launcher()
         launcher.set_config(fake_config)
         with patch(
-            'autowsgr.scheduler.launcher.EasyOCREngine.create',
+            'autowsgr.application.runtime.launcher.EasyOCREngine.create',
             side_effect=_capture_easy_create,
         ):
             os.environ[gpu_key] = 'cuda'

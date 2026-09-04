@@ -36,7 +36,7 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
 
 def run(rt: Any) -> bool:
     """执行常规战验证步骤。"""
-    from autowsgr.ops import run_normal_fight_from_yaml
+    from autowsgr.business.legacy_ops import run_normal_fight_from_yaml
 
     args = rt.args
     rt.note(f'计划: {args.plan}  次数: {args.times}  舰队: {args.fleet or "计划配置"}')

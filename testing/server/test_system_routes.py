@@ -70,7 +70,7 @@ def test_system_start_publishes_launched_context(
     launched_context = object()
     launch_calls: list[str] = []
     startup_steps: list[str] = []
-    scheduler_module = types.ModuleType('autowsgr.scheduler')
+    scheduler_module = types.ModuleType('autowsgr.dispatch.legacy_scheduler')
 
     def launch(config_path: str) -> object:
         launch_calls.append(config_path)
@@ -81,7 +81,7 @@ def test_system_start_publishes_launched_context(
         startup_steps.append('sink')
 
     scheduler_module.launch = launch  # type: ignore[attr-defined]
-    monkeypatch.setitem(sys.modules, 'autowsgr.scheduler', scheduler_module)
+    monkeypatch.setitem(sys.modules, 'autowsgr.dispatch.legacy_scheduler', scheduler_module)
     monkeypatch.setattr(server_main, '_ctx', None)
     monkeypatch.setattr(server_main, 'register_stats_log_sink', register_stats_log_sink)
 
@@ -111,14 +111,14 @@ def test_system_start_reports_launch_failure(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Launch errors leave the global context unpublished."""
-    scheduler_module = types.ModuleType('autowsgr.scheduler')
+    scheduler_module = types.ModuleType('autowsgr.dispatch.legacy_scheduler')
 
     def launch(*, config_path: str) -> object:
         assert config_path == 'usersettings.yaml'
         raise RuntimeError('launch failed')
 
     scheduler_module.launch = launch  # type: ignore[attr-defined]
-    monkeypatch.setitem(sys.modules, 'autowsgr.scheduler', scheduler_module)
+    monkeypatch.setitem(sys.modules, 'autowsgr.dispatch.legacy_scheduler', scheduler_module)
     monkeypatch.setattr(server_main, '_ctx', None)
 
     response = asyncio.run(system.system_start(system.SystemStartRequest()))

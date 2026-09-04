@@ -19,7 +19,9 @@ from autowsgr.common.calibration.choose_ship import (
     SCROLL_FROM_Y,
     SCROLL_TO_Y,
 )
+from autowsgr.common.constants import SHIPNAMES, normalize_ship_name
 from autowsgr.common.system.logger import get_logger
+from autowsgr.common.types import PageName
 from autowsgr.common.ui.interaction import wait_for_page, wait_leave_page
 from autowsgr.common.vision import PageMatch, PixelChecker
 from autowsgr.common.vision.ocr import _fuzzy_match
@@ -29,8 +31,6 @@ from autowsgr.common.vision.ship_list import (
     read_ship_level_at_card,
     recognize_card_type_texts,
 )
-from autowsgr.constants import SHIPNAMES, normalize_ship_name
-from autowsgr.types import PageName
 
 
 if TYPE_CHECKING:
@@ -38,8 +38,8 @@ if TYPE_CHECKING:
 
     from autowsgr.application.ui.context import UIContext as GameContext
     from autowsgr.application.ui.fleet import ShipSelector
+    from autowsgr.common.types import ShipType
     from autowsgr.common.vision import OCREngine
-    from autowsgr.types import ShipType
 
 
 _log = get_logger('ui')

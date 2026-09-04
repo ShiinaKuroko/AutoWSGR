@@ -36,7 +36,7 @@ from dataclasses import dataclass, field
 
 from autowsgr.common.system import EmulatorConfig, EmulatorConnectionError
 from autowsgr.common.system.logger import get_logger
-from autowsgr.types import EmulatorType
+from autowsgr.common.types import EmulatorType
 
 
 _log = get_logger('emulator')

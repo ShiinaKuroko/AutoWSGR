@@ -2,14 +2,14 @@
 
 提供 :func:`launch_for_test` 供各 ops 测试脚本调用，替代手动的
 ``ConfigManager.load() → ADBController → GameContext → ensure_game_ready``
-流程，与生产环境的 :func:`autowsgr.scheduler.launcher.launch` 行为对齐。
+流程，与生产环境的 :func:`autowsgr.application.runtime.launcher.launch` 行为对齐。
 """
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from autowsgr.infra.runtime.context import GameContext
+from autowsgr.application.runtime.context import GameContext
 
 
 if TYPE_CHECKING:
@@ -28,7 +28,7 @@ def launch_for_test(
     加载配置 → 覆盖日志目录/级别 → 连接设备 →
     构建 GameContext → ensure_game_ready → 返回就绪上下文。
 
-    与 :func:`autowsgr.scheduler.launcher.launch` 的区别：
+    与 :func:`autowsgr.application.runtime.launcher.launch` 的区别：
 
     * 使用测试专用的 *log_dir* 覆盖配置中的日志目录。
     * 默认 ``with_ocr=False`` 跳过 OCR 初始化（适用于不需要 OCR 的简单 ops）。
@@ -50,8 +50,8 @@ def launch_for_test(
         ``ctx.ctrl`` 已连接、游戏已在主页面。
         若 ``with_ocr=True`` 则 ``ctx.ocr`` 也已初始化。
     """
-    from autowsgr.infra.system.logger import setup_logger
-    from autowsgr.scheduler.launcher import Launcher
+    from autowsgr.application.runtime.launcher import Launcher
+    from autowsgr.common.system.logger import setup_logger
 
     launcher = Launcher()
     cfg = launcher.load_config()
@@ -71,6 +71,6 @@ def launch_for_test(
         ctx = launcher.build_context()
     else:
         ctx = GameContext(ctrl=launcher.ctrl, config=launcher.config, ocr=None)
-        launcher.ensure_ready(ctx)
+    launcher.ensure_ready(ctx)
 
     return ctx

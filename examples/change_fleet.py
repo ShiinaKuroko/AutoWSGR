@@ -3,11 +3,11 @@
 修改第 2 舰队的舰船配置。
 """
 
-# 已迁移到新方法: 导航器入口 (原 autowsgr.ops.goto_page)
-from autowsgr.infra.ui.navigation import goto_page
-from autowsgr.infra.fleet import exact_fleet_rules
-from autowsgr.scheduler import launch
-from autowsgr.ui import BattlePreparationPage, PageName
+# 已迁移到新方法: 导航器入口 (原 autowsgr.business.legacy_ops.goto_page)
+from autowsgr.application.ui.legacy import BattlePreparationPage, PageName
+from autowsgr.application.ui.navigation import goto_page
+from autowsgr.business.combat.fleet import exact_fleet_rules
+from autowsgr.dispatch.legacy_scheduler import launch
 
 
 # 1. 启动 (加载配置 → 连接模拟器 → 启动游戏)

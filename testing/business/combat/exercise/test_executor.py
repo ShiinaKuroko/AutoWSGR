@@ -13,9 +13,9 @@ import autowsgr.business.base as base_module
 import autowsgr.business.combat.exercise.executor as executor_module
 import autowsgr.business.combat.exercise.operations as operations_module
 import autowsgr.business.system.initialize.initialize as initialize_module
+from autowsgr.business.combat import CombatResult
+from autowsgr.common.types import ConditionFlag, PageName, ShipDamageState
 from autowsgr.dispatch import TaskPaused
-from autowsgr.infra.combat import CombatResult
-from autowsgr.types import ConditionFlag, PageName, ShipDamageState
 
 
 if TYPE_CHECKING:
@@ -95,6 +95,10 @@ class _PreparationPage:
     def start_battle(self) -> None:
         self.events.append('start')
 
+    def try_start_battle(self, *, target: str) -> bool:
+        self.events.append(f'start:{target}')
+        return True
+
     def go_back(self) -> None:
         self.events.append('back')
 
@@ -120,7 +124,6 @@ def _patch_pages(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(operations_module, 'BattlePreparationPage', _PreparationPage)
     monkeypatch.setattr(executor_module, 'goto_page', MagicMock())
     monkeypatch.setattr(initialize_module, 'initialize', lambda _ctx: None)
-    monkeypatch.setattr(operations_module, 'goto_page', lambda *_args: None)
     monkeypatch.setattr(base_module, 'goto_page', MagicMock())
     monkeypatch.setattr(
         executor_module,
@@ -157,7 +160,7 @@ def test_executor_uses_yaml_fleet_and_exercise_combat_plan() -> None:
     assert page.task_type == 'exercise'
     assert page.rules is not None
     assert page.rules[0].primary.name == 'U-177'
-    assert page.events[-1] == 'start'
+    assert page.events[-1] == 'start:exercise combat'
     assert executor.plan.default_node.night is True
     assert [event for event, _data in events] == [
         'panel_ready',

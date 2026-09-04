@@ -6,9 +6,9 @@ from typing import TYPE_CHECKING, Any
 
 from autowsgr.application.ui.pages.battle_preparation import BattlePreparationPage, RepairStrategy
 from autowsgr.application.ui.pages.map import MapPage, MapPanel
-from autowsgr.business.navigation import goto_page
 from autowsgr.common.system.logger import get_logger
-from autowsgr.types import PageName, RepairMode, ShipDamageState
+from autowsgr.common.types import RepairMode, ShipDamageState
+from autowsgr.common.ui.interaction import NavigationError
 
 
 if TYPE_CHECKING:
@@ -35,9 +35,8 @@ class ExerciseOperations:
         self._wait = wait
         self._report = report
 
-    def goto_exercise_panel(self) -> None:
-        """从当前页面调用导航器到达演习入口"""
-        goto_page(self.ctx, PageName.MAP)
+    def switch_to_exercise_panel(self) -> None:
+        """在地图页切换到演习面板。"""
         MapPage(self.ctx).switch_panel(MapPanel.EXERCISE)
         self._report('panel_ready')
 
@@ -79,7 +78,7 @@ class ExerciseOperations:
         for slot, rule in enumerate(slot_rules[:6], start=1):
             for option in rule.options:
                 _log.info(
-                    '[Exercise] 开始选择 {} 号位舰船: {} ({}校验)',
+                    '[Exercise] 开始选择 {} 号位舰船：{}（{}校验）',
                     slot,
                     option.name,
                     '宽泛' if option.relaxed_constraints else '严格',
@@ -109,9 +108,14 @@ class ExerciseOperations:
 
     def start_battle(self, page: BattlePreparationPage, *, rival: int) -> None:
         """点击出征并上报进入战斗。"""
-        page.start_battle()
-        _log.info('[Exercise] 进入战斗')
-        self._report('battle_started', rival=rival)
+        for attempt in range(2):
+            if page.try_start_battle(target='exercise combat'):
+                _log.info('[Exercise] 进入战斗')
+                self._report('battle_started', rival=rival)
+                return
+            if attempt == 0:
+                _log.warning('[Exercise] 出征后仍在准备页，重试一次')
+        raise NavigationError('演习出征后仍停留在准备页')
 
     @staticmethod
     def repair_strategy(plan: CombatPlan) -> RepairStrategy | None:
@@ -133,7 +137,7 @@ class ExerciseOperations:
             option = data.get('option')
             selected = data.get('selected') or '未识别'
             _log.info(
-                '[Exercise] 开始替换 {} 号位舰船: {} → {}',
+                '[Exercise] 开始替换 {} 号位舰船：{} → {}',
                 data.get('slot', '?'),
                 getattr(option, 'name', '目标'),
                 selected,

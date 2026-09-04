@@ -15,9 +15,9 @@ from __future__ import annotations
 
 import numpy as np
 
-from autowsgr.infra.combat.engine.state import CombatPhase
-from autowsgr.infra.combat.recognizer import CombatRecognizer
-from autowsgr.infra.vision.resources import TemplateKey
+from autowsgr.application.combat.engine.state import CombatPhase
+from autowsgr.application.combat.recognizer import CombatRecognizer
+from autowsgr.common.vision.resources import TemplateKey
 
 
 def _paste(canvas: np.ndarray, tile: np.ndarray, x: int, y: int) -> None:
@@ -63,7 +63,7 @@ class TestExpSettlementByMvp:
 
     def test_default_signature_unchanged(self):
         """exclude_template_key 默认 None — 其他状态不受否决逻辑影响。"""
-        from autowsgr.infra.combat.recognizer import PhaseSignature
+        from autowsgr.application.combat.recognizer import PhaseSignature
 
         sig = PhaseSignature(template_key=TemplateKey.PROCEED)
         assert sig.exclude_template_key is None

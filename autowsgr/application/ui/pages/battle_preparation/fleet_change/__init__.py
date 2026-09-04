@@ -18,6 +18,9 @@ from autowsgr.application.ui.pages.battle_preparation.fleet_change._change impor
 from autowsgr.application.ui.pages.battle_preparation.fleet_change.campaign import (
     CampaignFleetChangeMixin,
 )
+from autowsgr.application.ui.pages.battle_preparation.fleet_change.decisive import (
+    change_decisive_fleet,
+)
 
 
-__all__ = ['CampaignFleetChangeMixin', 'FleetChangeMixin']
+__all__ = ['CampaignFleetChangeMixin', 'FleetChangeMixin', 'change_decisive_fleet']

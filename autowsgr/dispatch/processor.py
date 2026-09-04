@@ -26,6 +26,7 @@ from typing import TYPE_CHECKING, Any
 
 import yaml
 
+from autowsgr.common.contracts.task import TaskPaused, TaskStopped
 from autowsgr.common.system.file_utils import load_yaml
 from autowsgr.common.system.logger import get_logger
 from autowsgr.dispatch.registry import build_executor
@@ -51,14 +52,6 @@ _HANDOFF_EVENTS = frozenset(
         'rival_done',
     },
 )
-
-
-class TaskPaused(Exception):  # noqa: N818 - public protocol name
-    """执行器在断点收到暂停, 已回主页让路 (处理器捕获后跑加急再重派)。"""
-
-
-class TaskStopped(Exception):  # noqa: N818 - public protocol name
-    """执行器收到协作式停止请求, 已回主页并结束当前任务。"""
 
 
 # 数字越小越优先。外部入口不接受任意优先级, 统一从任务类型推导。
@@ -95,12 +88,21 @@ def _validate_campaign_params(params: Mapping[str, Any]) -> None:
     CampaignSpec.from_params(params)
 
 
+def _validate_decisive_params(params: Mapping[str, Any]) -> None:
+    """校验决战配置字段。"""
+    from autowsgr.common.system import DecisiveConfig
+
+    DecisiveConfig(**dict(params))
+
+
 def _validate_params(task_type: str, params: Mapping[str, Any]) -> None:
     """运行当前已迁移链路的字段校验; 其他链路保留其既有校验器。"""
     if task_type == 'exercise':
         _validate_exercise_params(params)
     elif task_type == 'campaign':
         _validate_campaign_params(params)
+    elif task_type == 'decisive':
+        _validate_decisive_params(params)
 
 
 @dataclass(frozen=True, slots=True)
@@ -162,7 +164,7 @@ class Request:
         if self.ship_name_aliases is None:
             aliases = {}
         elif isinstance(self.ship_name_aliases, Mapping):
-            from autowsgr.constants import (
+            from autowsgr.common.constants import (
                 SHIPNAMES,
                 get_ship_name_group_id,
                 is_standard_ship_name,
@@ -230,6 +232,8 @@ class Request:
         if not isinstance(task_type, str):
             raise ValueError('YAML 的 task_type 必须是字符串')  # noqa: TRY004
         params = {key: value for key, value in data.items() if key not in {'task_type', 'type'}}
+        if task_type == 'exercise' and 'fleet_id' not in params:
+            raise ValueError('演习 YAML 缺少必填字段: fleet_id')
         legacy_count = params.pop('times', None)
         if legacy_count is not None and legacy_count != 1:
             raise ValueError('YAML 的 times 已废弃, 请通过入口 count 参数提交次数')

@@ -17,7 +17,7 @@ from autowsgr.common.calibration.colors import color as _color
 from autowsgr.common.calibration.colors import tolerance as _color_tolerance
 from autowsgr.common.calibration.coordinates import point
 from autowsgr.common.calibration.signatures import signature
-from autowsgr.types import PageName
+from autowsgr.common.types import PageName
 
 
 if TYPE_CHECKING:

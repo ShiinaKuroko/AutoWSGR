@@ -32,9 +32,9 @@ from autowsgr.application.ui.pages.tabbed_page import (
 )
 from autowsgr.common.calibration.map import CLICK_BACK, PANEL_POSITIONS
 from autowsgr.common.system.logger import get_logger
+from autowsgr.common.types import PageName
 from autowsgr.common.ui.interaction import NavigationError, click_and_wait_for_page
 from autowsgr.common.vision import OCREngine, PageMatch, PixelChecker
-from autowsgr.types import PageName
 
 
 if TYPE_CHECKING:

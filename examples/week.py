@@ -1,8 +1,8 @@
 import sys
 
-from autowsgr.infra.fleet import resolve_fleet_selection
-from autowsgr.ops.normal_fight import NormalFightRunner, get_normal_fight_plan
-from autowsgr.scheduler import launch
+from autowsgr.business.combat.fleet import resolve_fleet_selection
+from autowsgr.business.legacy_ops.normal_fight import NormalFightRunner, get_normal_fight_plan
+from autowsgr.dispatch.legacy_scheduler import launch
 
 
 # run_for_times_condition的运行示例

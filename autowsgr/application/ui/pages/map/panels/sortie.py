@@ -27,8 +27,8 @@ from autowsgr.application.ui.pages.map.data import (
     MapPanel,
 )
 from autowsgr.common.system.logger import get_logger
+from autowsgr.common.types import PageName
 from autowsgr.common.ui.interaction import click_and_wait_for_page
-from autowsgr.types import PageName
 
 # ── 计数器模块 (OCR 纯函数) 重导出 — 保持 sortie.py 对外符号不变 ──
 from .sortie_counters import (  # noqa: F401  重新导出

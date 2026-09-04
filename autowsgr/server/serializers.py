@@ -146,7 +146,7 @@ def build_combat_plan(request: Any) -> Any:
     """从请求构建 CombatPlan 对象。"""
     from autowsgr.business.combat import CombatPlan, NodeDecision
     from autowsgr.business.combat.plan import parse_map_value
-    from autowsgr.types import RepairMode
+    from autowsgr.common.types import RepairMode
 
     node_defaults = request.node_defaults.model_dump(exclude_none=True)
 

@@ -19,9 +19,9 @@ from typing import TYPE_CHECKING
 import cv2
 
 from autowsgr.application.ui.pages.bath_page.page import RepairShipInfo
+from autowsgr.common.constants import SHIPNAMES
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.vision.ocr import _fuzzy_match
-from autowsgr.constants import SHIPNAMES
 
 
 if TYPE_CHECKING:

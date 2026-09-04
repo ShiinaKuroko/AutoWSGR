@@ -25,7 +25,7 @@ import signal
 import sys
 from pathlib import Path
 
-from autowsgr.scheduler import TaskScheduler, build_daily_plan, launch
+from autowsgr.dispatch.legacy_scheduler import TaskScheduler, build_daily_plan, launch
 
 
 # 默认查找的配置文件名 (兼容带/不带下划线两种写法)

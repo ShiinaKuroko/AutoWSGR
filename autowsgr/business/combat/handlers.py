@@ -2,7 +2,7 @@
 
 
 每个 ``_handle_*`` 方法对应一个 :class:`~autowsgr.application.combat.engine.state.CombatPhase`，
-执行该阶段所需的决策和操作，并返回 :class:`~autowsgr.types.ConditionFlag`
+执行该阶段所需的决策和操作，并返回 :class:`~autowsgr.common.types.ConditionFlag`
 指示引擎是否继续循环。
 """
 
@@ -36,10 +36,10 @@ from autowsgr.business.combat.history import CombatEvent, CombatHistory, EventTy
 from autowsgr.business.combat.plan import CombatMode, CombatPlan, NodeDecision
 from autowsgr.business.combat.rules import RuleResult, check_blood
 from autowsgr.common.system.logger import get_logger
+from autowsgr.common.types import ConditionFlag, Formation, ShipDamageState
 from autowsgr.common.ui.interaction import wait_leave_page
 from autowsgr.common.vision import ImageChecker
 from autowsgr.common.vision.resources import TemplateKey
-from autowsgr.types import ConditionFlag, Formation, ShipDamageState
 
 
 if TYPE_CHECKING:

@@ -5,8 +5,8 @@ from pathlib import Path
 
 import pytest
 
-from autowsgr.infra import load_yaml, merge_dicts, save_yaml
-from autowsgr.infra.system.file_utils import resolve_plan_path
+from autowsgr.common.system import load_yaml, merge_dicts, save_yaml
+from autowsgr.common.system.file_utils import resolve_plan_path
 
 
 class TestLoadYaml:
@@ -127,7 +127,7 @@ class TestResolvePlanPath:
 
     def test_fallback_to_package_default(self, tmp_path: Path):
         """plan_root 未命中时回退到包内默认目录。"""
-        from autowsgr.infra.system.file_utils import _get_package_data_dir
+        from autowsgr.common.system.file_utils import _get_package_data_dir
 
         root = tmp_path / 'empty_plans'
         (root / 'normal_fight').mkdir(parents=True)
@@ -139,7 +139,7 @@ class TestResolvePlanPath:
 
     def test_no_plan_root_falls_back_to_package(self):
         """plan_root=None 时仅查包内默认 (旧行为不变)。"""
-        from autowsgr.infra.system.file_utils import _get_package_data_dir
+        from autowsgr.common.system.file_utils import _get_package_data_dir
 
         resolved = resolve_plan_path('1-1')
         expected_dir = (_get_package_data_dir() / 'plan' / 'normal_fight').resolve()

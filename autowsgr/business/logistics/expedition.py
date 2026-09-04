@@ -21,8 +21,7 @@ from autowsgr.application.ui.pages.main_page import MainPage
 from autowsgr.application.ui.pages.map import MapPage, MapPanel
 from autowsgr.business.base import BaseExecutor
 from autowsgr.common.system.logger import get_logger
-from autowsgr.dispatch.registry import register
-from autowsgr.types import PageName
+from autowsgr.common.types import PageName
 
 
 if TYPE_CHECKING:
@@ -63,9 +62,6 @@ class ExpeditionCheckExecutor(BaseExecutor):
         _log.info('[Expedition] 远征检查完成, 收取 {} 个', collected)
         self._report('checked', collected=collected)
         return collected > 0
-
-
-register('expedition_check', ExpeditionCheckExecutor)
 
 
 def collect_expedition(ctx: GameContext) -> bool:

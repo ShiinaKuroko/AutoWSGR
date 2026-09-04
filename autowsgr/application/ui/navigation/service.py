@@ -12,8 +12,8 @@ from typing import TYPE_CHECKING
 from autowsgr.application.ui.navigation.graph import find_path
 from autowsgr.application.ui.navigation.registry import get_current_page, register_default_pages
 from autowsgr.common.system.logger import get_logger
+from autowsgr.common.types import PageName
 from autowsgr.common.ui.interaction import NavigationError
-from autowsgr.types import PageName
 
 
 if TYPE_CHECKING:

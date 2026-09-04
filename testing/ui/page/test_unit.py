@@ -7,18 +7,18 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 import pytest
 
-from autowsgr.infra.emulator import AndroidController
-from autowsgr.infra.ui.navigation.registry import (
+from autowsgr.application.ui.navigation.registry import (
     _OVERLAY_PAGES,
     _PAGE_REGISTRY,
     get_current_page,
     register_page,
 )
-from autowsgr.infra.ui.interaction import (
+from autowsgr.common.device import AndroidController
+from autowsgr.common.ui.interaction import (
     NavigationError,
     wait_for_page,
 )
-from autowsgr.infra.vision import PageMatch
+from autowsgr.common.vision import PageMatch
 
 
 _W, _H = 960, 540
@@ -171,7 +171,7 @@ class TestWaitForPage:
         screens = [_blank(), _blank(), _white()]
         ctrl.screenshot.side_effect = screens
 
-        with patch('autowsgr.infra.ui.interaction.navigation.time') as mock_time:
+        with patch('autowsgr.common.ui.interaction.navigation.time') as mock_time:
             mock_time.monotonic.return_value = 0.0
             mock_time.sleep = MagicMock()
 
@@ -194,7 +194,7 @@ class TestWaitForPage:
         ctrl.screenshot.return_value = _blank()
 
         # 模拟时间: 第一次 monotonic=0, deadline=0, 立即超时
-        with patch('autowsgr.infra.ui.interaction.navigation.time') as mock_time:
+        with patch('autowsgr.common.ui.interaction.navigation.time') as mock_time:
             call_count = 0
 
             def advancing_time() -> float:

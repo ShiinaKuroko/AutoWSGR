@@ -40,18 +40,18 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
 
 def run(rt: Any) -> bool:
     """执行奖励收取验证: 处理器路径 → 兼容层路径 → 锚点断言。"""
+    from autowsgr.application.ui.navigation import identify_current_page
     from autowsgr.business.logistics.reward import collect_rewards
-    from autowsgr.infra.ui.navigation import identify_current_page
+    from autowsgr.common.types import PageName
     from autowsgr.dispatch.processor import Processor, Request
-    from autowsgr.types import PageName
 
     ctx = rt.ctx
 
     # ── 阶段零 (可选): 初始化链路 + 每日浮层清理 ────────────────
     if rt.args.with_init:
+        from autowsgr.application.ui.pages.main_page import MainPage
+        from autowsgr.application.ui.pages.main_page.overlays import detect_overlay
         from autowsgr.business.system.initialize.initialize import initialize
-        from autowsgr.infra.ui.pages.main_page import MainPage
-        from autowsgr.infra.ui.pages.main_page.overlays import detect_overlay
 
         if rt.action('初始化 (任意状态 → 首页 + 清浮层)', initialize, ctx) is rt.FAILED:
             return False

@@ -24,9 +24,9 @@ import threading
 import time
 from typing import TYPE_CHECKING, Any
 
-from autowsgr.business.navigation import goto_page
-from autowsgr.dispatch.processor import TaskPaused, TaskStopped
-from autowsgr.types import PageName
+from autowsgr.application.ui.navigation import goto_page
+from autowsgr.common.contracts.task import TaskPaused, TaskStopped
+from autowsgr.common.types import PageName
 
 
 if TYPE_CHECKING:

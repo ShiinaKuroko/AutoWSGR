@@ -30,9 +30,9 @@ from autowsgr.common.calibration.exercise import (
     EXERCISE_SWIPE_TO_TOP,
 )
 from autowsgr.common.system.logger import get_logger
+from autowsgr.common.types import PageName
 from autowsgr.common.ui.interaction import click_and_wait_for_page
 from autowsgr.common.vision import PixelChecker
-from autowsgr.types import PageName
 
 
 if TYPE_CHECKING:

@@ -10,10 +10,10 @@ from __future__ import annotations
 import types
 from typing import TYPE_CHECKING
 
-from autowsgr.infra.combat import CombatResult
-from autowsgr.infra.runtime.context import GameContext, Ship
-from autowsgr.infra.runtime.context.bathroom import BathRoom
-from autowsgr.types import ConditionFlag, ShipDamageState
+from autowsgr.application.runtime.context import GameContext, Ship
+from autowsgr.application.runtime.context.bathroom import BathRoom
+from autowsgr.business.combat import CombatResult
+from autowsgr.common.types import ConditionFlag, ShipDamageState
 
 
 if TYPE_CHECKING:
@@ -88,7 +88,7 @@ def _patch_repair(monkeypatch: pytest.MonkeyPatch, fake_page: _FakeBathPage) -> 
 
 
 def test_named_repair_syncs_fleet_damage_snapshot(monkeypatch: pytest.MonkeyPatch) -> None:
-    import autowsgr.ops.repair as mod
+    import autowsgr.business.legacy_ops.repair as mod
 
     class _NamedRepairPage:
         def go_to_choose_repair(self) -> None:
@@ -113,7 +113,7 @@ def test_named_repair_syncs_fleet_damage_snapshot(monkeypatch: pytest.MonkeyPatc
 def test_automatic_repair_syncs_known_ship_damage_snapshot(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    import autowsgr.ops.repair as mod
+    import autowsgr.business.legacy_ops.repair as mod
 
     fake = _FakeBathPage([('测试舰', 120)])
     _patch_repair(monkeypatch, fake)
@@ -128,7 +128,7 @@ def test_automatic_repair_syncs_known_ship_damage_snapshot(
 
 
 def test_batch_repair_does_not_guess_ship_state(monkeypatch: pytest.MonkeyPatch) -> None:
-    import autowsgr.ops.repair as mod
+    import autowsgr.business.legacy_ops.repair as mod
 
     fake = _FakeBathPage([])
     _patch_repair(monkeypatch, fake)

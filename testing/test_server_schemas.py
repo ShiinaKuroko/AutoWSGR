@@ -4,15 +4,17 @@ import pytest
 from autowsgr_native.vessel_type import VesselType
 from pydantic import ValidationError
 
-from autowsgr.infra.combat import CombatPlan
-from autowsgr.infra.fleet import (
+from autowsgr.business.combat import CombatPlan
+from autowsgr.business.combat.fleet import (
     NATIVE_VESSEL_TYPE_BY_CODE,
     FleetSelectionSource,
     fleet_slot_from_api,
     ship_type_from_native,
 )
+from autowsgr.common.types import ShipType
 from autowsgr.server.schemas import (
     CombatPlanRequest,
+    ExerciseRequest,
     FleetRuleRequest,
     NodeDecisionRequest,
 )
@@ -21,7 +23,12 @@ from autowsgr.server.serializers import (
     build_combat_plan,
     build_fleet_selection,
 )
-from autowsgr.types import ShipType
+
+
+def test_exercise_request_restricts_fleet_id_to_four_fleets():
+    assert ExerciseRequest(fleet_id=4).fleet_id == 4
+    with pytest.raises(ValidationError):
+        ExerciseRequest(fleet_id=5)
 
 
 def test_new_fleet_rule_keeps_independent_candidates():

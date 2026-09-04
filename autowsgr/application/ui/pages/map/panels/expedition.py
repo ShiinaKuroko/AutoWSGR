@@ -12,10 +12,10 @@ from autowsgr.application.ui.pages.map.data import (
     EXPEDITION_SLOT_TOLERANCE,
 )
 from autowsgr.common.system.logger import get_logger
+from autowsgr.common.types import PageName
 from autowsgr.common.ui.interaction import confirm_operation, wait_for_page
 from autowsgr.common.vision import ImageChecker, PixelChecker
 from autowsgr.common.vision.resources import Templates
-from autowsgr.types import PageName
 
 
 if TYPE_CHECKING:

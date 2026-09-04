@@ -6,8 +6,10 @@ from pathlib import Path
 
 import pytest
 
+from autowsgr.business.combat import CombatMode
 from autowsgr.business.combat.exercise.spec import ExerciseSpec
-from autowsgr.infra.combat import CombatMode
+from autowsgr.common.system import load_yaml
+from autowsgr.common.types import Formation
 
 
 def _params() -> dict:
@@ -106,9 +108,7 @@ def test_exercise_spec_converts_team_rules() -> None:
     assert all(rule.primary.search_name == '炽热' for rule in rules if rule.primary is not None)
     assert all(rule.primary.ship_types for rule in rules if rule.primary is not None)
     assert all(
-        rule.primary.ship_types[0].name == 'AADG'
-        for rule in rules
-        if rule.primary is not None
+        rule.primary.ship_types[0].name == 'AADG' for rule in rules if rule.primary is not None
     )
     assert all(rule.primary.min_level == 100 for rule in rules if rule.primary is not None)
     assert all(rule.primary.relaxed_constraints is True for rule in rules if rule.primary)
@@ -123,9 +123,53 @@ def test_exercise_spec_converts_team_rules() -> None:
         '絮弗伦',
     ]
     assert all(
-        all(option.relaxed_constraints is False for option in rule.candidates)
-        for rule in rules
+        all(option.relaxed_constraints is False for option in rule.candidates) for rule in rules
     )
+
+
+def test_exercise_spec_converts_standard_fields() -> None:
+    spec = ExerciseSpec.from_params(
+        {
+            'task_type': 'exercise',
+            'fleet_id': 2,
+            'formation': 2,
+            'night': False,
+            'sl_when_failed': True,
+            'formation_strategy': 'fixed',
+            'enemy_rules': [],
+            'enemy_formation_rules': [],
+            'fleet': ['舰船A'],
+        },
+    )
+
+    assert spec.plan.default_node.formation is Formation.double_column
+    assert spec.plan.default_node.night is False
+    assert spec.plan.default_node.SL_when_spot_enemy_fails is True
+    assert spec.plan.default_node.SL_when_enter_fight is True
+    assert spec.formation_strategy == 'fixed'
+    assert spec.fleet_selection.plain_fleet == ('舰船A',)
+
+
+@pytest.mark.parametrize(
+    ('field', 'value'),
+    [
+        ('task_type', 'campaign'),
+        ('formation', 0),
+        ('formation', 6),
+        ('night', 'yes'),
+        ('sl_when_failed', 1),
+        ('formation_strategy', 'by_opponent'),
+    ],
+)
+def test_exercise_spec_rejects_invalid_standard_field(field: str, value: object) -> None:
+    params = {'fleet_id': 2, field: value}
+    with pytest.raises((TypeError, ValueError)):
+        ExerciseSpec.from_params(params)
+
+
+def test_exercise_spec_requires_fleet_id_for_standard_yaml() -> None:
+    with pytest.raises(ValueError, match='fleet_id'):
+        ExerciseSpec.from_params({'task_type': 'exercise'})
 
 
 def test_exercise_spec_rejects_bad_mode_and_unknown_field() -> None:
@@ -182,3 +226,11 @@ def test_exercise_spec_rejects_conflicting_or_oversized_fleet_sources() -> None:
 def test_exercise_fixture_is_yaml_compatible() -> None:
     path = Path(__file__).parents[3] / 'fixtures' / 'exercise_team2.yaml'
     assert path.is_file()
+    data = load_yaml(path)
+    spec = ExerciseSpec.from_params(data)
+
+    assert data['task_type'] == 'exercise'
+    assert data['fleet_id'] == 2
+    assert spec.plan.default_node.formation is Formation.double_column
+    assert spec.plan.default_node.night is False
+    assert spec.fleet_selection.plain_fleet == tuple(data['fleet'])

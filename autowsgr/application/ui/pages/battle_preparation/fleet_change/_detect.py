@@ -25,13 +25,13 @@ from autowsgr.common.calibration.choose_ship import (
     FLEET_SLOT_X_CENTERS,
     SHIP_FUZZY_THRESHOLD,
 )
+from autowsgr.common.constants import SHIPNAMES, normalize_ship_name, ship_name_identity
 from autowsgr.common.system.logger import get_logger
+from autowsgr.common.types import ShipDamageState, ShipType
 from autowsgr.common.vision.ocr import (
     _fuzzy_match,
     apply_ship_patches,
 )
-from autowsgr.constants import SHIPNAMES, normalize_ship_name, ship_name_identity
-from autowsgr.types import ShipDamageState, ShipType
 
 
 # 仅在类型检查时导入运行逻辑不需要的类型。

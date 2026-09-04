@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from autowsgr.infra.vision import ImageTemplate
+from autowsgr.common.vision import ImageTemplate
 
 
 def solid_screen(r: int, g: int, b: int, h: int = 540, w: int = 960) -> np.ndarray:

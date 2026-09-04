@@ -1,6 +1,6 @@
 """测试异常体系。"""
 
-from autowsgr.infra import (
+from autowsgr.common.system import (
     ActionFailedError,
     ImageNotFoundError,
     NavigationError,

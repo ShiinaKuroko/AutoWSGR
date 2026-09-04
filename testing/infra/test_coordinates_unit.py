@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import pytest
 
-from autowsgr.infra.ui.profile import coordinates
+from autowsgr.common.calibration import coordinates
 
 
 class TestPoint:

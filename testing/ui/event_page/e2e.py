@@ -56,7 +56,7 @@ from testing.ui._framework import (
 
 
 if TYPE_CHECKING:
-    from autowsgr.infra.emulator import AndroidController
+    from autowsgr.common.device import AndroidController
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -66,10 +66,10 @@ if TYPE_CHECKING:
 
 def run_test(runner: UIControllerTestRunner) -> None:
     """执行活动地图页面控制器完整测试序列。"""
-    from autowsgr.infra.runtime.context import GameContext
-    from autowsgr.infra import UserConfig
-    from autowsgr.ui.event.event_page import BaseEventPage
-    from autowsgr.ui.main_page import MainPage
+    from autowsgr.application.runtime.context import GameContext
+    from autowsgr.application.ui.legacy.event.event_page import BaseEventPage
+    from autowsgr.application.ui.legacy.main_page import MainPage
+    from autowsgr.common.system import UserConfig
 
     ctx = GameContext(ctrl=runner.ctrl, config=UserConfig())
     event_page = BaseEventPage(ctx)
@@ -184,9 +184,9 @@ def _try_enter_node(event_page: object, node_id: int) -> None:
 
 def _navigate_to(ctrl: AndroidController, pause: float) -> None:
     """从任意已知页面导航到活动地图页面。"""
-    from autowsgr.infra.runtime.context import GameContext
-    from autowsgr.infra import UserConfig
-    from autowsgr.ui.main_page import MainPage
+    from autowsgr.application.runtime.context import GameContext
+    from autowsgr.application.ui.legacy.main_page import MainPage
+    from autowsgr.common.system import UserConfig
 
     if not reset_to_main_page(ctrl, pause):
         return
@@ -214,7 +214,7 @@ def main() -> None:
 
     logger.info('=== 活动地图页面 e2e 测试开始 ===')
 
-    from autowsgr.ui.event.event_page import BaseEventPage
+    from autowsgr.application.ui.legacy.event.event_page import BaseEventPage
 
     if not ensure_page(
         ctrl,

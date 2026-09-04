@@ -18,10 +18,10 @@ from unittest.mock import MagicMock, call
 import numpy as np
 import pytest
 
-from autowsgr.infra.combat import handlers as handlers_mod
-from autowsgr.infra.combat.engine.state import CombatPhase
-from autowsgr.infra.combat.handlers import PhaseHandlersMixin
-from autowsgr.infra.combat.history import CombatEvent, CombatHistory, EventType
+from autowsgr.application.combat.engine.state import CombatPhase
+from autowsgr.business.combat import handlers as handlers_mod
+from autowsgr.business.combat.handlers import PhaseHandlersMixin
+from autowsgr.business.combat.history import CombatEvent, CombatHistory, EventType
 
 
 class _Host(PhaseHandlersMixin):
@@ -62,7 +62,7 @@ def _make_host(
 
 @pytest.fixture(autouse=True)
 def _no_sleep(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr('autowsgr.infra.combat.handlers.time.sleep', lambda *_: None)
+    monkeypatch.setattr('autowsgr.business.combat.handlers.time.sleep', lambda *_: None)
 
 
 class TestClickResultUntilClosed:
@@ -102,7 +102,7 @@ class TestClickResultUntilClosed:
 
     def test_clicks_result_coordinate(self):
         """点击坐标来自 combat 校准资源。"""
-        from autowsgr.infra.ui.profile.coordinates import point
+        from autowsgr.common.calibration.coordinates import point
 
         host, device, _ = _make_host([CombatPhase.PROCEED])
         host._click_result_until_closed(CombatPhase.GET_SHIP)

@@ -3,9 +3,9 @@
 使用第 1 舰队自动挑战所有可用对手。
 """
 
-# 已迁移到新方法: 演习执行器兼容入口 (原 autowsgr.ops.ExerciseRunner)
+# 已迁移到新方法: 演习执行器兼容入口 (原 autowsgr.business.legacy_ops.ExerciseRunner)
 from autowsgr.business.combat.exercise import ExerciseRunner
-from autowsgr.scheduler import launch
+from autowsgr.dispatch.legacy_scheduler import launch
 
 
 # 1. 启动

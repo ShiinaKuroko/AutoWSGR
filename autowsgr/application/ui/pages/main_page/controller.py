@@ -8,9 +8,9 @@ import time
 from typing import TYPE_CHECKING
 
 from autowsgr.common.system.logger import get_logger
+from autowsgr.common.types import PageName
 from autowsgr.common.vision import ImageChecker, PageMatch, PixelChecker
 from autowsgr.common.vision.resources import Templates
-from autowsgr.types import PageName
 
 from .constants import (
     NavCoord,

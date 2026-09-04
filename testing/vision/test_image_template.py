@@ -5,7 +5,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from autowsgr.infra.vision import (
+from autowsgr.common.vision import (
     ImageMatchDetail,
     ImageMatchResult,
     ImageTemplate,

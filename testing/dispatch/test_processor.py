@@ -86,6 +86,14 @@ def test_request_from_yaml_drops_only_legacy_single_times(tmp_path: Path) -> Non
         Request.from_yaml(path)
 
 
+def test_request_from_yaml_requires_exercise_fleet_id(tmp_path: Path) -> None:
+    path = tmp_path / 'exercise.yaml'
+    path.write_text('task_type: exercise\n', encoding='utf-8')
+
+    with pytest.raises(ValueError, match='fleet_id'):
+        Request.from_yaml(path)
+
+
 def test_request_from_yaml_keeps_task_ship_name_aliases(tmp_path: Path) -> None:
     path = tmp_path / 'exercise.yaml'
     path.write_text('task_type: exercise\nfleet_id: 2\n', encoding='utf-8')
@@ -187,8 +195,8 @@ def test_processor_stops_count_after_terminal_executor_event(
 
 
 def test_processor_scopes_task_ship_name_aliases(monkeypatch: pytest.MonkeyPatch) -> None:
-    from autowsgr.constants import SHIPNAMES
-    from autowsgr.infra.vision.ocr_rules import set_user_ship_name_aliases
+    from autowsgr.common.constants import SHIPNAMES
+    from autowsgr.common.vision.ocr_rules import set_user_ship_name_aliases
 
     set_user_ship_name_aliases({})
     seen: list[bool] = []

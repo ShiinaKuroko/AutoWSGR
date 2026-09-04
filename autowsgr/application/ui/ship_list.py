@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 
+from autowsgr.common.types import ShipType
 from autowsgr.common.vision.ship_list import (  # noqa: F401
     LEGACY_HEIGHT,
     LEGACY_LIST_WIDTH,
@@ -16,7 +17,6 @@ from autowsgr.common.vision.ship_list import (  # noqa: F401
     recognize_ships_in_list,
     to_legacy_format,
 )
-from autowsgr.types import ShipType
 
 
 def extract_ship_type_from_text(text: str) -> ShipType | None:

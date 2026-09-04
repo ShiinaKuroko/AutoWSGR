@@ -1,4 +1,4 @@
-"""Tests for autowsgr.infra.vision.matcher — pixel-based detection engine."""
+"""Tests for autowsgr.common.vision.matcher — pixel-based detection engine."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from typing import ClassVar
 import numpy as np
 import pytest
 
-from autowsgr.infra.vision import (
+from autowsgr.common.vision import (
     Color,
     MatchStrategy,
     PixelChecker,

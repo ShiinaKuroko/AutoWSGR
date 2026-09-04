@@ -40,7 +40,7 @@ async def system_start(request: SystemStartRequest) -> ApiResponse:
             return ApiResponse(success=True, message='系统已启动')
 
         try:
-            from autowsgr.scheduler import launch
+            from autowsgr.dispatch.legacy_scheduler import launch
 
             config_path = request.config_path or 'usersettings.yaml'
             _log.info('[System] 正在启动, 配置: {}', config_path)

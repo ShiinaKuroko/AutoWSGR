@@ -34,12 +34,12 @@ from testing.ui._framework import (
 
 
 if TYPE_CHECKING:
-    from autowsgr.infra.emulator import AndroidController
+    from autowsgr.common.device import AndroidController
 
 
 def run_test(runner: UIControllerTestRunner) -> None:
-    from autowsgr.ui.backyard_page import BackyardPage
-    from autowsgr.ui.bath_page import BathPage
+    from autowsgr.application.ui.legacy.backyard_page import BackyardPage
+    from autowsgr.application.ui.legacy.bath_page import BathPage
 
     bath_page = BathPage(runner.ctrl)
 
@@ -64,8 +64,8 @@ def _navigate_to(ctrl: AndroidController, pause: float) -> None:
     """从任意已知页面导航到浴室页面。"""
     import time
 
-    from autowsgr.ui.backyard_page import BackyardPage
-    from autowsgr.ui.main_page import MainPage
+    from autowsgr.application.ui.legacy.backyard_page import BackyardPage
+    from autowsgr.application.ui.legacy.main_page import MainPage
 
     if not reset_to_main_page(ctrl, pause):
         return
@@ -89,7 +89,7 @@ def main() -> None:
     from loguru import logger
 
     logger.info('=== 浴室页面 e2e 测试开始 ===')
-    from autowsgr.ui.bath_page import BathPage
+    from autowsgr.application.ui.legacy.bath_page import BathPage
 
     if not ensure_page(
         ctrl,

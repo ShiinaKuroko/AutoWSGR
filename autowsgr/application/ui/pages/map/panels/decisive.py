@@ -7,8 +7,8 @@ import time
 from autowsgr.application.ui.pages.map.base import BaseMapPage
 from autowsgr.application.ui.pages.map.data import CLICK_ENTER_DECISIVE, MapPanel
 from autowsgr.common.system.logger import get_logger
+from autowsgr.common.types import PageName
 from autowsgr.common.ui.interaction import click_and_wait_for_page
-from autowsgr.types import PageName
 
 
 _log = get_logger('ui')

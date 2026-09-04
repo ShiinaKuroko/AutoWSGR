@@ -25,7 +25,7 @@ from collections import deque
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
-from autowsgr.types import PageName
+from autowsgr.common.types import PageName
 
 
 if TYPE_CHECKING:

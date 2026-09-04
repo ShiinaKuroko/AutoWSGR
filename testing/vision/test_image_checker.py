@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from autowsgr.infra.vision import (
+from autowsgr.common.vision import (
     ROI,
     ImageChecker,
     ImageRule,
@@ -363,7 +363,7 @@ class TestMultiResolutionScaling:
         # 模板采集自 1080p: 60x80 像素 → 在 540p 下应缩放为 30x40
         rng = np.random.RandomState(81)
         big_img = rng.randint(0, 256, (60, 80, 3), dtype=np.uint8)
-        from autowsgr.infra.vision import ImageTemplate
+        from autowsgr.common.vision import ImageTemplate
 
         tmpl_1080 = ImageTemplate(
             name='hd_tmpl',
@@ -394,7 +394,7 @@ class TestMultiResolutionScaling:
         # 模板采集自 540p: 30x40 像素 → 在 1080p 下应缩放为 60x80
         rng = np.random.RandomState(82)
         small_img = rng.randint(0, 256, (30, 40, 3), dtype=np.uint8)
-        from autowsgr.infra.vision import ImageTemplate
+        from autowsgr.common.vision import ImageTemplate
 
         tmpl_540 = ImageTemplate(
             name='ld_tmpl',
@@ -417,7 +417,7 @@ class TestMultiResolutionScaling:
         import cv2
         import numpy as np
 
-        from autowsgr.infra.vision import ImageTemplate
+        from autowsgr.common.vision import ImageTemplate
 
         # 1280x720 截图
         screen = solid_screen(200, 200, 200, h=720, w=1280)

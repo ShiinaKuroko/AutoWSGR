@@ -22,6 +22,7 @@ from typing import TYPE_CHECKING, ClassVar
 import cv2
 import easyocr
 
+from autowsgr.common.constants import SHIPNAMES, normalize_ship_name
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.vision.ocr_rules import (
     EasyOCRProfile,
@@ -31,7 +32,6 @@ from autowsgr.common.vision.ocr_rules import (
     get_easyocr_params,
     get_fastocr_params,
 )
-from autowsgr.constants import SHIPNAMES, normalize_ship_name
 
 
 if TYPE_CHECKING:

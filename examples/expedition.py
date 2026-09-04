@@ -5,12 +5,12 @@
 
 import time
 
-# 已迁移到新方法: 原 autowsgr.ops 聚合导出 (collect_expedition/collect_rewards/repair_in_bath)
+# 已迁移到新方法: 原 autowsgr.business.legacy_ops 聚合导出 (collect_expedition/collect_rewards/repair_in_bath)
 from autowsgr.business.logistics.expedition import collect_expedition
 from autowsgr.business.logistics.repair.bath_repair import repair_in_bath
 from autowsgr.business.logistics.reward import collect_rewards
-from autowsgr.infra.system.logger import get_logger
-from autowsgr.scheduler import launch
+from autowsgr.common.system.logger import get_logger
+from autowsgr.dispatch.legacy_scheduler import launch
 
 
 _log = get_logger('expedition_example')

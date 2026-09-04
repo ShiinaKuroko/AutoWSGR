@@ -25,7 +25,7 @@ from autowsgr.business.combat.fleet import FleetPreset, fleet_presets_from_yaml
 from autowsgr.business.combat.rules import RuleEngine
 from autowsgr.common.system import NodeConfig, load_yaml
 from autowsgr.common.system.logger import get_logger
-from autowsgr.types import FightCondition, Formation, RepairMode
+from autowsgr.common.types import FightCondition, Formation, RepairMode
 
 
 _log = get_logger('combat')
@@ -345,7 +345,7 @@ class CombatPlan:
                 grade: S   # F 点要求 S 胜 (>= S)
 
         配置后: ① 自动启用慢速结算采集 (:attr:`collect_result_info` 派生为
-        ``True``); ② 触发器 (:class:`~autowsgr.scheduler.triggers.NormalFightTrigger`)
+        ``True``); ② 触发器 (:class:`~autowsgr.dispatch.legacy_scheduler.triggers.NormalFightTrigger`)
         按条件判定本次战斗是否计入次数 (所有配置 grade 的节点全部达标)。
         空元组 (默认) 无条件, 每场成功即计数, 走快速穿行。
         """

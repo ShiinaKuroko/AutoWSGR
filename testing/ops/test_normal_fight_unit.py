@@ -13,19 +13,19 @@ from unittest.mock import MagicMock
 import numpy as np
 import pytest
 
-import autowsgr.ops.normal_fight as normal_fight_module
-from autowsgr.infra import ActionFailedError
-from autowsgr.infra.combat import CombatMode, CombatPlan, CombatResult
-from autowsgr.infra.fleet import (
+import autowsgr.business.legacy_ops.normal_fight as normal_fight_module
+from autowsgr.application.ui.legacy.battle.fleet_change._detect import FleetSnapshot
+from autowsgr.business.combat import CombatMode, CombatPlan, CombatResult
+from autowsgr.business.combat.fleet import (
     FleetSelectionSource,
     FleetSlotRule,
     ShipSelector,
     exact_fleet_rules,
     resolve_fleet_selection,
 )
-from autowsgr.ops.normal_fight import NormalFightRunner, _require_fleet_change
-from autowsgr.types import ConditionFlag, PageName, ShipDamageState, ShipType
-from autowsgr.ui.battle.fleet_change._detect import FleetSnapshot
+from autowsgr.business.legacy_ops.normal_fight import NormalFightRunner, _require_fleet_change
+from autowsgr.common.system import ActionFailedError
+from autowsgr.common.types import ConditionFlag, PageName, ShipDamageState, ShipType
 
 
 if TYPE_CHECKING:
@@ -218,7 +218,7 @@ class TestFleetSelectionCallChain:
         assert runner._fleet_selection.plain_fleet == ('岛风',)
 
     def test_event_runner_constructor_keeps_legacy_fleet_arguments(self):
-        from autowsgr.ops.event_fight import EventFightRunner
+        from autowsgr.business.legacy_ops.event_fight import EventFightRunner
 
         plan = CombatPlan.from_dict({'chapter': 'H', 'map': '1a', 'fleet': ['岛风']})
         runner = EventFightRunner(_make_ctx(), plan, fleet_id=2)
@@ -330,7 +330,7 @@ class TestFleetSelectionCallChain:
         monkeypatch: pytest.MonkeyPatch,
     ):
         """Runner uses the real fleet orchestration before the battle boundary."""
-        from autowsgr.ui.battle.preparation import BattlePreparationPage
+        from autowsgr.application.ui.legacy.battle.preparation import BattlePreparationPage
 
         ctrl = MagicMock()
         ctrl.screenshot.return_value = np.zeros((100, 100, 3), dtype=np.uint8)
@@ -432,7 +432,7 @@ class TestEventFightRunnerCompat:
     """EventFightRunner 兼容薄包装委托 NormalFightRunner。"""
 
     def test_inherits_normal_runner(self):
-        from autowsgr.ops.event_fight import EventFightRunner
+        from autowsgr.business.legacy_ops.event_fight import EventFightRunner
 
         plan = CombatPlan.from_dict({'event': '20260730', 'chapter': 'H', 'map': '1a'})
         runner = EventFightRunner(_make_ctx(), plan, resolve_fleet_selection(plan))
@@ -441,7 +441,7 @@ class TestEventFightRunnerCompat:
         assert runner._map_code == 'H1'
 
     def test_entrance_override(self):
-        from autowsgr.ops.event_fight import EventFightRunner
+        from autowsgr.business.legacy_ops.event_fight import EventFightRunner
 
         plan = CombatPlan.from_dict({'event': '20260730', 'chapter': 'H', 'map': '1a'})
         runner = EventFightRunner(
@@ -472,7 +472,7 @@ class TestDockFullDialogRoute:
 
     def test_destroy_success_marks_destroyed_keeps_flag(self, monkeypatch: pytest.MonkeyPatch):
         """解装成功 → 置 dock_full_destroyed, flag 保持 DOCK_FULL (未开打不翻成功标志)。"""
-        import autowsgr.ops.destroy as destroy_module
+        import autowsgr.business.legacy_ops.destroy as destroy_module
 
         calls: list[bool] = []
         monkeypatch.setattr(
@@ -491,7 +491,7 @@ class TestDockFullDialogRoute:
 
     def test_destroy_exhausted_whitelist_keeps_flag(self, monkeypatch: pytest.MonkeyPatch):
         """白名单覆盖全部舰种 → 无可解装对象 → 保持 DOCK_FULL。"""
-        import autowsgr.ops.destroy as destroy_module
+        import autowsgr.business.legacy_ops.destroy as destroy_module
 
         monkeypatch.setattr(destroy_module, 'destroy_ships_auto', lambda _ctx, **_k: False)
 
@@ -503,8 +503,8 @@ class TestDockFullDialogRoute:
 
     def test_nav_error_falls_back_to_main(self, monkeypatch: pytest.MonkeyPatch):
         """直达解装导航失败 → 回退主页面恢复已知态, 保持 DOCK_FULL。"""
-        import autowsgr.ops.destroy as destroy_module
-        from autowsgr.infra.ui.interaction import NavigationError
+        import autowsgr.business.legacy_ops.destroy as destroy_module
+        from autowsgr.common.ui.interaction import NavigationError
 
         def _raise(_ctx: object, **_k: object) -> None:
             raise NavigationError('弹窗直达解装失败')
@@ -603,7 +603,7 @@ class TestSkipCheckLifecycle:
 
     def test_mid_fight_error_resets_skip_check(self, monkeypatch: pytest.MonkeyPatch):
         """中途异常 (导航超时等) → 下一轮恢复完整检查 (实机 log 场景回归)。"""
-        from autowsgr.infra.ui.interaction import NavigationError
+        from autowsgr.common.ui.interaction import NavigationError
 
         runner = self._make_runner()
         runner._skip_check = True  # 模拟上一轮成功

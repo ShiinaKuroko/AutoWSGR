@@ -4,9 +4,9 @@
 需根据自己的舰船配置修改 level1 / level2 / flagship_priority。
 """
 
-from autowsgr.infra import DecisiveConfig
-from autowsgr.ops import DecisiveController
-from autowsgr.scheduler import launch
+from autowsgr.business.legacy_ops import DecisiveController
+from autowsgr.common.system import DecisiveConfig
+from autowsgr.dispatch.legacy_scheduler import launch
 
 
 """

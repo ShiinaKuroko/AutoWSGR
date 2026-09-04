@@ -1,6 +1,6 @@
 """native 舰种公共契约测试。"""
 
-from autowsgr.contracts.vessel_types import (
+from autowsgr.common.contracts.vessel_types import (
     FLEET_VESSEL_TYPE_BY_CODE,
     FLEET_VESSEL_TYPES,
     fleet_vessel_type_contract,

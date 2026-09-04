@@ -90,7 +90,7 @@ def _print_pixel_info(screen: np.ndarray, rx: float, ry: float) -> None:
 
 def capture_screenshot(config_path: str = 'usersettings.yaml') -> np.ndarray:
     """连接模拟器并截图。"""
-    from autowsgr.scheduler import Launcher
+    from autowsgr.dispatch.legacy_scheduler import Launcher
 
     print('连接模拟器...')
     launcher = Launcher(config_path)
@@ -103,18 +103,20 @@ def capture_screenshot(config_path: str = 'usersettings.yaml') -> np.ndarray:
 
 def check_page_signatures(screen: np.ndarray, page_name: str | None = None) -> None:
     """检查当前截图匹配哪些页面签名。"""
-    from autowsgr.infra.vision import PixelChecker
+    from autowsgr.common.vision import PixelChecker
 
     # 收集所有已知的页面签名
     known_pages = {}
     try:
-        from autowsgr.ui.decisive.battle_page import PAGE_SIGNATURE as DECISIVE_SIG
+        from autowsgr.application.ui.legacy.decisive.battle_page import (
+            PAGE_SIGNATURE as DECISIVE_SIG,
+        )
 
         known_pages['decisive_battle'] = DECISIVE_SIG
     except ImportError:
         pass
     try:
-        from autowsgr.ui.main_page import PAGE_SIGNATURE as MAIN_SIG
+        from autowsgr.application.ui.legacy.main_page import PAGE_SIGNATURE as MAIN_SIG
 
         known_pages['main'] = MAIN_SIG
     except ImportError:
@@ -143,7 +145,7 @@ def run_ocr_on_roi(
     out_dir: Path = DEFAULT_OUTPUT_DIR,
 ) -> None:
     """对指定 ROI 区域执行 OCR 测试。"""
-    from autowsgr.infra.vision import EasyOCREngine
+    from autowsgr.common.vision import EasyOCREngine
 
     x1, y1, x2, y2 = roi
     cropped = _crop(screen, x1, y1, x2, y2)

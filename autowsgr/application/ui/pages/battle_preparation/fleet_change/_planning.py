@@ -9,8 +9,8 @@ from __future__ import annotations
 from functools import cache
 from typing import TYPE_CHECKING
 
+from autowsgr.common.constants import normalize_ship_name, ship_name_identity
 from autowsgr.common.system.logger import get_logger
-from autowsgr.constants import normalize_ship_name, ship_name_identity
 
 from ._rules import FleetRuleMixin
 

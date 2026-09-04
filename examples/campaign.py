@@ -3,8 +3,8 @@
 执行 3 次困难航母战役。
 """
 
-from autowsgr.ops import CampaignRunner
-from autowsgr.scheduler import launch
+from autowsgr.business.legacy_ops import CampaignRunner
+from autowsgr.dispatch.legacy_scheduler import launch
 
 
 # 1. 启动

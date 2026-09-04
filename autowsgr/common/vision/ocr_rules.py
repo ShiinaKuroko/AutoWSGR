@@ -15,7 +15,7 @@
    ``No.xxx`` 同船名称列表。
 4. 特殊分隔符：只在有实机日志证明某个符号被稳定误读时，
    增加一个范围明确的正则；不要统一删除 ``/``、``-``、``·``。
-5. 舰名后缀：统一由 ``autowsgr.constants.normalize_ship_name`` 处理。
+5. 舰名后缀：统一由 ``autowsgr.common.constants.normalize_ship_name`` 处理。
    修改规则时必须补充真实舰名不受影响的测试。
 6. 等级字符：在 ``LEVEL_DIGIT_TRANSLATION`` 中增加
    ``'OCR 字符': '数字'``，并把该字符加入 ``LEVEL_OCR_ALLOWLIST``；
@@ -32,18 +32,18 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import TYPE_CHECKING
 
-from autowsgr.common.system.logger import get_logger
-from autowsgr.constants import (
+from autowsgr.common.constants import (
     expand_ship_name_candidates as expand_group_candidates,
 )
-from autowsgr.constants import (
+from autowsgr.common.constants import (
     get_active_ship_name_aliases,
     get_ship_name_group_id,
     normalize_ship_name,
     set_ship_name_aliases,
 )
-from autowsgr.constants import ship_name_aliases_scope as _ship_name_aliases_scope
-from autowsgr.types import ShipType
+from autowsgr.common.constants import ship_name_aliases_scope as _ship_name_aliases_scope
+from autowsgr.common.system.logger import get_logger
+from autowsgr.common.types import ShipType
 
 
 if TYPE_CHECKING:
@@ -172,7 +172,7 @@ LEVEL_SHORT_PATTERN = re.compile(r'[Ll][\.:]?\s*([0-9ILilOoDdSsBb]{1,6})')
 
 def set_user_ship_name_corrections(corrections: Mapping[str, str]) -> int:
     """加载有效用户规则，跳过目标不在 SHIPNAMES 中的条目。"""
-    from autowsgr.constants import SHIPNAMES
+    from autowsgr.common.constants import SHIPNAMES
 
     valid_names = set(SHIPNAMES)
     loaded: dict[str, str] = {}
@@ -193,7 +193,7 @@ def set_user_ship_name_corrections(corrections: Mapping[str, str]) -> int:
 
 def set_user_ship_name_aliases(aliases: Mapping[str, str]) -> int:
     """加载用户舰名别名，跳过标准名错误或重复登记的条目。"""
-    from autowsgr.constants import SHIPNAMES
+    from autowsgr.common.constants import SHIPNAMES
 
     set_ship_name_aliases({})
     valid_names = set(SHIPNAMES)

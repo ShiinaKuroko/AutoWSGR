@@ -16,7 +16,7 @@ from autowsgr.common.ui.combat import click_image, dismiss_resource_confirm
 
 if TYPE_CHECKING:
     from autowsgr.common.device import AndroidController
-    from autowsgr.types import FightCondition, Formation
+    from autowsgr.common.types import FightCondition, Formation
 
 
 _log = get_logger('combat')

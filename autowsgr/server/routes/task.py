@@ -245,6 +245,7 @@ def _processor_details(
 ) -> list[dict[str, Any]]:
     """将一次 Processor 结果转换成 GUI 需要的扁平轮次记录。"""
     from autowsgr.business.combat import CombatResult
+    from autowsgr.business.combat.decisive import DecisiveResult
 
     if isinstance(raw, list):
         details: list[dict[str, Any]] = []
@@ -269,6 +270,15 @@ def _processor_details(
         if include_flag:
             detail['result'] = raw.flag.value
         return [detail]
+    if isinstance(raw, DecisiveResult):
+        return [
+            {
+                'round': first_round,
+                'success': raw is not DecisiveResult.ERROR,
+                'result': raw.value,
+                **({'error': '决战异常退出'} if raw is DecisiveResult.ERROR else {}),
+            },
+        ]
     if isinstance(raw, dict):
         detail = dict(raw)
         detail.setdefault('round', first_round)
@@ -285,7 +295,7 @@ def _processor_details(
 async def _start_normal_fight(ctx: Any, request: NormalFightRequest) -> ApiResponse:
     """启动常规战任务。"""
     from autowsgr.business.combat import CombatPlan
-    from autowsgr.ops import run_normal_fight
+    from autowsgr.business.legacy_ops import run_normal_fight
 
     def executor(_task_info: Any) -> TaskOutcome:
         results = []
@@ -329,7 +339,7 @@ async def _start_normal_fight(ctx: Any, request: NormalFightRequest) -> ApiRespo
 async def _start_event_fight(ctx: Any, request: EventFightRequest) -> ApiResponse:
     """启动活动战任务。"""
     from autowsgr.business.combat import CombatPlan
-    from autowsgr.ops import run_event_fight
+    from autowsgr.business.legacy_ops import run_event_fight
 
     def executor(_task_info: Any) -> TaskOutcome:
         results = []
@@ -404,51 +414,22 @@ async def _start_exercise(ctx: Any, request: ExerciseRequest) -> ApiResponse:
 
 
 async def _start_decisive(ctx: Any, request: DecisiveRequest) -> ApiResponse:
-    """启动决战任务。"""
-    from autowsgr.common.system import DecisiveConfig
-    from autowsgr.ops import DecisiveController
-
-    def executor(_task_info: Any) -> TaskOutcome:
-        config = DecisiveConfig(
-            chapter=request.chapter,
-            decisive_rounds=request.decisive_rounds,
-            use_new_fleet_change_algorithm=request.use_new_fleet_change_algorithm,
-            level1=request.level1,
-            level2=request.level2,
-            flagship_priority=request.flagship_priority,
-            use_quick_repair=request.use_quick_repair,
-        )
-
-        controller = DecisiveController(ctx, config)
-        results: list[dict[str, Any]] = []
-        task_error: str | None = None
-
-        try:
-            for i in range(request.decisive_rounds):
-                if task_manager.should_stop():
-                    break
-
-                task_manager.update_progress(current_round=i + 1, current_node='决战')
-                _log.info('[Task] 决战第 {}/{} 轮', i + 1, request.decisive_rounds)
-                result = controller.run()
-                is_error = result.value == 'error'
-                converted = {
-                    'round': i + 1,
-                    'success': not is_error,
-                    'result': result.value,
-                }
-                if is_error:
-                    task_error = '决战异常退出'
-                    converted['error'] = task_error
-                results.append(converted)
-                task_manager.add_result(converted)
-
-                if result.value in {'leave', 'error'}:
-                    _log.warning('[Task] 决战第 {} 轮终止: {}', i + 1, result.value)
-                    break
-        except Exception as e:
-            results.append({'round': len(results) + 1, 'success': False, 'error': str(e)})
-
-        return TaskOutcome.from_results(results, error=task_error)
-
-    return _start_task('decisive', request.decisive_rounds, executor)
+    """把决战请求交给 Processor 执行。"""
+    task_request = Request(
+        source='gui',
+        task_type='decisive',
+        params={
+            'chapter': request.chapter,
+            'use_new_fleet_change_algorithm': request.use_new_fleet_change_algorithm,
+            'level1': request.level1,
+            'level2': request.level2,
+            'flagship_priority': request.flagship_priority,
+            'use_quick_repair': request.use_quick_repair,
+        },
+        count=request.decisive_rounds,
+    )
+    return _start_task(
+        task_request.task_type,
+        task_request.count,
+        lambda _task_info: _run_processor_request(ctx, task_request),
+    )

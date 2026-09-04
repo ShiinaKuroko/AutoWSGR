@@ -25,7 +25,7 @@ from autowsgr.common.system.logger import get_logger
 if TYPE_CHECKING:
     import numpy as np
 
-    from autowsgr.types import PageName
+    from autowsgr.common.types import PageName
 
 
 _log = get_logger('ui')

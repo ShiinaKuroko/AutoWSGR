@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
     from autowsgr.application.ui.fleet import FleetSlotRule, ShipSelector
-    from autowsgr.types import ShipType
+    from autowsgr.common.types import ShipType
 
 _log = get_logger('ui.preparation')
 
@@ -25,7 +25,7 @@ class CampaignFleetChangeMixin(FleetChangeMixin):
     def change_fleet(
         self,
         fleet_id: int | None,
-        ship_names: Sequence[FleetSlotRule],
+        ship_names: Sequence[FleetSlotRule | str | None],
         *,
         task_type: str = 'normal',
         reset_fleet: bool = True,
@@ -33,7 +33,12 @@ class CampaignFleetChangeMixin(FleetChangeMixin):
         recognize_ship_types: bool = True,
     ) -> bool:
         if task_type != 'campaign':
-            return super().change_fleet(fleet_id, ship_names, on_event=on_event)
+            return super().change_fleet(
+                fleet_id,
+                ship_names,
+                task_type=task_type,
+                on_event=on_event,
+            )
         if len(ship_names) > 6:
             raise ValueError('战役编队最多包含 6 个槽位')
         if fleet_id is not None and self.get_selected_fleet(self._ctrl.screenshot()) != fleet_id:

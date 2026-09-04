@@ -279,7 +279,7 @@ class ExerciseRequest(BaseModel):
     """演习请求。"""
 
     type: Literal[TaskType.EXERCISE] = TaskType.EXERCISE
-    fleet_id: int = Field(default=1, ge=1, le=6)
+    fleet_id: int = Field(default=1, ge=1, le=4)
 
     model_config = {'extra': 'forbid'}
 

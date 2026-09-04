@@ -25,8 +25,8 @@ from autowsgr.application.ui.pages.decisive.overlay import (
     SHIP_NAME_Y_RANGE,
 )
 from autowsgr.common.system.logger import get_logger
+from autowsgr.common.types import FleetSelection
 from autowsgr.common.vision import ROI, OCREngine
-from autowsgr.types import FleetSelection
 
 
 if TYPE_CHECKING:

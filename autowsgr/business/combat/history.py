@@ -13,7 +13,7 @@ from enum import Enum, auto
 from typing import TYPE_CHECKING, Any
 
 from autowsgr.common.system.logger import get_logger
-from autowsgr.types import ConditionFlag, ShipDamageState
+from autowsgr.common.types import ConditionFlag, ShipDamageState
 
 
 if TYPE_CHECKING:

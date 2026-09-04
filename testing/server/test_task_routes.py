@@ -10,11 +10,12 @@ from typing import TYPE_CHECKING, Any
 import pytest
 from fastapi import HTTPException
 
-import autowsgr.ops.normal_fight as normal_fight_module
+import autowsgr.business.legacy_ops.normal_fight as normal_fight_module
 from autowsgr import ops
+from autowsgr.business.combat import CombatPlan, CombatResult
+from autowsgr.business.combat.fleet import FleetSelectionSource, ResolvedFleetSelection
+from autowsgr.common.types import ConditionFlag, ShipType
 from autowsgr.dispatch import Request
-from autowsgr.infra.combat import CombatPlan, CombatResult
-from autowsgr.infra.fleet import FleetSelectionSource, ResolvedFleetSelection
 from autowsgr.server import main as server_main
 from autowsgr.server.device_lease import DeviceOperationBusyError
 from autowsgr.server.routes import task
@@ -32,7 +33,6 @@ from autowsgr.server.schemas import (
     TaskStatusResponse,
     YamlTaskRequest,
 )
-from autowsgr.types import ConditionFlag, ShipType
 
 
 if TYPE_CHECKING:
@@ -300,8 +300,8 @@ def test_processor_exercise_with_no_rivals_is_a_successful_skip(
 
 
 def test_processor_result_list_keeps_inner_failure() -> None:
+    from autowsgr.common.types import ConditionFlag
     from autowsgr.server.task_manager import TaskOutcome
-    from autowsgr.types import ConditionFlag
 
     details = task._processor_details(
         [
@@ -415,19 +415,22 @@ def test_decisive_error_result_marks_task_failed(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """A decisive ERROR is a task failure, not a successful completed round."""
-    from autowsgr import ops
-    from autowsgr.ops import DecisiveResult
+    from autowsgr.business.combat.decisive import DecisiveResult
 
-    class ErrorController:
-        def __init__(self, _ctx: object, _config: object) -> None:
-            pass
+    class ProcessorStub:
+        def __init__(self, _ctx: object, **_kwargs: object) -> None:
+            self.request: Request | None = None
 
-        def run(self) -> DecisiveResult:
-            return DecisiveResult.ERROR
+        def submit(self, request: Request) -> None:
+            self.request = request
+
+        def run_pending(self) -> list[tuple[str, Request, DecisiveResult]]:
+            assert self.request is not None
+            return [('done', self.request, DecisiveResult.ERROR)]
 
     manager = _ExecutingTaskManager()
     monkeypatch.setattr(task, 'task_manager', manager)
-    monkeypatch.setattr(ops, 'DecisiveController', ErrorController)
+    monkeypatch.setattr(task, 'Processor', ProcessorStub)
 
     asyncio.run(task._start_decisive(object(), DecisiveRequest()))
 
@@ -448,19 +451,22 @@ def test_decisive_leave_result_remains_successful(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """An intentional decisive leave remains a successful terminal result."""
-    from autowsgr import ops
-    from autowsgr.ops import DecisiveResult
+    from autowsgr.business.combat.decisive import DecisiveResult
 
-    class LeaveController:
-        def __init__(self, _ctx: object, _config: object) -> None:
-            pass
+    class ProcessorStub:
+        def __init__(self, _ctx: object, **_kwargs: object) -> None:
+            self.request: Request | None = None
 
-        def run(self) -> DecisiveResult:
-            return DecisiveResult.LEAVE
+        def submit(self, request: Request) -> None:
+            self.request = request
+
+        def run_pending(self) -> list[tuple[str, Request, DecisiveResult]]:
+            assert self.request is not None
+            return [('done', self.request, DecisiveResult.LEAVE)]
 
     manager = _ExecutingTaskManager()
     monkeypatch.setattr(task, 'task_manager', manager)
-    monkeypatch.setattr(ops, 'DecisiveController', LeaveController)
+    monkeypatch.setattr(task, 'Processor', ProcessorStub)
 
     asyncio.run(task._start_decisive(object(), DecisiveRequest()))
 

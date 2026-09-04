@@ -20,6 +20,7 @@ from autowsgr.common.vision import (
     ImageChecker,
     ImageTemplate,
     MatchStrategy,
+    PixelChecker,
     PixelRule,
     PixelSignature,
 )
@@ -230,7 +231,7 @@ def detect_decisive_overlay(screen: np.ndarray) -> DecisiveOverlay | None:
 
 def is_decisive_map_page(screen: np.ndarray) -> bool:
     """截图是否为决战地图页 (无 overlay 遮挡)。"""
-    return ImageChecker.template_exists(screen, Templates.Decisive.MAP_PAGE, confidence=0.85)
+    return PixelChecker.check_signature(screen, SIG_MAP_PAGE).matched
 
 
 def is_fleet_acquisition(screen: np.ndarray) -> bool:

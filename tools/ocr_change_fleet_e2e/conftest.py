@@ -17,11 +17,11 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from autowsgr.infra.emulator.detector import list_adb_devices
-from autowsgr.infra import ConfigManager
+from autowsgr.common.device.detector import list_adb_devices
+from autowsgr.common.system import ConfigManager
 
 if TYPE_CHECKING:
-    from autowsgr.infra.runtime.context import GameContext
+    from autowsgr.application.runtime.context import GameContext
 
 
 def pytest_addoption(parser: pytest.Parser) -> None:
@@ -62,7 +62,7 @@ def game_ctx(request: pytest.FixtureRequest) -> Iterator[GameContext]:
     if not ok:
         pytest.skip(message)
 
-    from autowsgr.scheduler.launcher import launch
+    from autowsgr.application.runtime.launcher import launch
 
     ctx = launch(config_path)
     yield ctx

@@ -15,7 +15,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from autowsgr.types import PageName
+from autowsgr.common.types import PageName
 
 
 _TODAY = date(2026, 8, 8)
@@ -177,7 +177,7 @@ class TestInitialize:
     def test_restart_limit_prevents_infinite_loop(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """页面识别不出 + 导航失败 → SL 重启一次；仍失败 → 抛异常。"""
         from autowsgr.business.system.initialize import initialize
-        from autowsgr.infra.ui.interaction import NavigationError
+        from autowsgr.common.ui.interaction import NavigationError
 
         ctx = _make_ctx()
 

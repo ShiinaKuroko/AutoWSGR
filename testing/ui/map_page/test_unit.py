@@ -6,14 +6,14 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from autowsgr.infra.runtime.context import GameContext
-from autowsgr.infra.emulator import AndroidController
-from autowsgr.ui.map import (
+from autowsgr.application.runtime.context import GameContext
+from autowsgr.application.ui.legacy.map import (
     CHAPTER_MAP_COUNTS,
     MAP_DATABASE,
     MapPage,
     parse_map_title,
 )
+from autowsgr.common.device import AndroidController
 
 
 # ─────────────────────────────────────────────

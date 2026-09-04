@@ -13,11 +13,15 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from autowsgr.infra.combat import CombatResult
-from autowsgr.infra.runtime.context import GameContext
-from autowsgr.scheduler.scheduler import BatchRunnerAdapter, FightTask, TaskScheduler
-from autowsgr.scheduler.triggers import NormalFightPlan, NormalFightTrigger
-from autowsgr.types import ConditionFlag
+from autowsgr.application.runtime.context import GameContext
+from autowsgr.business.combat import CombatResult
+from autowsgr.common.types import ConditionFlag
+from autowsgr.dispatch.legacy_scheduler.scheduler import (
+    BatchRunnerAdapter,
+    FightTask,
+    TaskScheduler,
+)
+from autowsgr.dispatch.legacy_scheduler.triggers import NormalFightPlan, NormalFightTrigger
 
 
 # ── 假 runner ──
@@ -79,7 +83,7 @@ def test_ensure_main_page_clean_calls_daily_overlay_handler(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """调度器将当前上下文交给每日浮层处理入口。"""
-    from autowsgr.ops import startup
+    from autowsgr.business.legacy_ops import startup
 
     handler = MagicMock()
     monkeypatch.setattr(startup, 'handle_daily_overlays', handler)
@@ -95,8 +99,8 @@ def test_ensure_main_page_clean_does_not_interrupt_scheduler(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """浮层识别异常只记录警告，不能中断后续任务。"""
-    import autowsgr.scheduler.scheduler as scheduler_module
-    from autowsgr.ops import startup
+    import autowsgr.dispatch.legacy_scheduler.scheduler as scheduler_module
+    from autowsgr.business.legacy_ops import startup
 
     handler = MagicMock(side_effect=RuntimeError('截图失败'))
     logger = MagicMock()
@@ -134,7 +138,7 @@ def test_run_daily_checks_overlays_while_queue_is_idle(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """长期挂机队列为空时检查浮层，并在停止信号到达后退出。"""
-    import autowsgr.scheduler.scheduler as scheduler_module
+    import autowsgr.dispatch.legacy_scheduler.scheduler as scheduler_module
 
     ctx = _FakeCtx()
     sched = TaskScheduler(ctx, expedition_interval=0, idle_sleep=0)  # type: ignore[arg-type]
@@ -279,7 +283,7 @@ def test_run_task_concatenates_results_from_repeated_batches(
 
 def test_bath_repair_priority_after_all_combat():
     """浴室修理优先级 > 所有战斗任务, 还原 classic '所有战斗 (含常规战) 完成后才修船'。"""
-    from autowsgr.scheduler.daily_plan import (
+    from autowsgr.dispatch.legacy_scheduler.daily_plan import (
         PRIO_BATH_REPAIR,
         PRIO_BONUS,
         PRIO_CAMPAIGN,
@@ -314,8 +318,8 @@ def test_bath_repair_queues_behind_normal_fight():
 
 def test_starvation_warned_when_infinite_normal_fight_no_limits():
     """无限常规战 (times=None) + 停止上限全关 + 启用浴室修理 → 应告警。"""
-    from autowsgr.infra.system.config import DailyAutomationConfig
-    from autowsgr.scheduler.daily_plan import _bath_repair_starved_by_normal_fight
+    from autowsgr.common.system.config import DailyAutomationConfig
+    from autowsgr.dispatch.legacy_scheduler.daily_plan import _bath_repair_starved_by_normal_fight
 
     cfg = DailyAutomationConfig(
         auto_bath_repair=True,
@@ -327,8 +331,8 @@ def test_starvation_warned_when_infinite_normal_fight_no_limits():
 
 def test_starvation_not_warned_when_times_set():
     """常规战设了 times (有限) → 不会饿死浴室修理, 不告警。"""
-    from autowsgr.infra.system.config import DailyAutomationConfig
-    from autowsgr.scheduler.daily_plan import _bath_repair_starved_by_normal_fight
+    from autowsgr.common.system.config import DailyAutomationConfig
+    from autowsgr.dispatch.legacy_scheduler.daily_plan import _bath_repair_starved_by_normal_fight
 
     cfg = DailyAutomationConfig(
         auto_bath_repair=True,
@@ -340,8 +344,8 @@ def test_starvation_not_warned_when_times_set():
 
 def test_starvation_not_warned_when_stop_limit_enabled():
     """开启任一停止上限 → 常规战终会耗尽让位, 不告警。"""
-    from autowsgr.infra.system.config import DailyAutomationConfig
-    from autowsgr.scheduler.daily_plan import _bath_repair_starved_by_normal_fight
+    from autowsgr.common.system.config import DailyAutomationConfig
+    from autowsgr.dispatch.legacy_scheduler.daily_plan import _bath_repair_starved_by_normal_fight
 
     cfg = DailyAutomationConfig(
         auto_bath_repair=True,
@@ -354,8 +358,8 @@ def test_starvation_not_warned_when_stop_limit_enabled():
 
 def test_starvation_not_warned_when_bath_repair_off():
     """未启用浴室修理 → 无所谓饿死, 不告警。"""
-    from autowsgr.infra.system.config import DailyAutomationConfig
-    from autowsgr.scheduler.daily_plan import _bath_repair_starved_by_normal_fight
+    from autowsgr.common.system.config import DailyAutomationConfig
+    from autowsgr.dispatch.legacy_scheduler.daily_plan import _bath_repair_starved_by_normal_fight
 
     cfg = DailyAutomationConfig(
         auto_bath_repair=False,
@@ -428,7 +432,7 @@ def test_sync_initial_counts_skipped_when_da_none():
 
 def test_sync_initial_counts_disables_normal_fight_on_failure():
     """校准抛异常 → 不降级, 直接禁用 NormalFightTrigger 并提示 (不阻塞主循环)。"""
-    from autowsgr.scheduler.triggers import NormalFightPlan, NormalFightTrigger
+    from autowsgr.dispatch.legacy_scheduler.triggers import NormalFightPlan, NormalFightTrigger
 
     def boom() -> None:
         raise RuntimeError('OCR 不可用')
@@ -476,9 +480,9 @@ class _FakeSortiePage:
 
 def _patch_ctx_sortie(monkeypatch: pytest.MonkeyPatch, page: _FakeSortiePage) -> None:
     """替换 ctx.sync_daily_drop_counts 的设备依赖 (goto_page / MapPage / sleep) 为 no-op。"""
-    import autowsgr.infra.runtime.context.game_context as gc_mod
-    import autowsgr.infra.ui.navigation as nav_mod
-    import autowsgr.ui as ui_mod
+    import autowsgr.application.runtime.context.game_context as gc_mod
+    import autowsgr.application.ui.legacy as ui_mod
+    import autowsgr.application.ui.navigation as nav_mod
 
     # 已迁移到新方法: goto_page 现在来自 business.system.navigate
     monkeypatch.setattr(nav_mod, 'goto_page', lambda *_a, **_kw: None)
@@ -556,7 +560,7 @@ def test_ctx_sync_drop_counts_skips_loot_when_stop_max_loot_off(monkeypatch: pyt
 
 def test_normal_fight_trigger_disable_stops_production():
     """disable() 后 should_fire 永远返回 None。"""
-    from autowsgr.scheduler.triggers import NormalFightPlan, NormalFightTrigger
+    from autowsgr.dispatch.legacy_scheduler.triggers import NormalFightPlan, NormalFightTrigger
 
     plan = NormalFightPlan(factory=lambda _c: object(), name='x', fleet_id=1)
     ctx = _ctx_with_da(None)
@@ -570,7 +574,7 @@ def test_normal_fight_trigger_disable_stops_production():
 
 def test_normal_fight_trigger_disable_survives_reset():
     """reset() (跨日) 不清除禁用 (OCR 可用性不跨日变化)。"""
-    from autowsgr.scheduler.triggers import NormalFightPlan, NormalFightTrigger
+    from autowsgr.dispatch.legacy_scheduler.triggers import NormalFightPlan, NormalFightTrigger
 
     plan = NormalFightPlan(factory=lambda _c: object(), name='x', fleet_id=1)
     ctx = _ctx_with_da(None)
@@ -587,7 +591,7 @@ def test_normal_fight_trigger_disable_survives_reset():
 
 def _fight_result(node: str, grade: str) -> CombatResult:
     """构造一场成功战斗: flag=SUCCESS + 单节点战果。"""
-    from autowsgr.infra.combat.history import CombatEvent, EventType
+    from autowsgr.business.combat.history import CombatEvent, EventType
 
     result = CombatResult(flag=ConditionFlag.OPERATION_SUCCESS)
     result.history.add(CombatEvent(event_type=EventType.RESULT, node=node, result=grade))
@@ -611,7 +615,7 @@ def _make_normal_trigger(
 
 def test_normal_fight_trigger_counts_condition_met():
     """conditions 计划: 达标场次计数, 打满 target 后停止产出。"""
-    from autowsgr.infra.combat import GradeCondition
+    from autowsgr.business.combat import GradeCondition
 
     trigger, plan = _make_normal_trigger(
         conditions=(GradeCondition(node='F', grade='S'),),
@@ -629,7 +633,7 @@ def test_normal_fight_trigger_counts_condition_met():
 
 def test_normal_fight_trigger_condition_not_met_not_counted():
     """conditions 计划: 不达标场次 (评级不足) 不计数, 触发器继续产出。"""
-    from autowsgr.infra.combat import GradeCondition
+    from autowsgr.business.combat import GradeCondition
 
     trigger, plan = _make_normal_trigger(conditions=(GradeCondition(node='F', grade='S'),))
     ctx = _ctx_with_da(None)
@@ -688,10 +692,10 @@ def test_run_task_dock_full_resolved_round_does_not_consume_times(
 
 def test_register_normal_fight_passes_condition(monkeypatch: pytest.MonkeyPatch):
     """daily_plan: CombatPlan.condition 镜像到 NormalFightPlan (触发器按条件计数)。"""
-    from autowsgr.infra.combat import CombatPlan, GradeCondition
-    from autowsgr.infra.system.config import DailyAutomationConfig
-    from autowsgr.ops import normal_fight as nf_mod
-    from autowsgr.scheduler.daily_plan import _register_normal_fight
+    from autowsgr.business.combat import CombatPlan, GradeCondition
+    from autowsgr.business.legacy_ops import normal_fight as nf_mod
+    from autowsgr.common.system.config import DailyAutomationConfig
+    from autowsgr.dispatch.legacy_scheduler.daily_plan import _register_normal_fight
 
     plan = CombatPlan.from_dict({'node_args': {'F': {'grade': 'S'}}})
     monkeypatch.setattr(nf_mod, 'get_normal_fight_plan', lambda *_a, **_k: plan)

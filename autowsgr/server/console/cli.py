@@ -6,8 +6,8 @@ import argparse
 import sys
 from pathlib import Path
 
+from autowsgr.application.runtime.launcher import Launcher
 from autowsgr.dispatch import Processor, Request
-from autowsgr.scheduler.launcher import Launcher
 
 
 def build_parser() -> argparse.ArgumentParser:

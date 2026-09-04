@@ -15,7 +15,7 @@ from autowsgr.business.combat.fleet import (
     resolve_fleet_selection,
 )
 from autowsgr.business.combat.plan import CombatMode, CombatPlan
-from autowsgr.types import Formation, RepairMode, ShipType
+from autowsgr.common.types import Formation, RepairMode, ShipType
 
 
 CAMPAIGN_NAMES: dict[int, str] = {
@@ -49,7 +49,6 @@ CAMPAIGN_FIELDS = frozenset(
         'schema_version',
         'chapter',
         'map',
-        'fleet_id',
         'fleet',
         'fleet_rules',
         'fleet_presets',
@@ -113,8 +112,6 @@ class CampaignSpec:
         if raw_mode is not None and raw_mode != CombatMode.BATTLE:
             raise ValueError('战役 YAML 的 mode 必须为 battle')
         data['mode'] = CombatMode.BATTLE
-        data.setdefault('fleet_id', 1)
-        _validate_fleet_id(data['fleet_id'])
         data.setdefault('repair_mode', RepairMode.moderate_damage.value)
 
         raw_defaults = data.get('node_defaults')
@@ -148,7 +145,7 @@ class CampaignSpec:
             )
         except (TypeError, ValueError) as exc:
             raise ValueError(f'战役 YAML 字段校验失败: {exc}') from exc
-        selection = resolve_fleet_selection(plan, fleet_id=plan.fleet_id)
+        selection = resolve_fleet_selection(plan)
         required_ship_types = CAMPAIGN_FLEET_TYPES.get(map_index) if difficulty == 'hard' else None
         skip_ship_type_validation = difficulty == 'hard' and map_index == 1
         if required_ship_types and (
@@ -168,11 +165,6 @@ class CampaignSpec:
             required_ship_types=required_ship_types,
             skip_ship_type_validation=skip_ship_type_validation,
         )
-
-
-def _validate_fleet_id(value: object) -> None:
-    if isinstance(value, bool) or not isinstance(value, int) or not 1 <= value <= 4:
-        raise ValueError('战役字段 fleet_id 必须在 1-4 范围内')
 
 
 def _validate_fleet_sources(params: Mapping[str, Any]) -> None:

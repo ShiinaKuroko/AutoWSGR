@@ -6,7 +6,28 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from autowsgr.infra.combat.engine.plan import (
+from autowsgr.application.combat.engine.state import (
+    CombatPhase,
+    ModeCategory,
+    build_transitions,
+    resolve_successors,
+)
+from autowsgr.application.combat.node_tracker import (
+    MapNodeData,
+    NodePosition,
+    NodeTracker,
+    _resolve_event_map_path,
+)
+from autowsgr.business.combat.fleet import FleetSlotRule, ShipSelector
+from autowsgr.business.combat.history import (
+    CombatEvent,
+    CombatHistory,
+    CombatResult,
+    EventType,
+    FightResult,
+    grade_condition_met,
+)
+from autowsgr.business.combat.plan import (
     _MODE_SPECS,
     MODE_TRANSITIONS,
     CombatMode,
@@ -15,27 +36,7 @@ from autowsgr.infra.combat.engine.plan import (
     NodeDecision,
     parse_map_value,
 )
-from autowsgr.infra.combat.engine.state import (
-    CombatPhase,
-    ModeCategory,
-    build_transitions,
-    resolve_successors,
-)
-from autowsgr.infra.combat.history import (
-    CombatEvent,
-    CombatHistory,
-    CombatResult,
-    EventType,
-    FightResult,
-    grade_condition_met,
-)
-from autowsgr.infra.combat.node_tracker import (
-    MapNodeData,
-    NodePosition,
-    NodeTracker,
-    _resolve_event_map_path,
-)
-from autowsgr.infra.combat.rules import (
+from autowsgr.business.combat.rules import (
     Condition,
     Rule,
     RuleAction,
@@ -44,8 +45,7 @@ from autowsgr.infra.combat.rules import (
     _parse_legacy_condition,
     check_blood,
 )
-from autowsgr.infra.fleet import FleetSlotRule, ShipSelector
-from autowsgr.types import Formation, RepairMode, ShipDamageState, ShipType
+from autowsgr.common.types import Formation, RepairMode, ShipDamageState, ShipType
 
 
 if TYPE_CHECKING:

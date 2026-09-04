@@ -7,10 +7,9 @@ from typing import TYPE_CHECKING, Any
 from autowsgr.application.ui.pages.battle_preparation import BattlePreparationPage, RepairStrategy
 from autowsgr.application.ui.pages.map import MapPage, MapPanel
 from autowsgr.business.combat.fleet import exact_fleet_rules
-from autowsgr.business.navigation import goto_page
 from autowsgr.common.system.logger import get_logger
-from autowsgr.common.ui.interaction import NavigationError, wait_leave_page
-from autowsgr.types import PageName, RepairMode, ShipDamageState
+from autowsgr.common.types import RepairMode, ShipDamageState
+from autowsgr.common.ui.interaction import NavigationError
 
 
 if TYPE_CHECKING:
@@ -41,8 +40,7 @@ class CampaignOperations:
         self._save_progress = save_progress or (lambda _data: None)
 
     def enter_campaign(self, spec: CampaignSpec) -> None:
-        """从当前页面进入指定战役的出征准备页。"""
-        goto_page(self.ctx, PageName.MAP)
+        """从地图页进入指定战役的出征准备页。"""
         page = MapPage(self.ctx)
         page.ensure_panel(MapPanel.BATTLE)
         self._report('panel_ready', campaign=spec.campaign_name)
@@ -64,18 +62,15 @@ class CampaignOperations:
         page = BattlePreparationPage(self.ctx)
 
         selection = spec.fleet_selection
-        self._report('formation_entered', fleet_id=selection.fleet_id)
+        self._report('formation_entered')
         self._wait(0)
         slot_rules = selection.slot_rules
         if slot_rules is None and selection.plain_fleet is not None:
             slot_rules = exact_fleet_rules(selection.plain_fleet)
         if slot_rules is not None:
-            _log.info(
-                '[Campaign] 战役队伍加载：使用队伍 {}、编队配置加载成功',
-                selection.fleet_id,
-            )
+            _log.info('[Campaign] 战役队伍加载：编队配置加载成功')
             if not page.change_fleet(
-                selection.fleet_id,
+                None,
                 slot_rules,
                 task_type='campaign',
                 reset_fleet=reset_fleet,
@@ -85,25 +80,15 @@ class CampaignOperations:
                 raise RuntimeError('战役编队未满足任务规则')
             self._report('fleet_ready', members=page.last_changed_fleet)
         elif spec.required_ship_types is not None:
-            page.select_fleet(selection.fleet_id)
-            self._wait(0.5)
             if not page.validate_campaign_fleet(
                 spec.required_ship_types,
                 validate_types=not spec.skip_ship_type_validation,
             ):
                 raise RuntimeError('当前舰队不满足困难战役舰种和数量限制')
-            _log.info(
-                '[Campaign] 战役队伍加载：使用队伍 {}、未配置编队，沿用当前队伍',
-                selection.fleet_id,
-            )
+            _log.info('[Campaign] 战役队伍加载：未配置编队，沿用当前队伍')
             self._report('fleet_ready')
         else:
-            page.select_fleet(selection.fleet_id)
-            self._wait(0.5)
-            _log.info(
-                '[Campaign] 战役队伍加载：使用队伍 {}、未配置编队，沿用当前队伍',
-                selection.fleet_id,
-            )
+            _log.info('[Campaign] 战役队伍加载：未配置编队，沿用当前队伍')
             self._report('fleet_ready')
 
         strategy = _repair_strategy(spec.plan.repair_mode)
@@ -135,16 +120,7 @@ class CampaignOperations:
     def start_battle(self, page: BattlePreparationPage) -> bool:
         """点击出征并探测是否离开准备页。"""
         for attempt in range(2):
-            page.start_battle()
-            screen = wait_leave_page(
-                self.ctx.ctrl,
-                checker=BattlePreparationPage.is_current_page,
-                timeout=1.5,
-                source=PageName.BATTLE_PREP,
-                target='campaign combat',
-                probe=True,
-            )
-            if screen is not None:
+            if page.try_start_battle(target='campaign combat'):
                 _log.info('[Campaign] 战役战斗开始')
                 self._report('battle_started')
                 return True

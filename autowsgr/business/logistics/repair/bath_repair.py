@@ -23,7 +23,7 @@ from typing import TYPE_CHECKING
 from autowsgr.application.ui.navigation import goto_page
 from autowsgr.application.ui.pages.bath_page import BathPage
 from autowsgr.common.system.logger import get_logger
-from autowsgr.types import PageName, ShipDamageState
+from autowsgr.common.types import PageName, ShipDamageState
 
 
 if TYPE_CHECKING:
@@ -98,7 +98,7 @@ def repair_one_available(
 ) -> bool:
     """有空闲修理槽时, 派修直到填满所有空闲槽或无可修舰船 (调度入口)。
 
-    由 ``auto_daily`` 调度器以 :class:`~autowsgr.scheduler.triggers.TimerTrigger`
+    由 ``auto_daily`` 调度器以 :class:`~autowsgr.dispatch.legacy_scheduler.triggers.TimerTrigger`
     周期产出, 经优先级队列在所有战斗任务 (战役/演习/常规战) 完成后才执行
     (空闲修船, 见 ``daily_plan.PRIO_BATH_REPAIR``)。流程:
 

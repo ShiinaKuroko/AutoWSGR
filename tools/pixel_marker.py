@@ -45,7 +45,7 @@ sys.path.insert(0, str(_ROOT))
 if TYPE_CHECKING:
     import numpy as np
 
-    from autowsgr.infra.emulator import ScrcpyController
+    from autowsgr.common.device import ScrcpyController
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -332,7 +332,7 @@ class PixelMarkerApp:
         if not serial:
             # 自动检测可用模拟器
             try:
-                from autowsgr.infra.emulator import detect_emulators, prompt_user_select
+                from autowsgr.common.device import detect_emulators, prompt_user_select
 
                 candidates = detect_emulators()
                 if not candidates:
@@ -368,8 +368,8 @@ class PixelMarkerApp:
                 return False
 
         try:
-            from autowsgr.infra.emulator import ScrcpyController
-            from autowsgr.infra import setup_logger
+            from autowsgr.common.device import ScrcpyController
+            from autowsgr.common.system import setup_logger
 
             setup_logger(level='ERROR')
 

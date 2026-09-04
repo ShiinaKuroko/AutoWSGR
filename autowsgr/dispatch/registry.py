@@ -1,9 +1,4 @@
-"""执行器注册表 — task_type → 执行器类。
-
-业务模块 import 时调用 :func:`register` 自注册; 处理器按 task_type 构造执行器。
-``_TASK_MODULES`` 声明 task_type → 业务模块路径, 首次使用时延迟 import
-(避免 dispatch ↔ business 的循环依赖, 也让进程只加载用到的业务)。
-"""
+"""执行器注册表 — task_type → 执行器类。"""
 
 from __future__ import annotations
 
@@ -19,24 +14,20 @@ if TYPE_CHECKING:
     from autowsgr.business.base import BaseExecutor
 
 
-# task_type → 执行器所在的业务模块 (首次使用时延迟 import 并自注册)
-_TASK_MODULES: dict[str, str] = {
-    'campaign': 'autowsgr.business.combat.campaign',
-    'exercise': 'autowsgr.business.combat.exercise',
-    'expedition_check': 'autowsgr.business.logistics.expedition',
-    'reward_check': 'autowsgr.business.logistics.reward',
+# task_type → (业务执行器模块, 类名)。只在真正执行时加载业务包。
+_TASK_MODULES: dict[str, tuple[str, str]] = {
+    'campaign': ('autowsgr.business.combat.campaign.executor', 'CampaignExecutor'),
+    'decisive': ('autowsgr.business.combat.decisive.executor', 'DecisiveExecutor'),
+    'exercise': ('autowsgr.business.combat.exercise.executor', 'ExerciseExecutor'),
+    'expedition_check': (
+        'autowsgr.business.logistics.expedition',
+        'ExpeditionCheckExecutor',
+    ),
+    'reward_check': ('autowsgr.business.logistics.reward', 'RewardCheckExecutor'),
 }
 
-# 已加载的执行器类 (业务模块 import 时通过 register() 填充)
+# 已加载的执行器类。
 _EXECUTORS: dict[str, type[BaseExecutor]] = {}
-
-
-def register(task_type: str, executor_cls: type[BaseExecutor]) -> None:
-    """注册执行器类 (业务模块 import 时调用)。"""
-    if task_type in _EXECUTORS:
-        msg = f'执行器已注册: {task_type}'
-        raise ValueError(msg)
-    _EXECUTORS[task_type] = executor_cls
 
 
 def build_executor(
@@ -49,14 +40,22 @@ def build_executor(
     progress: dict | None = None,
     on_event: Callable[..., None] | None = None,
 ) -> BaseExecutor:
-    """按 task_type 构造执行器 (未加载的业务模块在此延迟 import)。"""
+    """按 task_type 构造执行器，业务模块按需延迟加载。"""
     if task_type not in _EXECUTORS:
-        module = _TASK_MODULES.get(task_type)
-        if module is None:
+        target = _TASK_MODULES.get(task_type)
+        if target is None:
             available = ', '.join(sorted({*_EXECUTORS, *_TASK_MODULES})) or '(空)'
             msg = f'未注册的链路: {task_type} (可用: {available})'
             raise KeyError(msg)
-        importlib.import_module(module)  # 触发该模块的 register()
+        module_name, class_name = target
+        module = importlib.import_module(module_name)
+        try:
+            executor_cls = getattr(module, class_name)
+        except AttributeError as exc:
+            raise TypeError(f'执行器模块缺少 {class_name}: {module_name}') from exc
+        if not isinstance(executor_cls, type):
+            raise TypeError(f'执行器不是类: {module_name}.{class_name}')
+        _EXECUTORS[task_type] = executor_cls
     return _EXECUTORS[task_type](
         ctx,
         params,

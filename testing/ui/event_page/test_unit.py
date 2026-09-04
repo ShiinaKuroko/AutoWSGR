@@ -14,16 +14,16 @@ from unittest.mock import MagicMock, call
 import numpy as np
 import pytest
 
-from autowsgr.infra.system.exceptions import ActionFailedError
-from autowsgr.types import PageName
-from autowsgr.ui.event.event_page import (
+from autowsgr.application.ui.legacy.event.event_page import (
     CLICK_BACK,
     CLICK_CLOSE_NODE_OVERLAY,
     NODE_POSITIONS_BY_EVENT,
     BaseEventPage,
     _get_fight_button_templates,
 )
-from autowsgr.infra.vision import ImageMatchDetail
+from autowsgr.common.system.exceptions import ActionFailedError
+from autowsgr.common.types import PageName
+from autowsgr.common.vision import ImageMatchDetail
 
 
 def _gradient_screen(lo: int = 80, hi: int = 180) -> np.ndarray:
@@ -53,7 +53,9 @@ def _make_page() -> tuple[BaseEventPage, MagicMock]:
 @pytest.fixture(autouse=True)
 def _no_sleep(monkeypatch: pytest.MonkeyPatch) -> None:
     """屏蔽真实 sleep, 加速 _enter_node/go_back 的等待循环。"""
-    monkeypatch.setattr('autowsgr.ui.event.event_page.time.sleep', lambda *_: None)
+    monkeypatch.setattr(
+        'autowsgr.application.ui.legacy.event.event_page.time.sleep', lambda *_: None
+    )
 
 
 def _mock_fight_button(
@@ -102,7 +104,7 @@ class TestIsCurrentPage:
             '_difficulty_icon_state',
             staticmethod(MagicMock(return_value=None)),
         )
-        from autowsgr.ui.event import event_page as ep
+        from autowsgr.application.ui.legacy.event import event_page as ep
 
         monkeypatch.setattr(
             ep,
@@ -178,7 +180,8 @@ class TestGoBack:
         """已在主页面 → 直接返回, 不点击。"""
         page, ctrl = _make_page()
         monkeypatch.setattr(
-            'autowsgr.ui.main_page.MainPage.is_current_page', MagicMock(return_value=True)
+            'autowsgr.application.ui.legacy.main_page.MainPage.is_current_page',
+            MagicMock(return_value=True),
         )
 
         page.go_back()
@@ -194,7 +197,7 @@ class TestGoBack:
         ctrl.screenshot.side_effect = [frame, frame, main_frame]
         _mock_fight_button(monkeypatch, [_button_detail(), None])
         monkeypatch.setattr(
-            'autowsgr.ui.main_page.MainPage.is_current_page',
+            'autowsgr.application.ui.legacy.main_page.MainPage.is_current_page',
             MagicMock(side_effect=[False, False, True]),
         )
 
@@ -214,7 +217,7 @@ class TestGoBack:
         ctrl.screenshot.side_effect = [frame, main_frame]
         _mock_fight_button(monkeypatch, [None])
         monkeypatch.setattr(
-            'autowsgr.ui.main_page.MainPage.is_current_page',
+            'autowsgr.application.ui.legacy.main_page.MainPage.is_current_page',
             MagicMock(side_effect=[False, True]),
         )
 
@@ -226,19 +229,20 @@ class TestGoBack:
         """始终不在主页且无浮层 → 15s 超时 → NavigationError。"""
         from itertools import count
 
-        from autowsgr.infra.ui.interaction import NavigationError
+        from autowsgr.common.ui.interaction import NavigationError
 
         page, ctrl = _make_page()
         ctrl.screenshot.return_value = _gradient_screen()
         monkeypatch.setattr(
-            'autowsgr.ui.main_page.MainPage.is_current_page', MagicMock(return_value=False)
+            'autowsgr.application.ui.legacy.main_page.MainPage.is_current_page',
+            MagicMock(return_value=False),
         )
         monkeypatch.setattr(
             BaseEventPage, '_fight_button_detail', staticmethod(MagicMock(return_value=None))
         )
         # time.sleep 已被 _no_sleep 屏蔽; mock monotonic 递增驱动超时
         monkeypatch.setattr(
-            'autowsgr.ui.event.event_page.time.monotonic',
+            'autowsgr.application.ui.legacy.event.event_page.time.monotonic',
             MagicMock(side_effect=count(0, 1)),
         )
 

@@ -80,7 +80,7 @@ class Decisive:
 
     @classmethod
     def entry_status_templates(cls) -> list[ImageTemplate]:
-        """按 :class:`~autowsgr.types.DecisiveEntryStatus` 枚举顺序返回入口状态模板列表。
+        """按 :class:`~autowsgr.common.types.DecisiveEntryStatus` 枚举顺序返回入口状态模板列表。
 
         索引 0-3 分别对应 CANT_FIGHT / CHALLENGING / REFRESHED / REFRESH。
         """

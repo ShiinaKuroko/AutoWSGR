@@ -81,10 +81,8 @@
   独立 `backend` 目录; 简单功能不得拆散到多个目录。
 - 执行器基类: `autowsgr/business/base.py` (`BaseExecutor`)。
 - 处理器: `autowsgr/dispatch/processor.py` (`Processor` / `Request` / `TaskPaused`)。
-- 注册表: `autowsgr/dispatch/registry.py` — `task_type → 执行器类`,
-  业务模块 import 时调用 `register()` 自注册;
-  `_TASK_MODULES` 声明 task_type → 模块路径, **延迟 import**
-  (避免 dispatch ↔ business 循环依赖)。
+- 注册表: `autowsgr/dispatch/registry.py` — 显式维护
+  `task_type → (模块, 类名)`，按需延迟 import；业务模块不在 import 时修改调度状态。
 - YAML 驱动: `Request.from_yaml(path)` 解析计划 YAML
   (`task_type` 字段确定链路, 其余字段全部作为 params)。
 - YAML 路径请求可额外携带 `ship_name_aliases`（自定义名 -> 标准舰名）；映射
@@ -110,7 +108,7 @@
 |------|------|------|
 | `autowsgr/business/base.py` | `BaseExecutor`: `_wait` 断点 / `_check_pause` 暂停协议 / `_report` 事件上报 | 完成 |
 | `autowsgr/dispatch/processor.py` | `Processor` (优先级队列 + `interrupt()` 加急 + `run_pending()`) / `Request` (含 `from_yaml`) / `TaskPaused` | 完成 |
-| `autowsgr/dispatch/registry.py` | `register()` / `build_executor()` 延迟导入 / `registered_names()`; 已注册: `exercise`, `expedition_check`, `reward_check` | 完成 |
+| `autowsgr/dispatch/registry.py` | 显式 task_type 映射、`build_executor()` 延迟导入、`registered_names()` | 完成 |
 | `autowsgr/business/combat/exercise/executor.py` | `ExerciseExecutor` (见 3.2) | 完成 |
 | `autowsgr/business/logistics/expedition.py` | `ExpeditionCheckExecutor`: 主页 → 有通知则 MAP 远征面板收取 → 回主页 | 完成 |
 | `autowsgr/business/logistics/reward.py` | `RewardCheckExecutor` (见 3.6) + 兼容层 `collect_rewards` (auto_daily 调用方式不变) | 完成 |
@@ -228,11 +226,11 @@ python tools/e2e/run.py --with-ocr exercise --yaml <路径>
   `dismiss_reward_popup` / `CLICK_CONFIRM_CENTER` / `confirm_center` 死代码。
   实机 E2E 11/11 PASS, 日志确认 `收取=True`。
 
-### 3.7 常量迁移 (infra/data/calibration 分类管理)
+### 3.7 常量迁移 (common/data/calibration 分类管理)
 
 用户敲定的规则: **初始化/演习/收获奖励三条链路里除时序参数外
 (坐标、OCR 参数、颜色等不易更改的值) 全部迁入
-`autowsgr/infra/data/calibration/` 分类 YAML, 时序参数留在执行器/页面代码**。
+`autowsgr/common/data/calibration/` 分类 YAML, 时序参数留在执行器/页面代码**。
 
 分类结构 (数据源 = 目录内 YAML, 文件名 = 页面名, 进程内缓存):
 
@@ -252,10 +250,8 @@ python tools/e2e/run.py --with-ocr exercise --yaml <路径>
 - 数值换算: 旧相对坐标一律换算为 1280x720 绝对像素整数
   (960x540 分数坐标 ×4/3), 代码侧经 `point()` 归一化后与旧值 ≤1px 误差。
 - 迁移后原常量名全部保留 (数据源改为 YAML), 消费者与测试零改动。
-- **既有导入顺序敏感**: 先导入 `autowsgr.infra.ui.pages.map` 包再导入
-  `autowsgr.ui` 会触发循环导入 (map/base.py → ui.utils → ui/__init__ →
-  ui/map → infra.map 部分初始化); 正常运行路径 (先 ui 后 infra) 不受影响,
-  调试时注意导入顺序。
+- **历史导入顺序敏感**: 本节记录的是迁移前的旧路径；当前页面统一位于
+  `autowsgr.application.ui.pages`，底层视觉和交互统一位于 `autowsgr.common`。
 
 已迁移批次 (2026-08-25 全部完成, 全量 pytest 通过):
 
@@ -290,25 +286,22 @@ python tools/e2e/run.py reward --with-init
 
 用户敲定的架构模式: **所有与奖励相关的功能拆成两条链路** —
 ① **执行器链路** (business 层): `RewardCheckExecutor` 执行任务;
-② **导航器链路** (`business/navigation`): 导航器支撑执行器的执行链路,
+② **导航器链路** (`application/ui/navigation`): 导航器支撑执行器的执行链路,
 页面导航 / 页面识别 / 页面操作等 UI 基础实现全部归属
-`autowsgr/infra/ui`。执行器不直接持有旧层页面, 一律从 `infra/ui` 取。
+`autowsgr.application.ui` 和 `autowsgr.common`。执行器不直接持有旧层页面。
 
 2026-08-25 完成状态:
 
 | 链路 | 归属 | 状态 |
 |------|------|------|
 | 执行器 | `business/logistics/reward.py` (`RewardCheckExecutor` + 兼容层 `collect_rewards`) | 完成 |
-| 导航器 — 页面归属 | `infra/ui/pages/main_page` (含 `has_task_ready`) + **`infra/ui/pages/mission_page` (本次迁入)** | 完成 |
-| 导航器 — 导航边 | `business/navigation.py` (`_mission_to_main`) + `main_page/controller.py` (`_get_target_checker`) 均改走 `infra/ui` 路径 | 完成 |
+| 导航器 — 页面归属 | `application/ui/pages/main_page` (含 `has_task_ready`) + **`application/ui/pages/mission_page` (本次迁入)** | 完成 |
+| 导航器 — 导航边 | `application/ui/navigation` (`_mission_to_main`) + `main_page/controller.py` (`_get_target_checker`) | 完成 |
 
-`mission_page` 迁移细节: 主实现 (`data/page/recognition.py`) 从
-`autowsgr/ui/mission_page/` 迁入 `autowsgr/infra/ui/pages/mission_page/`,
-旧目录保留 shim (`autowsgr.ui.mission_page` 继续可用);
-导航器与执行器均已改为新路径。验证: 全量 pytest 1008 passed +
-reward E2E 11/11 PASS。注意: 与 map 同款**导入顺序敏感**
-(先 import infra 页面包再 import `autowsgr.ui` 会循环导入,
-先 ui 后 infra 正常, 见 3.7 约定)。
+`mission_page` 迁移细节: 页面实现统一位于
+`autowsgr/application/ui/pages/mission_page/`，底层校准和交互位于
+`autowsgr/common/`；迁移期旧页面集中在 `application/ui/legacy/`。
+导航器与执行器均使用新路径。旧导入顺序说明仅保留作历史记录。
 
 ## 四、待办事项 (按优先级)
 

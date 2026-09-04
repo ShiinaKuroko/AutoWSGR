@@ -16,9 +16,9 @@
 ├─────────────────────────────────────────────────────┤
 │  business           可调度业务 Executor               │
 ├─────────────────────────────────────────────────────┤
-│  infra              运行时、战斗、UI、视觉、设备基建  │
+│  application        页面、导航、战斗引擎、运行时能力   │
 ├─────────────────────────────────────────────────────┤
-│  contracts / data   中立契约与只读包资源               │
+│  common             设备、视觉、系统、校准、包资源     │
 └─────────────────────────────────────────────────────┘
 ```
 
@@ -27,12 +27,15 @@
 
 | 层            | 包路径                | 职责                            | 细节文档                                     |
 |---------------|----------------------|---------------------------------|----------------------------------------------|
-| **infra**     | `autowsgr/infra/`    | 运行时、战斗、UI、视觉、设备和系统基建   | [infra.md](infra.md)                         |
-| **combat**    | `autowsgr/infra/combat/` | 战斗领域基建：引擎、动作、识别、记录 | [combat-engine.md](combat-engine.md)         |
-| **business**  | `autowsgr/business/` | 可调度业务用例与 Executor               | [ops.md](ops.md)                             |
-| **dispatch**  | `autowsgr/dispatch/` | Processor、任务队列和生命周期           | [scheduler-and-server.md](scheduler-and-server.md) |
-| **server**    | `autowsgr/server/`   | FastAPI HTTP/WebSocket 接口       | [scheduler-and-server.md](scheduler-and-server.md) |
-| **runtime**   | `autowsgr/infra/runtime/` | 设备会话和迁移期游戏状态模型        | [context-and-config.md](context-and-config.md) |
+| **server**    | `autowsgr/server/`    | HTTP、WebSocket、CLI 和运行时入口适配       | [scheduler-and-server.md](scheduler-and-server.md) |
+| **dispatch**  | `autowsgr/dispatch/`  | Processor、任务队列和生命周期               | [scheduler-and-server.md](scheduler-and-server.md) |
+| **business**  | `autowsgr/business/`  | 可调度业务用例、领域规则和执行器             | [ops.md](ops.md)                             |
+| **application** | `autowsgr/application/` | 页面语义、导航、战斗引擎和运行时上下文     | [layer-governance-round1.md](layer-governance-round1.md) |
+| **common**    | `autowsgr/common/`    | 设备、视觉、系统、校准、契约和只读包资源     | [layer-governance-round1.md](layer-governance-round1.md) |
+
+当前顶层目录治理和旧路径归位见
+[第一轮治理索引](layer-governance-round1.md)。`infra`、`ops`、`ui`、`scheduler`、
+`constants`、`contracts` 已不再是现行架构层级；相关旧文档中的路径仅作历史参考。
 
 ---
 
@@ -109,7 +112,23 @@ class GameContext:
 
 ---
 
-## 项目目录速查
+## 当前项目目录
+
+```
+autowsgr/
+├── server/                  # HTTP、WebSocket、CLI 和外部入口适配
+├── dispatch/                # Processor、请求准入、队列和生命周期
+├── business/                # 可调度业务用例和领域规则
+├── application/             # 页面、导航、战斗和运行时应用能力
+└── common/                  # 设备、视觉、系统、契约和只读包资源
+```
+
+目录内的依赖只能向下：`server -> dispatch -> business -> application -> common`。
+旧目录树保留在下方仅供历史文档对照。
+
+---
+
+## 历史目录（已废弃）
 
 ```
 autowsgr/

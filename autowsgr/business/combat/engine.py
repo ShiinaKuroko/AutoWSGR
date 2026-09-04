@@ -14,8 +14,8 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
     from autowsgr.common.device import AndroidController
+    from autowsgr.common.types import ShipDamageState
     from autowsgr.common.vision import OCREngine
-    from autowsgr.types import ShipDamageState
 
 
 class CombatEngine(PhaseHandlersMixin, ApplicationCombatEngine):

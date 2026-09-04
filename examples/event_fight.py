@@ -9,8 +9,8 @@
 (与常规战共用触发器, 无需为活动单独配置)。
 """
 
-from autowsgr.ops import run_event_fight_from_yaml
-from autowsgr.scheduler import launch
+from autowsgr.business.legacy_ops import run_event_fight_from_yaml
+from autowsgr.dispatch.legacy_scheduler import launch
 
 
 # 1. 启动

@@ -9,13 +9,13 @@ from unittest.mock import patch
 
 import pytest
 
-from autowsgr.infra.emulator import (
+from autowsgr.common.device import (
     LinuxEmulatorManager,
     MacEmulatorManager,
     WindowsEmulatorManager,
 )
-from autowsgr.infra import EmulatorConfig, EmulatorError, EmulatorNotFoundError
-from autowsgr.types import EmulatorType
+from autowsgr.common.system import EmulatorConfig, EmulatorError, EmulatorNotFoundError
+from autowsgr.common.types import EmulatorType
 
 
 # ═══════════════════════════════════════════════
@@ -99,7 +99,8 @@ class TestWindowsEmulatorManager:
             'gbk'
         )
         with patch(
-            'autowsgr.infra.emulator.os_control.windows.subprocess.check_output', return_value=fake_output
+            'autowsgr.common.device.os_control.windows.subprocess.check_output',
+            return_value=fake_output,
         ):
             assert mgr.is_running() is True
 
@@ -194,7 +195,7 @@ class TestLinuxEmulatorManager:
     def test_adb_devices_empty(self):
         """_adb_devices 在异常时返回空列表。"""
         with patch(
-            'autowsgr.infra.emulator.os_control.linux.LinuxEmulatorManager._adb_devices',
+            'autowsgr.common.device.os_control.linux.LinuxEmulatorManager._adb_devices',
             return_value=[],
         ):
             config = EmulatorConfig(

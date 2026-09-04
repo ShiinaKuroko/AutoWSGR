@@ -4,7 +4,7 @@
 不修改原文件。框架运行期 (``UserConfig`` / ``CombatPlan`` 的 ``from_yaml``) 检测到
 老版本字段会直接崩溃并提示运行本工具。
 
-迁移内容 (见 :mod:`autowsgr.infra.system.config_compat`):
+迁移内容 (见 :mod:`autowsgr.common.system.config_compat`):
 
 - ``ship_name_file`` / ``account.account`` / ``account.password`` → 删除
 - ``delay`` → ``operation_delay_min`` / ``operation_delay_max``
@@ -58,13 +58,13 @@ try:
 except Exception:  # noqa: S110
     pass
 
-from autowsgr.infra.system.config_compat import (  # noqa: E402
+from autowsgr.common.system.config_compat import (  # noqa: E402
     detect_legacy_plan,
     detect_legacy_user_config,
     migrate_plan_dict,
     migrate_raw_config,
 )
-from autowsgr.infra.system.file_utils import load_yaml, save_yaml  # noqa: E402
+from autowsgr.common.system.file_utils import load_yaml, save_yaml  # noqa: E402
 
 
 if TYPE_CHECKING:

@@ -1,5 +1,6 @@
 """Fleet selection rules used by combat business cases."""
 
+from autowsgr.application.ui.fleet import exact_fleet_rules
 from autowsgr.business.combat.fleet.model import (
     ALLOWED_SHIP_TYPE_CODES,
     NATIVE_VESSEL_TYPE_BY_CODE,
@@ -8,7 +9,6 @@ from autowsgr.business.combat.fleet.model import (
     FleetSlotRule,
     ResolvedFleetSelection,
     ShipSelector,
-    exact_fleet_rules,
     fleet_presets_from_yaml,
     fleet_slot_from_api,
     fleet_slot_from_yaml,

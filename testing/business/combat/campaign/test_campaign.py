@@ -21,8 +21,8 @@ from autowsgr.business.combat.campaign.spec import (
     parse_campaign_name,
 )
 from autowsgr.business.combat.fleet import exact_fleet_rules
+from autowsgr.common.types import ConditionFlag, RepairMode, ShipDamageState, ShipType
 from autowsgr.dispatch import Processor, Request, TaskPaused
-from autowsgr.types import ConditionFlag, RepairMode, ShipDamageState, ShipType
 
 
 def _ctx() -> SimpleNamespace:
@@ -126,6 +126,11 @@ def test_hard_campaign_rejects_wrong_fleet_size() -> None:
                 'fleet': ['ship-1'],
             },
         )
+
+
+def test_campaign_rejects_fleet_id() -> None:
+    with pytest.raises(ValueError, match='未知字段'):
+        CampaignSpec.from_params({'campaign_name': '简单驱逐', 'fleet_id': 2})
 
 
 def test_campaign_type_validation_preserves_physical_empty_slots(
@@ -275,8 +280,6 @@ def test_campaign_operations_use_page_difficulty_contract(
             captured.update(kwargs)
 
     monkeypatch.setattr(operations_module, 'MapPage', MapPageStub)
-    monkeypatch.setattr(operations_module, 'goto_page', lambda *_args: None)
-
     operations = operations_module.CampaignOperations(
         _ctx(),
         wait=lambda _seconds: None,
@@ -310,7 +313,7 @@ def test_campaign_operations_checks_unconfigured_hard_fleet(
     )
 
 
-def test_campaign_operations_forwards_fleet_id_and_actual_members(
+def test_campaign_operations_keeps_current_fleet_and_actual_members(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     page = MagicMock()
@@ -324,7 +327,6 @@ def test_campaign_operations_forwards_fleet_id_and_actual_members(
     spec = CampaignSpec.from_params(
         {
             'campaign_name': '简单驱逐',
-            'fleet_id': 2,
             'fleet': ['目标舰船'],
         },
     )
@@ -337,9 +339,10 @@ def test_campaign_operations_forwards_fleet_id_and_actual_members(
     operations.prepare_battle(spec)
 
     call = page.change_fleet.call_args
-    assert call.args[0] == 2
+    assert call.args[0] is None
     assert call.kwargs['task_type'] == 'campaign'
     assert call.kwargs['recognize_ship_types'] is True
+    page.select_fleet.assert_not_called()
     info.to_ships.assert_called_once_with(page.last_changed_fleet)
 
 

@@ -32,7 +32,7 @@ except Exception:  # noqa: S110
     pass
 from loguru import logger
 
-from autowsgr.types import ShipType
+from autowsgr.common.types import ShipType
 from testing.ops._framework import launch_for_test
 
 
@@ -101,7 +101,7 @@ def main() -> None:
         logger.info(f'已连接: {ctrl.serial}')
         print(f'  [OK] 已连接: {ctrl.serial}')
 
-        from autowsgr.ops.destroy import destroy_ships
+        from autowsgr.business.legacy_ops.destroy import destroy_ships
 
         destroy_ships(
             ctrl,

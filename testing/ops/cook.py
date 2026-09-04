@@ -59,7 +59,7 @@ def main() -> None:
         logger.info(f'已连接: {ctrl.serial}')
         print(f'  [OK] 已连接: {ctrl.serial}')
 
-        from autowsgr.ops.cook import cook
+        from autowsgr.business.legacy_ops.cook import cook
 
         result = cook(ctrl, position=recipe, force_cook=False)
         logger.info(f'cook() 返回: {result}')

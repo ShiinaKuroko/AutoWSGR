@@ -37,13 +37,13 @@ from testing.ui._framework import (
 
 
 if TYPE_CHECKING:
-    from autowsgr.infra.emulator import AndroidController
+    from autowsgr.common.device import AndroidController
 
 
 def run_test(runner: UIControllerTestRunner) -> None:
     """执行地图页面控制器完整测试序列。"""
-    from autowsgr.ui.main_page import MainPage
-    from autowsgr.ui.map import MapPage, MapPanel
+    from autowsgr.application.ui.legacy.main_page import MainPage
+    from autowsgr.application.ui.legacy.map import MapPage, MapPanel
 
     map_page = MapPage(runner.ctrl)
 
@@ -113,7 +113,7 @@ def _navigate_to(ctrl: AndroidController, pause: float) -> None:
     """从任意已知页面导航到地图页面（出征面板）。"""
     import time
 
-    from autowsgr.ui.main_page import MainPage
+    from autowsgr.application.ui.legacy.main_page import MainPage
 
     if not reset_to_main_page(ctrl, pause):
         return
@@ -133,7 +133,7 @@ def main() -> None:
     from loguru import logger
 
     logger.info('=== 地图页面 e2e 测试开始 ===')
-    from autowsgr.ui.map import MapPage
+    from autowsgr.application.ui.legacy.map import MapPage
 
     if not ensure_page(
         ctrl,

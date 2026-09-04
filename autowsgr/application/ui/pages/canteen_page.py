@@ -18,6 +18,7 @@ import time
 from typing import TYPE_CHECKING
 
 from autowsgr.common.system.logger import get_logger
+from autowsgr.common.types import PageName
 from autowsgr.common.ui.interaction import click_and_wait_for_page
 from autowsgr.common.vision import (
     ImageChecker,
@@ -27,7 +28,6 @@ from autowsgr.common.vision import (
     PixelSignature,
 )
 from autowsgr.common.vision.resources import Templates
-from autowsgr.types import PageName
 
 
 if TYPE_CHECKING:

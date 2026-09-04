@@ -44,9 +44,9 @@ from autowsgr.application.ui.pages.bath_page.signatures import (
     SWIPE_START,
 )
 from autowsgr.common.system.logger import get_logger
+from autowsgr.common.types import PageName
 from autowsgr.common.vision import Color, ImageChecker, PageMatch, PixelChecker
 from autowsgr.common.vision.resources import Templates
-from autowsgr.types import PageName
 
 
 if TYPE_CHECKING:

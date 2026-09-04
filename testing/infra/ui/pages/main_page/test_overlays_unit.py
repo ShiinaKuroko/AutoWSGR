@@ -6,10 +6,10 @@ from unittest.mock import MagicMock, call
 
 import pytest
 
-import autowsgr.infra.ui.interaction as ui_utils
-from autowsgr.infra.ui.pages.main_page import overlays
-from autowsgr.infra.ui.pages.main_page.constants import DismissCoord
-from autowsgr.infra.vision import ImageChecker
+import autowsgr.common.ui.interaction as ui_utils
+from autowsgr.application.ui.pages.main_page import overlays
+from autowsgr.application.ui.pages.main_page.constants import DismissCoord
+from autowsgr.common.vision import ImageChecker
 
 
 @pytest.mark.parametrize('second_confirmed', [False, True])
