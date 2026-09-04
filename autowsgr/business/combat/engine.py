@@ -5,8 +5,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from autowsgr.application.combat import CombatEngine as ApplicationCombatEngine
+from autowsgr.application.combat.history import CombatHistory, CombatResult
 from autowsgr.business.combat.handlers import PhaseHandlersMixin
-from autowsgr.business.combat.history import CombatHistory, CombatResult
 from autowsgr.business.combat.plan import MODE_CATEGORIES, CombatPlan
 
 

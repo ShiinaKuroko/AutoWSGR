@@ -14,8 +14,8 @@ from autowsgr.common.types import ConditionFlag, Formation, RepairMode
 
 
 if TYPE_CHECKING:
+    from autowsgr.application.combat.history import CombatResult
     from autowsgr.application.runtime import RuntimeContext as GameContext
-    from autowsgr.business.combat.history import CombatResult
 
 
 class CampaignRunner:

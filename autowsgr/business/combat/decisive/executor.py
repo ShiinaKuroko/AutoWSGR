@@ -26,7 +26,7 @@ from __future__ import annotations
 import enum
 from typing import Any
 
-from autowsgr.business.base import BaseExecutor
+from autowsgr.application.runtime.executor import BaseExecutor
 from autowsgr.business.combat.decisive.chapter import DecisiveChapterOps
 from autowsgr.business.combat.decisive.handlers import DecisivePhaseHandlers
 from autowsgr.common.system import DecisiveConfig

@@ -79,7 +79,7 @@
 
 - 新后端代码并入现有 `autowsgr/` 目录结构, 不创建 `server_v2` 或
   独立 `backend` 目录; 简单功能不得拆散到多个目录。
-- 执行器基类: `autowsgr/business/base.py` (`BaseExecutor`)。
+- 执行器运行适配: `autowsgr/application/runtime/executor.py` (`BaseExecutor`)。
 - 处理器: `autowsgr/dispatch/processor.py` (`Processor` / `Request` / `TaskPaused`)。
 - 注册表: `autowsgr/dispatch/registry.py` — 显式维护
   `task_type → (模块, 类名)`，按需延迟 import；业务模块不在 import 时修改调度状态。
@@ -106,7 +106,7 @@
 
 | 文件 | 内容 | 状态 |
 |------|------|------|
-| `autowsgr/business/base.py` | `BaseExecutor`: `_wait` 断点 / `_check_pause` 暂停协议 / `_report` 事件上报 | 完成 |
+| `autowsgr/application/runtime/executor.py` | `BaseExecutor`: `_wait` 断点 / `_check_pause` 暂停协议 / `_report` 事件上报 | 完成 |
 | `autowsgr/dispatch/processor.py` | `Processor` (优先级队列 + `interrupt()` 加急 + `run_pending()`) / `Request` (含 `from_yaml`) / `TaskPaused` | 完成 |
 | `autowsgr/dispatch/registry.py` | 显式 task_type 映射、`build_executor()` 延迟导入、`registered_names()` | 完成 |
 | `autowsgr/business/combat/exercise/executor.py` | `ExerciseExecutor` (见 3.2) | 完成 |
@@ -352,6 +352,6 @@ cd c:\ShiinaKuroko\01.Project\AutoWSGR
 .venv\Scripts\python.exe tools\e2e\run.py --with-ocr exercise --pause-at rival_done
 ```
 
-关键阅读顺序: `business/base.py` (执行器契约) →
+关键阅读顺序: `application/runtime/executor.py` (执行器运行适配) →
 `dispatch/processor.py` (调度契约) → `business/combat/exercise.py`
 (第一个完整实现) → `tools/e2e/cases/exercise.py` (验收方式)。

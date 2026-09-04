@@ -10,9 +10,11 @@ business/*Executor
         ↓ CombatPlan / business CombatEngine
 application/combat/
         ├── engine/           状态机驱动与阶段转移
+        │   └── phase_handlers.py 通用阶段点击、推进和终态动作
         ├── actions.py        战斗页面物理动作
         ├── recognizer.py     阶段视觉状态识别
         ├── recognition.py    视觉观测适配
+        ├── history.py        中立战斗事件和结果记录
         └── node_tracker.py   多节点地图位置追踪
                 ↓
         common/calibration → common/vision → common/device
@@ -20,11 +22,13 @@ application/combat/
 
 `engine` 只负责驱动状态机。它组合其他子系统，但不直接定义坐标、OCR ROI、
 页面路径或任务生命周期。`actions` 只产生设备动作；`recognition` 只返回观测；
-`handlers` 将当前阶段的观测、规则和动作组合成引擎结果。
+`phase_handlers` 负责通用阶段推进；业务规则和战果解释留在
+`business/combat/handlers.py`。
 
 ## 公开入口
 
-跨业务代码只从 `autowsgr.business.combat` 导入：
+跨业务代码只从 `autowsgr.business.combat` 导入业务引擎和计划；通用结果记录位于
+`autowsgr.application.combat.history`：
 
 ```python
 from autowsgr.business.combat import CombatEngine, CombatPlan, CombatResult

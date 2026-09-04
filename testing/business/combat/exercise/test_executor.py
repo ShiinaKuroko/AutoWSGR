@@ -9,8 +9,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
+import autowsgr.application.runtime.executor as base_module
 import autowsgr.application.runtime.initialize.initialize as initialize_module
-import autowsgr.business.base as base_module
 import autowsgr.business.combat.exercise.executor as executor_module
 import autowsgr.business.combat.exercise.operations as operations_module
 from autowsgr.business.combat import CombatResult

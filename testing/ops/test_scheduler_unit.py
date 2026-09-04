@@ -590,7 +590,7 @@ def test_normal_fight_trigger_disable_survives_reset():
 
 def _fight_result(node: str, grade: str) -> CombatResult:
     """构造一场成功战斗: flag=SUCCESS + 单节点战果。"""
-    from autowsgr.business.combat.history import CombatEvent, EventType
+    from autowsgr.application.combat.history import CombatEvent, EventType
 
     result = CombatResult(flag=ConditionFlag.OPERATION_SUCCESS)
     result.history.add(CombatEvent(event_type=EventType.RESULT, node=node, result=grade))

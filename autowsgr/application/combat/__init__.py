@@ -23,6 +23,14 @@ from autowsgr.application.combat.engine import (
     build_transitions,
     resolve_successors,
 )
+from autowsgr.application.combat.history import (
+    CombatEvent,
+    CombatHistory,
+    CombatResult,
+    EventType,
+    FightResult,
+    grade_condition_met,
+)
 from autowsgr.application.combat.node_tracker import MapNodeData, NodeTracker
 from autowsgr.application.combat.recognition import (
     SHIP_DROP_PAGE_SIGNATURE,
@@ -49,10 +57,15 @@ from autowsgr.application.combat.support import ensure_battle_support
 __all__ = [
     'SHIP_DROP_PAGE_SIGNATURE',
     'CombatEngine',
+    'CombatEvent',
+    'CombatHistory',
     'CombatPhase',
     'CombatRecognitionTimeoutError',
     'CombatRecognizer',
+    'CombatResult',
     'CombatStopRequestedError',
+    'EventType',
+    'FightResult',
     'MapNodeData',
     'ModeCategory',
     'NodeTracker',
@@ -75,6 +88,7 @@ __all__ = [
     'get_enemy_formation',
     'get_enemy_info',
     'get_ship_drop',
+    'grade_condition_met',
     'image_exist',
     'recognize_enemy_formation',
     'recognize_enemy_ships',

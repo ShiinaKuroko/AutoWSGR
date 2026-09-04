@@ -4,6 +4,10 @@
 
 本文档描述 AutoWSGR 的核心战斗引擎——一个基于视觉识别的有限状态机。
 
+当前实现分层为：`application/combat/engine` 负责状态机驱动和通用阶段动作，
+`application/combat/history.py` 负责中立事件/结果记录，
+`business/combat` 负责计划、规则和场景业务决策。下方旧路径仅保留作历史说明。
+
 ---
 
 ## 架构概览

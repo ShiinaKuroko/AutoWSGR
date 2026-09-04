@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
     from autowsgr.application.runtime import RuntimeContext as GameContext
-    from autowsgr.business.base import BaseExecutor
+    from autowsgr.application.runtime.executor import BaseExecutor
 
 
 # task_type → (业务执行器模块, 类名)。只在真正执行时加载业务包。

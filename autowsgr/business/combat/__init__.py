@@ -8,8 +8,7 @@
 """
 
 from autowsgr.application.combat import CombatPhase
-from autowsgr.business.combat.engine import CombatEngine, run_combat
-from autowsgr.business.combat.history import (
+from autowsgr.application.combat.history import (
     CombatEvent,
     CombatHistory,
     CombatResult,
@@ -17,6 +16,7 @@ from autowsgr.business.combat.history import (
     FightResult,
     grade_condition_met,
 )
+from autowsgr.business.combat.engine import CombatEngine, run_combat
 from autowsgr.business.combat.plan import CombatMode, CombatPlan, GradeCondition, NodeDecision
 from autowsgr.business.combat.rules import RuleEngine, RuleResult
 

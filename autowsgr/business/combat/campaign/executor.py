@@ -5,8 +5,8 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING, Any
 
+from autowsgr.application.runtime.executor import BaseExecutor
 from autowsgr.application.ui.navigation import goto_page
-from autowsgr.business.base import BaseExecutor
 from autowsgr.business.combat import CombatResult, run_combat
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.types import ConditionFlag, PageName

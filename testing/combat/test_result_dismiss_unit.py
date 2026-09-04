@@ -13,15 +13,17 @@
 
 from __future__ import annotations
 
+from typing import Any
 from unittest.mock import MagicMock, call
 
 import numpy as np
 import pytest
 
+import autowsgr.application.combat.engine.phase_handlers as phase_handlers_mod
 from autowsgr.application.combat.engine.state import CombatPhase
+from autowsgr.application.combat.history import CombatEvent, CombatHistory, EventType
 from autowsgr.business.combat import handlers as handlers_mod
 from autowsgr.business.combat.handlers import PhaseHandlersMixin
-from autowsgr.business.combat.history import CombatEvent, CombatHistory, EventType
 
 
 class _Host(PhaseHandlersMixin):
@@ -63,6 +65,7 @@ def _make_host(
 @pytest.fixture(autouse=True)
 def _no_sleep(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr('autowsgr.business.combat.handlers.time.sleep', lambda *_: None)
+    monkeypatch.setattr(phase_handlers_mod, 'time', MagicMock(sleep=lambda *_: None))
 
 
 class TestClickResultUntilClosed:
@@ -203,8 +206,12 @@ class TestDropCapture:
             lambda *_a, **_k: self._ocr_calls.append(1) or 'SKR6',
         )
 
-    def _make_host_with_history(self, *args, **kwargs):
-        host, device, recognizer = _make_host(*args, **kwargs)
+    def _make_host_with_history(
+        self,
+        *args: Any,
+        **kwargs: Any,
+    ) -> tuple[_Host, MagicMock]:
+        host, device, _recognizer = _make_host(*args, **kwargs)
         host._history = CombatHistory()
         return host, device
 
@@ -225,7 +232,8 @@ class TestDropCapture:
         assert result == 'SKR6'
         assert self._ocr_calls == [1]
         event = host._history.get_event(EventType.GET_SHIP, 'A')
-        assert event is not None and event.result == 'SKR6'
+        assert event is not None
+        assert event.result == 'SKR6'
 
     def test_result_dismiss_captures_on_get_ship(self):
         """点击穿行命中 GET_SHIP → 立即幂等捕获掉落, 主循环不再重复 OCR。"""
@@ -236,7 +244,8 @@ class TestDropCapture:
         host._click_result_until_closed(CombatPhase.RESULT)
         assert device.click.call_count == 1
         event = host._history.get_event(EventType.GET_SHIP, 'A')
-        assert event is not None and event.result == 'SKR6'
+        assert event is not None
+        assert event.result == 'SKR6'
         # 主循环重新派发 _handle_get_ship 时走幂等分支, 不重复 OCR
         host._handle_get_ship()
         assert self._ocr_calls == [1]
@@ -286,4 +295,5 @@ class TestDropCapture:
         host._click_result_until_closed(CombatPhase.RESULT)
         assert device.click.call_count == 1
         event = host._history.get_event(EventType.GET_SHIP, 'A')
-        assert event is not None and event.result == 'SKR6'
+        assert event is not None
+        assert event.result == 'SKR6'

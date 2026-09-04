@@ -10,14 +10,10 @@ from __future__ import annotations
 import typing
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.types import ConditionFlag, ShipDamageState
-
-
-if TYPE_CHECKING:
-    from autowsgr.business.combat.plan import GradeCondition
 
 
 _log = get_logger('combat')
@@ -179,8 +175,8 @@ class FightResult:
             return -1
 
 
-def grade_condition_met(condition: GradeCondition, result: CombatResult) -> bool:
-    """判定一次战斗结果是否满足 :class:`GradeCondition`。
+def grade_condition_met(condition: Any, result: CombatResult) -> bool:
+    """判定一次战斗结果是否满足节点战果条件。
 
     在该节点 (可能多次经过) 的所有结算中取**最后一次**, 战果等级 ``>=``
     条件等级即达标 (比较复用 :class:`FightResult` 的等级序)。空结果 /
@@ -328,3 +324,13 @@ class CombatResult:
     def fight_results(self) -> list[FightResult]:
         """各节点战斗结算信息列表, 从 history 解析。"""
         return self.history.get_fight_results_list()
+
+
+__all__ = [
+    'CombatEvent',
+    'CombatHistory',
+    'CombatResult',
+    'EventType',
+    'FightResult',
+    'grade_condition_met',
+]
