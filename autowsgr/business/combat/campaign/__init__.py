@@ -1,5 +1,6 @@
 """战役业务用例。"""
 
+from autowsgr.business.combat.campaign.compat import CampaignRunner
 from autowsgr.business.combat.campaign.executor import CampaignExecutor
 from autowsgr.business.combat.campaign.spec import (
     CAMPAIGN_DAILY_LIMIT,
@@ -17,6 +18,7 @@ __all__ = [
     'CAMPAIGN_NAMES',
     'CAMPAIGN_NAME_MAP',
     'CampaignExecutor',
+    'CampaignRunner',
     'CampaignSpec',
     'parse_campaign_name',
 ]

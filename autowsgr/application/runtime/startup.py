@@ -4,14 +4,8 @@ note. 已通过测试
 TODO: 处理游戏更新提示
 
 .. note::
-    迁移标注: 本模块的每日浮层处理 (``handle_daily_overlays`` 及相关常量)
-    已被 :mod:`autowsgr.business.system.initialize.overlays` 迁移
-    (新位置: ``business/system/initialize/overlays.py``, 签名改为
-    ``handle_daily_overlays(ctrl, state)``); 冷启动/恢复主页面流程
-    (``start_game`` / ``recover_to_main_or_restart`` / ``ensure_game_ready``)
-    与 :mod:`autowsgr.business.system.initialize.initialize` 职责重叠,
-    待后续整体迁移时按注释找到新位置。导航已迁
-    :mod:`autowsgr.application.ui.navigation`。
+    任务级初始化链路位于 :mod:`autowsgr.application.runtime.initialize`；
+    本模块提供运行时启动、恢复和主页面浮层处理能力。
 
 提供从零开始到稳定运行于主页面的完整启动流程：
 
@@ -40,8 +34,6 @@ from typing import TYPE_CHECKING
 
 from autowsgr.application.ui.legacy.main_page import MainPage
 from autowsgr.application.ui.legacy.start_screen_page import StartScreenPage
-
-# 已迁移到新方法: 导航器入口 (原 autowsgr.business.legacy_ops.navigate.goto_page)
 from autowsgr.application.ui.navigation import goto_page
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.types import GameAPP, PageName

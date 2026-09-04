@@ -86,7 +86,7 @@ class ExerciseExecutor(BaseExecutor):
         results: list[CombatResult] = list(previous)
 
         # 每次任务都从初始化后的首页开始，避免复用过期页面上下文。
-        from autowsgr.business.system.initialize.initialize import initialize
+        from autowsgr.application.runtime.initialize.initialize import initialize
 
         try:
             initialize(self.ctx)

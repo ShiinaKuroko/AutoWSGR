@@ -30,8 +30,11 @@ autowsgr/
 | `infra/ui/navigation` | `application/ui/navigation` | 删除兼容别名 |
 | `infra/runtime/context` | `application/runtime/context` | 移动运行时状态模型 |
 | `ui` | `application/ui/legacy` | 兼容页面集中到 application，不再是顶层层级 |
-| `ops` | `business/legacy_ops` | 未迁移业务集中到 business，启动逻辑单独归 runtime |
+| `ops/normal_fight.py`, `ops/event_fight.py` | `business/combat/bettle` | 普通/活动出征归入同一战斗业务组 |
+| `ops/campaign.py` | `business/combat/campaign/compat.py` | 旧战役入口与新战役执行器同域管理 |
+| `ops/build.py`, `ops/cook.py`, `ops/destroy.py` | `business/logistics` | 港区操作归入后勤业务域 |
 | `ops/startup.py` | `application/runtime/startup.py` | 移动运行时启动/恢复能力 |
+| `business/system/initialize` | `application/runtime/initialize` | 移动任务初始化和浮层处理能力 |
 | `scheduler/launcher.py` | `application/runtime/launcher.py` | 移动 RuntimeHost 能力 |
 | `scheduler/{scheduler,triggers,daily_plan}.py` | `dispatch/legacy_scheduler` | 归入调度层的迁移期旧队列 |
 | `constants` | `common/constants` | 移动舰名公共数据 |
@@ -57,8 +60,8 @@ server -> dispatch -> business -> application -> common
 
 ## 迁移期说明
 
-- `application/ui/legacy`、`business/legacy_ops`、`dispatch/legacy_scheduler` 是迁移期
-  归档位置，不是新的架构层；后续按业务逐个删除或重写。
+- `application/ui/legacy`、`dispatch/legacy_scheduler` 是迁移期归档位置，不是新的
+  架构层；后续按业务逐个删除或重写。
 - 新业务不得从 legacy 包取实现。已迁移的演习、战役和决战入口使用 business 下的
   Executor；决战旧状态机已位于 `business/combat/decisive`。
 - 本轮不细拆页面内部职责，不改变 GUI 契约，也不重做普通出征、活动战和后勤业务。

@@ -1,7 +1,7 @@
 import sys
 
+from autowsgr.business.combat.bettle.normal_fight import NormalFightRunner, get_normal_fight_plan
 from autowsgr.business.combat.fleet import resolve_fleet_selection
-from autowsgr.business.legacy_ops.normal_fight import NormalFightRunner, get_normal_fight_plan
 from autowsgr.dispatch.legacy_scheduler import launch
 
 

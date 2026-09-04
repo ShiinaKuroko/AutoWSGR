@@ -9,7 +9,7 @@ from unittest.mock import MagicMock, call
 import pytest
 
 import autowsgr.common.ui.interaction as ui_utils
-from autowsgr.business.legacy_ops import startup
+from autowsgr.application.runtime import startup
 from autowsgr.common.types import PageName
 
 

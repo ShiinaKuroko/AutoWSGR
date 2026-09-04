@@ -14,8 +14,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from autowsgr.application.ui.legacy.build_page import BuildPage, BuildTab
-
-# 已迁移到新方法: 导航器入口 (原 autowsgr.business.legacy_ops.navigate.goto_page)
 from autowsgr.application.ui.navigation import goto_page
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.types import DestroyShipWorkMode, PageName, ShipType

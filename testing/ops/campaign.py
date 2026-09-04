@@ -52,7 +52,7 @@ except Exception:
         pass
 from loguru import logger
 
-from autowsgr.business.legacy_ops.campaign import CAMPAIGN_NAME_MAP, CampaignRunner
+from autowsgr.business.combat.campaign import CAMPAIGN_NAME_MAP, CampaignRunner
 from autowsgr.common.types import ConditionFlag, Formation, RepairMode
 from testing.ops._framework import launch_for_test
 

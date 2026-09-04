@@ -10,8 +10,8 @@ from typing import TYPE_CHECKING, Any
 import pytest
 from fastapi import HTTPException
 
-import autowsgr.business.legacy_ops.normal_fight as normal_fight_module
-from autowsgr import ops
+import autowsgr.business.combat.bettle.event_fight as event_fight_module
+import autowsgr.business.combat.bettle.normal_fight as normal_fight_module
 from autowsgr.business.combat import CombatPlan, CombatResult
 from autowsgr.business.combat.fleet import FleetSelectionSource, ResolvedFleetSelection
 from autowsgr.common.types import ConditionFlag, ShipType
@@ -603,7 +603,8 @@ def test_fight_routes_resolve_all_fleet_sources_before_runner(
         return [CombatResult(flag=ConditionFlag.OPERATION_SUCCESS)]
 
     monkeypatch.setattr(task, 'task_manager', manager)
-    monkeypatch.setattr(ops, run_name, run_fight)
+    fight_module = normal_fight_module if run_name == 'run_normal_fight' else event_fight_module
+    monkeypatch.setattr(fight_module, run_name, run_fight)
 
     if fleet_source == 'api_rules':
         plan_request = CombatPlanRequest(
@@ -680,7 +681,7 @@ def test_event_route_top_level_fleet_id_overrides_api_plan(
         return [CombatResult(flag=ConditionFlag.OPERATION_SUCCESS)]
 
     monkeypatch.setattr(task, 'task_manager', manager)
-    monkeypatch.setattr(ops, 'run_event_fight', run_event_fight)
+    monkeypatch.setattr(event_fight_module, 'run_event_fight', run_event_fight)
     request = EventFightRequest(
         plan=CombatPlanRequest(fleet_id=3, fleet=['岛风']),
         fleet_id=5,
@@ -745,7 +746,7 @@ def test_normal_route_applies_explicit_node_overrides_to_yaml_plan(
         ),
     )
     monkeypatch.setattr(task, 'task_manager', manager)
-    monkeypatch.setattr(ops, 'run_normal_fight', run_normal_fight)
+    monkeypatch.setattr(normal_fight_module, 'run_normal_fight', run_normal_fight)
 
     response = asyncio.run(task._start_normal_fight(object(), request))
 

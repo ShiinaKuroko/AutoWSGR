@@ -1,7 +1,9 @@
 # Retry Mechanism Redesign Plan
 
 ## Objective
-Implement a robust retry mechanism for operations in `autowsgr/business/legacy_ops` that involve user interaction (clicking) followed by state verification. The design must allow applying a decorator directly to the operation methods, avoiding nested function definitions.
+Historical retry design for the former cross-page operations. Current retry
+ownership is `dispatch/processor.py`; interaction code lives in
+`business/combat/bettle` or `business/logistics` and delegates to application UI.
 
 ## Design
 

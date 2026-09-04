@@ -54,7 +54,6 @@ def main() -> None:
         logger.info(f'已连接: {ctrl.serial}')
         print(f'  [OK] 已连接: {ctrl.serial}')
 
-        # 已迁移到新方法: 远征检查执行器入口 (原 autowsgr.business.legacy_ops.expedition.collect_expedition)
         from autowsgr.business.logistics.expedition import collect_expedition
 
         result = collect_expedition(ctrl)

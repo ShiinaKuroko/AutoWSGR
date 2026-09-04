@@ -3,7 +3,6 @@
 修改第 2 舰队的舰船配置。
 """
 
-# 已迁移到新方法: 导航器入口 (原 autowsgr.business.legacy_ops.goto_page)
 from autowsgr.application.ui.legacy import BattlePreparationPage, PageName
 from autowsgr.application.ui.navigation import goto_page
 from autowsgr.business.combat.fleet import exact_fleet_rules

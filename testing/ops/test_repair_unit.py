@@ -88,7 +88,7 @@ def _patch_repair(monkeypatch: pytest.MonkeyPatch, fake_page: _FakeBathPage) -> 
 
 
 def test_named_repair_syncs_fleet_damage_snapshot(monkeypatch: pytest.MonkeyPatch) -> None:
-    import autowsgr.business.legacy_ops.repair as mod
+    import autowsgr.business.logistics.repair.bath_repair as mod
 
     class _NamedRepairPage:
         def go_to_choose_repair(self) -> None:
@@ -113,7 +113,7 @@ def test_named_repair_syncs_fleet_damage_snapshot(monkeypatch: pytest.MonkeyPatc
 def test_automatic_repair_syncs_known_ship_damage_snapshot(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    import autowsgr.business.legacy_ops.repair as mod
+    import autowsgr.business.logistics.repair.bath_repair as mod
 
     fake = _FakeBathPage([('测试舰', 120)])
     _patch_repair(monkeypatch, fake)
@@ -128,7 +128,7 @@ def test_automatic_repair_syncs_known_ship_damage_snapshot(
 
 
 def test_batch_repair_does_not_guess_ship_state(monkeypatch: pytest.MonkeyPatch) -> None:
-    import autowsgr.business.legacy_ops.repair as mod
+    import autowsgr.business.logistics.repair.bath_repair as mod
 
     fake = _FakeBathPage([])
     _patch_repair(monkeypatch, fake)

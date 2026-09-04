@@ -295,7 +295,7 @@ def _processor_details(
 async def _start_normal_fight(ctx: Any, request: NormalFightRequest) -> ApiResponse:
     """启动常规战任务。"""
     from autowsgr.business.combat import CombatPlan
-    from autowsgr.business.legacy_ops import run_normal_fight
+    from autowsgr.business.combat.bettle.normal_fight import run_normal_fight
 
     def executor(_task_info: Any) -> TaskOutcome:
         results = []
@@ -339,7 +339,7 @@ async def _start_normal_fight(ctx: Any, request: NormalFightRequest) -> ApiRespo
 async def _start_event_fight(ctx: Any, request: EventFightRequest) -> ApiResponse:
     """启动活动战任务。"""
     from autowsgr.business.combat import CombatPlan
-    from autowsgr.business.legacy_ops import run_event_fight
+    from autowsgr.business.combat.bettle.event_fight import run_event_fight
 
     def executor(_task_info: Any) -> TaskOutcome:
         results = []

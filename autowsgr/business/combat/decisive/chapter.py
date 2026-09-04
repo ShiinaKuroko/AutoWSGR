@@ -25,7 +25,6 @@ class DecisiveChapterOps(DecisiveBase):
 
     def _prepare_entry_state(self) -> None:
         """进入决战总览并推断入口状态。"""
-        # 已迁移到新方法: 导航器入口 (原 autowsgr.business.legacy_ops.navigate.goto_page)
         from autowsgr.application.ui.navigation import goto_page
 
         goto_page(self._ctx, PageName.DECISIVE_BATTLE)
@@ -34,7 +33,7 @@ class DecisiveChapterOps(DecisiveBase):
     def _do_dock_full_destroy(self) -> None:
         """船坞满处理：按配置自动解装或抛错。"""
         if self._config.full_destroy:
-            from autowsgr.business.legacy_ops.destroy import destroy_ships_auto
+            from autowsgr.business.logistics.destroy import destroy_ships_auto
 
             _log.warning('[决战] 船坞已满，执行自动解装')
             self._ctrl.click(0.38, 0.565)

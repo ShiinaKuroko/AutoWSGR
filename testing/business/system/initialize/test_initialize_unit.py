@@ -1,4 +1,4 @@
-"""business.system 初始化链路的无设备单元测试。
+"""application.runtime.initialize 初始化链路的无设备单元测试。
 
 覆盖:
 - overlays.py: 日期门控（每日一次零开销）
@@ -42,7 +42,7 @@ class TestDailyOverlays:
 
     def test_gate_skips_when_already_handled_today(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """当日日期匹配时，零开销直接返回，不截图。"""
-        from autowsgr.business.system.initialize import overlays
+        from autowsgr.application.runtime.initialize import overlays
 
         self._freeze_today(monkeypatch, overlays)
         ctrl = self._make_ctrl()
@@ -54,7 +54,7 @@ class TestDailyOverlays:
 
     def test_processes_once_on_date_change(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """日期变更后第一次调用触发清除流程；第二次零开销跳过。"""
-        from autowsgr.business.system.initialize import overlays
+        from autowsgr.application.runtime.initialize import overlays
 
         self._freeze_today(monkeypatch, overlays)
         ctrl = self._make_ctrl()
@@ -86,13 +86,13 @@ class TestUpdater:
 
     def test_needs_update_default_false(self) -> None:
         """默认 needs_update 永远 False — 不改变原行为。"""
-        from autowsgr.business.system.initialize import updater
+        from autowsgr.application.runtime.initialize import updater
 
         assert updater.needs_update(MagicMock()) is False
 
     def test_handle_is_noop(self) -> None:
         """handle 调用不抛异常，不做任何动作。"""
-        from autowsgr.business.system.initialize import updater
+        from autowsgr.application.runtime.initialize import updater
 
         ctrl = MagicMock()
         updater.handle(ctrl)
@@ -121,7 +121,7 @@ class TestInitialize:
 
     def test_already_on_main_just_dismisses_overlays(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """游戏在运行且已经在首页：只处理浮层，不启动不导航。"""
-        from autowsgr.business.system.initialize import initialize, overlays
+        from autowsgr.application.runtime.initialize import initialize, overlays
 
         ctx = _make_ctx()
         monkeypatch.setattr(initialize, 'identify_current_page', lambda _c, **_k: PageName.MAIN)
@@ -137,7 +137,7 @@ class TestInitialize:
 
     def test_known_non_main_page_navigates_home(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """页面认识但不是首页：调用 goto_page 导航，成功后清浮层。"""
-        from autowsgr.business.system.initialize import initialize, overlays
+        from autowsgr.application.runtime.initialize import initialize, overlays
 
         ctx = _make_ctx()
         goto_page = MagicMock()
@@ -157,7 +157,7 @@ class TestInitialize:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """游戏未运行：启动 App → 检测启动画面 → 点进入 → 浮层 → 终态在首页。"""
-        from autowsgr.business.system.initialize import initialize, overlays
+        from autowsgr.application.runtime.initialize import initialize, overlays
 
         ctx = _make_ctx()
         ctx.ctrl.is_app_running.return_value = False
@@ -176,7 +176,7 @@ class TestInitialize:
 
     def test_restart_limit_prevents_infinite_loop(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """页面识别不出 + 导航失败 → SL 重启一次；仍失败 → 抛异常。"""
-        from autowsgr.business.system.initialize import initialize
+        from autowsgr.application.runtime.initialize import initialize
         from autowsgr.common.ui.interaction import NavigationError
 
         ctx = _make_ctx()
@@ -208,7 +208,7 @@ class TestInitialize:
 
     def test_updater_called_in_start_flow(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """启动过程中会做一次更新检测空判断 (未来扩展点)。"""
-        from autowsgr.business.system.initialize import initialize, overlays, updater
+        from autowsgr.application.runtime.initialize import initialize, overlays, updater
 
         ctx = _make_ctx()
         ctx.ctrl.is_app_running.return_value = False

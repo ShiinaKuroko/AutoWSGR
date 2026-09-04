@@ -1,7 +1,7 @@
 """活动战斗操作 — 活动地图 (Event) 战斗 (兼容入口)。
 
 自 event/normal 融合后, 活动战统一由
-:class:`~autowsgr.business.legacy_ops.normal_fight.NormalFightRunner` 按 ``plan.chapter``
+:class:`~autowsgr.business.combat.bettle.normal_fight.NormalFightRunner` 按 ``plan.chapter``
 (E/H vs 数字) 自动路由到活动地图导航; 入口 (α/β) 从 ``plan.map``
 (如 ``1a``) 解析。本模块保留 :class:`EventFightRunner` 与 ``run_event_fight*``
 作为兼容入口, 供 server / examples / 旧代码使用, 内部全部委托
@@ -13,7 +13,7 @@
 
 使用方式::
 
-    from autowsgr.business.legacy_ops import run_event_fight_from_yaml
+    from autowsgr.business.combat.bettle import run_event_fight_from_yaml
 
     results = run_event_fight_from_yaml(ctx, '激斗漩涡H1a', times=5)
 """
@@ -23,13 +23,13 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Literal
 
 from autowsgr.business.combat import CombatPlan, CombatResult
+from autowsgr.business.combat.bettle.normal_fight import NormalFightRunner
 from autowsgr.business.combat.fleet import (
     FleetSlotRule,
     ResolvedFleetSelection,
     resolve_fleet_selection,
     validate_fleet_selection_arguments,
 )
-from autowsgr.business.legacy_ops.normal_fight import NormalFightRunner
 from autowsgr.common.system.logger import get_logger
 
 

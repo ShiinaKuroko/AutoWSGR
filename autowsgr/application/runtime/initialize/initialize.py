@@ -14,9 +14,9 @@
     仍失败 → 抛 RuntimeError 给调度器。
 
 依赖 (各归其位):
-    - business/system/navigate.goto_page / identify_current_page — 页面导航与识别
-    - infra/ui/pages/main_page.MainPage — 主页识别 (浮层命中 = 主页命中)
-    - infra/ui/pages/start_screen.StartScreenPage — 启动画面识别与点击进入
+    - application.ui.navigation — 页面导航与识别
+    - application.ui.pages.main_page.MainPage — 主页识别 (浮层命中 = 主页命中)
+    - application.ui.pages.start_screen.StartScreenPage — 启动画面识别与点击进入
     - 同包 overlays — 每日弹窗 (日期门控)
     - 同包 updater — 更新空判断 (未来扩展)
 """
@@ -26,8 +26,8 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING
 
+from autowsgr.application.runtime.initialize import overlays, updater
 from autowsgr.application.ui.navigation import goto_page, identify_current_page
-from autowsgr.business.system.initialize import overlays, updater
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.types import GameAPP, PageName
 from autowsgr.common.ui.interaction import NavigationError

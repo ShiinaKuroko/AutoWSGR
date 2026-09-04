@@ -29,8 +29,8 @@ from loguru import logger
 
 from autowsgr.application.runtime.launcher import Launcher
 from autowsgr.application.ui.legacy.map.base import BaseMapPage
+from autowsgr.application.ui.navigation import goto_page
 from autowsgr.application.ui.pages.map.panels.sortie import SortiePanelMixin
-from autowsgr.business.legacy_ops.navigate import goto_page
 from autowsgr.common.system import (
     AccountConfig,
     EmulatorConfig,

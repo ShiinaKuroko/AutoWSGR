@@ -362,9 +362,9 @@ def run(rt: Any) -> bool:  # noqa: C901, PLR0912, PLR0915 - one E2E case owns it
 
     # ── 阶段零 (可选): 初始化链路 + 每日浮层清理 ────────────────
     if args.with_init:
+        from autowsgr.application.runtime.initialize.initialize import initialize
         from autowsgr.application.ui.pages.main_page import MainPage
         from autowsgr.application.ui.pages.main_page.overlays import detect_overlay
-        from autowsgr.business.system.initialize.initialize import initialize
 
         if rt.action('初始化 (任意状态 → 首页 + 清浮层)', initialize, ctx) is rt.FAILED:
             return False

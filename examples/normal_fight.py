@@ -4,7 +4,7 @@
 策略文件自动从 ``autowsgr/infra/data/plan/normal_fight/`` 解析，无需指定完整路径。
 """
 
-from autowsgr.business.legacy_ops import run_normal_fight_from_yaml
+from autowsgr.business.combat.bettle import run_normal_fight_from_yaml
 from autowsgr.dispatch.legacy_scheduler import launch
 
 

@@ -106,7 +106,6 @@ def build_daily_plan(
 
     # ── 远征 (定时, prio 0) ──
     if cfg.auto_expedition:
-        # 已迁移到新方法: 远征检查执行器入口 (原 autowsgr.business.legacy_ops.expedition.collect_expedition)
         from autowsgr.business.logistics.expedition import collect_expedition
 
         scheduler.register_trigger(
@@ -123,7 +122,6 @@ def build_daily_plan(
 
     # ── 任务奖励 (定时, prio 1, 随远征周期) ──
     if cfg.auto_gain_bonus:
-        # 已迁移到新方法: 奖励收取执行器入口 (原 autowsgr.business.legacy_ops.reward.collect_rewards)
         from autowsgr.business.logistics.reward import collect_rewards
 
         scheduler.register_trigger(
@@ -140,7 +138,6 @@ def build_daily_plan(
 
     # ── 浴室修理 (定时, prio 200, 空闲填充: 所有战斗完成后才执行) ──
     if cfg.auto_bath_repair:
-        # 已迁移到新方法: 浴场修理 (原 autowsgr.business.legacy_ops.repair.repair_one_available)
         from autowsgr.business.logistics.repair.bath_repair import repair_one_available
 
         scheduler.register_trigger(
@@ -178,7 +175,6 @@ def build_daily_plan(
 
     # ── 演习 (条件, prio 10) ──
     if cfg.auto_exercise:
-        # 已迁移到新方法: 演习执行器入口 (原 autowsgr.business.legacy_ops.exercise.ExerciseOnceRunner)
         from autowsgr.business.combat.exercise import ExerciseOnceRunner
 
         fleet_id = cfg.exercise_fleet_id or 1
@@ -236,8 +232,11 @@ def _register_normal_fight(
 
     *plan_root* 透传给 :func:`get_normal_fight_plan`, 用户自定义目录优先。
     """
+    from autowsgr.business.combat.bettle.normal_fight import (
+        NormalFightRunner,
+        get_normal_fight_plan,
+    )
     from autowsgr.business.combat.fleet import resolve_fleet_selection
-    from autowsgr.business.legacy_ops.normal_fight import NormalFightRunner, get_normal_fight_plan
 
     plans: list[NormalFightPlan] = []
     for task in cfg.normal_fight_tasks:

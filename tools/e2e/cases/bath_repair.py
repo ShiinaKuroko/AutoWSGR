@@ -2,7 +2,7 @@
 
 验证链路契约: 首页 → 浴场 → 选择修理 overlay → 派修 → 回首页。
 覆盖点:
-    - goto_page 跨页导航 (浴场页已迁 infra/ui/pages/bath_page/)
+    - goto_page 跨页导航 (浴场页位于 application/ui/pages/bath_page/)
     - 选择修理 overlay 开关机制 (点击舰船后自动关闭)
     - OCR 选船 (修理时间最长优先) + BathRoom 状态机 occupy
 

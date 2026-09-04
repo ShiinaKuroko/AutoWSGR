@@ -56,8 +56,8 @@ except Exception:
 from loguru import logger
 
 from autowsgr.business.combat import CombatMode, CombatPlan, NodeDecision, RuleEngine
+from autowsgr.business.combat.bettle.event_fight import EventFightRunner
 from autowsgr.business.combat.fleet import resolve_fleet_selection
-from autowsgr.business.legacy_ops.event_fight import EventFightRunner
 from autowsgr.common.types import ConditionFlag, FightCondition, Formation, RepairMode
 from testing.ops._framework import launch_for_test
 

@@ -1,1 +1,1 @@
-"""business.system 域测试包。"""
+"""Compatibility package for the moved runtime initialization tests."""

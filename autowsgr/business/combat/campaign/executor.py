@@ -45,7 +45,7 @@ class CampaignExecutor(BaseExecutor):
             raise TypeError('任务进度 _result 必须是 CombatResult')
 
         # 2、加载游戏初始化入口。
-        from autowsgr.business.system.initialize.initialize import initialize
+        from autowsgr.application.runtime.initialize.initialize import initialize
 
         # 3、读取连续战役的页面复用标记。
         reuse_page = self.progress.pop('_reuse_campaign_page', False)

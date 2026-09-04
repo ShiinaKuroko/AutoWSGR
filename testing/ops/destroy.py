@@ -101,7 +101,7 @@ def main() -> None:
         logger.info(f'已连接: {ctrl.serial}')
         print(f'  [OK] 已连接: {ctrl.serial}')
 
-        from autowsgr.business.legacy_ops.destroy import destroy_ships
+        from autowsgr.business.logistics.destroy import destroy_ships
 
         destroy_ships(
             ctrl,

@@ -17,8 +17,6 @@ from autowsgr.application.ui.legacy import (
     MapPanel,
     RepairStrategy,
 )
-
-# 已迁移到新方法: 导航器入口 (原 autowsgr.business.legacy_ops.navigate.goto_page)
 from autowsgr.application.ui.navigation import goto_page
 from autowsgr.business.combat import CombatMode, CombatPlan, CombatResult, run_combat
 from autowsgr.business.combat.fleet import (
@@ -470,7 +468,7 @@ class NormalFightRunner:
         由触发器/调度器识别"解装完毕、可重试"与"无法解装、须停止"。
         """
         if self._dock_full_destroy:
-            from autowsgr.business.legacy_ops.destroy import destroy_ships_auto
+            from autowsgr.business.logistics.destroy import destroy_ships_auto
 
             _log.warning('[OPS] 船坞已满，执行自动解装 (弹窗直达)')
             try:

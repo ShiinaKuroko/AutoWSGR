@@ -298,14 +298,14 @@ class E2ERunner:
         """调用唯一业务初始化入口，保证终态为首页待机。"""
         if self.ctx is None:
             raise RuntimeError('GameContext 尚未构造')
-        from autowsgr.business.system.initialize.initialize import initialize
+        from autowsgr.application.runtime.initialize.initialize import initialize
 
         initialize(self.ctx)
         self._handle_daily_overlays()
 
     def _handle_daily_overlays(self) -> None:
         """处理每日首次登录弹窗，供初始化和异常恢复共用。"""
-        from autowsgr.business.system.initialize.overlays import (
+        from autowsgr.application.runtime.initialize.overlays import (
             OverlayState,
             handle_daily_overlays,
         )

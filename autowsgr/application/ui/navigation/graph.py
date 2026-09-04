@@ -6,7 +6,7 @@
 导航器本身零坐标。
 
 页面控制器迁移状态 (动作函数按此选路径):
-    已迁 infra/ui/pages/: main_page, bath_page
+    页面实现位于 application/ui/pages/: main_page, bath_page
     仍在老 ui/ 下: map, mission, backyard, sidebar, canteen,
                     build, intensify, friend, decisive, event
 

@@ -27,6 +27,16 @@ def test_autowsgr_has_only_the_five_architecture_packages() -> None:
     assert packages == set(_LAYERS)
 
 
+def test_business_has_only_combat_and_logistics_domains() -> None:
+    domains = {
+        item.name
+        for item in (_ROOT / 'business').iterdir()
+        if item.is_dir() and item.name != '__pycache__'
+    }
+
+    assert domains == {'combat', 'logistics'}
+
+
 def test_layer_imports_only_point_downward() -> None:
     violations: list[str] = []
 

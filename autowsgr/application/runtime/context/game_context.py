@@ -260,7 +260,6 @@ class GameContext:
             的触发器 (常规战) 并提示用户, 而非降级 —— 降级会退化为"靠首场
             战斗自行校准", 但战斗未必掉落, 计数器可能一直为 0 → 持续误触发。
         """
-        # 已迁移到新方法: 导航器入口 (原 autowsgr.business.legacy_ops.goto_page)
         from autowsgr.application.ui.navigation import goto_page
         from autowsgr.application.ui.pages.map import MapPage, MapPanel
         from autowsgr.common.types import PageName

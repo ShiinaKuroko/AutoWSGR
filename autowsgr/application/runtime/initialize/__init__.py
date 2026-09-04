@@ -8,7 +8,7 @@
 
 入口调用::
 
-    from autowsgr.business.system.initialize.initialize import initialize
+    from autowsgr.application.runtime.initialize.initialize import initialize
 
     initialize(ctx)
 """

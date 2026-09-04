@@ -3,7 +3,7 @@
 执行 3 次困难航母战役。
 """
 
-from autowsgr.business.legacy_ops import CampaignRunner
+from autowsgr.business.combat.campaign import CampaignRunner
 from autowsgr.dispatch.legacy_scheduler import launch
 
 

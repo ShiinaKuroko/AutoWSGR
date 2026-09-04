@@ -54,7 +54,6 @@ def main() -> None:
         logger.info(f'已连接: {ctrl.serial}')
         print(f'  [OK] 已连接: {ctrl.serial}')
 
-        # 已迁移到新方法: 浴场修理 (原 autowsgr.business.legacy_ops.repair.repair_in_bath)
         from autowsgr.business.logistics.repair.bath_repair import repair_in_bath
 
         repair_in_bath(ctrl)

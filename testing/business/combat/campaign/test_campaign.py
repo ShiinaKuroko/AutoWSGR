@@ -8,10 +8,10 @@ from unittest.mock import MagicMock
 
 import pytest
 
+import autowsgr.application.runtime.initialize.initialize as initialize_module
 import autowsgr.business.base as base_module
 import autowsgr.business.combat.campaign.executor as executor_module
 import autowsgr.business.combat.campaign.operations as operations_module
-import autowsgr.business.system.initialize.initialize as initialize_module
 from autowsgr.application.ui.pages.battle_preparation import BattlePreparationPage
 from autowsgr.application.ui.pages.battle_preparation.fleet_change._detect import FleetSnapshot
 from autowsgr.business.combat import CombatResult

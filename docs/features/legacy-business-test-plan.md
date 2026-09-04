@@ -1,3 +1,6 @@
+> 历史测试计划：生产代码已拆分到 `business/combat`、`business/logistics` 和
+> `application/runtime`。下方命令保留原始记录，不作为当前入口契约。
+
 ````markdown
 ## 测试计划
 

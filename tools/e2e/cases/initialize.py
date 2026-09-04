@@ -1,4 +1,4 @@
-"""初始化链路 E2E — business.system.initialize 实机验证。
+"""初始化链路 E2E — application.runtime.initialize 实机验证。
 
 验证终态契约: 任意状态 → [首页 + 浮层已清 + 待机]。
 配合 ``--no-launch`` 使用 (跳过框架自己的 ensure_ready, 让 initialize 全权处理):
@@ -26,10 +26,10 @@ def add_arguments(parser) -> None:
 
 def run(rt) -> bool:
     """执行初始化链路并验证终态契约。"""
+    from autowsgr.application.runtime.initialize.initialize import _package_of, initialize
     from autowsgr.application.ui.navigation import identify_current_page
     from autowsgr.application.ui.pages.main_page import MainPage
     from autowsgr.application.ui.pages.main_page.overlays import detect_overlay
-    from autowsgr.business.system.initialize.initialize import _package_of, initialize
 
     ctx = rt.ctx
 
