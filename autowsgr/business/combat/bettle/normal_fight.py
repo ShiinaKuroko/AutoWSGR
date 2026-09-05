@@ -33,14 +33,14 @@ from autowsgr.common.ui.interaction import NavigationError
 
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import Callable, Sequence
     from pathlib import Path
 
     from autowsgr.application.runtime import RuntimeContext as GameContext
     from autowsgr.application.runtime.context.ship import Ship
 
 
-_log = get_logger('ops')
+_log = get_logger('business.combat.bettle')
 
 
 def _require_fleet_change(success: bool, source: str) -> None:
@@ -50,7 +50,7 @@ def _require_fleet_change(success: bool, source: str) -> None:
 
 
 class NormalFightRunner:
-    """常规战斗执行器。"""
+    """普通出征和活动出征共用的战斗运行器。"""
 
     def __init__(
         self,
@@ -61,6 +61,8 @@ class NormalFightRunner:
         fleet_id: int | None = None,
         fleet: Sequence[str] | None = None,
         fleet_rules: Sequence[FleetSlotRule] | None = None,
+        task_type: str | None = None,
+        wait: Callable[[float], None] | None = None,
     ) -> None:
         validate_fleet_selection_arguments(
             fleet_selection,
@@ -71,6 +73,7 @@ class NormalFightRunner:
         self._ctx = ctx
         self._ctrl = ctx.ctrl
         self._plan = plan
+        self._sleep = wait or time.sleep
         self._fleet_selection = fleet_selection or resolve_fleet_selection(
             plan,
             fleet_id=fleet_id,
@@ -82,14 +85,18 @@ class NormalFightRunner:
         # 从 config 读取拆船配置
         self._dock_full_destroy = ctx.config.dock_full_destroy
 
-        # chapter 为 E/H → 活动地图入口; 否则常规地图。仅靠 plan 决定导航,
-        # event 与 normal 共用本 runner (融合), 复用 normal_fight 触发器。
-        self._is_event = str(plan.chapter).upper() in ('E', 'H')
+        # 新入口显式传 task_type；旧便捷函数未传时仍按 chapter 推断。
+        self._task_type = task_type or (
+            'event_fight' if str(plan.chapter).upper() in ('E', 'H') else 'normal_fight'
+        )
+        if self._task_type not in {'normal_fight', 'event_fight'}:
+            raise ValueError(f'不支持的 bettle task_type: {self._task_type}')
+        self._is_event = self._task_type == 'event_fight'
 
         target_mode = CombatMode.EVENT if self._is_event else CombatMode.NORMAL
         if plan.mode != target_mode:
             _log.info(
-                '[OPS] 出击: 计划模式 {} → {} (chapter={})',
+                '[Bettle] 出击: 计划模式 {} → {} (chapter={})',
                 plan.mode,
                 target_mode,
                 plan.chapter,
@@ -119,7 +126,7 @@ class NormalFightRunner:
     # ── 公共接口 ──
 
     def run(self) -> CombatResult:
-        """执行一次完整的常规战。
+        """执行一次完整的出击。
 
         1. 进入地图
         2. 出征准备
@@ -131,7 +138,7 @@ class NormalFightRunner:
         CombatResult
         """
         _log.info(
-            '[OPS] 常规战: {}-{} ({}), 舰队来源: {}',
+            '[Bettle] 出击: {}-{} ({}), 舰队来源: {}',
             self._plan.chapter,
             self._plan.map_id,
             self._plan.name,
@@ -196,23 +203,23 @@ class NormalFightRunner:
         -------
         list[CombatResult]
         """
-        _log.info('[OPS] 常规战连续执行 {} 次', times)
+        _log.info('[Bettle] 连续执行 {} 次', times)
         self._results = []
 
         for i in range(times):
-            _log.info('[OPS] 常规战第 {}/{} 次', i + 1, times)
+            _log.info('[Bettle] 第 {}/{} 次', i + 1, times)
             result = self.run(**kwargs)
             self._results.append(result)
 
             if result.flag == ConditionFlag.DOCK_FULL:
-                _log.warning('[OPS] 船坞已满, 停止')
+                _log.warning('[Bettle] 船坞已满, 停止')
                 break
 
             if gap > 0 and i < times - 1:
-                time.sleep(gap)
+                self._sleep(gap)
 
         _log.info(
-            '[OPS] 常规战完成: {} 次 (成功 {} 次)',
+            '[Bettle] 完成: {} 次 (成功 {} 次)',
             len(self._results),
             sum(1 for r in self._results if r.flag == ConditionFlag.OPERATION_SUCCESS),
         )
@@ -271,18 +278,18 @@ class NormalFightRunner:
         self._plan.collect_result_info = True
 
         while times > 0:
-            _log.info('[OPS] 条件战斗，剩余次数：{}', times)
+            _log.info('[Bettle] 条件战斗，剩余次数：{}', times)
             r = self.run()
             self._results.append(r)
 
             if r.flag == ConditionFlag.DOCK_FULL:
-                _log.error('[OPS] 条件战斗，船坞已满，无法继续')
+                _log.error('[Bettle] 条件战斗，船坞已满，无法继续')
                 return self._results
 
             # 获取最后一个节点的战果
             fight_results = r.fight_results
             if not fight_results:
-                _log.warning('[OPS] 条件战斗，未获取到有效战果')
+                _log.warning('[Bettle] 条件战斗，未获取到有效战果')
                 continue
 
             last_result = fight_results[-1]
@@ -294,7 +301,7 @@ class NormalFightRunner:
 
             if not finish:
                 _log.info(
-                    '[OPS] 不满足预设条件 (节点={}, 战果={}), 此次战斗不计入次数，剩余次数: {}',
+                    '[Bettle] 不满足预设条件 (节点={}, 战果={}), 此次战斗不计入次数，剩余次数: {}',
                     last_result.node,
                     last_result.grade,
                     times,
@@ -305,7 +312,7 @@ class NormalFightRunner:
                 start_time = time.time()
                 times -= 1
                 _log.info(
-                    '[OPS] 完成了一次满足预设条件的战斗，剩余次数: {}',
+                    '[Bettle] 完成了一次满足预设条件的战斗，剩余次数: {}',
                     times,
                 )
 
@@ -327,7 +334,7 @@ class NormalFightRunner:
 
         # 在出征面板读取今日已获取数量
         map_page.ensure_panel(MapPanel.SORTIE)
-        time.sleep(0.25)
+        self._sleep(0.25)
         # 战利品 OCR 与 YAML 联动: 仅在开启 stop_max_loot (战利品检查) 时识别,
         # 无战利品活动时跳过该区域避免无效 OCR 报警
         da = self._ctx.config.daily_automation
@@ -337,17 +344,17 @@ class NormalFightRunner:
             self._loot_count = counts.loot
             self._ship_acquired_count = counts.ship
         except RuntimeError:
-            _log.warning('[OPS] 无法读取今日获取数量 (OCR 不可用)')
+            _log.warning('[Bettle] 无法读取今日获取数量 (OCR 不可用)')
 
         try:
             map_page.enter_sortie(self._plan.chapter, self._plan.map_id)
         except NavigationError as e:
-            _log.error('[OPS] 地图章节导航失败: {}', e)
-            _log.warning('[OPS] 已放弃本轮常规战，尝试返回主页面以继续后续队列')
+            _log.error('[Bettle] 地图章节导航失败: {}', e)
+            _log.warning('[Bettle] 已放弃本轮出击，尝试返回主页面以继续后续队列')
             try:
                 goto_page(self._ctx, PageName.MAIN)
             except NavigationError as back_err:
-                _log.error('[OPS] 返回主页面失败: {}', back_err)
+                _log.error('[Bettle] 返回主页面失败: {}', back_err)
             raise ActionFailedError('地图章节识别/导航失败，已跳过本轮并返回主页面') from e
 
     def _enter_event(self) -> None:
@@ -356,7 +363,7 @@ class NormalFightRunner:
         弹窗关闭由 UI 层 (:class:`BaseEventPage`) 内部处理。
         """
         goto_page(self._ctx, PageName.EVENT_MAP)
-        time.sleep(0.25)
+        self._sleep(0.25)
         event_page = BaseEventPage(self._ctx, event_name=self._plan.event_name)
         event_page.start_fight(self._map_code, self._entrance, self._skip_check)
 
@@ -370,12 +377,12 @@ class NormalFightRunner:
         list[int]
             战前血量状态。
         """
-        time.sleep(1.0)
+        self._sleep(1.0)
         page = BattlePreparationPage(self._ctx)
 
         # 选择舰队
         page.select_fleet(self._fleet_id)
-        time.sleep(0.5)
+        self._sleep(0.5)
 
         resolved_ship_names: list[str | None] | None = None
 
@@ -387,19 +394,19 @@ class NormalFightRunner:
                 page.change_fleet(self._fleet_id, slot_rules),
                 'fleet_rules',
             )
-            time.sleep(0.5)
+            self._sleep(0.5)
             resolved_ship_names = page.last_changed_fleet
         elif plain_fleet is not None:
             _require_fleet_change(
                 page.change_fleet(self._fleet_id, exact_fleet_rules(plain_fleet)),
                 'fleet',
             )
-            time.sleep(0.5)
+            self._sleep(0.5)
             resolved_ship_names = page.last_changed_fleet
 
         # 补给
         page.apply_supply()
-        time.sleep(0.3)
+        self._sleep(0.3)
 
         # 修理策略
         repair_modes = self._plan.repair_mode
@@ -417,7 +424,7 @@ class NormalFightRunner:
         fleet_info = page.detect_fleet_info()
         ship_stats = [fleet_info.ship_damage.get(i, ShipDamageState.NORMAL) for i in range(6)]
         if ShipDamageState.SEVERE in ship_stats:
-            _log.error('[OPS] 出征前检测到大破舰船，退出程序')
+            _log.error('[Bettle] 出征前检测到大破舰船，退出程序')
             raise ActionFailedError('出征前检测到大破舰船，退出程序')
         ship_names = resolved_ship_names
         if ship_names is None:
@@ -426,7 +433,7 @@ class NormalFightRunner:
 
         # 出征
         page.start_battle()
-        time.sleep(1.0)
+        self._sleep(1.0)
 
         return ship_stats
 
@@ -453,7 +460,7 @@ class NormalFightRunner:
         if result.flag == ConditionFlag.DOCK_FULL:
             self._handle_dock_full(result)
             return
-        _log.info('[OPS] 常规战结果: {}', result.flag.value)
+        _log.info('[Bettle] 出击结果: {}', result.flag.value)
 
     def _handle_dock_full(self, result: CombatResult) -> None:
         """船坞已满: 按配置自动解装，并保持 DOCK_FULL 标志。
@@ -470,15 +477,15 @@ class NormalFightRunner:
         if self._dock_full_destroy:
             from autowsgr.business.logistics.destroy import destroy_ships_auto
 
-            _log.warning('[OPS] 船坞已满，执行自动解装 (弹窗直达)')
+            _log.warning('[Bettle] 船坞已满，执行自动解装 (弹窗直达)')
             try:
                 destroyed = destroy_ships_auto(self._ctx, from_dialog=True)
             except NavigationError as e:
-                _log.error('[OPS] 弹窗直达解装失败: {}, 回退主页面', e)
+                _log.error('[Bettle] 弹窗直达解装失败: {}, 回退主页面', e)
                 try:
                     goto_page(self._ctx, PageName.MAIN)
                 except NavigationError as back_err:
-                    _log.error('[OPS] 返回主页面失败: {}', back_err)
+                    _log.error('[Bettle] 返回主页面失败: {}', back_err)
                 return  # 解装未执行, 保持 DOCK_FULL 且未置 destroyed, 由上层停止
             if destroyed:
                 # 解装成功 (结束在主页面), 下轮 run 重新导航进图出击
@@ -486,7 +493,7 @@ class NormalFightRunner:
             # destroyed=False: 白名单覆盖全部舰种, 无可解装对象, 保持 DOCK_FULL
             return
 
-        _log.warning('[OPS] 船坞已满, 未开启自动解装')
+        _log.warning('[Bettle] 船坞已满, 未开启自动解装')
         # result.flag 保持 DOCK_FULL, 由 run_for_times 终止循环
 
 

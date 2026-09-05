@@ -16,6 +16,8 @@ if TYPE_CHECKING:
 
 # task_type → (业务执行器模块, 类名)。只在真正执行时加载业务包。
 _TASK_MODULES: dict[str, tuple[str, str]] = {
+    'normal_fight': ('autowsgr.business.combat.bettle.executor', 'BettleExecutor'),
+    'event_fight': ('autowsgr.business.combat.bettle.executor', 'BettleExecutor'),
     'campaign': ('autowsgr.business.combat.campaign.executor', 'CampaignExecutor'),
     'decisive': ('autowsgr.business.combat.decisive.executor', 'DecisiveExecutor'),
     'exercise': ('autowsgr.business.combat.exercise.executor', 'ExerciseExecutor'),
@@ -59,6 +61,7 @@ def build_executor(
     return _EXECUTORS[task_type](
         ctx,
         params,
+        task_type=task_type,
         pause=pause,
         stop=stop,
         progress=progress,

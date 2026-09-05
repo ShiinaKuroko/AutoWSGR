@@ -93,6 +93,7 @@ class EventFightRunner(NormalFightRunner):
             fleet_id=fleet_id,
             fleet=fleet,
             fleet_rules=fleet_rules,
+            task_type='event_fight',
         )
 
 

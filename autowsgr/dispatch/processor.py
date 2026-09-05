@@ -95,9 +95,18 @@ def _validate_decisive_params(params: Mapping[str, Any]) -> None:
     DecisiveConfig(**dict(params))
 
 
+def _validate_bettle_params(params: Mapping[str, Any]) -> None:
+    """校验普通出征和活动战计划字段。"""
+    from autowsgr.business.combat import CombatPlan
+
+    CombatPlan.from_dict(dict(params))
+
+
 def _validate_params(task_type: str, params: Mapping[str, Any]) -> None:
     """运行当前已迁移链路的字段校验; 其他链路保留其既有校验器。"""
-    if task_type == 'exercise':
+    if task_type in {'normal_fight', 'event_fight'}:
+        _validate_bettle_params(params)
+    elif task_type == 'exercise':
         _validate_exercise_params(params)
     elif task_type == 'campaign':
         _validate_campaign_params(params)

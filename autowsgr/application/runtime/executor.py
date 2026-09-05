@@ -43,6 +43,7 @@ class BaseExecutor:
         ctx: GameContext,
         params: dict | None = None,
         *,
+        task_type: str | None = None,
         pause: threading.Event | None = None,
         stop: threading.Event | None = None,
         progress: dict | None = None,
@@ -50,6 +51,8 @@ class BaseExecutor:
     ) -> None:
         self.ctx = ctx
         self.params = dict(params or {})
+        self.task_type = task_type
+        """处理器下发的业务类型。"""
         self.progress = progress if progress is not None else {}
         """任务级进度 (如 fought 计数), 暂停重跑后由处理器传入同一 dict 保留。"""
         self._pause = pause if pause is not None else threading.Event()

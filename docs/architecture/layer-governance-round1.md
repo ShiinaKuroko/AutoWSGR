@@ -68,4 +68,6 @@ server -> dispatch -> business -> application -> common
   `business/fleet_policy.py`；不再使用额外的 `combat/fleet` 包层。
 - `BaseExecutor` 位于 `application/runtime/executor.py`，战斗历史和通用阶段处理
   位于 `application/combat`；`business/combat` 只保留业务规则和场景决策。
+- 普通出征和活动战统一由 `business/combat/bettle/executor.py` 进入，
+  `task_type` 决定普通地图或活动地图导航；旧便捷函数仅保留兼容调用。
 - 本轮不细拆页面内部职责，不改变 GUI 契约，也不重做普通出征、活动战和后勤业务。
