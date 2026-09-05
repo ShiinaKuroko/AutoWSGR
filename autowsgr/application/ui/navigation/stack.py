@@ -1,4 +1,9 @@
-"""导航页面栈。"""
+"""记录页面来路，并为导航中的下一次识别提供候选页面。
+
+`service._goto_page` 调用 `observe`、`push` 和 `candidates`；识别失败时由
+`recognition` 调用 `reset` 或 `clear`。本文件只依赖导航图的邻接关系和页面名类型，
+不读取截图、不调用设备。
+"""
 
 from __future__ import annotations
 
@@ -34,16 +39,18 @@ class UIStack:
     """记录页面来路、识别对账和下一步识别候选。"""
 
     def __init__(self, *, max_depth: int = 8, keep_frames: int = 2) -> None:
+        """创建空页面栈。"""
         self._frames: list[_StackFrame] = []
         self._max_depth = max_depth
         self._keep_frames = keep_frames
         self._drifted = False
         self._lock = threading.Lock()
 
-    # ── 查询 ─────────────────────────────────────────────────
+    # -- 栈能力 ------------
 
     def candidates(self, target: str | PageName | None = None) -> set[str]:
         """生成下一次页面识别的候选集合。"""
+        # 1、保留当前页和相邻页，覆盖正常前进。
         with self._lock:
             current = self._frames[-1].page if self._frames else None
             parent = self._frames[-2].page if len(self._frames) >= 2 else None
@@ -52,12 +59,14 @@ class UIStack:
         if current is not None:
             result.add(current)
             result |= neighbors(current)
+        # 2、保留父页和目标页，覆盖回退与无入边页面。
         if parent is not None:
             result.add(parent)
         if target is not None:
             name = _page_name(target)
             result.add(name)
             result |= neighbors(name)
+        # 3、保留全局覆盖页，避免弹窗把识别范围挡住。
         result |= OVERLAY_CANDIDATES
         return result
 
@@ -86,6 +95,7 @@ class UIStack:
 
     def observe(self, identified: str | PageName, *, screen: np.ndarray | None = None) -> str:
         """用识别结果校正页面栈。"""
+        # 1、先把识别结果转成统一页面名。
         name = _page_name(identified)
         with self._lock:
             if not self._frames:
@@ -106,6 +116,7 @@ class UIStack:
                 self._trim()
                 return name
 
+            # 2、无法对应当前路径时保留栈，标记为漂移。
             self._drifted = True
             _log.warning(
                 "[UIStack] 漂移: 识别为 '{}', 栈预测 '{}' (栈: {})",
@@ -167,7 +178,7 @@ class UIStack:
                     return frame.screen
         return None
 
-    # ── 内部 ─────────────────────────────────────────────────
+    # -- 内部辅助 ------------
 
     def _trim(self) -> None:
         """限制栈深和截图留存数量。"""

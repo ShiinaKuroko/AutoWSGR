@@ -1,4 +1,8 @@
-"""页面识别器注册表。"""
+"""管理页面识别器的注册和默认页面装载。
+
+`recognition.py` 读取本文件维护的注册表，页面模块在默认装载时提供检查器；pytest
+可以注册临时检查器。本文件依赖 canonical 页面控制器、`PageMatch` 类型和日志模块。
+"""
 
 from __future__ import annotations
 
@@ -15,6 +19,8 @@ if TYPE_CHECKING:
     from autowsgr.common.vision.page_match import PageMatch
 
 
+# -- 注册状态 ------------
+
 _log = get_logger('ui')
 
 _PAGE_REGISTRY: dict[str, Callable[[np.ndarray], PageMatch]] = {}
@@ -23,16 +29,24 @@ _OVERLAY_PAGES: set[str] = set()
 """不遮挡底层识别元素的覆盖型页面。"""
 
 
+# -- 注册查询 ------------
+
+
 def get_registered_pages() -> list[str]:
     """返回所有已注册的页面名。"""
     return list(_PAGE_REGISTRY.keys())
 
 
+# -- 默认页面 ------------
+
+
 def register_default_pages() -> None:
     """注册所有页面识别器。"""
+    # 1、已完成注册时直接返回，避免重复导入页面。
     if 'default' in _DEFAULT_PAGES_REGISTERED:
         return
 
+    # 2、按需加载页面检查器并写入注册表。
     from autowsgr.application.ui.pages.backyard_page import BackyardPage
     from autowsgr.application.ui.pages.bath_page import BathPage
     from autowsgr.application.ui.pages.battle_preparation import BattlePreparationPage
@@ -64,6 +78,9 @@ def register_default_pages() -> None:
     register_page(PageName.DECISIVE_BATTLE, DecisiveBattlePage.is_current_page)
     register_page(PageName.CHOOSE_SHIP, ChooseShipPage.is_current_page)
     _DEFAULT_PAGES_REGISTERED.add('default')
+
+
+# -- 自定义页面 ------------
 
 
 def register_page(

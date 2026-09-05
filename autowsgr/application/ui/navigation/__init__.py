@@ -1,10 +1,8 @@
-"""UI 语义导航公开入口。
+"""提供 UI 语义导航的分层公开入口。
 
-页面控制器和视觉识别器属于下层实现；业务只请求目标页面或安全锚点，
-由这里的导航服务负责识别、寻路和交接。
-
-业务层入口只有 ``goto_page``；E2E/调试使用页面识别接口；pytest 使用图、
-注册表和页面栈接口。
+业务执行器调用 `goto_page`；E2E 和调试工具读取页面识别结果；pytest 检查导航图、
+注册表和页面栈。实现依赖同包的 service、recognition、registry、graph、stack，以及
+下层页面控制器和 common 类型，不直接承载业务规则。
 """
 
 from autowsgr.application.ui.navigation.graph import NAV_GRAPH, NavEdge, find_path, neighbors
@@ -19,20 +17,20 @@ from autowsgr.application.ui.navigation.stack import UIStack
 
 
 __all__ = [
-    # pytest 入口：测试直接检查图、注册表和页面栈。
+    # -- pytest 入口 ------------
     'NAV_GRAPH',
     'NavEdge',
     'UIStack',
     'find_path',
-    # 工具入口：E2E 和调试工具读取当前页面。
+    # -- 工具入口 ------------
     'get_current_page',
-    # pytest 入口：测试查询已注册页面。
+    # -- pytest 入口 ------------
     'get_registered_pages',
-    # 业务入口：业务层只调用语义导航。
+    # -- 业务入口 ------------
     'goto_page',
-    # 工具入口：E2E 和调试工具读取当前页面。
+    # -- 工具入口 ------------
     'identify_current_page',
-    # pytest 入口：测试检查图和注册表。
+    # -- pytest 入口 ------------
     'neighbors',
     'register_default_pages',
     'register_page',

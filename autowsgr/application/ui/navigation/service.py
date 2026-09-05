@@ -1,7 +1,7 @@
-"""
-跨页面导航 — 从任意页面到达目标页面。
-提供游戏层的核心导航能力: ``goto_page(ctx, PageName.目标)``
-本文件为跨页面导航的功能入口文件
+"""提供从当前页面到业务入口的跨页面导航。
+
+业务执行器调用 `goto_page`；它组合页面识别、导航图和页面控制器动作，并使用页面栈
+记录来路。本文件依赖 `recognition`、`graph`、`UIStack` 和通用导航异常，不实现页面内业务。
 """
 
 from __future__ import annotations
@@ -21,23 +21,21 @@ from autowsgr.common.ui.interaction import NavigationError
 if TYPE_CHECKING:
     from autowsgr.application.ui.context import UIContext as GameContext
 
-_log = get_logger('business.navigate')
+# -- 功能入口 ------------
 
-# ── 功能入口 ─────────────────────────────────────────────────
+_log = get_logger('business.navigate')
 
 
 def goto_page(ctx: GameContext, target: str) -> None:
-    """
-    导航器真实功能入口，首次失败时先全量识别并重建页面栈
-     (漂移后的栈会把真实页面排除在候选外, 直接重试大概率再失败), 再重试导航。
-    """
+    """到达目标页面；首次失败时重建页面栈并重试一次。"""
     try:
         _goto_page(ctx, target)
     except NavigationError as e:
-        # 调用截图功能，判断当前游戏页面处于什么位置
+        # 1、记录失败并重新识别当前页面。
         _log.error('[Navigate] 导航失败: {}', e)
         resynced = _resync_stack(ctx)
 
+        # 2、重建栈后重新确认页面，再执行一次导航。
         _log.info('[Navigate] 栈重建 (resync): {}, 执行一次重试', resynced or '识别失败')
         current_page = identify_current_page(ctx)
 
@@ -45,25 +43,11 @@ def goto_page(ctx: GameContext, target: str) -> None:
         _goto_page(ctx, target)
 
 
-# ── 导航实现 ─────────────────────────────────────────────────
+# -- 导航实现 ------------
 
 
 def _goto_page(ctx: GameContext, target: str) -> None:
-    """从当前页面导航到目标页面。
-
-    采用逐步重规划策略 (Step-by-Step Re-planning):
-    1. 识别当前页面, 并用 ``ctx.ui_stack.observe`` 对账
-    2. BFS 查找路径
-    3. 声明意图 (``ui_stack.push``) 后执行路径的第一步
-    4. 循环回到 1，直到到达目标
-
-    这允许处理不确定的导航动作 (如: build -> sidebar | main)。
-
-    Raises
-    ------
-    NavigationError
-        无法识别当前页面、找不到路径或步数超限。
-    """
+    """按当前页面逐步重规划，直到到达目标或抛出导航异常。"""
     max_steps = 20
     stack = ctx.ui_stack
     # 候选集:首轮全表扫描(真不知在哪);每步由栈给出
@@ -72,7 +56,7 @@ def _goto_page(ctx: GameContext, target: str) -> None:
     candidates: set[str] | None = None
 
     for step in range(max_steps):
-        # 1. 识别 + 对账
+        # 1、识别当前页面，并与页面栈对账。
         current = identify_current_page(ctx, candidates=candidates)
         if current is None:
             raise NavigationError(
@@ -82,12 +66,12 @@ def _goto_page(ctx: GameContext, target: str) -> None:
         stack.observe(current)
         _sync_ctx_page(ctx, current)
 
-        # 2. 检查
+        # 2、已经在目标页面时结束本次导航。
         if current == target:
             _log.info('[Navigate] 已在目标页面: {}', target)
             return
 
-        # 3. 寻路
+        # 3、查找下一步路径，找不到时立即终止。
         path = find_path(current, target)
         if path is None:
             raise NavigationError(
@@ -99,8 +83,7 @@ def _goto_page(ctx: GameContext, target: str) -> None:
             _log.info('[Navigate] 已在目标页面: {}', target)
             return
 
-        # 4. 执行一步:先声明意图(下一轮识别的 observe 会纠正),
-        #    动作失败未到达时, 识别到 parent 会被 pop 回收
+        # 4、先声明下一页，再执行点击；下一轮识别会校正栈。
         edge = path[0]
         _log.debug(
             '[Navigate] 步骤 {} (总限 {}): {} → {} ({})',

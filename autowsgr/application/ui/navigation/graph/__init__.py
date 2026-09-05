@@ -1,4 +1,8 @@
-"""导航图、路径查找和按域拆分的导航边。"""
+"""汇总导航边并提供最短路径查询。
+
+`navigation.service._goto_page` 调用 `find_path`，`UIStack` 调用 `neighbors` 缩小识别范围。
+本文件依赖公共、战斗、后勤三个边集合，不直接操作设备或页面。
+"""
 
 from __future__ import annotations
 
@@ -14,12 +18,17 @@ if TYPE_CHECKING:
     from autowsgr.common.types import PageName
 
 
+# -- 导航图汇总 ------------
+
 NAV_GRAPH: tuple[NavEdge, ...] = (*COMMON_EDGES, *COMBAT_EDGES, *LOGISTICS_EDGES)
 """完整导航图；边按公共、战斗、后勤域合并。"""
 
 _adjacency: dict[PageName, list[NavEdge]] = {}
 for _edge in NAV_GRAPH:
     _adjacency.setdefault(_edge.source, []).append(_edge)
+
+
+# -- 路径查询 ------------
 
 
 def find_path(source: str, target: str) -> list[NavEdge] | None:

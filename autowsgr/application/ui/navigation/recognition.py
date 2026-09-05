@@ -1,4 +1,8 @@
-"""页面识别和识别结果同步。"""
+"""从截图识别当前页面，并把结果同步给运行时上下文。
+
+`navigation.service` 使用 `identify_current_page` 驱动导航，E2E 和调试工具直接使用
+`get_current_page`。本文件依赖页面注册表、`PageMatch`、`PageName` 和截图设备，不执行点击。
+"""
 
 from __future__ import annotations
 
@@ -21,6 +25,8 @@ if TYPE_CHECKING:
     from autowsgr.application.ui.context import UIContext as GameContext
 
 
+# -- 识别配置 ------------
+
 _log = get_logger('business.navigate')
 
 MAX_IDENTIFY_ATTEMPTS: int = 5
@@ -30,11 +36,15 @@ IDENTIFY_INTERVAL: float = 1.0
 """页面识别重试间隔 (秒)。"""
 
 
+# -- 截图识别 ------------
+
+
 def get_current_page(
     screen: np.ndarray,
     candidates: set[str] | None = None,
 ) -> str | None:
     """根据截图识别当前页面。"""
+    # 1、只检查调用方允许的已注册页面。
     registered = list(_PAGE_REGISTRY)
     names = [name for name in registered if candidates is None or name in candidates]
     hits: list[PageMatch] = []
@@ -51,6 +61,7 @@ def get_current_page(
         if result.matched:
             hits.append(result)
 
+    # 2、覆盖层优先，再按匹配强度选择页面。
     if hits:
         overlay_hits = [result for result in hits if result.name in _OVERLAY_PAGES]
         pool = overlay_hits or hits
@@ -65,6 +76,7 @@ def get_current_page(
         )
         return best.name
 
+    # 3、没有命中时记录原因，把重试交给上层。
     if failed:
         _log.warning(
             '[UI] 无匹配页面，且以下识别器抛异常: {} (评估 {} 个候选)',
@@ -81,8 +93,10 @@ def identify_current_page(
     candidates: set[str] | None = None,
 ) -> str | None:
     """截图并识别当前页面。"""
+    # 1、确保默认页面检查器已经注册。
     register_default_pages()
     ctrl = ctx.ctrl
+    # 2、在页面动画期间重复截图识别。
     for attempt in range(MAX_IDENTIFY_ATTEMPTS):
         screen = ctrl.screenshot()
         page = get_current_page(screen, candidates=candidates)
@@ -91,12 +105,16 @@ def identify_current_page(
         _log.debug('[Navigate] 页面识别失败 (第 {} 次尝试), 等待重试', attempt + 1)
         time.sleep(IDENTIFY_INTERVAL)
 
+    # 3、候选集耗尽后做一次全量识别，避免栈漂移卡住导航。
     if candidates is not None:
         page = get_current_page(ctrl.screenshot())
         if page is not None:
             _log.warning('[Navigate] 候选识别失败, 全量兜底命中: {}', page)
             return page
     return None
+
+
+# -- 内部同步 ------------
 
 
 def _normalize_match(name: str, result: object) -> PageMatch:
