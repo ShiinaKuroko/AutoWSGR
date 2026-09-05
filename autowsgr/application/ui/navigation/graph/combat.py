@@ -2,7 +2,7 @@
 
 `autowsgr.application.ui.navigation.graph.__init__.py` 读取 `COMBAT_EDGES`，
 `autowsgr.application.ui.navigation.service.py` 执行边动作。这里的动作调用
-`autowsgr.application.ui.pages.map`、`battle_preparation`、`event.event_page` 和
+`autowsgr.application.ui.controller.map`、`battle_preparation`、`event.event_page` 和
 `decisive`，页面内的点击、等待和到达检查由页面控制器及 `autowsgr.common` 完成。
 """
 
@@ -23,35 +23,35 @@ if TYPE_CHECKING:
 
 def _battle_prep_to_map(ctx: GameContext) -> None:
     """从出征准备页返回地图，供暂停或取消时回到战斗入口。"""
-    from autowsgr.application.ui.pages.battle_preparation import BattlePreparationPage
+    from autowsgr.application.ui.controller.battle_preparation import BattlePreparationPage
 
     BattlePreparationPage(ctx).go_back()
 
 
 def _decisive_to_main(ctx: GameContext) -> None:
     """从决战页面返回主页，结束决战页面上下文。"""
-    from autowsgr.application.ui.pages.decisive import DecisiveBattlePage
+    from autowsgr.application.ui.controller.decisive import DecisiveBattlePage
 
     DecisiveBattlePage(ctx).go_back()
 
 
 def _event_to_main(ctx: GameContext) -> None:
     """从活动页面返回主页，结束活动页面上下文。"""
-    from autowsgr.application.ui.pages.event.event_page import BaseEventPage
+    from autowsgr.application.ui.controller.event.event_page import BaseEventPage
 
     BaseEventPage(ctx).go_back()
 
 
 def _map_to_decisive(ctx: GameContext) -> None:
     """从地图切换到决战面板，并等待决战页面。"""
-    from autowsgr.application.ui.pages.map import MapPage
+    from autowsgr.application.ui.controller.map import MapPage
 
     MapPage(ctx).enter_decisive()
 
 
 def _map_to_main(ctx: GameContext) -> None:
     """从地图返回主页，结束当前出征入口。"""
-    from autowsgr.application.ui.pages.map import MapPage
+    from autowsgr.application.ui.controller.map import MapPage
 
     MapPage(ctx).go_back()
 

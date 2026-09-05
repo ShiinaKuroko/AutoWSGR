@@ -481,8 +481,8 @@ class _FakeSortiePage:
 def _patch_ctx_sortie(monkeypatch: pytest.MonkeyPatch, page: _FakeSortiePage) -> None:
     """替换 ctx.sync_daily_drop_counts 的设备依赖 (goto_page / MapPage / sleep) 为 no-op。"""
     import autowsgr.application.runtime.context.game_context as gc_mod
+    import autowsgr.application.ui.controller.map as ui_mod
     import autowsgr.application.ui.navigation as nav_mod
-    import autowsgr.application.ui.pages.map as ui_mod
 
     monkeypatch.setattr(nav_mod, 'goto_page', lambda *_a, **_kw: None)
     monkeypatch.setattr(ui_mod, 'MapPage', lambda _ctx: page)

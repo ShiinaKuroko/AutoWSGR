@@ -7,8 +7,8 @@ from unittest.mock import MagicMock, call
 import pytest
 
 import autowsgr.common.ui.interaction as ui_utils
-from autowsgr.application.ui.pages.main_page import overlays
-from autowsgr.application.ui.pages.main_page.constants import DismissCoord
+from autowsgr.application.ui.controller.main_page import overlays
+from autowsgr.application.ui.controller.main_page.constants import DismissCoord
 from autowsgr.common.vision import ImageChecker
 
 

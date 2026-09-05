@@ -34,8 +34,8 @@ async def game_acquisition() -> ApiResponse:
     """
     ctx = require_context(get_context)
 
+    from autowsgr.application.ui.controller.map import MapPage
     from autowsgr.application.ui.navigation import goto_page
-    from autowsgr.application.ui.pages.map import MapPage
 
     def _recognize() -> dict[str, int | None]:
         goto_page(ctx, '地图页面')

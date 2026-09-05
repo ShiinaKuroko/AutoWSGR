@@ -2,7 +2,7 @@
 
 `autowsgr.application.ui.navigation.graph.__init__.py` 读取 `COMMON_EDGES`，
 `autowsgr.application.ui.navigation.service.py` 执行其中的动作。动作交给
-`autowsgr.application.ui.pages.main_page`，点击和到达检查再由页面控制器调用
+`autowsgr.application.ui.controller.main_page`，点击和到达检查再由页面控制器调用
 `autowsgr.common.ui.interaction.py` 等底层能力完成。
 """
 
@@ -35,35 +35,35 @@ class NavEdge:
 
 def _main_to_backyard(ctx: GameContext) -> None:
     """点击主页的后院入口并等待后院页面。"""
-    from autowsgr.application.ui.pages.main_page import MainPage
+    from autowsgr.application.ui.controller.main_page import MainPage
 
     MainPage(ctx).navigate_to(MainPage.Target.HOME)
 
 
 def _main_to_event(ctx: GameContext) -> None:
     """点击主页的活动入口并等待活动页面。"""
-    from autowsgr.application.ui.pages.main_page import MainPage
+    from autowsgr.application.ui.controller.main_page import MainPage
 
     MainPage(ctx).navigate_to(MainPage.Target.EVENT)
 
 
 def _main_to_map(ctx: GameContext) -> None:
     """点击主页的出征入口并等待地图页面。"""
-    from autowsgr.application.ui.pages.main_page import MainPage
+    from autowsgr.application.ui.controller.main_page import MainPage
 
     MainPage(ctx).navigate_to(MainPage.Target.SORTIE)
 
 
 def _main_to_mission(ctx: GameContext) -> None:
     """点击主页的任务入口并等待任务页面。"""
-    from autowsgr.application.ui.pages.main_page import MainPage
+    from autowsgr.application.ui.controller.main_page import MainPage
 
     MainPage(ctx).navigate_to(MainPage.Target.TASK)
 
 
 def _main_to_sidebar(ctx: GameContext) -> None:
     """点击主页的侧边栏入口并等待侧边栏。"""
-    from autowsgr.application.ui.pages.main_page import MainPage
+    from autowsgr.application.ui.controller.main_page import MainPage
 
     MainPage(ctx).navigate_to(MainPage.Target.SIDEBAR)
 

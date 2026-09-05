@@ -37,8 +37,8 @@ if TYPE_CHECKING:
 
 
 def run_test(runner: UIControllerTestRunner) -> None:
-    from autowsgr.application.ui.pages.backyard_page import BackyardPage
-    from autowsgr.application.ui.pages.canteen_page import CanteenPage
+    from autowsgr.application.ui.controller.backyard_page import BackyardPage
+    from autowsgr.application.ui.controller.canteen_page import CanteenPage
 
     canteen_page = CanteenPage(runner.ctrl)
 
@@ -58,8 +58,8 @@ def _navigate_to(ctrl: AndroidController, pause: float) -> None:
     """从任意已知页面导航到食堂页面。"""
     import time
 
-    from autowsgr.application.ui.pages.backyard_page import BackyardPage
-    from autowsgr.application.ui.pages.main_page import MainPage
+    from autowsgr.application.ui.controller.backyard_page import BackyardPage
+    from autowsgr.application.ui.controller.main_page import MainPage
 
     if not reset_to_main_page(ctrl, pause):
         return
@@ -83,7 +83,7 @@ def main() -> None:
     from loguru import logger
 
     logger.info('=== 食堂页面 e2e 测试开始 ===')
-    from autowsgr.application.ui.pages.canteen_page import CanteenPage
+    from autowsgr.application.ui.controller.canteen_page import CanteenPage
 
     if not ensure_page(
         ctrl,

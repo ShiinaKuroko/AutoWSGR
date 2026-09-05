@@ -5,7 +5,7 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING
 
-from autowsgr.application.ui.pages.battle_preparation import BattlePreparationPage
+from autowsgr.application.ui.controller.battle_preparation import BattlePreparationPage
 from autowsgr.common.system.logger import get_logger
 
 

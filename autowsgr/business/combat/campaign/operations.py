@@ -4,8 +4,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from autowsgr.application.ui.pages.battle_preparation import BattlePreparationPage, RepairStrategy
-from autowsgr.application.ui.pages.map import MapPage, MapPanel
+from autowsgr.application.ui.controller.battle_preparation import (
+    BattlePreparationPage,
+    RepairStrategy,
+)
+from autowsgr.application.ui.controller.map import MapPage, MapPanel
 from autowsgr.business.combat.fleet import exact_fleet_rules
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.types import RepairMode, ShipDamageState

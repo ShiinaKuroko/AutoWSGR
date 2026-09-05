@@ -37,8 +37,8 @@ if TYPE_CHECKING:
 
 
 def run_test(runner: UIControllerTestRunner) -> None:
-    from autowsgr.application.ui.pages.friend_page import FriendPage
-    from autowsgr.application.ui.pages.sidebar_page import SidebarPage
+    from autowsgr.application.ui.controller.friend_page import FriendPage
+    from autowsgr.application.ui.controller.sidebar_page import SidebarPage
 
     friend_page = FriendPage(runner.ctx)
 
@@ -59,8 +59,8 @@ def _navigate_to(ctrl: AndroidController, pause: float) -> None:
     import time
 
     from autowsgr.application.runtime.context import GameContext
-    from autowsgr.application.ui.pages.main_page import MainPage
-    from autowsgr.application.ui.pages.sidebar_page import SidebarPage
+    from autowsgr.application.ui.controller.main_page import MainPage
+    from autowsgr.application.ui.controller.sidebar_page import SidebarPage
     from autowsgr.common.system import UserConfig
 
     if not reset_to_main_page(ctrl, pause):
@@ -86,7 +86,7 @@ def main() -> None:
     from loguru import logger
 
     logger.info('=== 好友页面 e2e 测试开始 ===')
-    from autowsgr.application.ui.pages.friend_page import FriendPage
+    from autowsgr.application.ui.controller.friend_page import FriendPage
 
     if not ensure_page(
         ctrl,

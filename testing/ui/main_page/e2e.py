@@ -68,11 +68,11 @@ if TYPE_CHECKING:
 
 def run_test(runner: UIControllerTestRunner) -> None:  # noqa: PLR0911, C901, PLR0912, PLR0915
     """执行主页面控制器完整测试序列。"""
-    from autowsgr.application.ui.pages.backyard_page import BackyardPage
-    from autowsgr.application.ui.pages.main_page import MainPage
-    from autowsgr.application.ui.pages.map import MapPage
-    from autowsgr.application.ui.pages.mission_page import MissionPage
-    from autowsgr.application.ui.pages.sidebar_page import SidebarPage
+    from autowsgr.application.ui.controller.backyard_page import BackyardPage
+    from autowsgr.application.ui.controller.main_page import MainPage
+    from autowsgr.application.ui.controller.map import MapPage
+    from autowsgr.application.ui.controller.mission_page import MissionPage
+    from autowsgr.application.ui.controller.sidebar_page import SidebarPage
 
     main_page = MainPage(runner.ctrl)
     map_page = MapPage(runner.ctrl)
@@ -208,7 +208,7 @@ def run_test(runner: UIControllerTestRunner) -> None:  # noqa: PLR0911, C901, PL
 
     # ───── Step 8: 主页面 → 活动地图 ────────────────────────────────
     try:
-        from autowsgr.application.ui.pages.event.event_page import BaseEventPage
+        from autowsgr.application.ui.controller.event.event_page import BaseEventPage
 
         runner.execute_step(
             '主页面 → 活动地图 (navigate_to EVENT, 模板匹配)',
@@ -225,7 +225,7 @@ def run_test(runner: UIControllerTestRunner) -> None:  # noqa: PLR0911, C901, PL
     # ───── Step 8b: 活动地图 → ◁ 主页面 ─────────────────────────────
     screen = runner.ctrl.screenshot()
     try:
-        from autowsgr.application.ui.pages.event.event_page import BaseEventPage
+        from autowsgr.application.ui.controller.event.event_page import BaseEventPage
 
         if BaseEventPage.is_current_page(screen):
             event_page = BaseEventPage(runner.ctrl)
@@ -290,7 +290,7 @@ def main() -> None:
 
     logger.info('=== 主页面 e2e 测试开始 ===')
 
-    from autowsgr.application.ui.pages.main_page import MainPage
+    from autowsgr.application.ui.controller.main_page import MainPage
 
     if not ensure_page(
         ctrl,

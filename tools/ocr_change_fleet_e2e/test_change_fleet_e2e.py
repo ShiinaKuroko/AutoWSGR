@@ -24,8 +24,8 @@ from typing import TYPE_CHECKING
 
 from autowsgr.application.ui.navigation import goto_page
 from autowsgr.common.types import PageName
-from autowsgr.application.ui.pages.battle_preparation import BattlePreparationPage
-from autowsgr.application.ui.pages.main_page import MainPage
+from autowsgr.application.ui.controller.battle_preparation import BattlePreparationPage
+from autowsgr.application.ui.controller.main_page import MainPage
 from autowsgr.application.ui.navigation.recognition import get_current_page
 
 if TYPE_CHECKING:

@@ -32,9 +32,9 @@ import time
 from datetime import date
 from typing import TYPE_CHECKING
 
+from autowsgr.application.ui.controller.main_page import MainPage
+from autowsgr.application.ui.controller.start_screen import StartScreenPage
 from autowsgr.application.ui.navigation import goto_page
-from autowsgr.application.ui.pages.main_page import MainPage
-from autowsgr.application.ui.pages.start_screen import StartScreenPage
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.types import GameAPP, PageName
 from autowsgr.common.ui.interaction import NavigationError
@@ -143,8 +143,8 @@ def wait_for_game_ui(
         超时前成功检测到返回 ``True``，超时返回 ``False``。
     """
     # 延迟导入避免循环依赖 (ui 层反向引用 ops 的模块)
+    from autowsgr.application.ui.controller.main_page.overlays import detect_overlay
     from autowsgr.application.ui.navigation.recognition import get_current_page
-    from autowsgr.application.ui.pages.main_page.overlays import detect_overlay
 
     _log.info('[Startup] 等待游戏 UI 就绪 (超时 {:.0f}s)…', timeout)
     deadline = time.monotonic() + timeout

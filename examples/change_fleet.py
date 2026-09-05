@@ -3,8 +3,8 @@
 修改第 2 舰队的舰船配置。
 """
 
+from autowsgr.application.ui.controller.battle_preparation import BattlePreparationPage
 from autowsgr.application.ui.navigation import goto_page
-from autowsgr.application.ui.pages.battle_preparation import BattlePreparationPage
 from autowsgr.business.combat.fleet import exact_fleet_rules
 from autowsgr.common.types import PageName
 from autowsgr.dispatch.legacy_scheduler import launch

@@ -2,7 +2,7 @@
 
 import sys
 
-from autowsgr.application.ui.pages.battle_preparation import repair_action as _module
+from autowsgr.application.ui.controller.battle_preparation import repair_action as _module
 
 
 sys.modules[__name__] = _module

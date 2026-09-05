@@ -20,7 +20,7 @@
 ├──────────────────────────────────────────┤
 │ stack.py                                 │ 页面来路和识别对账
 ├──────────────────────────────────────────┤
-│ pages/                                   │ 各页面控制器
+│ controller/                              │ 各页面控制器
 └──────────────────────────────────────────┘
 ```
 
@@ -179,11 +179,11 @@ class NavEdge:
 
 ```python
 def _main_to_map(ctx: GameContext) -> None:
-    from autowsgr.application.ui.pages.main_page import MainPage
+    from autowsgr.application.ui.controller.main_page import MainPage
     MainPage(ctx).navigate_to(MainPage.Target.SORTIE)
 
 def _map_to_main(ctx: GameContext) -> None:
-    from autowsgr.application.ui.pages.map import MapPage
+    from autowsgr.application.ui.controller.map import MapPage
     MapPage(ctx).go_back()
 ```
 

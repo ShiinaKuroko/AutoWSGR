@@ -6,8 +6,8 @@ from types import SimpleNamespace
 from typing import TYPE_CHECKING
 from unittest.mock import MagicMock
 
-import autowsgr.application.ui.pages.battle_preparation.fleet_change.decisive as decisive_module
-from autowsgr.application.ui.pages.battle_preparation import BattlePreparationPage
+import autowsgr.application.ui.controller.battle_preparation.fleet_change.decisive as decisive_module
+from autowsgr.application.ui.controller.battle_preparation import BattlePreparationPage
 
 
 if TYPE_CHECKING:

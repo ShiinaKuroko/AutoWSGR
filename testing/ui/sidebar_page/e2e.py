@@ -40,11 +40,11 @@ if TYPE_CHECKING:
 
 
 def run_test(runner: UIControllerTestRunner) -> None:  # noqa: PLR0911
-    from autowsgr.application.ui.pages.build_page import BuildPage, BuildTab
-    from autowsgr.application.ui.pages.friend_page import FriendPage
-    from autowsgr.application.ui.pages.intensify_page import IntensifyPage, IntensifyTab
-    from autowsgr.application.ui.pages.main_page import MainPage
-    from autowsgr.application.ui.pages.sidebar_page import SidebarPage, SidebarTarget
+    from autowsgr.application.ui.controller.build_page import BuildPage, BuildTab
+    from autowsgr.application.ui.controller.friend_page import FriendPage
+    from autowsgr.application.ui.controller.intensify_page import IntensifyPage, IntensifyTab
+    from autowsgr.application.ui.controller.main_page import MainPage
+    from autowsgr.application.ui.controller.sidebar_page import SidebarPage, SidebarTarget
 
     sidebar_page = SidebarPage(runner.ctx)
     build_page = BuildPage(runner.ctx)
@@ -152,7 +152,7 @@ def _navigate_to(ctrl: AndroidController, pause: float) -> None:
     import time
 
     from autowsgr.application.runtime.context import GameContext
-    from autowsgr.application.ui.pages.main_page import MainPage
+    from autowsgr.application.ui.controller.main_page import MainPage
     from autowsgr.common.system import UserConfig
 
     if not reset_to_main_page(ctrl, pause):
@@ -174,7 +174,7 @@ def main() -> None:
     from loguru import logger
 
     logger.info('=== 侧边栏 e2e 测试开始 ===')
-    from autowsgr.application.ui.pages.sidebar_page import SidebarPage
+    from autowsgr.application.ui.controller.sidebar_page import SidebarPage
 
     if not ensure_page(
         ctrl,

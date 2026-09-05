@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 
 import numpy as np
 
-from autowsgr.application.ui.pages.choose_ship import ChooseShipPage
+from autowsgr.application.ui.controller.shared.choose_ship import ChooseShipPage
 from autowsgr.business.combat.fleet import ShipSelector
 from autowsgr.common.types import ShipType
 from autowsgr.common.vision import OCRResult
@@ -248,13 +248,13 @@ class TestIndependentShipRules:
         page = ChooseShipPage(ctx)
 
         with (
-            patch('autowsgr.application.ui.pages.choose_ship._OCR_MAX_ATTEMPTS', 1),
+            patch('autowsgr.application.ui.controller.shared.choose_ship._OCR_MAX_ATTEMPTS', 1),
             patch(
-                'autowsgr.application.ui.pages.choose_ship.locate_ship_rows',
+                'autowsgr.application.ui.controller.shared.choose_ship.locate_ship_rows',
                 return_value=[('U-47', 0.2, 0.3, 0.4)],
             ),
             patch(
-                'autowsgr.application.ui.pages.choose_ship.read_ship_level_at_card',
+                'autowsgr.application.ui.controller.shared.choose_ship.read_ship_level_at_card',
                 return_value=90,
             ),
         ):
@@ -272,17 +272,17 @@ class TestIndependentShipRules:
 
         with (
             patch(
-                'autowsgr.application.ui.pages.choose_ship.locate_ship_rows',
+                'autowsgr.application.ui.controller.shared.choose_ship.locate_ship_rows',
                 return_value=[
                     ('昆西', 0.4, 0.3, 0.4),
                     ('昆西', 0.2, 0.3, 0.4),
                 ],
             ),
             patch(
-                'autowsgr.application.ui.pages.choose_ship.read_ship_level_at_card',
+                'autowsgr.application.ui.controller.shared.choose_ship.read_ship_level_at_card',
                 side_effect=[1, 110],
             ) as read_level,
-            patch('autowsgr.application.ui.pages.choose_ship.time.sleep'),
+            patch('autowsgr.application.ui.controller.shared.choose_ship.time.sleep'),
         ):
             matched = page._click_ship_in_list(
                 '昆西',
@@ -299,7 +299,7 @@ class TestIndependentShipRules:
 
         with (
             patch(
-                'autowsgr.application.ui.pages.choose_ship.locate_ship_rows',
+                'autowsgr.application.ui.controller.shared.choose_ship.locate_ship_rows',
                 return_value=[
                     ('密苏里', 0.2, 0.3, 0.4),
                     ('密苏里', 0.4, 0.3, 0.4),
@@ -311,10 +311,10 @@ class TestIndependentShipRules:
                 side_effect=[ShipType.BB, ShipType.BG],
             ) as detect_ship_type,
             patch(
-                'autowsgr.application.ui.pages.choose_ship.read_ship_level_at_card',
+                'autowsgr.application.ui.controller.shared.choose_ship.read_ship_level_at_card',
                 return_value=105,
             ) as read_level,
-            patch('autowsgr.application.ui.pages.choose_ship.time.sleep'),
+            patch('autowsgr.application.ui.controller.shared.choose_ship.time.sleep'),
         ):
             matched = page._click_ship_in_list(
                 '密苏里',
@@ -343,13 +343,13 @@ class TestIndependentShipRules:
         page = ChooseShipPage(ctx)
 
         with (
-            patch('autowsgr.application.ui.pages.choose_ship._OCR_MAX_ATTEMPTS', 1),
+            patch('autowsgr.application.ui.controller.shared.choose_ship._OCR_MAX_ATTEMPTS', 1),
             patch(
-                'autowsgr.application.ui.pages.choose_ship.locate_ship_rows',
+                'autowsgr.application.ui.controller.shared.choose_ship.locate_ship_rows',
                 return_value=[('U-96', 0.2, 0.3, 0.4)],
             ),
             patch(
-                'autowsgr.application.ui.pages.choose_ship.read_ship_level_at_card',
+                'autowsgr.application.ui.controller.shared.choose_ship.read_ship_level_at_card',
                 return_value=90,
             ),
         ):
@@ -367,9 +367,9 @@ class TestIndependentShipRules:
         page = ChooseShipPage(ctx)
 
         with (
-            patch('autowsgr.application.ui.pages.choose_ship._OCR_MAX_ATTEMPTS', 1),
+            patch('autowsgr.application.ui.controller.shared.choose_ship._OCR_MAX_ATTEMPTS', 1),
             patch(
-                'autowsgr.application.ui.pages.choose_ship.locate_ship_rows',
+                'autowsgr.application.ui.controller.shared.choose_ship.locate_ship_rows',
                 return_value=[('U-96', 0.2, 0.3, 0.4)],
             ),
             patch.object(
@@ -394,11 +394,11 @@ class TestIndependentShipRules:
 
         with (
             patch(
-                'autowsgr.application.ui.pages.choose_ship.locate_ship_rows',
+                'autowsgr.application.ui.controller.shared.choose_ship.locate_ship_rows',
                 return_value=[('U-96', 0.2, 0.3, 0.4)],
             ),
             patch.object(page, '_detect_hit_ship_type', return_value=None),
-            patch('autowsgr.application.ui.pages.choose_ship.time.sleep'),
+            patch('autowsgr.application.ui.controller.shared.choose_ship.time.sleep'),
         ):
             matched = page._click_ship_in_list(
                 'U-96',
@@ -415,14 +415,14 @@ class TestIndependentShipRules:
 
         with (
             patch(
-                'autowsgr.application.ui.pages.choose_ship.locate_ship_rows',
+                'autowsgr.application.ui.controller.shared.choose_ship.locate_ship_rows',
                 return_value=[('U-96', 0.2, 0.3, 0.4)],
             ),
             patch(
-                'autowsgr.application.ui.pages.choose_ship.read_ship_level_at_card',
+                'autowsgr.application.ui.controller.shared.choose_ship.read_ship_level_at_card',
                 return_value=None,
             ),
-            patch('autowsgr.application.ui.pages.choose_ship.time.sleep'),
+            patch('autowsgr.application.ui.controller.shared.choose_ship.time.sleep'),
         ):
             matched = page._click_ship_in_list(
                 'U-96',
@@ -439,7 +439,7 @@ class TestIndependentShipRules:
 
         with (
             patch(
-                'autowsgr.application.ui.pages.choose_ship.locate_ship_rows',
+                'autowsgr.application.ui.controller.shared.choose_ship.locate_ship_rows',
                 return_value=[
                     ('U-96', 0.2, 0.3, 0.4),
                     ('U-96', 0.4, 0.3, 0.4),
@@ -450,7 +450,7 @@ class TestIndependentShipRules:
                 '_detect_hit_ship_type',
                 side_effect=[None, ShipType.SS],
             ),
-            patch('autowsgr.application.ui.pages.choose_ship.time.sleep'),
+            patch('autowsgr.application.ui.controller.shared.choose_ship.time.sleep'),
         ):
             matched = page._click_ship_in_list(
                 'U-96',
@@ -467,7 +467,7 @@ class TestIndependentShipRules:
 
         with (
             patch(
-                'autowsgr.application.ui.pages.choose_ship.locate_ship_rows',
+                'autowsgr.application.ui.controller.shared.choose_ship.locate_ship_rows',
                 return_value=[
                     ('U-96', 0.2, 0.3, 0.4),
                     ('U-96', 0.4, 0.3, 0.4),
@@ -479,10 +479,10 @@ class TestIndependentShipRules:
                 side_effect=[None, ShipType.SS],
             ),
             patch(
-                'autowsgr.application.ui.pages.choose_ship.read_ship_level_at_card',
+                'autowsgr.application.ui.controller.shared.choose_ship.read_ship_level_at_card',
                 side_effect=[105, None],
             ),
-            patch('autowsgr.application.ui.pages.choose_ship.time.sleep'),
+            patch('autowsgr.application.ui.controller.shared.choose_ship.time.sleep'),
         ):
             matched = page._click_ship_in_list(
                 'U-96',
@@ -500,14 +500,14 @@ class TestIndependentShipRules:
 
         with (
             patch(
-                'autowsgr.application.ui.pages.choose_ship.locate_ship_rows',
+                'autowsgr.application.ui.controller.shared.choose_ship.locate_ship_rows',
                 return_value=[('U-96', 0.2, 0.3, 0.4)],
             ),
             patch(
-                'autowsgr.application.ui.pages.choose_ship.read_ship_level_at_card',
+                'autowsgr.application.ui.controller.shared.choose_ship.read_ship_level_at_card',
                 side_effect=LevelOCRRetryNeededError,
             ) as read_level,
-            patch('autowsgr.application.ui.pages.choose_ship.time.sleep'),
+            patch('autowsgr.application.ui.controller.shared.choose_ship.time.sleep'),
         ):
             matched = page._click_ship_in_list(
                 'U-96',
@@ -524,9 +524,9 @@ class TestIndependentShipRules:
         page = ChooseShipPage(ctx)
 
         with (
-            patch('autowsgr.application.ui.pages.choose_ship._OCR_MAX_ATTEMPTS', 1),
+            patch('autowsgr.application.ui.controller.shared.choose_ship._OCR_MAX_ATTEMPTS', 1),
             patch(
-                'autowsgr.application.ui.pages.choose_ship.locate_ship_rows',
+                'autowsgr.application.ui.controller.shared.choose_ship.locate_ship_rows',
                 return_value=[('U-47', 0.2, 0.3)],
             ),
         ):

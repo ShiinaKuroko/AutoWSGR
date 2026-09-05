@@ -29,7 +29,7 @@ autowsgr/
 | `infra/ui/interaction` | `common/ui/interaction` | 删除兼容别名 |
 | `infra/ui/navigation` | `application/ui/navigation` | 删除兼容别名 |
 | `infra/runtime/context` | `application/runtime/context` | 移动运行时状态模型 |
-| `ui` | `application/ui/pages` | 页面实现集中到 application，不再是顶层层级 |
+| `ui` | `application/ui/controller` | 页面实现集中到 application，不再是顶层层级 |
 | `ops/normal_fight.py`, `ops/event_fight.py` | `business/combat/bettle` | 普通/活动出征归入同一战斗业务组 |
 | `ops/campaign.py` | `business/combat/campaign/compat.py` | 旧战役入口与新战役执行器同域管理 |
 | `ops/build.py`, `ops/cook.py`, `ops/destroy.py` | `business/logistics` | 港区操作归入后勤业务域 |

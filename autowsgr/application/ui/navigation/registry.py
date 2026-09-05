@@ -1,13 +1,13 @@
 """管理页面识别器的注册和默认页面装载。
 
 `autowsgr.application.ui.navigation.recognition` 读取本文件维护的注册表；默认检查器
-来自 `autowsgr.application.ui.pages.backyard_page`、`autowsgr.application.ui.pages.bath_page`、
-`autowsgr.application.ui.pages.battle_preparation`、`autowsgr.application.ui.pages.build_page`、
-`autowsgr.application.ui.pages.canteen_page`、`autowsgr.application.ui.pages.choose_ship`、
-`autowsgr.application.ui.pages.decisive`、`autowsgr.application.ui.pages.event`、
-`autowsgr.application.ui.pages.friend_page`、`autowsgr.application.ui.pages.intensify_page`、
-`autowsgr.application.ui.pages.main_page`、`autowsgr.application.ui.pages.map`、
-`autowsgr.application.ui.pages.mission_page` 和 `autowsgr.application.ui.pages.sidebar_page`；
+来自 `autowsgr.application.ui.controller.backyard_page`、`autowsgr.application.ui.controller.bath_page`、
+`autowsgr.application.ui.controller.battle_preparation`、`autowsgr.application.ui.controller.build_page`、
+`autowsgr.application.ui.controller.canteen_page`、`autowsgr.application.ui.controller.shared.choose_ship`、
+`autowsgr.application.ui.controller.decisive`、`autowsgr.application.ui.controller.event`、
+`autowsgr.application.ui.controller.friend_page`、`autowsgr.application.ui.controller.intensify_page`、
+`autowsgr.application.ui.controller.main_page`、`autowsgr.application.ui.controller.map`、
+`autowsgr.application.ui.controller.mission_page` 和 `autowsgr.application.ui.controller.sidebar_page`；
 pytest 可以注册临时检查器。本文件依赖 `autowsgr.common.vision.page_match.PageMatch`、
 `autowsgr.common.system.logger.get_logger` 和各页面控制器，不执行截图、点击或路径查找。
 """
@@ -49,26 +49,26 @@ def get_registered_pages() -> list[str]:
 
 
 def register_default_pages() -> None:
-    """加载并注册 `autowsgr.application.ui.pages` 的默认页面识别器。"""
+    """加载并注册 `autowsgr.application.ui.controller` 的默认页面识别器。"""
     # 1、已完成注册时直接返回，避免重复导入页面。
     if 'default' in _DEFAULT_PAGES_REGISTERED:
         return
 
     # 2、按需加载页面检查器并写入注册表。
-    from autowsgr.application.ui.pages.backyard_page import BackyardPage
-    from autowsgr.application.ui.pages.bath_page import BathPage
-    from autowsgr.application.ui.pages.battle_preparation import BattlePreparationPage
-    from autowsgr.application.ui.pages.build_page import BuildPage
-    from autowsgr.application.ui.pages.canteen_page import CanteenPage
-    from autowsgr.application.ui.pages.choose_ship import ChooseShipPage
-    from autowsgr.application.ui.pages.decisive import DecisiveBattlePage
-    from autowsgr.application.ui.pages.event import BaseEventPage
-    from autowsgr.application.ui.pages.friend_page import FriendPage
-    from autowsgr.application.ui.pages.intensify_page import IntensifyPage
-    from autowsgr.application.ui.pages.main_page import MainPage
-    from autowsgr.application.ui.pages.map import MapPage
-    from autowsgr.application.ui.pages.mission_page import MissionPage
-    from autowsgr.application.ui.pages.sidebar_page import SidebarPage
+    from autowsgr.application.ui.controller.backyard_page import BackyardPage
+    from autowsgr.application.ui.controller.bath_page import BathPage
+    from autowsgr.application.ui.controller.battle_preparation import BattlePreparationPage
+    from autowsgr.application.ui.controller.build_page import BuildPage
+    from autowsgr.application.ui.controller.canteen_page import CanteenPage
+    from autowsgr.application.ui.controller.decisive import DecisiveBattlePage
+    from autowsgr.application.ui.controller.event import BaseEventPage
+    from autowsgr.application.ui.controller.friend_page import FriendPage
+    from autowsgr.application.ui.controller.intensify_page import IntensifyPage
+    from autowsgr.application.ui.controller.main_page import MainPage
+    from autowsgr.application.ui.controller.map import MapPage
+    from autowsgr.application.ui.controller.mission_page import MissionPage
+    from autowsgr.application.ui.controller.shared.choose_ship import ChooseShipPage
+    from autowsgr.application.ui.controller.sidebar_page import SidebarPage
     from autowsgr.common.types import PageName
 
     register_page(PageName.MAIN, MainPage.is_current_page)

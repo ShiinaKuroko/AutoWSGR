@@ -11,7 +11,7 @@
     from testing.ui._framework import UIControllerTestRunner, parse_e2e_args
 
     def run_test(runner: UIControllerTestRunner) -> None:
-        from autowsgr.application.ui.pages.xxx_page import XxxPage
+        from autowsgr.application.ui.controller.xxx_page import XxxPage
         page = XxxPage(runner.ctx)
 
         runner.verify_current("初始验证: Xxx页面", "Xxx页面", XxxPage.is_current_page)
@@ -489,19 +489,19 @@ def reset_to_main_page(ctrl: ADBController, pause: float = 1.5) -> bool:  # noqa
         成功回到主页面时返回 ``True``，超出重试次数仍未到达则返回 ``False``。
     """
     from autowsgr.application.runtime.context import GameContext
-    from autowsgr.application.ui.pages.backyard_page import BackyardPage
-    from autowsgr.application.ui.pages.bath_page import BathPage
-    from autowsgr.application.ui.pages.battle_preparation import BattlePreparationPage
-    from autowsgr.application.ui.pages.build_page import BuildPage
-    from autowsgr.application.ui.pages.canteen_page import CanteenPage
-    from autowsgr.application.ui.pages.decisive.battle_page import DecisiveBattlePage
-    from autowsgr.application.ui.pages.event.event_page import BaseEventPage
-    from autowsgr.application.ui.pages.friend_page import FriendPage
-    from autowsgr.application.ui.pages.intensify_page import IntensifyPage
-    from autowsgr.application.ui.pages.main_page import MainPage
-    from autowsgr.application.ui.pages.map import MapPage
-    from autowsgr.application.ui.pages.mission_page import MissionPage
-    from autowsgr.application.ui.pages.sidebar_page import SidebarPage
+    from autowsgr.application.ui.controller.backyard_page import BackyardPage
+    from autowsgr.application.ui.controller.bath_page import BathPage
+    from autowsgr.application.ui.controller.battle_preparation import BattlePreparationPage
+    from autowsgr.application.ui.controller.build_page import BuildPage
+    from autowsgr.application.ui.controller.canteen_page import CanteenPage
+    from autowsgr.application.ui.controller.decisive.battle_page import DecisiveBattlePage
+    from autowsgr.application.ui.controller.event.event_page import BaseEventPage
+    from autowsgr.application.ui.controller.friend_page import FriendPage
+    from autowsgr.application.ui.controller.intensify_page import IntensifyPage
+    from autowsgr.application.ui.controller.main_page import MainPage
+    from autowsgr.application.ui.controller.map import MapPage
+    from autowsgr.application.ui.controller.mission_page import MissionPage
+    from autowsgr.application.ui.controller.sidebar_page import SidebarPage
     from autowsgr.common.system import UserConfig
 
     ctx = GameContext(ctrl=ctrl, config=UserConfig())

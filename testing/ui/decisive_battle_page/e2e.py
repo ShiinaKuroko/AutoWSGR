@@ -38,8 +38,8 @@ if TYPE_CHECKING:
 
 
 def run_test(runner: UIControllerTestRunner) -> None:
-    from autowsgr.application.ui.pages.decisive.battle_page import DecisiveBattlePage
-    from autowsgr.application.ui.pages.main_page import MainPage
+    from autowsgr.application.ui.controller.decisive.battle_page import DecisiveBattlePage
+    from autowsgr.application.ui.controller.main_page import MainPage
 
     db_page = DecisiveBattlePage(runner.ctrl)
 
@@ -77,8 +77,8 @@ def _navigate_to(ctrl: AndroidController, pause: float) -> None:
     """从任意已知页面导航到决战总览。"""
     import time
 
-    from autowsgr.application.ui.pages.main_page import MainPage
-    from autowsgr.application.ui.pages.map import MapPage, MapPanel
+    from autowsgr.application.ui.controller.main_page import MainPage
+    from autowsgr.application.ui.controller.map import MapPage, MapPanel
 
     if not reset_to_main_page(ctrl, pause):
         return
@@ -106,7 +106,7 @@ def main() -> None:
     from loguru import logger
 
     logger.info('=== 决战页面 e2e 测试开始 ===')
-    from autowsgr.application.ui.pages.decisive.battle_page import DecisiveBattlePage
+    from autowsgr.application.ui.controller.decisive.battle_page import DecisiveBattlePage
 
     if not ensure_page(
         ctrl,

@@ -203,7 +203,7 @@ python tools/e2e/run.py --with-ocr exercise --yaml <路径>
    FleetPolicy 已迁至 `business/fleet_policy.py`) → 已删除。
    若发现 `from autowsgr.dispatch import FleetPolicy` 的引用, 改为
    `from autowsgr.business.fleet_policy import FleetPolicy`。
-3. `infra/ui/pages/tabbed_page.py` 模板目录相对路径在目录迁移后失效
+3. `application/ui/controller/shared/tabbed_page.py` 模板目录相对路径在目录迁移后失效
    (`ui/map.png` 找不到) → 改为 `parents[4] / 'data' / 'images' / 'ui'`。
 4. `exercise.py` 的 `ConditionFlag` 应从 `autowsgr.types` 导入
    (不在 `autowsgr.infra.combat.engine` 包中)。
@@ -251,7 +251,7 @@ python tools/e2e/run.py --with-ocr exercise --yaml <路径>
   (960x540 分数坐标 ×4/3), 代码侧经 `point()` 归一化后与旧值 ≤1px 误差。
 - 迁移后原常量名全部保留 (数据源改为 YAML), 消费者与测试零改动。
 - **历史导入顺序敏感**: 本节记录的是迁移前的旧路径；当前页面统一位于
-  `autowsgr.application.ui.pages`，底层视觉和交互统一位于 `autowsgr.common`。
+  `autowsgr.application.ui.controller`，底层视觉和交互统一位于 `autowsgr.common`。
 
 已迁移批次 (2026-08-25 全部完成, 全量 pytest 通过):
 
@@ -295,12 +295,12 @@ python tools/e2e/run.py reward --with-init
 | 链路 | 归属 | 状态 |
 |------|------|------|
 | 执行器 | `business/logistics/reward.py` (`RewardCheckExecutor` + 兼容层 `collect_rewards`) | 完成 |
-| 导航器 — 页面归属 | `application/ui/pages/main_page` (含 `has_task_ready`) + **`application/ui/pages/mission_page` (本次迁入)** | 完成 |
+| 导航器 — 页面归属 | `application/ui/controller/main_page` (含 `has_task_ready`) + **`application/ui/controller/mission_page` (本次迁入)** | 完成 |
 | 导航器 — 导航边 | `application/ui/navigation` (`_mission_to_main`) + `main_page/controller.py` (`_get_target_checker`) | 完成 |
 
 `mission_page` 迁移细节: 页面实现统一位于
-`autowsgr/application/ui/pages/mission_page/`，底层校准和交互位于
-`autowsgr/common/`；页面实现统一位于 `application/ui/pages/`。
+`autowsgr/application/ui/controller/mission_page/`，底层校准和交互位于
+`autowsgr/common/`；页面实现统一位于 `application/ui/controller/`。
 导航器与执行器均使用新路径。旧导入顺序说明仅保留作历史记录。
 
 ## 四、待办事项 (按优先级)

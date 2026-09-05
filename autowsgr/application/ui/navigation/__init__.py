@@ -3,7 +3,7 @@
 业务执行器调用 `autowsgr.application.ui.navigation.service.py` 的 `goto_page`；
 E2E 和调试工具读取 `autowsgr.application.ui.navigation.recognition.py` 的识别结果；
 pytest 检查 `graph/`、`registry.py` 和 `stack.py`。本文件只做公开导入，实际导航由
-同目录模块完成，页面操作继续由 `autowsgr.application.ui.pages` 和 `autowsgr.common`
+同目录模块完成，页面操作继续由 `autowsgr.application.ui.controller` 和 `autowsgr.common`
 提供。
 """
 

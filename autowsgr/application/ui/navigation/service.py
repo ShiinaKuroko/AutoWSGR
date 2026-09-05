@@ -6,7 +6,7 @@
 `autowsgr.application.ui.navigation.stack` 的页面栈和
 `autowsgr.application.ui.navigation.graph.*` 的页面动作。底层异常来自
 `autowsgr.common.ui.interaction.NavigationError`，页面点击和到达检查由
-`autowsgr.application.ui.pages` 及 `autowsgr.common` 完成。
+`autowsgr.application.ui.controller` 及 `autowsgr.common` 完成。
 """
 
 from __future__ import annotations

@@ -6,7 +6,7 @@
 ## 迁移结果
 
 决战出征准备现在通过统一入口传递 `task_type='decisive'`，由
-`autowsgr/application/ui/pages/battle_preparation/fleet_change/decisive.py`
+`autowsgr/application/ui/controller/shared/fleet_change/decisive.py`
 提供决战专用编队分支。决战旧准备页保留为兼容壳，设备和视觉实现仍由
 `common` 提供。
 

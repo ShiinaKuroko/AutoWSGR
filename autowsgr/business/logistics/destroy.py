@@ -13,8 +13,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from autowsgr.application.ui.controller.build_page import BuildPage, BuildTab
 from autowsgr.application.ui.navigation import goto_page
-from autowsgr.application.ui.pages.build_page import BuildPage, BuildTab
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.types import DestroyShipWorkMode, PageName, ShipType
 from autowsgr.common.ui.interaction import click_and_wait_for_page

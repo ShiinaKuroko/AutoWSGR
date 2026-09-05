@@ -19,7 +19,10 @@ from typing import TYPE_CHECKING
 
 import cv2
 
-from autowsgr.application.ui.pages.battle_preparation import BattlePreparationPage, RepairStrategy
+from autowsgr.application.ui.controller.battle_preparation import (
+    BattlePreparationPage,
+    RepairStrategy,
+)
 from autowsgr.business.combat import CombatMode, CombatPlan, NodeDecision, run_combat
 from autowsgr.business.combat.decisive.base import DecisiveBase
 from autowsgr.common.system.logger import get_logger

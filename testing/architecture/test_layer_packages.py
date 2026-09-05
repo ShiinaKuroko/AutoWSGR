@@ -42,6 +42,26 @@ def test_ui_legacy_compatibility_layer_is_removed() -> None:
     assert not (_ROOT / 'application' / 'ui' / 'legacy').exists()
 
 
+def test_ui_pages_are_replaced_by_controller() -> None:
+    """页面 Controller 和共享页面能力使用唯一的新归属。"""
+    ui = _ROOT / 'application' / 'ui'
+    assert (ui / 'controller').is_dir()
+    assert (ui / 'controller' / 'shared').is_dir()
+    assert not (ui / 'pages').exists()
+    assert (_ROOT / 'common' / 'vision' / 'blood.py').is_file()
+    assert (_ROOT / 'common' / 'vision' / 'map.py').is_file()
+    assert not (ui / 'controller' / 'battle_preparation' / 'blood.py').exists()
+    assert not (ui / 'controller' / 'battle_preparation' / 'constants.py').exists()
+
+
+def test_shared_tabbed_templates_resolve_from_controller_path() -> None:
+    """迁移后的标签页识别仍然从 common 资源目录加载模板。"""
+    from autowsgr.application.ui.controller.shared.tabbed_page import _TEMPLATE_DIR
+
+    assert _TEMPLATE_DIR == _ROOT / 'common' / 'data' / 'images' / 'ui'
+    assert _TEMPLATE_DIR.is_dir()
+
+
 def test_navigation_service_only_owns_navigation_flow() -> None:
     """页面识别不应重新回到 service.py。"""
     navigation = _ROOT / 'application' / 'ui' / 'navigation'

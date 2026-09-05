@@ -126,7 +126,7 @@ class Error:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
-# 页面/浮层识别模板已迁入 pages/ 子包 (CommonPage / MainPage / Decisive / Bath)。
+# 页面/浮层识别模板由 application/ui/controller 页面控制器使用。
 class Templates:
     """图像模板统一入口。
 
