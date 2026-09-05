@@ -1,7 +1,12 @@
 """提供从当前页面到业务入口的跨页面导航。
 
-业务执行器调用 `goto_page`；它组合页面识别、导航图和页面控制器动作，并使用页面栈
-记录来路。本文件依赖 `recognition`、`graph`、`UIStack` 和通用导航异常，不实现页面内业务。
+业务执行器调用 `autowsgr.application.ui.navigation.service.goto_page`；本文件组合
+`autowsgr.application.ui.navigation.recognition` 的识别、
+`autowsgr.application.ui.navigation.graph` 的路径查询、
+`autowsgr.application.ui.navigation.stack` 的页面栈和
+`autowsgr.application.ui.navigation.graph.*` 的页面动作。底层异常来自
+`autowsgr.common.ui.interaction.NavigationError`，页面点击和到达检查由
+`autowsgr.application.ui.pages` 及 `autowsgr.common` 完成。
 """
 
 from __future__ import annotations
@@ -21,13 +26,13 @@ from autowsgr.common.ui.interaction import NavigationError
 if TYPE_CHECKING:
     from autowsgr.application.ui.context import UIContext as GameContext
 
-# -- 功能入口 ------------
+# ── 功能入口 ─────────────────────────────────────────────────
 
 _log = get_logger('business.navigate')
 
 
 def goto_page(ctx: GameContext, target: str) -> None:
-    """到达目标页面；首次失败时重建页面栈并重试一次。"""
+    """让游戏到达业务需要的目标页面；失败时重建页面栈再试一次。"""
     try:
         _goto_page(ctx, target)
     except NavigationError as e:
@@ -43,16 +48,14 @@ def goto_page(ctx: GameContext, target: str) -> None:
         _goto_page(ctx, target)
 
 
-# -- 导航实现 ------------
+# ── 导航实现 ─────────────────────────────────────────────────
 
 
 def _goto_page(ctx: GameContext, target: str) -> None:
-    """按当前页面逐步重规划，直到到达目标或抛出导航异常。"""
+    """从当前页面开始逐步找到目标页面并执行页面动作。"""
     max_steps = 20
     stack = ctx.ui_stack
-    # 候选集:首轮全表扫描(真不知在哪);每步由栈给出
-    # {current} + neighbors(current) + {parent} + {target} + neighbors(target),
-    # 相比纯邻域机制多纳入 parent, 覆盖回退时序与无入边叶子页 (CHOOSE_SHIP 等)。
+    # 第一次不知道当前页面，先检查全部页面；确认后只检查当前页面附近的候选。
     candidates: set[str] | None = None
 
     for step in range(max_steps):

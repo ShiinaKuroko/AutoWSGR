@@ -1,7 +1,9 @@
 """记录页面来路，并为导航中的下一次识别提供候选页面。
 
-`service._goto_page` 调用 `observe`、`push` 和 `candidates`；识别失败时由
-`recognition` 调用 `reset` 或 `clear`。本文件只依赖导航图的邻接关系和页面名类型，
+`autowsgr.application.ui.navigation.service._goto_page` 调用 `observe`、`push` 和
+`candidates`；`autowsgr.application.ui.navigation.recognition._resync_stack` 调用
+`reset` 或 `clear`。本文件依赖 `autowsgr.application.ui.navigation.graph.neighbors`、
+`autowsgr.common.types.PageName` 和 `autowsgr.common.system.logger.get_logger`，
 不读取截图、不调用设备。
 """
 
@@ -46,10 +48,10 @@ class UIStack:
         self._drifted = False
         self._lock = threading.Lock()
 
-    # -- 栈能力 ------------
+    # ── 栈能力 ─────────────────────────────────────────────────
 
     def candidates(self, target: str | PageName | None = None) -> set[str]:
-        """生成下一次页面识别的候选集合。"""
+        """根据 `autowsgr.application.ui.navigation.graph.neighbors` 生成识别候选集合。"""
         # 1、保留当前页和相邻页，覆盖正常前进。
         with self._lock:
             current = self._frames[-1].page if self._frames else None
@@ -71,7 +73,7 @@ class UIStack:
         return result
 
     def clear(self) -> None:
-        """清空页面栈并重置漂移标记。"""
+        """清空页面来路，供识别失败后的导航恢复使用。"""
         with self._lock:
             self._frames.clear()
             self._drifted = False
@@ -94,7 +96,7 @@ class UIStack:
         return self._drifted
 
     def observe(self, identified: str | PageName, *, screen: np.ndarray | None = None) -> str:
-        """用识别结果校正页面栈。"""
+        """用实际识别到的页面修正导航器记录的来路。"""
         # 1、先把识别结果转成统一页面名。
         name = _page_name(identified)
         with self._lock:
@@ -145,7 +147,7 @@ class UIStack:
             return self._frames.pop().page
 
     def push(self, page: str | PageName, *, screen: np.ndarray | None = None) -> None:
-        """声明进入新页面。"""
+        """记录导航器准备进入的新页面。"""
         name = _page_name(page)
         with self._lock:
             if self._frames and self._frames[-1].page == name:
@@ -178,7 +180,7 @@ class UIStack:
                     return frame.screen
         return None
 
-    # -- 内部辅助 ------------
+    # ── 内部辅助 ─────────────────────────────────────────────────
 
     def _trim(self) -> None:
         """限制栈深和截图留存数量。"""

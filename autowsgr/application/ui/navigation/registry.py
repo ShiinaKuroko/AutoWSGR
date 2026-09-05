@@ -1,7 +1,15 @@
 """管理页面识别器的注册和默认页面装载。
 
-`recognition.py` 读取本文件维护的注册表，页面模块在默认装载时提供检查器；pytest
-可以注册临时检查器。本文件依赖 canonical 页面控制器、`PageMatch` 类型和日志模块。
+`autowsgr.application.ui.navigation.recognition` 读取本文件维护的注册表；默认检查器
+来自 `autowsgr.application.ui.pages.backyard_page`、`autowsgr.application.ui.pages.bath_page`、
+`autowsgr.application.ui.pages.battle_preparation`、`autowsgr.application.ui.pages.build_page`、
+`autowsgr.application.ui.pages.canteen_page`、`autowsgr.application.ui.pages.choose_ship`、
+`autowsgr.application.ui.pages.decisive`、`autowsgr.application.ui.pages.event`、
+`autowsgr.application.ui.pages.friend_page`、`autowsgr.application.ui.pages.intensify_page`、
+`autowsgr.application.ui.pages.main_page`、`autowsgr.application.ui.pages.map`、
+`autowsgr.application.ui.pages.mission_page` 和 `autowsgr.application.ui.pages.sidebar_page`；
+pytest 可以注册临时检查器。本文件依赖 `autowsgr.common.vision.page_match.PageMatch`、
+`autowsgr.common.system.logger.get_logger` 和各页面控制器，不执行截图、点击或路径查找。
 """
 
 from __future__ import annotations
@@ -19,7 +27,7 @@ if TYPE_CHECKING:
     from autowsgr.common.vision.page_match import PageMatch
 
 
-# -- 注册状态 ------------
+# ── 注册状态 ─────────────────────────────────────────────────
 
 _log = get_logger('ui')
 
@@ -29,19 +37,19 @@ _OVERLAY_PAGES: set[str] = set()
 """不遮挡底层识别元素的覆盖型页面。"""
 
 
-# -- 注册查询 ------------
+# ── 注册查询 ─────────────────────────────────────────────────
 
 
 def get_registered_pages() -> list[str]:
-    """返回所有已注册的页面名。"""
+    """返回 `_PAGE_REGISTRY` 中已注册的页面名。"""
     return list(_PAGE_REGISTRY.keys())
 
 
-# -- 默认页面 ------------
+# ── 默认页面 ─────────────────────────────────────────────────
 
 
 def register_default_pages() -> None:
-    """注册所有页面识别器。"""
+    """加载并注册 `autowsgr.application.ui.pages` 的默认页面识别器。"""
     # 1、已完成注册时直接返回，避免重复导入页面。
     if 'default' in _DEFAULT_PAGES_REGISTERED:
         return
@@ -80,7 +88,7 @@ def register_default_pages() -> None:
     _DEFAULT_PAGES_REGISTERED.add('default')
 
 
-# -- 自定义页面 ------------
+# ── 自定义页面 ─────────────────────────────────────────────────
 
 
 def register_page(
@@ -89,7 +97,7 @@ def register_page(
     *,
     overlay: bool = False,
 ) -> None:
-    """注册一个页面识别器。"""
+    """把页面检查器注册到 `_PAGE_REGISTRY`。"""
     key: str = name.value if hasattr(name, 'value') else name
     if key in _PAGE_REGISTRY:
         _log.warning("[UI] 页面 '{}' 已注册，将覆盖", key)

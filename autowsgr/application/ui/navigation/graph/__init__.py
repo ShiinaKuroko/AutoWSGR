@@ -1,7 +1,9 @@
-"""汇总导航边并提供最短路径查询。
+"""把三个业务域的导航边合成一张图，并负责路径查询。
 
-`navigation.service._goto_page` 调用 `find_path`，`UIStack` 调用 `neighbors` 缩小识别范围。
-本文件依赖公共、战斗、后勤三个边集合，不直接操作设备或页面。
+`autowsgr.application.ui.navigation.service.py` 用 `find_path` 决定下一跳，
+`autowsgr.application.ui.navigation.stack.py` 用 `neighbors` 缩小页面识别范围。
+本文件读取 `graph/common.py`、`graph/combat.py`、`graph/logistics.py` 的边集合，
+只做路径计算，不识别页面也不点击设备。
 """
 
 from __future__ import annotations
@@ -18,7 +20,7 @@ if TYPE_CHECKING:
     from autowsgr.common.types import PageName
 
 
-# -- 导航图汇总 ------------
+# ── 导航图汇总 ─────────────────────────────────────────────────
 
 NAV_GRAPH: tuple[NavEdge, ...] = (*COMMON_EDGES, *COMBAT_EDGES, *LOGISTICS_EDGES)
 """完整导航图；边按公共、战斗、后勤域合并。"""
@@ -28,11 +30,11 @@ for _edge in NAV_GRAPH:
     _adjacency.setdefault(_edge.source, []).append(_edge)
 
 
-# -- 路径查询 ------------
+# ── 路径查询 ─────────────────────────────────────────────────
 
 
 def find_path(source: str, target: str) -> list[NavEdge] | None:
-    """查找从 *source* 到 *target* 的最短路径。"""
+    """在 `_adjacency` 中查找从 *source* 到 *target* 的最短路径。"""
     if source == target:
         return []
 
@@ -52,7 +54,7 @@ def find_path(source: str, target: str) -> list[NavEdge] | None:
 
 
 def neighbors(page: str) -> set[str]:
-    """返回 *page* 一步可到达的页面。"""
+    """返回 `page` 在 `NAV_GRAPH` 中一步可到达的页面。"""
     return {str(edge.target.value) for edge in _adjacency.get(page, [])}
 
 

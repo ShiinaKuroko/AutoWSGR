@@ -1,7 +1,11 @@
 """从截图识别当前页面，并把结果同步给运行时上下文。
 
-`navigation.service` 使用 `identify_current_page` 驱动导航，E2E 和调试工具直接使用
-`get_current_page`。本文件依赖页面注册表、`PageMatch`、`PageName` 和截图设备，不执行点击。
+`autowsgr.application.ui.navigation.service._goto_page` 调用
+`identify_current_page`，E2E 和调试工具调用 `get_current_page`。本文件依赖
+`autowsgr.application.ui.navigation.registry` 的 `_PAGE_REGISTRY` 和 `_OVERLAY_PAGES`，
+`autowsgr.common.vision.page_match.PageMatch`、`autowsgr.common.types.PageName`、
+`autowsgr.common.system.logger.get_logger` 及 `autowsgr.application.ui.context.UIContext.ctrl`；
+不执行点击。
 """
 
 from __future__ import annotations
@@ -25,7 +29,7 @@ if TYPE_CHECKING:
     from autowsgr.application.ui.context import UIContext as GameContext
 
 
-# -- 识别配置 ------------
+# ── 识别配置 ─────────────────────────────────────────────────
 
 _log = get_logger('business.navigate')
 
@@ -36,14 +40,14 @@ IDENTIFY_INTERVAL: float = 1.0
 """页面识别重试间隔 (秒)。"""
 
 
-# -- 截图识别 ------------
+# ── 截图识别 ─────────────────────────────────────────────────
 
 
 def get_current_page(
     screen: np.ndarray,
     candidates: set[str] | None = None,
 ) -> str | None:
-    """根据截图识别当前页面。"""
+    """调用注册表检查器，根据截图返回当前页面名。"""
     # 1、只检查调用方允许的已注册页面。
     registered = list(_PAGE_REGISTRY)
     names = [name for name in registered if candidates is None or name in candidates]
@@ -92,7 +96,7 @@ def identify_current_page(
     ctx: GameContext,
     candidates: set[str] | None = None,
 ) -> str | None:
-    """截图并识别当前页面。"""
+    """调用 `get_current_page` 重试识别 `UIContext.ctrl.screenshot` 的当前页面。"""
     # 1、确保默认页面检查器已经注册。
     register_default_pages()
     ctrl = ctx.ctrl
@@ -114,11 +118,11 @@ def identify_current_page(
     return None
 
 
-# -- 内部同步 ------------
+# ── 内部同步 ─────────────────────────────────────────────────
 
 
 def _normalize_match(name: str, result: object) -> PageMatch:
-    """校验并统一页面识别结果。"""
+    """校验识别器结果并统一为 `autowsgr.common.vision.page_match.PageMatch`。"""
     if not isinstance(result, PageMatch):
         raise TypeError(f'页面识别器 {name!r} 必须返回 PageMatch')
     if result.name == name:
@@ -127,7 +131,7 @@ def _normalize_match(name: str, result: object) -> PageMatch:
 
 
 def _resync_stack(ctx: GameContext) -> str | None:
-    """按当前截图重建页面栈。"""
+    """用当前截图重建 `autowsgr.application.ui.navigation.stack.UIStack`。"""
     screen = ctx.ctrl.screenshot()
     identified = get_current_page(screen)
     if identified is None:
@@ -140,7 +144,7 @@ def _resync_stack(ctx: GameContext) -> str | None:
 
 
 def _sync_ctx_page(ctx: GameContext, name: str) -> None:
-    """把识别结果同步到上下文页面字段。"""
+    """把结果写入 `autowsgr.application.ui.context.UIContext.current_page`。"""
     try:
         ctx.current_page = PageName(name)
     except ValueError:
