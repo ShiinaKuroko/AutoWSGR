@@ -1,97 +1,51 @@
-"""跨页面导航 — 从任意页面到达目标页面。
-
+"""
+跨页面导航 — 从任意页面到达目标页面。
 提供游戏层的核心导航能力: ``goto_page(ctx, PageName.目标)``
-(从 ops/navigate.py 迁入, 老路径已留兼容 shim)
+本文件为跨页面导航的功能入口文件
 """
 
 from __future__ import annotations
 
-import time
 from typing import TYPE_CHECKING
 
 from autowsgr.application.ui.navigation.graph import find_path
-from autowsgr.application.ui.navigation.registry import get_current_page, register_default_pages
+from autowsgr.application.ui.navigation.recognition import (
+    _sync_ctx_page,
+    identify_current_page,
+)
 from autowsgr.common.system.logger import get_logger
-from autowsgr.common.types import PageName
 from autowsgr.common.ui.interaction import NavigationError
 
 
 if TYPE_CHECKING:
     from autowsgr.application.ui.context import UIContext as GameContext
 
+
 _log = get_logger('business.navigate')
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# 常量
-# ═══════════════════════════════════════════════════════════════════════════════
-
-MAX_IDENTIFY_ATTEMPTS: int = 5
-"""页面识别最大尝试次数。"""
-
-IDENTIFY_INTERVAL: float = 1.0
-"""页面识别重试间隔 (秒)。"""
+# ── 功能入口 ─────────────────────────────────────────────────
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# 页面识别
-# ═══════════════════════════════════════════════════════════════════════════════
-
-
-def identify_current_page(
-    ctx: GameContext,
-    candidates: set[str] | None = None,
-) -> str | None:
-    """截图并识别当前页面。
-
-    尝试多次截图以应对动画或加载中的情况。候选集识别重试耗尽后
-    追加一轮全量识别兜底 —— 栈漂移可能把真实页面排除在候选之外。
-
-    Parameters
-    ----------
-    candidates:
-        候选页面名集合。``None`` 时评估全部注册页;导航过程中由
-        :func:`_goto_page` 从 :attr:`GameContext.ui_stack` 计算并传入,
-        以收缩搜索空间。
-
-    Returns
-    -------
-    str | None
-        当前页面名称，无法识别返回 ``None``。
+def goto_page(ctx: GameContext, target: str) -> None:
     """
-    register_default_pages()
-    ctrl = ctx.ctrl
-    for attempt in range(MAX_IDENTIFY_ATTEMPTS):
-        screen = ctrl.screenshot()
-        page = get_current_page(screen, candidates=candidates)
-        if page is not None:
-            return page
-        _log.debug(
-            '[Navigate] 页面识别失败 (第 {} 次尝试), 等待重试',
-            attempt + 1,
-        )
-        time.sleep(IDENTIFY_INTERVAL)
-
-    if candidates is not None:
-        # 候选耗尽:降级全量识别一轮(候选集可能因栈漂移漏掉真实页面)
-        screen = ctrl.screenshot()
-        page = get_current_page(screen)
-        if page is not None:
-            _log.warning('[Navigate] 候选识别失败, 全量兜底命中: {}', page)
-            return page
-    return None
-
-
-def _sync_ctx_page(ctx: GameContext, name: str) -> None:
-    """把识别结果同步到 ``ctx.current_page`` (deprecated 字段, server 上报用)。"""
+    导航器真实功能入口，首次失败时先用 ``ui_stack.resync`` 全量识别重建栈
+     (漂移后的栈会把真实页面排除在候选外, 直接重试大概率再失败), 再重试导航。
+    """
     try:
-        ctx.current_page = PageName(name)
-    except ValueError:
-        ctx.current_page = None
+        _goto_page(ctx, target)
+    except NavigationError as e:
+        # 调用截图功能，判断当前游戏页面处于什么位置
+        _log.error('[Navigate] 导航失败: {}', e)
+        resynced = ctx.ui_stack.resync(ctx.ctrl.screenshot())
+
+        _log.info('[Navigate] 栈重建 (resync): {}, 执行一次重试', resynced or '识别失败')
+        current_page = identify_current_page(ctx)
+
+        _log.info('[Navigate] 当前页面: {}, 执行一次重试', current_page)
+        _goto_page(ctx, target)
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# 导航函数
-# ═══════════════════════════════════════════════════════════════════════════════
+# ── 导航实现 ─────────────────────────────────────────────────
 
 
 def _goto_page(ctx: GameContext, target: str) -> None:
@@ -164,20 +118,3 @@ def _goto_page(ctx: GameContext, target: str) -> None:
         f'导航步数超限 ({max_steps})，目标: {target}',
         screen=ctx.ctrl.screenshot(),
     )
-
-
-def goto_page(ctx: GameContext, target: str) -> None:
-    """导航到目标页面，失败时自动重试一次。
-
-    首次失败时先用 ``ui_stack.resync`` 全量识别重建栈 (漂移后的栈
-    会把真实页面排除在候选外, 直接重试大概率再失败), 再重试导航。
-    """
-    try:
-        _goto_page(ctx, target)
-    except NavigationError as e:
-        _log.error('[Navigate] 导航失败: {}', e)
-        resynced = ctx.ui_stack.resync(ctx.ctrl.screenshot())
-        _log.info('[Navigate] 栈重建 (resync): {}, 执行一次重试', resynced or '识别失败')
-        current_page = identify_current_page(ctx)
-        _log.info('[Navigate] 当前页面: {}, 执行一次重试', current_page)
-        _goto_page(ctx, target)

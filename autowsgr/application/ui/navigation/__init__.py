@@ -5,13 +5,14 @@
 """
 
 from autowsgr.application.ui.navigation.graph import NAV_GRAPH, NavEdge, find_path, neighbors
+from autowsgr.application.ui.navigation.recognition import identify_current_page
 from autowsgr.application.ui.navigation.registry import (
     get_current_page,
     get_registered_pages,
     register_default_pages,
     register_page,
 )
-from autowsgr.application.ui.navigation.service import goto_page, identify_current_page
+from autowsgr.application.ui.navigation.service import goto_page
 from autowsgr.application.ui.navigation.stack import UIStack
 
 

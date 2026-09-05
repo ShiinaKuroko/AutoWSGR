@@ -42,6 +42,16 @@ def test_ui_legacy_compatibility_layer_is_removed() -> None:
     assert not (_ROOT / 'application' / 'ui' / 'legacy').exists()
 
 
+def test_navigation_service_only_owns_navigation_flow() -> None:
+    """页面识别不应重新回到 service.py。"""
+    navigation = _ROOT / 'application' / 'ui' / 'navigation'
+    service = ast.parse((navigation / 'service.py').read_text(encoding='utf-8'))
+    functions = [node.name for node in service.body if isinstance(node, ast.FunctionDef)]
+
+    assert functions == ['goto_page', '_goto_page']
+    assert (navigation / 'recognition.py').is_file()
+
+
 def test_combat_shared_fleet_rules_are_flat_files() -> None:
     combat = _ROOT / 'business' / 'combat'
 
