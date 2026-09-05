@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from autowsgr.application.ui.legacy import stack as stack_mod
+import autowsgr.application.ui.navigation.stack as stack_mod
 from autowsgr.application.ui.navigation.stack import UIStack
 from autowsgr.common.types import PageName as P
 

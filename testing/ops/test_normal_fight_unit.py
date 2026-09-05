@@ -14,7 +14,7 @@ import numpy as np
 import pytest
 
 import autowsgr.business.combat.bettle.normal_fight as normal_fight_module
-from autowsgr.application.ui.legacy.battle.fleet_change._detect import FleetSnapshot
+from autowsgr.application.ui.pages.battle_preparation.fleet_change._detect import FleetSnapshot
 from autowsgr.business.combat import CombatMode, CombatPlan, CombatResult
 from autowsgr.business.combat.bettle.normal_fight import NormalFightRunner, _require_fleet_change
 from autowsgr.business.combat.fleet import (
@@ -330,7 +330,7 @@ class TestFleetSelectionCallChain:
         monkeypatch: pytest.MonkeyPatch,
     ):
         """Runner uses the real fleet orchestration before the battle boundary."""
-        from autowsgr.application.ui.legacy.battle.preparation import BattlePreparationPage
+        from autowsgr.application.ui.pages.battle_preparation import BattlePreparationPage
 
         ctrl = MagicMock()
         ctrl.screenshot.return_value = np.zeros((100, 100, 3), dtype=np.uint8)

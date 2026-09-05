@@ -254,7 +254,7 @@ def _migrate_plan_fleet(data: dict[str, Any]) -> None:
 
         fleet: ["", "吹雪", "明斯克", "胡德", "赤诚", ""]
 
-    dev 的 :meth:`~autowsgr.application.ui.legacy.battle.fleet_change.FleetChangeMixin.change_fleet`
+    dev 的 :meth:`~autowsgr.application.ui.pages.battle_preparation.fleet_change.FleetChangeMixin.change_fleet`
     按 0-indexed 取前 6 个, 前导空占位会把舰船整体右移一位、丢掉第 6 船,
     并触发 ``_reorder`` 的 ``break`` 致验证反复重试 ("卡很多次 fleet 验证")。
     本函数剥离所有前导"空槽位", 让经典写法直接生效。

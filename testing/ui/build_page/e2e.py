@@ -38,8 +38,8 @@ if TYPE_CHECKING:
 
 
 def run_test(runner: UIControllerTestRunner) -> None:
-    from autowsgr.application.ui.legacy.build_page import BuildPage, BuildTab
-    from autowsgr.application.ui.legacy.sidebar_page import SidebarPage
+    from autowsgr.application.ui.pages.build_page import BuildPage, BuildTab
+    from autowsgr.application.ui.pages.sidebar_page import SidebarPage
 
     build_page = BuildPage(runner.ctrl)
 
@@ -74,8 +74,8 @@ def _navigate_to(ctrl: AndroidController, pause: float) -> None:
     """从任意已知页面导航到建造页面。"""
     import time
 
-    from autowsgr.application.ui.legacy.main_page import MainPage
-    from autowsgr.application.ui.legacy.sidebar_page import SidebarPage
+    from autowsgr.application.ui.pages.main_page import MainPage
+    from autowsgr.application.ui.pages.sidebar_page import SidebarPage
 
     if not reset_to_main_page(ctrl, pause):
         return
@@ -99,7 +99,7 @@ def main() -> None:
     from loguru import logger
 
     logger.info('=== 建造页面 e2e 测试开始 ===')
-    from autowsgr.application.ui.legacy.build_page import BuildPage
+    from autowsgr.application.ui.pages.build_page import BuildPage
 
     if not ensure_page(
         ctrl,

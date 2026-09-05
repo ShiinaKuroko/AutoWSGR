@@ -300,7 +300,7 @@ python tools/e2e/run.py reward --with-init
 
 `mission_page` 迁移细节: 页面实现统一位于
 `autowsgr/application/ui/pages/mission_page/`，底层校准和交互位于
-`autowsgr/common/`；迁移期旧页面集中在 `application/ui/legacy/`。
+`autowsgr/common/`；页面实现统一位于 `application/ui/pages/`。
 导航器与执行器均使用新路径。旧导入顺序说明仅保留作历史记录。
 
 ## 四、待办事项 (按优先级)

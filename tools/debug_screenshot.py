@@ -108,7 +108,7 @@ def check_page_signatures(screen: np.ndarray, page_name: str | None = None) -> N
     # 收集所有已知的页面签名
     known_pages = {}
     try:
-        from autowsgr.application.ui.legacy.decisive.battle_page import (
+        from autowsgr.application.ui.pages.decisive.battle_page import (
             PAGE_SIGNATURE as DECISIVE_SIG,
         )
 
@@ -116,7 +116,7 @@ def check_page_signatures(screen: np.ndarray, page_name: str | None = None) -> N
     except ImportError:
         pass
     try:
-        from autowsgr.application.ui.legacy.main_page import PAGE_SIGNATURE as MAIN_SIG
+        from autowsgr.application.ui.pages.main_page.constants import PAGE_SIGNATURE as MAIN_SIG
 
         known_pages['main'] = MAIN_SIG
     except ImportError:

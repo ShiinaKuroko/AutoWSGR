@@ -522,7 +522,7 @@ class DecisiveMapController:
         # TODO: 改进鲁棒性
         time.sleep(1)
         # 调试：检测当前页面状态
-        from autowsgr.common.ui.interaction.navigation import NavConfig
+        from autowsgr.common.ui.interaction import NavConfig
         from autowsgr.common.vision.resources import Templates
 
         screen = self._ctrl.screenshot()

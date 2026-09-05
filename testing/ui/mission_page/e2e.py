@@ -37,8 +37,8 @@ if TYPE_CHECKING:
 
 
 def run_test(runner: UIControllerTestRunner) -> None:
-    from autowsgr.application.ui.legacy.main_page import MainPage
-    from autowsgr.application.ui.legacy.mission_page import MissionPage
+    from autowsgr.application.ui.pages.main_page import MainPage
+    from autowsgr.application.ui.pages.mission_page import MissionPage
 
     mission_page = MissionPage(runner.ctrl)
 
@@ -58,7 +58,7 @@ def _navigate_to(ctrl: AndroidController, pause: float) -> None:
     """从任意已知页面导航到任务页面。"""
     import time
 
-    from autowsgr.application.ui.legacy.main_page import MainPage
+    from autowsgr.application.ui.pages.main_page import MainPage
 
     if not reset_to_main_page(ctrl, pause):
         return
@@ -78,7 +78,7 @@ def main() -> None:
     from loguru import logger
 
     logger.info('=== 任务页面 e2e 测试开始 ===')
-    from autowsgr.application.ui.legacy.mission_page import MissionPage
+    from autowsgr.application.ui.pages.mission_page import MissionPage
 
     if not ensure_page(
         ctrl,

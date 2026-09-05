@@ -14,7 +14,7 @@ from unittest.mock import MagicMock, call
 import numpy as np
 import pytest
 
-from autowsgr.application.ui.legacy.event.event_page import (
+from autowsgr.application.ui.pages.event.event_page import (
     CLICK_BACK,
     CLICK_CLOSE_NODE_OVERLAY,
     NODE_POSITIONS_BY_EVENT,
@@ -54,7 +54,7 @@ def _make_page() -> tuple[BaseEventPage, MagicMock]:
 def _no_sleep(monkeypatch: pytest.MonkeyPatch) -> None:
     """屏蔽真实 sleep, 加速 _enter_node/go_back 的等待循环。"""
     monkeypatch.setattr(
-        'autowsgr.application.ui.legacy.event.event_page.time.sleep', lambda *_: None
+        'autowsgr.application.ui.pages.event.event_page.time.sleep', lambda *_: None
     )
 
 
@@ -104,7 +104,7 @@ class TestIsCurrentPage:
             '_difficulty_icon_state',
             staticmethod(MagicMock(return_value=None)),
         )
-        from autowsgr.application.ui.legacy.event import event_page as ep
+        from autowsgr.application.ui.pages.event import event_page as ep
 
         monkeypatch.setattr(
             ep,
@@ -180,7 +180,7 @@ class TestGoBack:
         """已在主页面 → 直接返回, 不点击。"""
         page, ctrl = _make_page()
         monkeypatch.setattr(
-            'autowsgr.application.ui.legacy.main_page.MainPage.is_current_page',
+            'autowsgr.application.ui.pages.main_page.MainPage.is_current_page',
             MagicMock(return_value=True),
         )
 
@@ -197,7 +197,7 @@ class TestGoBack:
         ctrl.screenshot.side_effect = [frame, frame, main_frame]
         _mock_fight_button(monkeypatch, [_button_detail(), None])
         monkeypatch.setattr(
-            'autowsgr.application.ui.legacy.main_page.MainPage.is_current_page',
+            'autowsgr.application.ui.pages.main_page.MainPage.is_current_page',
             MagicMock(side_effect=[False, False, True]),
         )
 
@@ -217,7 +217,7 @@ class TestGoBack:
         ctrl.screenshot.side_effect = [frame, main_frame]
         _mock_fight_button(monkeypatch, [None])
         monkeypatch.setattr(
-            'autowsgr.application.ui.legacy.main_page.MainPage.is_current_page',
+            'autowsgr.application.ui.pages.main_page.MainPage.is_current_page',
             MagicMock(side_effect=[False, True]),
         )
 
@@ -234,7 +234,7 @@ class TestGoBack:
         page, ctrl = _make_page()
         ctrl.screenshot.return_value = _gradient_screen()
         monkeypatch.setattr(
-            'autowsgr.application.ui.legacy.main_page.MainPage.is_current_page',
+            'autowsgr.application.ui.pages.main_page.MainPage.is_current_page',
             MagicMock(return_value=False),
         )
         monkeypatch.setattr(
@@ -242,7 +242,7 @@ class TestGoBack:
         )
         # time.sleep 已被 _no_sleep 屏蔽; mock monotonic 递增驱动超时
         monkeypatch.setattr(
-            'autowsgr.application.ui.legacy.event.event_page.time.monotonic',
+            'autowsgr.application.ui.pages.event.event_page.time.monotonic',
             MagicMock(side_effect=count(0, 1)),
         )
 

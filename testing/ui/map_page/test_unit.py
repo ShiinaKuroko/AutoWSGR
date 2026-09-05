@@ -7,12 +7,8 @@ from unittest.mock import MagicMock
 import pytest
 
 from autowsgr.application.runtime.context import GameContext
-from autowsgr.application.ui.legacy.map import (
-    CHAPTER_MAP_COUNTS,
-    MAP_DATABASE,
-    MapPage,
-    parse_map_title,
-)
+from autowsgr.application.ui.pages.map import MapPage, parse_map_title
+from autowsgr.application.ui.pages.map.data import CHAPTER_MAP_COUNTS, MAP_DATABASE
 from autowsgr.common.device import AndroidController
 
 

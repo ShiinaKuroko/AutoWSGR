@@ -10,14 +10,10 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING, Literal
 
-from autowsgr.application.ui.legacy import (
-    BaseEventPage,
-    BattlePreparationPage,
-    MapPage,
-    MapPanel,
-    RepairStrategy,
-)
 from autowsgr.application.ui.navigation import goto_page
+from autowsgr.application.ui.pages.battle_preparation import BattlePreparationPage, RepairStrategy
+from autowsgr.application.ui.pages.event import BaseEventPage
+from autowsgr.application.ui.pages.map import MapPage, MapPanel
 from autowsgr.business.combat import CombatMode, CombatPlan, CombatResult, run_combat
 from autowsgr.business.combat.fleet import (
     FleetSlotRule,

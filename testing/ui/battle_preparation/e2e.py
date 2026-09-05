@@ -40,7 +40,7 @@ if TYPE_CHECKING:
 
 
 def run_test(runner: UIControllerTestRunner) -> None:
-    from autowsgr.application.ui.legacy.battle.preparation import BattlePreparationPage, Panel
+    from autowsgr.application.ui.pages.battle_preparation import BattlePreparationPage, Panel
 
     bp_page = BattlePreparationPage(runner.ctrl)
 
@@ -126,13 +126,9 @@ def _navigate_to(
     """
     import time
 
-    from autowsgr.application.ui.legacy.main_page import MainPage
-    from autowsgr.application.ui.legacy.map import (
-        MAP_NODE_POSITIONS,
-        TOTAL_CHAPTERS,
-        MapPage,
-        MapPanel,
-    )
+    from autowsgr.application.ui.pages.main_page import MainPage
+    from autowsgr.application.ui.pages.map import MapPage, MapPanel
+    from autowsgr.application.ui.pages.map.data import MAP_NODE_POSITIONS, TOTAL_CHAPTERS
 
     if not reset_to_main_page(ctrl, pause):
         return
@@ -186,7 +182,7 @@ def main() -> None:
 
     logger.info('=== 出征准备页面 e2e 测试开始 === 章节={} 地图节点={}', chapter, map_node)
     info(f'  章节: {chapter}   地图节点: {map_node}  (可用 --chapter N --map-node M 覆盖)')
-    from autowsgr.application.ui.legacy.battle.preparation import BattlePreparationPage
+    from autowsgr.application.ui.pages.battle_preparation import BattlePreparationPage
 
     if not ensure_page(
         ctrl,

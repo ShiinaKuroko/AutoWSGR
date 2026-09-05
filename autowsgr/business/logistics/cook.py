@@ -7,8 +7,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from autowsgr.application.ui.legacy.canteen_page import CanteenPage
 from autowsgr.application.ui.navigation import goto_page
+from autowsgr.application.ui.pages.canteen_page import CanteenPage
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.types import PageName
 

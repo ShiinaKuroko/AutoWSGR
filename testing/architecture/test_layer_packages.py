@@ -37,6 +37,11 @@ def test_business_has_only_combat_and_logistics_domains() -> None:
     assert domains == {'combat', 'logistics'}
 
 
+def test_ui_legacy_compatibility_layer_is_removed() -> None:
+    """页面实现只能从 canonical UI 包加载。"""
+    assert not (_ROOT / 'application' / 'ui' / 'legacy').exists()
+
+
 def test_combat_shared_fleet_rules_are_flat_files() -> None:
     combat = _ROOT / 'business' / 'combat'
 

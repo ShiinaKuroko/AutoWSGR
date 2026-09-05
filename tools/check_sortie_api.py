@@ -17,9 +17,6 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 def main() -> int:
     errors: list[str] = []
-    # Bootstrap the compatibility registry before importing the new map subpackage.
-    import autowsgr.application.ui.legacy  # noqa: F401
-
     # ── 1. counters 子模块必须存在（拆分后） ──
     try:
         from autowsgr.application.ui.pages.map.panels import sortie_counters  # noqa: F401
