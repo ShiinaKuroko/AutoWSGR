@@ -408,8 +408,8 @@ class TestActions:
         pg, ctrl = page
         # go_back 用到达验证 (click_and_wait_for_page): 点击后需识别为 MAP 才算成功。
         # MapPage 识别走 tabbed 模板匹配, 构造假帧太重, 直接 mock checker 命中。
-        from autowsgr.application.ui.navigation.registry import PageMatch
         from autowsgr.application.ui.pages.map import MapPage
+        from autowsgr.common.vision import PageMatch
 
         monkeypatch.setattr(
             MapPage,
@@ -429,9 +429,9 @@ class TestActions:
     ) -> None:
         """到达验证: 点击后画面仍在准备页 (MAP 不命中) → NavigationError, 不再假成功。"""
         pg, ctrl = page
-        from autowsgr.application.ui.navigation.registry import PageMatch
         from autowsgr.application.ui.pages.map import MapPage
         from autowsgr.common.ui.interaction import NavigationError
+        from autowsgr.common.vision import PageMatch
 
         monkeypatch.setattr(
             MapPage,

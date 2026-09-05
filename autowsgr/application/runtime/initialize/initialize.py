@@ -27,7 +27,8 @@ import time
 from typing import TYPE_CHECKING
 
 from autowsgr.application.runtime.initialize import overlays, updater
-from autowsgr.application.ui.navigation import goto_page, identify_current_page
+from autowsgr.application.ui.navigation import goto_page
+from autowsgr.application.ui.navigation.recognition import identify_current_page
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.types import GameAPP, PageName
 from autowsgr.common.ui.interaction import NavigationError

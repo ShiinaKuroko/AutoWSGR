@@ -1,16 +1,23 @@
-"""当前页面识别和上下文同步。"""
+"""页面识别和识别结果同步。"""
 
 from __future__ import annotations
 
 import time
 from typing import TYPE_CHECKING
 
-from autowsgr.application.ui.navigation.registry import get_current_page, register_default_pages
+from autowsgr.application.ui.navigation.registry import (
+    _OVERLAY_PAGES,
+    _PAGE_REGISTRY,
+    register_default_pages,
+)
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.types import PageName
+from autowsgr.common.vision.page_match import PageMatch
 
 
 if TYPE_CHECKING:
+    import numpy as np
+
     from autowsgr.application.ui.context import UIContext as GameContext
 
 
@@ -23,27 +30,57 @@ IDENTIFY_INTERVAL: float = 1.0
 """页面识别重试间隔 (秒)。"""
 
 
+def get_current_page(
+    screen: np.ndarray,
+    candidates: set[str] | None = None,
+) -> str | None:
+    """根据截图识别当前页面。"""
+    registered = list(_PAGE_REGISTRY)
+    names = [name for name in registered if candidates is None or name in candidates]
+    hits: list[PageMatch] = []
+    failed: list[str] = []
+
+    for name in names:
+        checker = _PAGE_REGISTRY[name]
+        try:
+            result = _normalize_match(name, checker(screen))
+        except Exception:
+            _log.opt(exception=True).warning("[UI] 页面 '{}' 识别器异常", name)
+            failed.append(name)
+            continue
+        if result.matched:
+            hits.append(result)
+
+    if hits:
+        overlay_hits = [result for result in hits if result.name in _OVERLAY_PAGES]
+        pool = overlay_hits or hits
+        pool.sort(key=lambda result: result.score, reverse=True)
+        best = pool[0]
+        _log.debug(
+            '[UI] 当前页面: {} (score={:.3f}, 候选 {} / 命中 {})',
+            best.name,
+            best.score,
+            len(names),
+            len(hits),
+        )
+        return best.name
+
+    if failed:
+        _log.warning(
+            '[UI] 无匹配页面，且以下识别器抛异常: {} (评估 {} 个候选)',
+            failed,
+            len(names),
+        )
+    else:
+        _log.debug('[UI] 当前页面: 无匹配 (评估 {} 个候选)', len(names))
+    return None
+
+
 def identify_current_page(
     ctx: GameContext,
     candidates: set[str] | None = None,
 ) -> str | None:
-    """截图并识别当前页面。
-
-    尝试多次截图以应对动画或加载中的情况。候选集识别重试耗尽后
-    追加一轮全量识别兜底 —— 栈漂移可能把真实页面排除在候选之外。
-
-    Parameters
-    ----------
-    candidates:
-        候选页面名集合。``None`` 时评估全部注册页;导航过程中由
-        :func:`_goto_page` 从 :attr:`GameContext.ui_stack` 计算并传入,
-        以收缩搜索空间。
-
-    Returns
-    -------
-    str | None
-        当前页面名称，无法识别返回 ``None``。
-    """
+    """截图并识别当前页面。"""
     register_default_pages()
     ctrl = ctx.ctrl
     for attempt in range(MAX_IDENTIFY_ATTEMPTS):
@@ -51,28 +88,45 @@ def identify_current_page(
         page = get_current_page(screen, candidates=candidates)
         if page is not None:
             return page
-        _log.debug(
-            '[Navigate] 页面识别失败 (第 {} 次尝试), 等待重试',
-            attempt + 1,
-        )
+        _log.debug('[Navigate] 页面识别失败 (第 {} 次尝试), 等待重试', attempt + 1)
         time.sleep(IDENTIFY_INTERVAL)
 
     if candidates is not None:
-        # 候选耗尽:降级全量识别一轮(候选集可能因栈漂移漏掉真实页面)
-        screen = ctrl.screenshot()
-        page = get_current_page(screen)
+        page = get_current_page(ctrl.screenshot())
         if page is not None:
             _log.warning('[Navigate] 候选识别失败, 全量兜底命中: {}', page)
             return page
     return None
 
 
+def _normalize_match(name: str, result: object) -> PageMatch:
+    """校验并统一页面识别结果。"""
+    if not isinstance(result, PageMatch):
+        raise TypeError(f'页面识别器 {name!r} 必须返回 PageMatch')
+    if result.name == name:
+        return result
+    return PageMatch(name=name, matched=result.matched, score=result.score)
+
+
+def _resync_stack(ctx: GameContext) -> str | None:
+    """按当前截图重建页面栈。"""
+    screen = ctx.ctrl.screenshot()
+    identified = get_current_page(screen)
+    if identified is None:
+        ctx.ui_stack.clear()
+        _log.warning('[UIStack] 全量识别失败, 栈已清空')
+        return None
+    ctx.ui_stack.reset(identified, screen=screen)
+    _log.info('[UIStack] 栈重建为 [{}]', identified)
+    return identified
+
+
 def _sync_ctx_page(ctx: GameContext, name: str) -> None:
-    """把识别结果同步到 ``ctx.current_page``。"""
+    """把识别结果同步到上下文页面字段。"""
     try:
         ctx.current_page = PageName(name)
     except ValueError:
         ctx.current_page = None
 
 
-__all__ = ['identify_current_page']
+__all__ = ['get_current_page', 'identify_current_page']

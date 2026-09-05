@@ -9,36 +9,48 @@
 ## 设计概览
 
 ```
-┌──────────────────────────┐
-│  page.py                 │  页面注册中心: register_page / get_current_page
-├──────────────────────────┤
-│  navigation.py           │  导航图: NavEdge 有向图 + BFS find_path
-├──────────────────────────┤
-│  utils.py                │  等待工具: wait_for_page / click_and_wait_for_page
-├──────────────────────────┤
-│  pages/ (各页面控制器)    │  MainPage / MapPage / BathPage / ...
-└──────────────────────────┘
+┌──────────────────────────────────────────┐
+│ service.py                               │ goto_page / _goto_page
+├──────────────────────────────────────────┤
+│ recognition.py                           │ 截图识别与重试
+├──────────────────────────────────────────┤
+│ registry.py                              │ 页面识别器注册
+├──────────────────────────────────────────┤
+│ graph/                                   │ 公共 / 战斗 / 后勤导航边 + BFS
+├──────────────────────────────────────────┤
+│ stack.py                                 │ 页面来路和识别对账
+├──────────────────────────────────────────┤
+│ pages/                                   │ 各页面控制器
+└──────────────────────────────────────────┘
 ```
 
 ---
 
 ## 页面注册中心
 
-**文件**: `autowsgr/ui/page.py`
+**文件**: `autowsgr/application/ui/navigation/registry.py`
 
-全局注册表 `_PAGE_REGISTRY: dict[str, Callable[[ndarray], bool]]`，每个页面注册一个 `checker` 函数（通常基于 `PixelSignature`）。
+注册表只保存页面名和 `PageMatch` 检查器；页面识别逻辑位于
+`autowsgr/application/ui/navigation/recognition.py`。
 
 ### API
 
 ```python
-register_page(name: PageName, checker: Callable[[ndarray], bool])
+register_page(name: PageName, checker: Callable[[ndarray], PageMatch])
     # 注册页面识别函数
-
-get_current_page(screen: ndarray) -> str | None
-    # 遍历注册表，返回首个匹配页面名；无匹配返回 None
 
 get_registered_pages() -> list[str]
     # 列出所有已注册页面
+```
+
+页面识别由 `recognition.py` 负责：
+
+```python
+get_current_page(screen: ndarray) -> str | None
+    # 遍历注册表并返回匹配页面名
+
+identify_current_page(ctx: GameContext) -> str | None
+    # 截图、重试并识别当前页面
 ```
 
 ### 识别流程
@@ -58,7 +70,7 @@ get_current_page(screen)
     └─ checker 抛异常 → 记录 warning，继续遍历
 ```
 
-各页面在模块加载时自动调用 `register_page()` 完成注册。
+默认页面由 `register_default_pages()` 统一注册，识别结果按覆盖层和匹配分数决胜。
 
 ---
 
@@ -119,9 +131,12 @@ class SomePage:
 
 ## 导航图
 
-**文件**: `autowsgr/ui/navigation.py`
+**文件**: `autowsgr/application/ui/navigation/graph/`
 
 页面间的导航关系用 **有向图** 表示，每条边存储一个动作函数。
+
+导航边按职责拆分为 `common.py`（主页到一级页面）、`combat.py`（地图、出征准备、
+活动和决战）和 `logistics.py`（任务、后院、侧边栏及其子页面）。
 
 ### NavEdge
 
@@ -156,7 +171,7 @@ class NavEdge:
                           └─── CANTEEN
 ```
 
-完整边列表定义在 `NAV_GRAPH: list[NavEdge]` 中，共 20+ 条边。
+完整边列表定义在 `NAV_GRAPH: tuple[NavEdge, ...]` 中，共 23 条边。
 
 ### 动作函数
 
@@ -164,11 +179,11 @@ class NavEdge:
 
 ```python
 def _main_to_map(ctx: GameContext) -> None:
-    from autowsgr.ui.main_page import MainPage
+    from autowsgr.application.ui.pages.main_page import MainPage
     MainPage(ctx).navigate_to(MainPage.Target.SORTIE)
 
 def _map_to_main(ctx: GameContext) -> None:
-    from autowsgr.ui.map.page import MapPage
+    from autowsgr.application.ui.pages.map import MapPage
     MapPage(ctx).go_back()
 ```
 
@@ -186,7 +201,7 @@ find_path(source: PageName, target: PageName) -> list[NavEdge] | None
 
 ## 等待工具
 
-**文件**: `autowsgr/ui/utils.py`
+**文件**: `autowsgr/common/ui/interaction.py`
 
 | 函数                                                      | 说明                           |
 |-----------------------------------------------------------|--------------------------------|
@@ -220,6 +235,6 @@ class NavConfig:
 ## 与其他模块的关系
 
 - **下游**: [vision](vision.md) 的 `PixelChecker` / `ImageChecker` 提供页面识别能力
-- **上游**: [ops](ops.md) 的 `goto_page()` / `identify_current_page()` 封装了导航图调用
+- **上游**: `business/*Executor` 的 `goto_page()` 调用导航图和页面动作
 - **上游**: [combat-engine](combat-engine.md) 使用 `BattlePreparationPage` 进行出征前准备
-- **类型**: [infra](infra.md) 的 `PageName` 枚举定义了所有页面名
+- **类型**: `common/types.py` 的 `PageName` 枚举定义了所有页面名

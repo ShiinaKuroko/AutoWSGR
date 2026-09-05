@@ -7,10 +7,10 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 import pytest
 
+from autowsgr.application.ui.navigation.recognition import get_current_page
 from autowsgr.application.ui.navigation.registry import (
     _OVERLAY_PAGES,
     _PAGE_REGISTRY,
-    get_current_page,
     register_page,
 )
 from autowsgr.common.device import AndroidController
@@ -50,13 +50,13 @@ class TestGetCurrentPage:
         _OVERLAY_PAGES.update(self._backup_overlay)
 
     def test_returns_first_match(self):
-        register_page('always_true', lambda _s: True)
-        register_page('also_true', lambda _s: True)
+        register_page('always_true', lambda _s: PageMatch('always_true', True, 1.0))
+        register_page('also_true', lambda _s: PageMatch('also_true', True, 1.0))
         result = get_current_page(_blank())
         assert result == 'always_true'
 
     def test_returns_none_when_no_match(self):
-        register_page('never', lambda _s: False)
+        register_page('never', lambda _s: PageMatch('never', False, 0.0))
         assert get_current_page(_blank()) is None
 
     def test_empty_registry(self):
@@ -69,13 +69,13 @@ class TestGetCurrentPage:
             raise RuntimeError('boom')
 
         register_page('bad', bad_checker)
-        register_page('good', lambda _s: True)
+        register_page('good', lambda _s: PageMatch('good', True, 1.0))
         assert get_current_page(_blank()) == 'good'
 
     def test_candidate_filtering(self):
         """candidates 限制只评估候选页:未在候选集的真页不返回。"""
-        register_page('a', lambda _s: True)
-        register_page('b', lambda _s: True)
+        register_page('a', lambda _s: PageMatch('a', True, 1.0))
+        register_page('b', lambda _s: PageMatch('b', True, 1.0))
         assert get_current_page(_blank(), candidates={'a'}) == 'a'
         assert get_current_page(_blank(), candidates=set()) is None
 
@@ -91,15 +91,9 @@ class TestGetCurrentPage:
         register_page('second', lambda _s: PageMatch(name='second', matched=True, score=0.8))
         assert get_current_page(_blank()) == 'first'
 
-    def test_bool_checker_normalized(self):
-        """旧式 bool checker 归一化:True→score=1.0,胜过低分 PageMatch。"""
-        register_page('bool_true', lambda _s: True)
-        register_page('low_score', lambda _s: PageMatch(name='low_score', matched=True, score=0.7))
-        assert get_current_page(_blank()) == 'bool_true'
-
     def test_unregistered_candidate_ignored(self):
         """候选集中未注册的名称被静默跳过。"""
-        register_page('only', lambda _s: True)
+        register_page('only', lambda _s: PageMatch('only', True, 1.0))
         assert get_current_page(_blank(), candidates={'only', 'ghost'}) == 'only'
 
     def test_overlay_page_wins_over_higher_score_base(self):
@@ -139,9 +133,9 @@ class TestGetCurrentPage:
 
     def test_overlay_flag_reregistration_updates(self):
         """重注册同名页面时 overlay 标记同步更新 (先 overlay 后普通则移出集合)。"""
-        register_page('page', lambda _s: True, overlay=True)
+        register_page('page', lambda _s: PageMatch('page', True, 1.0), overlay=True)
         assert 'page' in _OVERLAY_PAGES
-        register_page('page', lambda _s: True)
+        register_page('page', lambda _s: PageMatch('page', True, 1.0))
         assert 'page' not in _OVERLAY_PAGES
 
 

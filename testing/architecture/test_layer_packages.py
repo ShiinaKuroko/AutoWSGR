@@ -52,6 +52,35 @@ def test_navigation_service_only_owns_navigation_flow() -> None:
     assert (navigation / 'recognition.py').is_file()
 
 
+def test_navigation_graph_is_split_by_domain() -> None:
+    """导航边按公共、战斗、后勤域保存。"""
+    graph = _ROOT / 'application' / 'ui' / 'navigation' / 'graph'
+
+    assert (graph / 'common.py').is_file()
+    assert (graph / 'combat.py').is_file()
+    assert (graph / 'logistics.py').is_file()
+
+    from autowsgr.application.ui.navigation.graph import (
+        COMBAT_EDGES,
+        COMMON_EDGES,
+        LOGISTICS_EDGES,
+        NAV_GRAPH,
+    )
+
+    assert (len(COMMON_EDGES), len(COMBAT_EDGES), len(LOGISTICS_EDGES)) == (5, 5, 13)
+    assert len(NAV_GRAPH) == 23
+
+
+def test_navigation_support_has_one_owner_per_responsibility() -> None:
+    """注册表不承载识别，页面栈不承载设备识别。"""
+    from autowsgr.application.ui.navigation import recognition, registry
+    from autowsgr.application.ui.navigation.stack import UIStack
+
+    assert hasattr(recognition, 'get_current_page')
+    assert not hasattr(registry, 'get_current_page')
+    assert not hasattr(UIStack, 'resync')
+
+
 def test_combat_shared_fleet_rules_are_flat_files() -> None:
     combat = _ROOT / 'business' / 'combat'
 

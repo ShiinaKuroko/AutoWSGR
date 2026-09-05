@@ -189,38 +189,29 @@ def test_replace_swaps_top() -> None:
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# resync / 留存帧
+# 栈重建 / 留存帧
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
-def test_resync_rebuilds_single_frame_root(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """resync:全量识别 → 单帧根重建,不猜祖先链。"""
+def test_reset_rebuilds_single_frame_root() -> None:
+    """reset 以指定页面重建单帧根,不猜祖先链。"""
     s = UIStack()
     s.push(P.MAIN)
     s.push(P.BACKYARD)
     s.observe(P.MAP)
     assert s.drifted
-    monkeypatch.setattr(
-        'autowsgr.application.ui.navigation.registry.get_current_page',
-        lambda _screen: P.CANTEEN.value,
-    )
     screen = _frame(9)
-    assert s.resync(screen) == P.CANTEEN.value
+    s.reset(P.CANTEEN, screen=screen)
     assert s.pages() == (P.CANTEEN.value,)
     assert not s.drifted
     assert s.snapshot(P.CANTEEN) is screen
 
 
-def test_resync_unidentified_clears_stack(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_clear_resets_stack() -> None:
     s = UIStack()
     s.push(P.MAIN)
     s.push(P.BACKYARD)
-    monkeypatch.setattr(
-        'autowsgr.application.ui.navigation.registry.get_current_page', lambda _screen: None
-    )
-    assert s.resync(_frame(0)) is None
+    s.clear()
     assert s.pages() == ()
     assert not s.drifted
 

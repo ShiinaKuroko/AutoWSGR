@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING
 
 from autowsgr.application.ui.navigation.graph import find_path
 from autowsgr.application.ui.navigation.recognition import (
+    _resync_stack,
     _sync_ctx_page,
     identify_current_page,
 )
@@ -20,7 +21,6 @@ from autowsgr.common.ui.interaction import NavigationError
 if TYPE_CHECKING:
     from autowsgr.application.ui.context import UIContext as GameContext
 
-
 _log = get_logger('business.navigate')
 
 # ── 功能入口 ─────────────────────────────────────────────────
@@ -28,7 +28,7 @@ _log = get_logger('business.navigate')
 
 def goto_page(ctx: GameContext, target: str) -> None:
     """
-    导航器真实功能入口，首次失败时先用 ``ui_stack.resync`` 全量识别重建栈
+    导航器真实功能入口，首次失败时先全量识别并重建页面栈
      (漂移后的栈会把真实页面排除在候选外, 直接重试大概率再失败), 再重试导航。
     """
     try:
@@ -36,7 +36,7 @@ def goto_page(ctx: GameContext, target: str) -> None:
     except NavigationError as e:
         # 调用截图功能，判断当前游戏页面处于什么位置
         _log.error('[Navigate] 导航失败: {}', e)
-        resynced = ctx.ui_stack.resync(ctx.ctrl.screenshot())
+        resynced = _resync_stack(ctx)
 
         _log.info('[Navigate] 栈重建 (resync): {}, 执行一次重试', resynced or '识别失败')
         current_page = identify_current_page(ctx)
