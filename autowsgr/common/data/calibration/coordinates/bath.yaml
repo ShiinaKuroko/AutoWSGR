@@ -1,0 +1,9 @@
+# Bath page coordinates, collected at the 1280x720 reference size.
+back: [28, 42]
+repair_all: [871, 123]
+choose_repair: [1200, 40]
+close_overlay: [1224, 65]
+first_repair_ship: [153, 311]
+swipe:
+  start: [845, 360]
+  end: [422, 360]

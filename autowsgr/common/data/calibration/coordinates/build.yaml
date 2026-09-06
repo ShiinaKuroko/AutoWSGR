@@ -1,0 +1,23 @@
+# Build page coordinates, collected at the 1280x720 reference size.
+back: [28, 42]
+tabs:
+  build: [240, 33]
+  destroy: [400, 33]
+  develop: [560, 33]
+  discard: [720, 33]
+slots:
+  - [1054, 225]
+  - [1054, 366]
+  - [1054, 505]
+  - [1054, 647]
+confirm: [1139, 641]
+destroy:
+  add: [120, 275]
+  quick_select: [1165, 216]
+  confirm_select: [1171, 652]
+  remove_equip: [1071, 465]
+  confirm: [1152, 648]
+  four_star_confirm: [486, 408]
+  type_filter: [1167, 490]
+  confirm_filter: [1152, 612]
+dismiss_animation: [1220, 687]

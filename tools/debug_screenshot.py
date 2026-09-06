@@ -108,9 +108,7 @@ def check_page_signatures(screen: np.ndarray, page_name: str | None = None) -> N
     # 收集所有已知的页面签名
     known_pages = {}
     try:
-        from autowsgr.application.ui.controller.decisive.battle_page import (
-            PAGE_SIGNATURE as DECISIVE_SIG,
-        )
+        from autowsgr.common.calibration.decisive import SIG_MAP_PAGE as DECISIVE_SIG
 
         known_pages['decisive_battle'] = DECISIVE_SIG
     except ImportError:

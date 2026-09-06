@@ -1,0 +1,9 @@
+# Sidebar coordinates, collected at the 1280x720 reference size.
+close: [56, 645]
+nav:
+  build: [200, 267]
+  intensify: [200, 360]
+  friend: [200, 547]
+submenu:
+  build: [480, 267]
+  intensify: [480, 360]

@@ -22,6 +22,29 @@ from autowsgr.common.calibration.colors import param as _color_param
 from autowsgr.common.calibration.colors import tolerance as _color_tolerance
 from autowsgr.common.calibration.coordinates import point
 from autowsgr.common.calibration.ocr import param as _ocr_param
+from autowsgr.common.calibration.mission import (
+    CLAIM_B_MAX,
+    CLAIM_G_MIN,
+    CLAIM_R_MIN,
+    CLICK_BACK,
+    CLUSTER_GAP,
+    GOTO_COLOR,
+    GOTO_TOLERANCE,
+    MIN_CLUSTER_SIZE,
+    NAME_CROP_MIN_Y,
+    NAME_ROI_X1,
+    NAME_ROI_X2,
+    NAME_ROI_Y_PAD,
+    NAME_Y_OFFSET,
+    OCR_CONFIDENCE_MIN,
+    PROGRESS_ROI_X1,
+    PROGRESS_ROI_X2,
+    PROGRESS_ROI_Y_PAD,
+    PROGRESS_Y_OFFSET,
+    SCAN_X,
+    SCAN_Y_STEP,
+    WIDE_BTN_CHECK_X,
+)
 from autowsgr.common.vision.roi import ROI
 
 
@@ -144,7 +167,6 @@ PROGRESS_RE = re.compile(r'(\d{1,3})\s*%')
 # 点击坐标 — 数据源: coordinates/mission.yaml
 # ═══════════════════════════════════════════════════════════════════════════════
 
-CLICK_BACK: tuple[float, float] = point('mission', 'back')
 """回退按钮。"""
 
 

@@ -21,6 +21,20 @@ import time
 from functools import lru_cache
 from typing import TYPE_CHECKING, Literal
 
+from autowsgr.common.calibration.event import (
+    CLICK_BACK,
+    CLICK_CLOSE_NODE_OVERLAY,
+    CLICK_DIFFICULTY,
+    CLICK_ENTRANCE_ALPHA,
+    CLICK_ENTRANCE_BETA,
+    CLICK_FIGHT_BUTTON,
+    ENTRANCE_ALPHA_COLOR,
+    ENTRANCE_ALPHA_PROBE,
+    ENTRANCE_ALPHA_TOLERANCE,
+    FIGHT_BUTTON_ROI,
+    NODE_POSITIONS,
+    NODE_POSITIONS_BY_EVENT,
+)
 from autowsgr.common.system.exceptions import ActionFailedError
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.types import PageName
@@ -32,6 +46,12 @@ from autowsgr.common.vision import (
     ImageMatchDetail,
     PageMatch,
     PixelChecker,
+)
+from autowsgr.common.vision.resources.pages.event import (
+    event_difficulty_easy_templates,
+    event_difficulty_hard_templates,
+    event_fight_button_templates,
+    event_map_title_templates,
 )
 
 
@@ -59,11 +79,7 @@ def _get_fight_button_templates() -> list[ImageTemplate]:
     相比, 按钮样式跨活动差异小), 且匹配位置 ``center`` 可直接用作点击坐标,
     布局微调也无需改坐标常量。
     """
-    from autowsgr.common.vision.resources._lazy import load_template
-
-    return [
-        load_template('event/fight_button_20260730_540p.png', name='fight_button'),
-    ]
+    return event_fight_button_templates()
 
 
 @lru_cache(maxsize=1)
@@ -75,15 +91,7 @@ def _get_event_title_templates() -> list[ImageTemplate]:
     匹配引擎按 ``source_resolution`` 自动缩放, 540p/720p 模板可共存;
     页面识别时 ``find_any`` 命中任一即认定为活动地图页面。
     """
-    from autowsgr.common.vision.resources._lazy import load_template
-
-    return [
-        load_template(
-            'event/event_title_20260730_540p.png',
-            name='event_title_20260730',
-            source_resolution=(960, 540),
-        ),
-    ]
+    return event_map_title_templates()
 
 
 # ── 难度切换按钮图标模板 (延迟加载) ──────────────────────────────────────
@@ -101,12 +109,7 @@ def _get_difficulty_hard_templates() -> list[ImageTemplate]:
     活动地图选择页左下角, 当前为**简单**难度时显示 (点击可切到困难)。
     命中 → 当前简单。
     """
-    from autowsgr.common.vision.resources._lazy import load_template
-
-    return [
-        load_template('event/difficulty_hard_540p_1.png', name='diff_hard1'),
-        load_template('event/difficulty_hard_540p_2.png', name='diff_hard2'),
-    ]
+    return event_difficulty_hard_templates()
 
 
 @lru_cache(maxsize=1)
@@ -115,83 +118,31 @@ def _get_difficulty_easy_templates() -> list[ImageTemplate]:
 
     当前为**困难**难度时显示 (点击可切回简单)。命中 → 当前困难。
     """
-    from autowsgr.common.vision.resources._lazy import load_template
-
-    return [
-        load_template('event/difficulty_easy_540p_1.png', name='diff_easy1'),
-        load_template('event/difficulty_easy_540p_2.png', name='diff_easy2'),
-    ]
+    return event_difficulty_easy_templates()
 
 
-NODE_POSITIONS = {
-    1: (0.1789, 0.1986),
-    2: (0.3914, 0.2528),
-    3: (0.9086, 0.2875),
-    4: (0.2891, 0.6292),
-    5: (0.5367, 0.4028),
-    6: (0.6352, 0.6653),
-}
-"""活动地图选择界面的地图入口坐标 (选 E1~E6 / H1~H6 中的哪张地图)。
-
-缺省布局适用于多数活动; 布局不同的活动在 :data:`NODE_POSITIONS_BY_EVENT` 覆盖。
-"""
 
 # 各活动专属地图入口坐标 (照搬 classic 各活动子类的 NODE_POSITION)
 # 激斗漩涡 (20260730): 3 行 2 列布局
-NODE_POSITIONS_BY_EVENT: dict[str, dict[int, tuple[float, float]]] = {
-    '20260730': {
-        1: (0.1771, 0.3148),
-        2: (0.1740, 0.7259),
-        3: (0.5010, 0.2981),
-        4: (0.4906, 0.7463),
-        5: (0.8135, 0.2944),
-        6: (0.8125, 0.7463),
-    },
-}
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # 坐标常量
 # ═══════════════════════════════════════════════════════════════════════════════
 
-CLICK_BACK: tuple[float, float] = (0.0273, 0.0558)
-"""返回按钮坐标 (活动地图左上角)。"""
 
-CLICK_FIGHT_BUTTON: tuple[float, float] = (0.8276, 0.8426)
-"""出击按钮坐标 (活动地图右下角，选择节点后出现)。"""
 
-FIGHT_BUTTON_ROI = ROI(0.60, 0.65, 1.0, 1.0)
-"""出击按钮搜索区域，避免与准备页左上角标题发生模板误匹配。"""
 
-CLICK_CLOSE_NODE_OVERLAY: tuple[float, float] = (0.95, 0.14)
-"""关卡详情浮层的红色 X 关闭按钮坐标 (浮层右上角)。
 
-点击地图节点后弹出关卡详情浮层, 其右上角有红色 X 关闭按钮。该浮层为模态,
-会拦截屏幕其他点击 (含左上返回箭头), 故 :meth:`go_back` 返回主页前需先点此 X
-关闭浮层, 再点返回箭头逐层退出 (照搬 classic ``go_main_page`` 循环点返回键)。
-坐标按活动地图布局校准: 浮层右下角出击按钮约在 (0.83, 0.84), 红色 X 在浮层
-右上角 (屏幕右上, y 略低于顶部)。
-"""
-
-CLICK_DIFFICULTY: tuple[float, float] = (0.12, 0.90)
-"""难度切换按钮点击坐标。"""
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # 入口选择 (alpha / beta)
 # ═══════════════════════════════════════════════════════════════════════════════
 
-ENTRANCE_ALPHA_PROBE: tuple[float, float] = (0.8271, 0.5778)
-"""入口 alpha 探测点。"""
 
-ENTRANCE_ALPHA_COLOR = Color.of(249, 146, 37)
-"""alpha 入口选中时的颜色特征。"""
 
 # 入口切换点击坐标 (照搬 classic even20260730 已验证值: 绝对坐标
 # [(797,369), (795,317)] @960x540 → 相对坐标)
-CLICK_ENTRANCE_ALPHA: tuple[float, float] = (0.8302, 0.6833)
-"""α 入口点击坐标。"""
-CLICK_ENTRANCE_BETA: tuple[float, float] = (0.8281, 0.5870)
-"""β 入口点击坐标。"""
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -435,7 +386,7 @@ class BaseEventPage:
         screen = self._ctrl.screenshot()
         x, y = ENTRANCE_ALPHA_PROBE
         pixel = PixelChecker.get_pixel(screen, x, y)
-        return pixel.near(ENTRANCE_ALPHA_COLOR, 40.0)
+        return pixel.near(ENTRANCE_ALPHA_COLOR, ENTRANCE_ALPHA_TOLERANCE)
 
     def _select_entrance(self, entrance: Literal['alpha', 'beta']) -> None:
         """切换到目标 α/β 入口; 与当前一致则跳过。

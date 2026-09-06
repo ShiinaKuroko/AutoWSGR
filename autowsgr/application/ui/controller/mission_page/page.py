@@ -32,6 +32,7 @@ from autowsgr.application.ui.controller.mission_page.recognition import (
     recognize_row,
 )
 from autowsgr.application.ui.controller.shared.tabbed_page import TabbedPageType, check_tabbed_page
+from autowsgr.common.calibration.mission import SCROLL, SCROLL_DELAY, SCROLL_DURATION
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.types import PageName
 from autowsgr.common.ui.interaction import click_and_wait_for_page
@@ -227,8 +228,8 @@ class MissionPage:
                 _log.debug('[UI] 任务识别: 无新任务, 停止滚动 (第 {} 次)', _scroll)
                 break
             # 向下滑动
-            self._ctrl.swipe(0.5, 0.7, 0.5, 0.45, duration=0.75)
-            time.sleep(0.5)
+            self._ctrl.swipe(*SCROLL, duration=SCROLL_DURATION)
+            time.sleep(SCROLL_DELAY)
 
         _log.info('[UI] 任务识别完成: {} 条 (panel={})', len(all_missions), panel.value)
         return all_missions

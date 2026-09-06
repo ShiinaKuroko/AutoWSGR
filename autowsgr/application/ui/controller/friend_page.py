@@ -18,15 +18,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from autowsgr.common.calibration.friend import CLICK_BACK
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.types import PageName
 from autowsgr.common.ui.interaction import click_and_wait_for_page
-from autowsgr.common.vision import (
-    MatchStrategy,
-    PageMatch,
-    PixelRule,
-    PixelSignature,
-)
+from autowsgr.common.vision import PageMatch
 
 
 if TYPE_CHECKING:
@@ -41,27 +37,12 @@ _log = get_logger('ui')
 # 页面识别签名
 # ═══════════════════════════════════════════════════════════════════════════════
 
-PAGE_SIGNATURE = PixelSignature(
-    name='好友页',
-    strategy=MatchStrategy.ALL,
-    rules=[
-        PixelRule.of(0.1953, 0.0444, (255, 255, 255), tolerance=30.0),
-        PixelRule.of(0.1641, 0.0574, (255, 252, 243), tolerance=30.0),
-        PixelRule.of(0.2094, 0.0574, (14, 131, 226), tolerance=30.0),
-        PixelRule.of(0.1521, 0.0361, (15, 132, 228), tolerance=30.0),
-        PixelRule.of(0.1724, 0.0389, (32, 128, 205), tolerance=30.0),
-        PixelRule.of(0.1651, 0.0370, (240, 255, 255), tolerance=30.0),
-    ],
-)
-"""好友页面像素签名。"""
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # 点击坐标
 # ═══════════════════════════════════════════════════════════════════════════════
 
-CLICK_BACK: tuple[float, float] = (0.022, 0.058)
-"""回退按钮 (◁)，返回侧边栏。"""
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

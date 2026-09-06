@@ -25,6 +25,7 @@ from autowsgr.application.ui.controller.shared.tabbed_page import (
     get_active_tab_index,
     make_tab_checker,
 )
+from autowsgr.common.calibration.intensify import CLICK_BACK, TAB_POSITIONS
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.types import PageName
 from autowsgr.common.ui.interaction import click_and_wait_for_page
@@ -67,21 +68,18 @@ _TAB_TO_INDEX: dict[IntensifyTab, int] = {tab: i for i, tab in enumerate(_TAB_LI
 # 点击坐标
 # ═══════════════════════════════════════════════════════════════════════════════
 
-CLICK_BACK: tuple[float, float] = (0.022, 0.058)
-"""回退按钮 (◁)。"""
 
-CLICK_TAB: dict[IntensifyTab, tuple[float, float]] = {
-    IntensifyTab.INTENSIFY: (0.1875, 0.0463),
-    IntensifyTab.REMAKE: (0.3125, 0.0463),
-    IntensifyTab.SKILL: (0.4375, 0.0463),
-}
-"""标签切换点击坐标。
-"""
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # 页面控制器
 # ═══════════════════════════════════════════════════════════════════════════════
+
+
+CLICK_TAB: dict[IntensifyTab, tuple[float, float]] = {
+    target: TAB_POSITIONS[target.name.lower()]
+    for target in IntensifyTab
+}
 
 
 class IntensifyPage:

@@ -18,8 +18,7 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING
 
-from autowsgr.common.calibration.coordinates import point
-from autowsgr.common.calibration.signatures import signature
+from autowsgr.common.calibration.start_screen import CLICK_ENTER, PAGE_SIGNATURE
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.vision import (
     PageMatch,
@@ -40,7 +39,6 @@ _log = get_logger('ui')
 # ═══════════════════════════════════════════════════════════════════════════════
 
 #: 启动画面像素签名 — 底部横幅暖黄色调特征 (数据源: signatures/start_screen.yaml)
-PAGE_SIGNATURE = signature('start_screen', 'page')
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -48,7 +46,6 @@ PAGE_SIGNATURE = signature('start_screen', 'page')
 # ═══════════════════════════════════════════════════════════════════════════════
 
 #: 「点击进入」按钮坐标（右下角）— 数据源: coordinates/login.yaml
-CLICK_ENTER: tuple[float, float] = point('login', 'enter_game')
 
 #: 点击后等待画面稳定的时间（秒）
 _CLICK_SETTLE: float = 2.0

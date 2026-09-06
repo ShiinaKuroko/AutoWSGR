@@ -6,6 +6,7 @@ from autowsgr.common.calibration.colors import color
 from autowsgr.common.calibration.colors import param as color_param
 from autowsgr.common.calibration.coordinates import point, points
 from autowsgr.common.calibration.ocr import param as ocr_param
+from autowsgr.common.calibration.signatures import signature
 
 
 FLEET_ACTIVE = color('battle_prep', 'fleet_active')
@@ -24,6 +25,15 @@ CLICK_AUTO_SUPPLY = point('battle_prep', 'auto_supply')
 CLICK_START_BATTLE = point('battle_prep', 'start_battle')
 CLICK_SHIP_SLOT = dict(enumerate(points('battle_prep', 'ship_slot')))
 BLOOD_BAR_PROBE = dict(enumerate(points('battle_prep', 'blood_bar')))
+PANEL_PROBES = {
+    name: point('battle_prep', f'panel_probe.{name}')
+    for name in ('stats', 'quick_supply', 'quick_repair', 'equipment')
+}
+PANEL_CLICKS = {
+    name: point('battle_prep', f'click_panel.{name}')
+    for name in ('stats', 'quick_supply', 'quick_repair', 'equipment')
+}
+PAGE_SIGNATURE = signature('battle_prep', 'page')
 
 SUPPORT_ENABLE = color('battle_prep', 'support_enable')
 SUPPORT_DISABLE = color('battle_prep', 'support_disable')
@@ -50,6 +60,9 @@ __all__ = [
     'FLEET_ACTIVE',
     'FLEET_PROBE',
     'PANEL_ACTIVE',
+    'PANEL_CLICKS',
+    'PANEL_PROBES',
+    'PAGE_SIGNATURE',
     'SHIP_LEVEL_CROP',
     'SHIP_TYPE_CROP',
     'STATE_TOLERANCE',

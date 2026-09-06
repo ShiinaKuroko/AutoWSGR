@@ -16,16 +16,11 @@ from __future__ import annotations
 import enum
 from typing import TYPE_CHECKING
 
+from autowsgr.common.calibration.backyard import CLICK_BACK, NAV_POSITIONS
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.types import PageName
 from autowsgr.common.ui.interaction import click_and_wait_for_page
-from autowsgr.common.vision import (
-    ImageChecker,
-    MatchStrategy,
-    PageMatch,
-    PixelRule,
-    PixelSignature,
-)
+from autowsgr.common.vision import ImageChecker, PageMatch
 from autowsgr.common.vision.resources import Templates
 
 
@@ -53,40 +48,24 @@ class BackyardTarget(enum.Enum):
 # 页面识别签名
 # ═══════════════════════════════════════════════════════════════════════════════
 
-PAGE_SIGNATURE = PixelSignature(
-    name='后院',
-    strategy=MatchStrategy.ALL,
-    rules=[
-        PixelRule.of(0.6990, 0.8389, (193, 98, 66), tolerance=30.0),
-        PixelRule.of(0.2583, 0.7750, (240, 222, 146), tolerance=30.0),
-        PixelRule.of(0.3344, 0.5222, (246, 119, 76), tolerance=30.0),
-        PixelRule.of(0.5880, 0.2861, (255, 254, 250), tolerance=30.0),
-        PixelRule.of(0.9031, 0.4380, (255, 254, 250), tolerance=30.0),
-    ],
-)
-"""后院页面像素签名 — 检测后院背景及装饰特征。"""
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # 点击坐标
 # ═══════════════════════════════════════════════════════════════════════════════
 
-CLICK_BACK: tuple[float, float] = (0.022, 0.058)
-"""回退按钮 (◁)，返回主页面。"""
 
-CLICK_NAV: dict[BackyardTarget, tuple[float, float]] = {
-    BackyardTarget.BATH: (0.3125, 0.3704),
-    BackyardTarget.CANTEEN: (0.7292, 0.7407),
-}
-"""导航按钮点击坐标。
-
-坐标换算: 旧代码 (300, 200) / (700, 400) ÷ (960, 540)。
-"""
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # 页面控制器
 # ═══════════════════════════════════════════════════════════════════════════════
+
+
+CLICK_NAV: dict[BackyardTarget, tuple[float, float]] = {
+    BackyardTarget.BATH: NAV_POSITIONS['bath'],
+    BackyardTarget.CANTEEN: NAV_POSITIONS['canteen'],
+}
 
 
 class BackyardPage:

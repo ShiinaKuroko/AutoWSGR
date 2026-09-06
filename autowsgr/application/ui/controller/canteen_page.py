@@ -17,16 +17,18 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING
 
+from autowsgr.common.calibration.canteen import (
+    CLICK_BACK,
+    CLICK_CANCEL_COOK,
+    CLICK_DISMISS_POPUP,
+    CLICK_FORCE_COOK,
+    CLICK_SKIP_ANIMATION,
+    RECIPE_POSITIONS as CLICK_RECIPE,
+)
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.types import PageName
 from autowsgr.common.ui.interaction import click_and_wait_for_page
-from autowsgr.common.vision import (
-    ImageChecker,
-    MatchStrategy,
-    PageMatch,
-    PixelRule,
-    PixelSignature,
-)
+from autowsgr.common.vision import ImageChecker, PageMatch
 from autowsgr.common.vision.resources import Templates
 
 
@@ -42,61 +44,18 @@ _log = get_logger('ui')
 # 页面识别签名
 # ═══════════════════════════════════════════════════════════════════════════════
 
-PAGE_SIGNATURE = PixelSignature(
-    name='餐厅页',
-    strategy=MatchStrategy.ALL,
-    rules=[
-        PixelRule.of(0.7667, 0.0454, (27, 134, 228), tolerance=30.0),
-        PixelRule.of(0.8734, 0.1611, (29, 119, 205), tolerance=30.0),
-        PixelRule.of(0.8745, 0.2750, (29, 115, 198), tolerance=30.0),
-        PixelRule.of(0.8734, 0.3806, (27, 116, 198), tolerance=30.0),
-        PixelRule.of(0.7734, 0.0602, (254, 255, 255), tolerance=30.0),
-    ],
-)
-"""食堂页面像素签名 (来自 sig.py 重新采集)。"""
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # 点击坐标
 # ═══════════════════════════════════════════════════════════════════════════════
 
-CLICK_BACK: tuple[float, float] = (0.022, 0.058)
-"""回退按钮 (◁)，返回后院。
 
-.. note::
-    旧代码中食堂 ◁ 按钮可能直接返回主页面 (跨级)，
-    具体行为待实际确认。
-"""
-
-CLICK_RECIPE: dict[int, tuple[float, float]] = {
-    1: (0.3313, 0.5111),
-    2: (0.4375, 0.2593),
-    3: (0.5792, 0.4019),
-}
-"""菜谱点击坐标 (1-3)。
-
-换算自旧代码: (318, 276), (420, 140), (556, 217) ÷ (960, 540)。
-"""
 
 # ── 做菜弹窗坐标 ──────────────────────────────────────────────────────
 
-CLICK_FORCE_COOK: tuple[float, float] = (0.414, 0.628)
-"""「效果正在生效」弹窗中选择继续做菜按钮。
 
-旧代码: timer.relative_click(0.414, 0.628)
-"""
 
-CLICK_CANCEL_COOK: tuple[float, float] = (0.650, 0.628)
-"""「效果正在生效」弹窗中取消做菜按钮。
-
-旧代码: timer.relative_click(0.65, 0.628)
-"""
-
-CLICK_DISMISS_POPUP: tuple[float, float] = (0.788, 0.207)
-"""关闭弹窗通用按钮。
-
-旧代码: timer.relative_click(0.788, 0.207)
-"""
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -200,7 +159,7 @@ class CanteenPage:
         目前仅在做菜过程中使用，点击坐标为屏幕右下角。
         """
         _log.info('[UI] 食堂 → 点击跳过动画')
-        self._ctrl.click(0.9, 0.9)
+        self._ctrl.click(*CLICK_SKIP_ANIMATION)
 
     # ── 组合动作 — 做菜 ──
 

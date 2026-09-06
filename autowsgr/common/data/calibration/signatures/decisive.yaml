@@ -1,0 +1,43 @@
+fleet_acquisition:
+  name: decisive_fleet_acquisition
+  strategy: all
+  rules:
+    - {x: 0.5305, y: 0.1014, color: [254, 254, 254], tolerance: 30.0}
+    - {x: 0.4031, y: 0.1028, color: [255, 252, 255], tolerance: 30.0}
+    - {x: 0.4492, y: 0.1181, color: [254, 254, 254], tolerance: 30.0}
+confirm_exit:
+  name: decisive_confirm_exit
+  strategy: all
+  rules:
+    - {x: 0.3430, y: 0.5667, color: [29, 124, 214], tolerance: 30.0}
+    - {x: 0.4180, y: 0.5694, color: [29, 124, 214], tolerance: 30.0}
+    - {x: 0.5813, y: 0.5667, color: [152, 36, 36], tolerance: 30.0}
+    - {x: 0.6578, y: 0.5639, color: [156, 38, 38], tolerance: 30.0}
+    - {x: 0.4953, y: 0.4875, color: [225, 225, 225], tolerance: 30.0}
+    - {x: 0.5023, y: 0.2819, color: [7, 117, 194], tolerance: 30.0}
+advance_choice:
+  name: decisive_advance_choice
+  strategy: all
+  rules:
+    - {x: 0.4484, y: 0.8333, color: [37, 146, 249], tolerance: 30.0}
+    - {x: 0.4484, y: 0.8833, color: [28, 136, 237], tolerance: 30.0}
+    - {x: 0.5492, y: 0.8306, color: [38, 147, 250], tolerance: 30.0}
+    - {x: 0.5516, y: 0.8833, color: [28, 136, 237], tolerance: 30.0}
+    - {x: 0.7008, y: 0.9028, color: [13, 49, 85], tolerance: 30.0}
+    - {x: 0.7031, y: 0.9514, color: [9, 45, 79], tolerance: 30.0}
+    - {x: 0.8695, y: 0.9042, color: [13, 49, 85], tolerance: 30.0}
+    - {x: 0.8727, y: 0.9514, color: [9, 45, 79], tolerance: 30.0}
+map_page:
+  name: decisive_map_page
+  strategy: all
+  rules:
+    - {x: 0.0641, y: 0.0667, color: [218, 130, 20], tolerance: 30.0}
+    - {x: 0.7969, y: 0.9194, color: [34, 143, 246], tolerance: 30.0}
+    - {x: 0.9555, y: 0.9208, color: [34, 143, 246], tolerance: 30.0}
+    - {x: 0.7055, y: 0.9236, color: [34, 143, 246], tolerance: 30.0}
+    - {x: 0.1227, y: 0.0750, color: [215, 142, 14], tolerance: 30.0}
+skill_used:
+  name: decisive_skill_used
+  strategy: all
+  rules:
+    - {x: 0.1977, y: 0.9361, color: [245, 245, 245], tolerance: 30.0}

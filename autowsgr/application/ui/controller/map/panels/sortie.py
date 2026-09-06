@@ -10,7 +10,7 @@
 from __future__ import annotations
 
 import time
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING
 
 from autowsgr.application.ui.controller.map.base import BaseMapPage
 from autowsgr.application.ui.controller.map.data import (
@@ -19,14 +19,27 @@ from autowsgr.application.ui.controller.map.data import (
     MapPanel,
 )
 from autowsgr.common.calibration.map import (
+    CHAPTER_PROBE_Y,
     CHAPTER_NAV_DELAY,
     CHAPTER_NAV_MAX_ATTEMPTS,
     CHAPTER_SPACING,
     CLICK_ENTER_SORTIE,
     CLICK_MAP_NEXT,
     CLICK_MAP_PREV,
+    SIDEBAR_FALLBACK_JITTER,
+    SIDEBAR_FALLBACK_JITTER_AFTER_SWIPE,
     SIDEBAR_CLICK_X,
+    SIDEBAR_JITTER,
+    SIDEBAR_RESET_SETTLE_DELAY,
+    SIDEBAR_SAFE_MARGIN,
     SIDEBAR_SCAN_Y_RANGE,
+    SIDEBAR_SWIPE_BOTTOM,
+    SIDEBAR_SWIPE_DURATION,
+    SIDEBAR_SWIPE_INITIAL_DURATION,
+    SIDEBAR_SWIPE_RESET_BOTTOM,
+    SIDEBAR_SWIPE_RESET_TOP,
+    SIDEBAR_SWIPE_SETTLE_DELAY,
+    SIDEBAR_SWIPE_TOP,
 )
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.types import PageName
@@ -54,11 +67,6 @@ class SortiePanelMixin(BaseMapPage):
 
     # click_chapter 内部「方向 fallback 探针」轮换使用的候选 y, 保证每次点不同位置避免死点同坐标
     #  +1 (下一条): 中下半区;  -1 (上一条): 中上半区 (都在安全区 [0.16, 0.84] 内)
-    _PROBE_Y: ClassVar[dict[int, tuple[float, ...]]] = {
-        1: (0.700, 0.645, 0.755, 0.590),
-        -1: (0.300, 0.355, 0.245, 0.410),
-    }
-
     def click_chapter(self, num: int, *, probe_cycle: int = 0) -> bool:
         """点击侧边栏章节（单步跳转 ±1 最稳，num∈[-3,3]仅相邻可靠）。
 
@@ -84,8 +92,8 @@ class SortiePanelMixin(BaseMapPage):
             return False
 
         y_min, y_max = SIDEBAR_SCAN_Y_RANGE
-        safe_min = y_min + 0.04
-        safe_max = y_max - 0.04
+        safe_min = y_min + SIDEBAR_SAFE_MARGIN
+        safe_max = y_max - SIDEBAR_SAFE_MARGIN
         direction = 1 if num > 0 else -1
 
         def _jitter(base: float, amp: float = 0.006) -> float:
@@ -99,10 +107,22 @@ class SortiePanelMixin(BaseMapPage):
         if sel_y is None:
             _log.debug('[UI] click_chapter 第1轮未找到高亮, 尝试复位侧边栏')
             if num > 0:
-                self._ctrl.swipe(SIDEBAR_CLICK_X, 0.80, SIDEBAR_CLICK_X, 0.20, duration=0.35)
+                self._ctrl.swipe(
+                    SIDEBAR_CLICK_X,
+                    SIDEBAR_SWIPE_TOP[0],
+                    SIDEBAR_CLICK_X,
+                    SIDEBAR_SWIPE_TOP[1],
+                    duration=SIDEBAR_SWIPE_INITIAL_DURATION,
+                )
             else:
-                self._ctrl.swipe(SIDEBAR_CLICK_X, 0.20, SIDEBAR_CLICK_X, 0.80, duration=0.35)
-            time.sleep(0.30)
+                self._ctrl.swipe(
+                    SIDEBAR_CLICK_X,
+                    SIDEBAR_SWIPE_BOTTOM[0],
+                    SIDEBAR_CLICK_X,
+                    SIDEBAR_SWIPE_BOTTOM[1],
+                    duration=SIDEBAR_SWIPE_INITIAL_DURATION,
+                )
+            time.sleep(SIDEBAR_SWIPE_SETTLE_DELAY)
             screen = self._ctrl.screenshot()
             sel_y = self.find_selected_chapter_y(screen)
             if sel_y is None:
@@ -110,9 +130,9 @@ class SortiePanelMixin(BaseMapPage):
                     '[UI] click_chapter 复位后仍无高亮条, 启用方向探针 fallback (cycle=%d)',
                     probe_cycle,
                 )
-                probes = self._PROBE_Y[direction]
+                probes = CHAPTER_PROBE_Y[direction]
                 probe_y = probes[probe_cycle % len(probes)]
-                target_y = _jitter(probe_y, amp=0.008)
+                target_y = _jitter(probe_y, amp=SIDEBAR_FALLBACK_JITTER)
                 self._ctrl.click(SIDEBAR_CLICK_X, target_y)
                 # fallback 探针一定是点击了, 不做点击成功与否判定 (由上层 OCR 回检兜底)
                 return True
@@ -145,7 +165,7 @@ class SortiePanelMixin(BaseMapPage):
                 from_y,
                 SIDEBAR_CLICK_X,
                 to_y,
-                duration=0.45,
+                duration=SIDEBAR_SWIPE_DURATION,
             )
             time.sleep(CHAPTER_NAV_DELAY + 0.10)
 
@@ -153,9 +173,9 @@ class SortiePanelMixin(BaseMapPage):
             sel_y2 = self.find_selected_chapter_y(screen)
             if sel_y2 is None:
                 # swipe 后高亮还是看不清 → 改用 fallback 探针
-                probes = self._PROBE_Y[direction]
+                probes = CHAPTER_PROBE_Y[direction]
                 probe_y = probes[probe_cycle % len(probes)]
-                target_y = _jitter(probe_y, amp=0.010)
+                target_y = _jitter(probe_y, amp=SIDEBAR_FALLBACK_JITTER_AFTER_SWIPE)
                 _log.warning('[UI] swipe 后无高亮条, 启用方向探针 y=%.3f', target_y)
                 self._ctrl.click(SIDEBAR_CLICK_X, target_y)
                 return True
@@ -163,7 +183,7 @@ class SortiePanelMixin(BaseMapPage):
             target_y = max(safe_min, min(safe_max, target_y))
 
         # 加 ±0.006 抖动, 避免连续 9 次点到完全相同的像素
-        click_y = _jitter(target_y, amp=0.006)
+        click_y = _jitter(target_y, amp=SIDEBAR_JITTER)
         self._ctrl.click(SIDEBAR_CLICK_X, click_y)
         return True
 
@@ -321,14 +341,22 @@ class SortiePanelMixin(BaseMapPage):
                     if direction == 1:
                         # +1 卡住: 先从上往下扫一下 (把列表再拉到底一点)
                         self._ctrl.swipe(
-                            SIDEBAR_CLICK_X, 0.25, SIDEBAR_CLICK_X, 0.80, duration=0.45
+                            SIDEBAR_CLICK_X,
+                            SIDEBAR_SWIPE_RESET_TOP[0],
+                            SIDEBAR_CLICK_X,
+                            SIDEBAR_SWIPE_RESET_TOP[1],
+                            duration=SIDEBAR_SWIPE_DURATION,
                         )
                     else:
                         # -1 卡住: 从下往上扫 (把列表拉到顶一点)
                         self._ctrl.swipe(
-                            SIDEBAR_CLICK_X, 0.80, SIDEBAR_CLICK_X, 0.25, duration=0.45
+                            SIDEBAR_CLICK_X,
+                            SIDEBAR_SWIPE_RESET_BOTTOM[0],
+                            SIDEBAR_CLICK_X,
+                            SIDEBAR_SWIPE_RESET_BOTTOM[1],
+                            duration=SIDEBAR_SWIPE_DURATION,
                         )
-                    time.sleep(0.5)
+                    time.sleep(SIDEBAR_RESET_SETTLE_DELAY)
             if consec_misses >= max_misses:
                 _log.warning('[UI] 章节导航: 连续 %d 次无点击, 重启本层 attempt', consec_misses)
                 continue

@@ -16,8 +16,10 @@ from autowsgr.common.calibration.choose_ship import (
     CLICK_SEARCH_BOX,
     INPUT_SIGNATURE,
     PAGE_SIGNATURE,
+    SCROLL_DURATION,
     SCROLL_FROM_Y,
     SCROLL_TO_Y,
+    SCROLL_X,
 )
 from autowsgr.common.constants import SHIPNAMES, normalize_ship_name
 from autowsgr.common.system.logger import get_logger
@@ -478,7 +480,7 @@ class ChooseShipPage:
                 _OCR_MAX_ATTEMPTS,
             )
             if attempt < _OCR_MAX_ATTEMPTS - 1:
-                self._ctrl.swipe(0.4, SCROLL_FROM_Y, 0.4, SCROLL_TO_Y, duration=0.4)
+                self._ctrl.swipe(SCROLL_X, SCROLL_FROM_Y, SCROLL_X, SCROLL_TO_Y, duration=SCROLL_DURATION)
                 time.sleep(0.5)
 
         return None

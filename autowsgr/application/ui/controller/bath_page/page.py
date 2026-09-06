@@ -29,8 +29,7 @@ import time
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from autowsgr.application.ui.controller.bath_page.signatures import (
-    BATH_FULL_TIMEOUT,
+from autowsgr.common.calibration.bath import (
     CLICK_BACK,
     CLICK_CHOOSE_REPAIR,
     CLICK_CLOSE_OVERLAY,
@@ -56,6 +55,9 @@ if TYPE_CHECKING:
 
 
 _log = get_logger('ui')
+
+# Workflow timeout: this is policy, not screen calibration.
+BATH_FULL_TIMEOUT = 3.0
 
 _MAX_VISIBLE_CARDS = 5
 """选择修理 overlay 单屏最多完整可见的舰船卡片数 (约 5~6 张, 视分辨率而定)。

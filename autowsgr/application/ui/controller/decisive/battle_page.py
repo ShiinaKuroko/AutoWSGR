@@ -18,19 +18,24 @@ import re
 import time
 from typing import TYPE_CHECKING
 
+from autowsgr.common.calibration.decisive import (
+    CHAPTER_NUM_AREA,
+    CLICK_BACK,
+    CLICK_BUY_CONFIRM,
+    CLICK_BUY_RESOURCE,
+    CLICK_BUY_TICKET_OPEN,
+    CLICK_ENTER_MAP,
+    CLICK_NEXT_CHAPTER,
+    CLICK_PREV_CHAPTER,
+    CLICK_RESET_CHAPTER,
+    STAGE_CHECK_COLOR as _STAGE_CHECK_COLOR,
+    STAGE_CHECK_POINTS as _STAGE_CHECK_POINTS,
+    STAGE_CHECK_TOLERANCE as _STAGE_CHECK_TOLERANCE,
+)
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.types import DecisiveEntryStatus, PageName
 from autowsgr.common.ui.interaction import click_and_wait_for_page, confirm_operation
-from autowsgr.common.vision import (
-    Color,
-    ImageChecker,
-    MatchStrategy,
-    OCREngine,
-    PageMatch,
-    PixelChecker,
-    PixelRule,
-    PixelSignature,
-)
+from autowsgr.common.vision import ImageChecker, OCREngine, PageMatch, PixelChecker
 from autowsgr.common.vision.resources import Templates
 
 
@@ -46,59 +51,22 @@ _log = get_logger('ui.decisive')
 # 页面识别签名
 # ═══════════════════════════════════════════════════════════════════════════════
 
-PAGE_SIGNATURE = PixelSignature(
-    name=PageName.DECISIVE_BATTLE,
-    strategy=MatchStrategy.ALL,
-    rules=[
-        PixelRule.of(0.8016, 0.8458, (20, 44, 78), tolerance=30.0),
-        PixelRule.of(0.9695, 0.8500, (15, 31, 56), tolerance=30.0),
-        PixelRule.of(0.7641, 0.8611, (22, 46, 84), tolerance=30.0),
-        PixelRule.of(0.0453, 0.0667, (38, 39, 43), tolerance=30.0),
-    ],
-)
-"""决战页面像素签名。"""
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # 坐标常量 (相对坐标 0.0-1.0, 参考分辨率 960x540)
 # ═══════════════════════════════════════════════════════════════════════════════
 
-CLICK_BACK: tuple[float, float] = (0.022, 0.058)
-"""左上角回退按钮 ◁ — 直接返回主页面。"""
 
-CLICK_PREV_CHAPTER: tuple[float, float] = (788 / 960, 507 / 540)
-"""向前一章 ◁ (如 Ex-6 → Ex-5)。"""
 
-CLICK_NEXT_CHAPTER: tuple[float, float] = (900 / 960, 507 / 540)
-"""向后一章 ▷ (如 Ex-5 → Ex-6)。"""
 
-CLICK_ENTER_MAP: tuple[float, float] = (500 / 960, 500 / 540)
-"""点击页面中央进入当前章节地图。
 
-旧代码: ``timer.click(500, 500)``。
-"""
 
-CLICK_RESET_CHAPTER: tuple[float, float] = (0.5, 0.925)
-"""点击"重置关卡"按钮（总览页底部）。"""
-
-CHAPTER_NUM_AREA: tuple[float, float, float, float] = (0.818, 0.810, 0.875, 0.867)
-"""章节编号 OCR 裁切区域 (x1, y1, x2, y2)。"""
 
 # ── 磁盘购买 ──
 
-CLICK_BUY_TICKET_OPEN: tuple[float, float] = (458 * 0.75 / 960, 665 * 0.75 / 540)
-"""打开磁盘购买面板 (⊕ 按钮)。"""
 
-CLICK_BUY_RESOURCE: dict[str, tuple[float, float]] = {
-    'oil': (638 / 960, 184 / 540),
-    'ammo': (638 / 960, 235 / 540),
-    'steel': (638 / 960, 279 / 540),
-    'aluminum': (638 / 960, 321 / 540),
-}
-"""磁盘购买面板中各资源类型的点击位置。"""
 
-CLICK_BUY_CONFIRM: tuple[float, float] = (488 / 960, 405 / 540)
-"""磁盘购买确认按钮。"""
 
 # ── 其他常量 ──
 
@@ -113,24 +81,8 @@ MIN_CHAPTER: int = 1
 
 # ── recognize_stage 检测点 ──
 
-_STAGE_CHECK_POINTS: dict[int, list[tuple[float, float]]] = {
-    1: [(0.4115, 0.4019), (0.6604, 0.4630), (0.8396, 0.7093)],
-    2: [(0.4354, 0.3852), (0.5792, 0.6648), (0.8187, 0.5889)],
-    3: [(0.4219, 0.6648), (0.6531, 0.3944), (0.8042, 0.7444)],
-    4: [(0.381, 0.436), (0.596, 0.636), (0.778, 0.521)],
-    5: [(0.418, 0.378), (0.760, 0.477), (0.550, 0.750)],
-    6: [(0.606, 0.375), (0.532, 0.703), (0.862, 0.644)],
-}
-"""每章 3 个小关的像素检测点 (相对坐标)。
 
-若检测点颜色接近白色 (250, 244, 253) 表示该小关已通过。
-"""
 
-_STAGE_CHECK_COLOR: Color = Color.of(250, 244, 253)
-"""小关已通过标记颜色 (近白色)。"""
-
-_STAGE_CHECK_TOLERANCE: float = 30.0
-"""颜色匹配容差。"""
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

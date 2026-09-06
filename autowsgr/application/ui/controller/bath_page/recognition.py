@@ -19,6 +19,21 @@ from typing import TYPE_CHECKING
 import cv2
 
 from autowsgr.application.ui.controller.bath_page.page import RepairShipInfo
+from autowsgr.common.calibration.bath import (
+    BORDER_THRESHOLD as _BORDER_THRESHOLD,
+    CARD_MAX_HEIGHT as _CARD_MAX_H,
+    CARD_MAX_WIDTH as _CARD_MAX_W,
+    CARD_MIN_HEIGHT as _CARD_MIN_H,
+    CARD_MIN_WIDTH as _CARD_MIN_W,
+    EDGE_MARGIN as _EDGE_MARGIN,
+    FULL_CARD_WIDTH as _FULL_CARD_WIDTH,
+    FULL_CARD_WIDTH_RATIO as _FULL_CARD_WIDTH_RATIO,
+    NAME_CONFIDENCE_MIN as _NAME_CONF_MIN,
+    NAME_Y_MAX as _NAME_Y_MAX,
+    NAME_Y_MIN as _NAME_Y_MIN,
+    TIME_CROP_Y as _TIME_CROP_Y,
+    TIME_SCALE as _TIME_SCALE,
+)
 from autowsgr.common.constants import SHIPNAMES
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.vision.ocr import _fuzzy_match
@@ -33,52 +48,20 @@ _log = get_logger('ui.bath_page.recognition')
 
 # ── 卡片检测参数 ──────────────────────────────────────────────────────
 
-_CARD_MIN_W = 150
-"""卡片最小宽度 (像素)。"""
 
-_CARD_MAX_W = 250
-"""卡片最大宽度 (像素)。"""
 
-_CARD_MIN_H = 400
-"""卡片最小高度 (像素)。"""
 
-_CARD_MAX_H = 600
-"""卡片最大高度 (像素)。"""
 
-_FULL_CARD_WIDTH = 174
-"""标准完整卡片宽度 (像素, 1280x720 分辨率下)。"""
 
-_FULL_CARD_WIDTH_RATIO = 0.9
-"""卡片宽度低于标准宽度的此比例时视为截断。"""
 
-_BORDER_THRESHOLD = 220
-"""灰度二值化阈值，用于提取明亮卡片边框。"""
 
-_EDGE_MARGIN = 5
-"""卡片左/右边缘距图片边界的最小像素距离。"""
 
 # ── OCR 位置参数 (相对于卡片下半部分的 y 坐标) ────────────────────────
 
-_NAME_Y_MIN = 118
-"""名称文本 y 坐标下限 (相对于卡片下半部分)。
 
-实测名称 mid_y 约 134, 属性数值 mid_y 约 110, 此下限排除属性数值行。
-"""
 
-_NAME_Y_MAX = 150
-"""名称文本 y 坐标上限 (相对于卡片下半部分)。
 
-名称 mid_y 约 134，级别描述 mid_y 约 155，此上限排除级别描述。
-"""
 
-_NAME_CONF_MIN = 0.1
-"""名称 OCR 置信度下限。低于此值的识别结果不可信。"""
-
-_TIME_CROP_Y = 195
-"""时间区域裁剪起始 y 坐标 (相对于卡片下半部分)。"""
-
-_TIME_SCALE = 2
-"""时间区域 OCR 前的放大倍数，提升数字识别精度。"""
 
 _TIME_PATTERN = re.compile(r'\d{2}:\d{2}:\d{2}')
 """修理时间格式: HH:MM:SS。"""

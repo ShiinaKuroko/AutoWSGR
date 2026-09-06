@@ -10,15 +10,9 @@ from .page import (
     RepairShipInfo,
 )
 from .recognition import recognize_repair_cards
-from .signatures import (
-    CHOOSE_REPAIR_OVERLAY_SIGNATURE,
-    PAGE_SIGNATURE,
-)
 
 
 __all__ = [
-    'CHOOSE_REPAIR_OVERLAY_SIGNATURE',
-    'PAGE_SIGNATURE',
     'BathPage',
     'RepairShipInfo',
     'recognize_repair_cards',

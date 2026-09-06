@@ -1,0 +1,22 @@
+# Event map coordinates, collected at the 1280x720 reference size.
+nodes:
+  '1': [229, 143]
+  '2': [501, 182]
+  '3': [1163, 207]
+  '4': [370, 453]
+  '5': [687, 290]
+  '6': [813, 479]
+nodes_by_event:
+  '20260730':
+    '1': [227, 227]
+    '2': [223, 523]
+    '3': [641, 215]
+    '4': [628, 537]
+    '5': [1041, 212]
+    '6': [1040, 537]
+back: [35, 40]
+fight_button: [1059, 607]
+close_node_overlay: [1216, 101]
+difficulty: [154, 648]
+entrance_alpha: [1063, 492]
+entrance_beta: [1060, 423]

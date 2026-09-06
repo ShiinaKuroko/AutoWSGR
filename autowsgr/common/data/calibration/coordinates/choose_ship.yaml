@@ -1,0 +1,7 @@
+# Choose-ship coordinates, collected at the 1280x720 reference size.
+search_box: [933.333, 40]
+dismiss_keyboard: [666.667, 66.667]
+remove_ship: [110.667, 222.667]
+scroll:
+  start: [512, 396]
+  end: [512, 216]

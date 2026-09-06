@@ -65,14 +65,26 @@ from __future__ import annotations
 
 import enum
 from functools import lru_cache
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 import cv2
 import numpy as np
 
+from autowsgr.common.calibration.tabbed import (
+    ADAPTIVE_BLOCK as _ADAPTIVE_BLOCK,
+    ADAPTIVE_C as _ADAPTIVE_C,
+    CROP_X as _CROP_X,
+    CROP_Y as _CROP_Y,
+    REFERENCE_HEIGHT as _REF_H,
+    REFERENCE_WIDTH as _REF_W,
+    TAB_BLUE,
+    TAB_BLUE_TOLERANCE,
+    TAB_DARK_MAX,
+    TAB_PROBES,
+    TEMPLATE_DIR as _TEMPLATE_DIR,
+)
 from autowsgr.common.types import PageName
-from autowsgr.common.vision import Color, PageMatch, PixelChecker
+from autowsgr.common.vision import PageMatch, PixelChecker
 
 
 # from autowsgr.common.system.logger import get_logger
@@ -103,58 +115,25 @@ class TabbedPageType(enum.Enum):
 # 标签栏探测常量
 # ═══════════════════════════════════════════════════════════════════════════════
 
-TAB_PROBES: list[tuple[float, float]] = [
-    (0.1539, 0.0472),
-    (0.2719, 0.0625),
-    (0.4039, 0.0528),
-    (0.5359, 0.0500),
-    (0.6641, 0.0500),
-]
-"""5 个固定标签栏探测点 (相对坐标)。
 
-激活标签处显示蓝色 ≈ (15, 132, 228)，其余为深色 (max < 80)。
-"""
 
-TAB_BLUE = Color.of(15, 132, 228)
-"""激活标签参考颜色 (RGB)。"""
 
-TAB_BLUE_TOLERANCE: float = 35.0
-"""蓝色探测容差 (欧几里得距离)。"""
-
-TAB_DARK_MAX: int = 80
-"""非激活探测点最大通道阈值 — 超过此值不算 "暗色"。"""
 
 
 # ── 非激活标签参考暗色 ──
 
-TAB_DARK = (22, 37, 62)
-"""非激活标签探测点的参考暗色 (RGB)，用于测试截图构造。"""
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # 模板匹配常量与加载
 # ═══════════════════════════════════════════════════════════════════════════════
 
-_TEMPLATE_DIR = Path(__file__).resolve().parents[4] / 'common' / 'data' / 'images' / 'ui'
-"""参考模板目录 (autowsgr/common/data/images/ui/, 随仓库布局)。"""
 
-_CROP_Y: float = 0.075
-"""标签栏裁剪高度比例 (顶部 7.5%)。"""
 
-_CROP_X: float = 0.63
-"""标签栏裁剪宽度比例 (左侧 63%)。"""
 
-_REF_W: int = 600
-"""模板标准宽度 (像素)。"""
 
-_REF_H: int = 40
-"""模板标准高度 (像素)。"""
 
-_ADAPTIVE_BLOCK: int = 21
-"""自适应二值化块大小。"""
 
-_ADAPTIVE_C: int = -5
-"""自适应二值化常数 C (负值使更多像素变白)。"""
 
 
 def _load_templates() -> dict[TabbedPageType, np.ndarray]:

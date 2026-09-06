@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.vision import ImageChecker
 from autowsgr.common.vision.resources import Templates
+from autowsgr.common.vision.resources.pages.event import event_icon_templates
 
 from .constants import NavCoord, Target
 from .overlays import detect_overlay, dismiss_overlay
@@ -39,20 +40,7 @@ def _get_event_icon_templates() -> list[ImageTemplate]:
     故 540p/720p 采集的模板可共存。导航时 ``find_any`` 命中任一即视为
     检测到活动入口。
     """
-    from autowsgr.common.vision.resources._lazy import load_template
-
-    return [
-        load_template(
-            'event/event_icon_20260212_720p.png',
-            name='event_icon_20260212',
-            source_resolution=(1280, 720),
-        ),
-        load_template(
-            'event/event_icon_20260730_540p.png',
-            name='event_icon_20260730',
-            source_resolution=(960, 540),
-        ),
-    ]
+    return event_icon_templates()
 
 
 # ── 内部: 单次导航尝试 ──────────────────────────────────────────────────

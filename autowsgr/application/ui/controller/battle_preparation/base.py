@@ -20,10 +20,11 @@ from autowsgr.common.calibration.battle_preparation import (
     FLEET_ACTIVE,
     FLEET_PROBE,
     PANEL_ACTIVE,
+    PANEL_CLICKS,
+    PANEL_PROBES,
+    PAGE_SIGNATURE as BATTLE_PREP_PAGE_SIGNATURE,
     STATE_TOLERANCE,
 )
-from autowsgr.common.calibration.coordinates import point
-from autowsgr.common.calibration.signatures import signature
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.types import PageName
 from autowsgr.common.ui.interaction import click_and_wait_for_page, wait_leave_page
@@ -74,23 +75,25 @@ class Panel(enum.Enum):
     EQUIPMENT = '装备预览'
 
 
-PANEL_PROBE: dict[Panel, tuple[float, float]] = {
-    panel: point('battle_prep', f'panel_probe.{panel.name.lower()}') for panel in Panel
-}
 """面板标签探测点 — 数据源: coordinates/battle_prep.yaml。选中项探测颜色 ≈ (30, 139, 240)。"""
 
-CLICK_PANEL: dict[Panel, tuple[float, float]] = {
-    panel: point('battle_prep', f'click_panel.{panel.name.lower()}') for panel in Panel
-}
 """面板标签点击位置 — 数据源: coordinates/battle_prep.yaml。"""
 
-PAGE_SIGNATURE = signature('battle_prep', 'page')
 """出征准备页面像素签名 — 数据源: signatures/battle_prep.yaml。"""
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # 基类
 # ═══════════════════════════════════════════════════════════════════════════════
+
+
+PANEL_PROBE: dict[Panel, tuple[float, float]] = {
+    panel: PANEL_PROBES[panel.name.lower()] for panel in Panel
+}
+CLICK_PANEL: dict[Panel, tuple[float, float]] = {
+    panel: PANEL_CLICKS[panel.name.lower()] for panel in Panel
+}
+PAGE_SIGNATURE = BATTLE_PREP_PAGE_SIGNATURE
 
 
 class BaseBattlePreparation:

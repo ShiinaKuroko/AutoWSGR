@@ -1,0 +1,5 @@
+# Backyard navigation coordinates, collected at the 1280x720 reference size.
+back: [28, 42]
+nav:
+  bath: [400, 267]
+  canteen: [933, 533]

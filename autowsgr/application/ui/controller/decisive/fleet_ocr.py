@@ -16,13 +16,15 @@ from typing import TYPE_CHECKING
 
 import cv2
 
-from autowsgr.application.ui.controller.decisive.overlay import (
+from autowsgr.common.calibration.decisive import (
+    CLICK_SKILL as DECISIVE_SKILL_POSITION,
     COST_AREA,
     FLEET_CARD_CLICK_Y,
     FLEET_CARD_X_POSITIONS,
     RESOURCE_AREA,
     SHIP_NAME_X_RANGES,
     SHIP_NAME_Y_RANGE,
+    SKILL_SHIP_AREA as DECISIVE_SKILL_SHIP_AREA,
 )
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.types import FleetSelection
@@ -174,20 +176,17 @@ def use_skill(
     ocr: OCREngine,
 ) -> list[str]:
     """在地图页使用一次副官技能并返回识别到的舰船。"""
-    skill_pos = (0.2143, 0.894)
-    ship_area = ROI(x1=0.26, y1=0.685, x2=0.74, y2=0.715)
-
-    ctrl.click(*skill_pos)
+    ctrl.click(*DECISIVE_SKILL_POSITION)
     time.sleep(1.0)
 
     screen = ctrl.screenshot()
-    crop = ship_area.crop(screen)
+    crop = DECISIVE_SKILL_SHIP_AREA.crop(screen)
     result = ocr.recognize_ship_names(crop)
     acquired: list[str] = []
     if result is not None:
         acquired.extend(result)
 
-    ctrl.click(*skill_pos)  # 快进一下
+    ctrl.click(*DECISIVE_SKILL_POSITION)  # 快进一下
     return acquired
 
 

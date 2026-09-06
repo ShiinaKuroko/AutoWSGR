@@ -1,0 +1,16 @@
+page:
+  name: choose_ship_page
+  strategy: all
+  rules:
+    - {x: 0.8800, y: 0.2400, color: [0, 122, 238], tolerance: 30.0}
+    - {x: 0.8600, y: 0.4000, color: [58, 58, 58], tolerance: 30.0}
+    - {x: 0.8600, y: 0.5000, color: [59, 59, 59], tolerance: 30.0}
+    - {x: 0.8600, y: 0.7000, color: [53, 53, 53], tolerance: 30.0}
+    - {x: 0.9800, y: 0.9000, color: [24, 41, 58], tolerance: 30.0}
+input:
+  name: choose_ship_input
+  strategy: all
+  rules:
+    - {x: 0.3109, y: 0.9417, color: [253, 253, 253], tolerance: 30.0}
+    - {x: 0.4437, y: 0.9417, color: [253, 253, 253], tolerance: 30.0}
+    - {x: 0.5883, y: 0.9347, color: [253, 253, 253], tolerance: 30.0}

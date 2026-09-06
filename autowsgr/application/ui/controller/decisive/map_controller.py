@@ -20,6 +20,17 @@ import cv2
 import numpy as np
 
 import autowsgr.application.ui.controller.decisive.fleet_ocr as _fleet_ocr
+from autowsgr.common.calibration.decisive import (
+    CLICK_CHOOSE_SHIP_BACK as _CLICK_CHOOSE_SHIP_BACK,
+    CLICK_MAP_BACK as _CLICK_MAP_BACK,
+    CLICK_REWARD_ACK as _REWARD_ACK_POSITION,
+    CLICK_USE_LAST_FLEET_CONFIRM as _USE_LAST_FLEET_CONFIRM,
+    NODE_CROP_OFFSET as _NODE_CROP_OFFSET,
+    SHIP_HSV_HI as _SHIP_HSV_HI,
+    SHIP_HSV_LO as _SHIP_HSV_LO,
+    SHIP_MIN_AREA as _SHIP_MIN_AREA,
+    SKILL_USED,
+)
 from autowsgr.application.ui.controller.battle_preparation.preparation import (
     BattlePreparationPage,
     RepairStrategy,
@@ -45,10 +56,7 @@ from autowsgr.common.types import DecisivePhase, FleetSelection, ShipDamageState
 from autowsgr.common.ui.interaction import click_and_wait_for_page
 from autowsgr.common.vision import (
     ImageChecker,
-    MatchStrategy,
     PixelChecker,
-    PixelRule,
-    PixelSignature,
     get_api_dll,
 )
 from autowsgr.common.vision.ship_list import recognize_ships_in_list as _recognize_ships
@@ -63,13 +71,6 @@ if TYPE_CHECKING:
 _log = get_logger('ui.decisive')
 
 
-SKILL_USED = PixelSignature(
-    name='skill_used',
-    strategy=MatchStrategy.ALL,
-    rules=[
-        PixelRule.of(0.1977, 0.9361, (245, 245, 245), tolerance=30.0),
-    ],
-)
 
 
 class DecisiveMapController:
@@ -190,9 +191,6 @@ class DecisiveMapController:
 
     # ── 舰船图标颜色检测参数 (HSV, BGR 输入) ──────────────────────
     # 决战地图上的舰船指示器呈橙黄色高亮，是该色段面积最大的连通区域
-    _SHIP_HSV_LO = np.array([18, 100, 200], dtype=np.uint8)
-    _SHIP_HSV_HI = np.array([32, 180, 255], dtype=np.uint8)
-    _SHIP_MIN_AREA = 500  # 真实舰标面积远大于地图杂色 (通常 >2000)
 
     @staticmethod
     def _locate_ship_icon(bgr: np.ndarray) -> float | None:
@@ -208,7 +206,7 @@ class DecisiveMapController:
         """
         hsv = cv2.cvtColor(bgr, cv2.COLOR_BGR2HSV)
         mask = cv2.inRange(
-            hsv, DecisiveMapController._SHIP_HSV_LO, DecisiveMapController._SHIP_HSV_HI
+            hsv, _SHIP_HSV_LO, _SHIP_HSV_HI
         )
         # 闭运算连接临近像素
         kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (5, 3))
@@ -221,14 +219,14 @@ class DecisiveMapController:
         # 跳过背景 (label 0)，取面积最大的连通区域
         areas = stats[1:, cv2.CC_STAT_AREA]
         best = int(areas.argmax()) + 1
-        if stats[best, cv2.CC_STAT_AREA] < DecisiveMapController._SHIP_MIN_AREA:
+        if stats[best, cv2.CC_STAT_AREA] < _SHIP_MIN_AREA:
             return None
         return float(centroids[best][0]) / bgr.shape[1]
 
     def dll_recognize_map(self, dll: ApiDll, screen: np.ndarray, center: float) -> str:
         h, w = screen.shape[:2]
-        x1 = max(0, int((center - 0.03) * w))
-        x2 = min(w, int((center - 0.03 + 0.042) * w))
+        x1 = max(0, int((center + _NODE_CROP_OFFSET[0]) * w))
+        x2 = min(w, int((center + _NODE_CROP_OFFSET[1]) * w))
         col_crop = screen[0:h, x1:x2]
         result = dll.recognize_map(col_crop)
         # save_image(col_crop, result + '.png')
@@ -407,7 +405,6 @@ class DecisiveMapController:
         """
         from autowsgr.common.vision.resources import Templates
 
-        click_confirm_pos: tuple[float, float] = (873 / 960, 500 / 540)
 
         screen = self._ctrl.screenshot()
         match = ImageChecker.find_template(
@@ -419,7 +416,7 @@ class DecisiveMapController:
             self._ctrl.click(*match.center)
             time.sleep(0.5)
 
-        self._ctrl.click(*click_confirm_pos)
+        self._ctrl.click(*_USE_LAST_FLEET_CONFIRM)
         time.sleep(1.0)
 
     def use_skill(self) -> list[str]:
@@ -487,7 +484,7 @@ class DecisiveMapController:
                 all_ships.add(name)
 
         # 返回准备页
-        self._ctrl.click(0.05, 0.05)
+        self._ctrl.click(*_CLICK_CHOOSE_SHIP_BACK)
         time.sleep(1.0)
 
         # 返回地图页
@@ -558,7 +555,7 @@ class DecisiveMapController:
         screen = self._ctrl.screenshot()
         if is_decisive_map_page(screen):
             return
-        self._ctrl.click(0.03, 0.06)
+        self._ctrl.click(*_CLICK_MAP_BACK)
         time.sleep(1.0)
         if not is_decisive_map_page(self._ctrl.screenshot()):
             _log.warning('[地图控制器] 无法确认已回到地图页')
@@ -625,13 +622,12 @@ class DecisiveMapController:
             ship_drop = recognize_ship_drop(screen, ocr=self._ocr)
             _log.info(f'[地图控制器] 检测到掉落: {ship_drop.ship_name}({ship_drop.ship_type})')
             collected.append(ship_drop.ship_name)
-            self._ctrl.click(0.953, 0.954)
+            self._ctrl.click(*_REWARD_ACK_POSITION)
             time.sleep(0.5)
             confirm_operation(self._ctrl, timeout=1.0)
 
         # 掉落处理结束后，继续等待回到决战入口页，避免奖励弹窗残留导致后续状态识别超时
         settle_deadline = time.monotonic() + 12.0
-        reward_ack_pos = (0.953, 0.954)
         while time.monotonic() < settle_deadline:
             screen = self._ctrl.screenshot()
             if ImageChecker.find_any(screen, entry_templates, confidence=0.8) is not None:
@@ -641,7 +637,7 @@ class DecisiveMapController:
             reward_detail = ImageChecker.find_any(screen, ship_templates, confidence=0.8)
             if reward_detail is not None:
                 _log.info("[地图控制器] 结算阶段仍有奖励弹窗: '{}'", reward_detail.template_name)
-                self._ctrl.click(*reward_ack_pos)
+                self._ctrl.click(*_REWARD_ACK_POSITION)
                 time.sleep(0.35)
                 confirm_operation(self._ctrl, timeout=0.8)
                 confirm_operation(self._ctrl, timeout=0.8)
@@ -661,7 +657,7 @@ class DecisiveMapController:
                 _log.info('[地图控制器] 通过返回按钮回到决战入口页')
                 break
             _log.debug('[地图控制器] 尝试点击返回按钮回到决战入口页')
-            self._ctrl.click(0.03, 0.06)
+            self._ctrl.click(*_CLICK_MAP_BACK)
             time.sleep(1.0)
         else:
             _log.warning('[地图控制器] 多次尝试后仍未能回到决战入口页')

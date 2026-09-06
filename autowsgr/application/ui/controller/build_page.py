@@ -35,6 +35,21 @@ from autowsgr.application.ui.controller.shared.tabbed_page import (
     get_active_tab_index,
     make_tab_checker,
 )
+from autowsgr.common.calibration.build import (
+    CLICK_BACK,
+    CLICK_CONFIRM as CLICK_CONFIRM_BUILD,
+    CLICK_DESTROY_ADD,
+    CLICK_DESTROY_CONFIRM,
+    CLICK_DESTROY_CONFIRM_FILTER,
+    CLICK_DESTROY_CONFIRM_SELECT,
+    CLICK_DESTROY_FOUR_STAR_CONFIRM,
+    CLICK_DESTROY_QUICK_SELECT,
+    CLICK_DESTROY_REMOVE_EQUIP,
+    CLICK_DESTROY_TYPE_FILTER,
+    CLICK_DISMISS_ANIMATION,
+    SLOT_POSITIONS as BUILD_SLOT_POSITIONS,
+    TAB_POSITIONS as BUILD_TAB_POSITIONS,
+)
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.types import PageName, ShipType
 from autowsgr.common.ui.interaction import click_and_wait_for_page
@@ -79,69 +94,35 @@ _TAB_TO_INDEX: dict[BuildTab, int] = {tab: i for i, tab in enumerate(_TAB_LIST)}
 # 点击坐标
 # ═══════════════════════════════════════════════════════════════════════════════
 
-CLICK_BACK: tuple[float, float] = (0.022, 0.058)
-"""回退按钮 (◁)。"""
 
-CLICK_TAB: dict[BuildTab, tuple[float, float]] = {
-    BuildTab.BUILD: (0.1875, 0.0463),
-    BuildTab.DESTROY: (0.3125, 0.0463),
-    BuildTab.DEVELOP: (0.4375, 0.0463),
-    BuildTab.DISCARD: (0.5625, 0.0463),
-}
-"""标签切换点击坐标。
-
-.. note::
-    坐标为估计值 (TODO: 待实际截图确认)。
-"""
 
 # ── 建造槽位 ──
 
-BUILD_SLOT_POSITIONS: list[tuple[float, float]] = [
-    (0.823, 0.312),
-    (0.823, 0.508),
-    (0.823, 0.701),
-    (0.823, 0.898),
-]
-"""4 个建造槽位的中心点 (start/complete/fast 按钮位置)。"""
 
-CLICK_CONFIRM_BUILD: tuple[float, float] = (0.89, 0.89)
-"""确认建造按钮。"""
 
 # ── 解体标签操作 ──
 
-CLICK_DESTROY_ADD: tuple[float, float] = (0.0938, 0.3815)
-"""解体 — 点击「添加」按钮。旧代码: timer.click(90, 206)"""
 
-CLICK_DESTROY_QUICK_SELECT: tuple[float, float] = (0.91, 0.3)
-"""解体 — 快速选择按钮。"""
 
-CLICK_DESTROY_CONFIRM_SELECT: tuple[float, float] = (0.915, 0.906)
-"""解体 — 确认选择。"""
 
-CLICK_DESTROY_REMOVE_EQUIP: tuple[float, float] = (0.837, 0.646)
-"""解体 — 卸下装备复选框。"""
 
-CLICK_DESTROY_CONFIRM: tuple[float, float] = (0.9, 0.9)
-"""解体 — 解装确认按钮。"""
 
-CLICK_DESTROY_FOUR_STAR_CONFIRM: tuple[float, float] = (0.38, 0.567)
-"""解体 — 四星确认弹窗。"""
 
-CLICK_DESTROY_TYPE_FILTER: tuple[float, float] = (0.912, 0.681)
-"""解体 — 打开舰船类型过滤器。"""
 
-CLICK_DESTROY_CONFIRM_FILTER: tuple[float, float] = (0.9, 0.85)
-"""解体 — 确认舰船类型过滤。"""
 
 # ── 建造获取动画 ──
 
-CLICK_DISMISS_ANIMATION: tuple[float, float] = (0.9531, 0.9537)
-"""点击跳过建造获取动画。旧代码: timer.click(915, 515)"""
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # 页面控制器
 # ═══════════════════════════════════════════════════════════════════════════════
+
+
+CLICK_TAB: dict[BuildTab, tuple[float, float]] = {
+    tab: BUILD_TAB_POSITIONS[tab.name.lower()]
+    for tab in BuildTab
+}
 
 
 class BuildPage:

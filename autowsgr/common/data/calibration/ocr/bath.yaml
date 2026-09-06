@@ -1,0 +1,16 @@
+swipe_duration: 0.5
+swipe_delay: 1.0
+card_geometry:
+  min_width: 150
+  max_width: 250
+  min_height: 400
+  max_height: 600
+  full_width: 174
+  full_width_ratio: 0.9
+border_threshold: 220
+edge_margin: 5
+name_y_min: 118
+name_y_max: 150
+name_confidence_min: 0.1
+time_crop_y: 195
+time_scale: 2

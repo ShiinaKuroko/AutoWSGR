@@ -2,6 +2,9 @@
 
 # 按钮扫描区域 (右侧按钮列, ROI: x1,y1,x2,y2)
 button_scan_roi: [0.86, 0.17, 0.96, 0.85]
+scroll: [0.5, 0.7, 0.5, 0.45]
+scroll_duration: 0.75
+scroll_delay: 0.5
 
 # 扫描步长 (相对坐标)
 scan_x: 0.91         # 按钮中心 x

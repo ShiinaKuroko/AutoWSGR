@@ -1,0 +1,16 @@
+scroll_from_y: 0.55
+scroll_to_y: 0.30
+scroll_x: 0.4
+scroll_duration: 0.4
+card_reference_width: 1280
+card_reference_height: 720
+ship_type_crop_offsets: [-62, -59, -13, -34.5]
+ship_type_ocr_scales: [2, 3, 4]
+legacy_width: 1280
+legacy_height: 720
+legacy_list_width: 1048
+ship_level_crop_offsets: [-62, -38, -2, -20]
+ship_level_ocr_scales: [2, 3, 4]
+fleet_name_strip_y: [0.604167, 0.641667]
+fleet_slot_x_centers: [0.1146, 0.2292, 0.3438, 0.4583, 0.5729, 0.6875]
+ship_fuzzy_threshold: 2

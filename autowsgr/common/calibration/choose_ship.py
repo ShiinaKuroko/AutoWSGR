@@ -1,49 +1,35 @@
-"""选船页面的坐标、像素签名和 OCR 校准值。"""
+"""Choose-ship calibration shared by fleet preparation and ship-list OCR.
 
-from __future__ import annotations
+Coordinates, OCR geometry, and page signatures come from the common
+calibration resources. Selection policy stays with the Controller.
+"""
 
-from autowsgr.common.vision.pixel import MatchStrategy, PixelRule, PixelSignature
+from autowsgr.common.calibration.coordinates import point
+from autowsgr.common.calibration.ocr import param
+from autowsgr.common.calibration.signatures import signature
 
 
-CLICK_SEARCH_BOX = (700 / 960, 30 / 540)
-CLICK_DISMISS_KEYBOARD = (500 / 960, 50 / 540)
-CLICK_REMOVE_SHIP = (83 / 960, 167 / 540)
-SCROLL_FROM_Y = 0.55
-SCROLL_TO_Y = 0.30
-CARD_REFERENCE_WIDTH = 1280
-CARD_REFERENCE_HEIGHT = 720
-SHIP_TYPE_CROP_OFFSETS = (-62, -59, -13, -34.5)
-SHIP_TYPE_OCR_SCALES = (2, 3, 4)
-LEGACY_WIDTH = 1280
-LEGACY_HEIGHT = 720
-LEGACY_LIST_WIDTH = 1048
-SHIP_LEVEL_CROP_OFFSETS = (-62, -38, -2, -20)
-SHIP_LEVEL_OCR_SCALES = (2, 3, 4)
-FLEET_NAME_STRIP_Y = (435 / 720, 462 / 720)
-FLEET_SLOT_X_CENTERS = (0.1146, 0.2292, 0.3438, 0.4583, 0.5729, 0.6875)
-SHIP_FUZZY_THRESHOLD = 2
-
-PAGE_SIGNATURE = PixelSignature(
-    name='choose_ship_page',
-    strategy=MatchStrategy.ALL,
-    rules=[
-        PixelRule.of(0.8800, 0.2400, (0, 122, 238), tolerance=30.0),
-        PixelRule.of(0.8600, 0.4000, (58, 58, 58), tolerance=30.0),
-        PixelRule.of(0.8600, 0.5000, (59, 59, 59), tolerance=30.0),
-        PixelRule.of(0.8600, 0.7000, (53, 53, 53), tolerance=30.0),
-        PixelRule.of(0.9800, 0.9000, (24, 41, 58), tolerance=30.0),
-    ],
-)
-
-INPUT_SIGNATURE = PixelSignature(
-    name='choose_ship_input',
-    strategy=MatchStrategy.ALL,
-    rules=[
-        PixelRule.of(0.3109, 0.9417, (253, 253, 253), tolerance=30.0),
-        PixelRule.of(0.4437, 0.9417, (253, 253, 253), tolerance=30.0),
-        PixelRule.of(0.5883, 0.9347, (253, 253, 253), tolerance=30.0),
-    ],
-)
+CLICK_SEARCH_BOX = point('choose_ship', 'search_box')
+CLICK_DISMISS_KEYBOARD = point('choose_ship', 'dismiss_keyboard')
+CLICK_REMOVE_SHIP = point('choose_ship', 'remove_ship')
+SCROLL_FROM_Y = float(param('choose_ship', 'scroll_from_y'))
+SCROLL_TO_Y = float(param('choose_ship', 'scroll_to_y'))
+SCROLL_X = float(param('choose_ship', 'scroll_x'))
+SCROLL_DURATION = float(param('choose_ship', 'scroll_duration'))
+CARD_REFERENCE_WIDTH = int(param('choose_ship', 'card_reference_width'))
+CARD_REFERENCE_HEIGHT = int(param('choose_ship', 'card_reference_height'))
+SHIP_TYPE_CROP_OFFSETS = tuple(param('choose_ship', 'ship_type_crop_offsets'))
+SHIP_TYPE_OCR_SCALES = tuple(param('choose_ship', 'ship_type_ocr_scales'))
+LEGACY_WIDTH = int(param('choose_ship', 'legacy_width'))
+LEGACY_HEIGHT = int(param('choose_ship', 'legacy_height'))
+LEGACY_LIST_WIDTH = int(param('choose_ship', 'legacy_list_width'))
+SHIP_LEVEL_CROP_OFFSETS = tuple(param('choose_ship', 'ship_level_crop_offsets'))
+SHIP_LEVEL_OCR_SCALES = tuple(param('choose_ship', 'ship_level_ocr_scales'))
+FLEET_NAME_STRIP_Y = tuple(param('choose_ship', 'fleet_name_strip_y'))
+FLEET_SLOT_X_CENTERS = tuple(param('choose_ship', 'fleet_slot_x_centers'))
+SHIP_FUZZY_THRESHOLD = int(param('choose_ship', 'ship_fuzzy_threshold'))
+PAGE_SIGNATURE = signature('choose_ship', 'page')
+INPUT_SIGNATURE = signature('choose_ship', 'input')
 
 
 __all__ = [
@@ -59,8 +45,10 @@ __all__ = [
     'LEGACY_LIST_WIDTH',
     'LEGACY_WIDTH',
     'PAGE_SIGNATURE',
+    'SCROLL_DURATION',
     'SCROLL_FROM_Y',
     'SCROLL_TO_Y',
+    'SCROLL_X',
     'SHIP_FUZZY_THRESHOLD',
     'SHIP_LEVEL_CROP_OFFSETS',
     'SHIP_LEVEL_OCR_SCALES',

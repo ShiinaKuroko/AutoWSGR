@@ -56,10 +56,10 @@ def test_ui_pages_are_replaced_by_controller() -> None:
 
 def test_shared_tabbed_templates_resolve_from_controller_path() -> None:
     """迁移后的标签页识别仍然从 common 资源目录加载模板。"""
-    from autowsgr.application.ui.controller.shared.tabbed_page import _TEMPLATE_DIR
+    from autowsgr.common.calibration.tabbed import TEMPLATE_DIR
 
-    assert _TEMPLATE_DIR == _ROOT / 'common' / 'data' / 'images' / 'ui'
-    assert _TEMPLATE_DIR.is_dir()
+    assert TEMPLATE_DIR == _ROOT / 'common' / 'data' / 'images' / 'ui'
+    assert TEMPLATE_DIR.is_dir()
 
 
 def test_navigation_service_only_owns_navigation_flow() -> None:

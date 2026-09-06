@@ -25,6 +25,11 @@ import enum
 import time
 from typing import TYPE_CHECKING
 
+from autowsgr.common.calibration.sidebar import (
+    CLICK_CLOSE,
+    NAV_POSITIONS,
+    SUBMENU_POSITIONS,
+)
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.types import PageName
 from autowsgr.common.ui.interaction import click_and_wait_for_page, wait_for_page
@@ -67,28 +72,8 @@ class SidebarTarget(enum.Enum):
 # 导航按钮点击坐标
 # ═══════════════════════════════════════════════════════════════════════════════
 
-CLICK_NAV: dict[SidebarTarget, tuple[float, float]] = {
-    SidebarTarget.BUILD: (0.1563, 0.3704),
-    SidebarTarget.INTENSIFY: (0.1563, 0.5000),
-    SidebarTarget.FRIEND: (0.1563, 0.7593),
-}
-"""侧边栏菜单项点击坐标。
 
-坐标换算: 旧代码 (150, 200) / (150, 270) / (150, 410) ÷ (960, 540)。
-"""
 
-CLICK_CLOSE: tuple[float, float] = (0.0438, 0.8963)
-"""关闭侧边栏 (左下角 ≡ 同一切换按钮)。"""
-
-CLICK_SUBMENU: dict[SidebarTarget, tuple[float, float]] = {
-    SidebarTarget.BUILD: (0.375, 0.3704),
-    SidebarTarget.INTENSIFY: (0.375, 0.5000),
-}
-"""二级弹出菜单点击坐标。
-
-建造 和 强化 点击后会弹出子选项菜单 (如 建造/特别船坞)，
-需要二次点击选中第一个选项。坐标来自旧代码 (360, 200)/(360, 270) ÷ (960, 540)。
-"""
 
 _SUBMENU_TARGETS: frozenset[SidebarTarget] = frozenset(
     {
@@ -105,6 +90,16 @@ SUBMENU_DELAY: float = 1.25
 # ═══════════════════════════════════════════════════════════════════════════════
 # 页面控制器
 # ═══════════════════════════════════════════════════════════════════════════════
+
+
+CLICK_NAV: dict[SidebarTarget, tuple[float, float]] = {
+    target: NAV_POSITIONS[target.name.lower()]
+    for target in SidebarTarget
+}
+CLICK_SUBMENU: dict[SidebarTarget, tuple[float, float]] = {
+    target: SUBMENU_POSITIONS[target.name.lower()]
+    for target in (SidebarTarget.BUILD, SidebarTarget.INTENSIFY)
+}
 
 
 class SidebarPage:
