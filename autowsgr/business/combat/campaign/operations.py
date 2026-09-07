@@ -9,7 +9,9 @@ from autowsgr.application.ui.controller.battle_preparation import (
     RepairStrategy,
 )
 from autowsgr.application.ui.controller.map import MapPage, MapPanel
+from autowsgr.application.ui.navigation import goto_bath_from_campaign_sortie
 from autowsgr.business.combat.fleet import exact_fleet_rules
+from autowsgr.business.logistics.repair.bath_repair import repair_manual_targets_in_bath
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.types import RepairMode, ShipDamageState
 from autowsgr.common.ui.interaction import NavigationError
@@ -96,7 +98,24 @@ class CampaignOperations:
 
         strategy = _repair_strategy(spec.plan.repair_mode)
         if strategy is not None:
-            page.apply_repair(strategy)
+            if getattr(self.ctx.config, 'repair_manually', False):
+                fleet_names = page.last_changed_fleet or selection.primary_names
+
+                def manual_repair_action(positions: list[int]) -> None:
+                    targets = [
+                        fleet_names[position]
+                        for position in positions
+                        if 0 <= position < len(fleet_names) and fleet_names[position]
+                    ]
+                    goto_bath_from_campaign_sortie(self.ctx)
+                    repair_manual_targets_in_bath(self.ctx, targets)
+
+                page.apply_repair(
+                    strategy,
+                    manual_repair_action=manual_repair_action,
+                )
+            else:
+                page.apply_repair(strategy)
 
         info = page.detect_fleet_info()
         ship_stats = [info.ship_damage.get(index, ShipDamageState.NORMAL) for index in range(6)]

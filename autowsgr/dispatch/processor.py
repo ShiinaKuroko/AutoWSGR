@@ -27,6 +27,7 @@ from typing import TYPE_CHECKING, Any
 import yaml
 
 from autowsgr.common.contracts.task import TaskPaused, TaskStopped
+from autowsgr.common.system import ManualRepairRequiredError
 from autowsgr.common.system.file_utils import load_yaml
 from autowsgr.common.system.logger import get_logger
 from autowsgr.dispatch.registry import build_executor
@@ -490,6 +491,9 @@ class Processor:
                         request.priority,
                     )
                     result = executor.run()
+            except ManualRepairRequiredError as exc:
+                _log.error('[Processor] {} 需要手动维修，任务终止: {}', request.task_type, exc)
+                return 'failed', str(exc)
             except TaskPaused:
                 _log.info('[Processor] 任务被打断, 保留进度: {}', request.progress)
                 self._pause.clear()

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from autowsgr.application.ui.controller.battle_preparation.base import (
     BaseBattlePreparation,
     RepairStrategy,
@@ -11,6 +13,10 @@ from autowsgr.application.ui.controller.battle_preparation.repair_action import 
     check_repair,
     repair_slots,
 )
+
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 
 class RepairMixin(BaseBattlePreparation):
@@ -29,6 +35,7 @@ class RepairMixin(BaseBattlePreparation):
         strategy: RepairStrategy | None = None,
         *,
         repair_manually: bool = False,
+        manual_repair_action: Callable[[list[int]], None] | None = None,
         retry_count: int = 3,
     ) -> list[int]:
         """根据策略执行快速修理。"""
@@ -36,5 +43,6 @@ class RepairMixin(BaseBattlePreparation):
             self,
             strategy,
             repair_manually=repair_manually,
+            manual_repair_action=manual_repair_action,
             retry_count=retry_count,
         )

@@ -14,7 +14,12 @@ from autowsgr.application.ui.navigation.registry import (
     register_default_pages,
     register_page,
 )
-from autowsgr.application.ui.navigation.service import goto_page
+from autowsgr.application.ui.navigation.service import (
+    goto_bath_from_campaign_sortie,
+    goto_bath_from_decisive_sortie,
+    goto_bath_from_normal_sortie,
+    goto_page,
+)
 from autowsgr.application.ui.navigation.stack import UIStack
 
 
@@ -29,6 +34,9 @@ __all__ = [
     # ── pytest 入口 ─────────────────────────────────────────────────
     'get_registered_pages',
     # ── 业务入口 ─────────────────────────────────────────────────
+    'goto_bath_from_campaign_sortie',
+    'goto_bath_from_decisive_sortie',
+    'goto_bath_from_normal_sortie',
     'goto_page',
     # ── 工具入口 ─────────────────────────────────────────────────
     'identify_current_page',

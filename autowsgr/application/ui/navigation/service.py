@@ -20,6 +20,7 @@ from autowsgr.application.ui.navigation.recognition import (
     identify_current_page,
 )
 from autowsgr.common.system.logger import get_logger
+from autowsgr.common.types import PageName
 from autowsgr.common.ui.interaction import NavigationError
 
 
@@ -46,6 +47,67 @@ def goto_page(ctx: GameContext, target: str) -> None:
 
         _log.info('[Navigate] 当前页面: {}, 执行一次重试', current_page)
         _goto_page(ctx, target)
+
+
+def goto_bath_from_normal_sortie(ctx: GameContext) -> None:
+    """从普通出征准备页返回普通地图后进入澡堂。
+
+    Args:
+        ctx: 当前游戏上下文。
+    """
+    from autowsgr.application.ui.controller.battle_preparation import BattlePreparationPage
+
+    BattlePreparationPage(ctx).go_back()
+    goto_page(ctx, PageName.BATH)
+
+
+def goto_bath_from_campaign_sortie(ctx: GameContext) -> None:
+    """从战役编队页经战役选择和主页进入澡堂。
+
+    战役选择与普通地图共用 ``MapPage``，但这里显式执行两次回退，
+    保留战役编队页 → 战役选择 → 主页 → 后院 → 澡堂的业务路径。
+
+    Args:
+        ctx: 当前游戏上下文。
+    """
+    from autowsgr.application.ui.controller.battle_preparation import (
+        BattlePreparationPage,
+    )
+    from autowsgr.application.ui.controller.map import MapPage
+
+    BattlePreparationPage(ctx).go_back()
+    MapPage(ctx).go_back()
+    goto_page(ctx, PageName.BATH)
+
+
+def goto_bath_from_decisive_sortie(ctx: GameContext) -> None:
+    """从决战出征准备页暂离保存后进入澡堂。
+
+    决战地图不是普通页面注册项，必须先通过决战控制器返回决战地图，
+    使用“暂离”保存进度，再确认回到决战总览页后继续既有澡堂路线。
+
+    Args:
+        ctx: 当前游戏上下文。
+    """
+    from autowsgr.application.ui.controller.decisive import (
+        DecisiveBattlePage,
+        DecisiveMapController,
+    )
+    from autowsgr.common.system import DecisiveConfig
+    from autowsgr.common.ui.interaction import wait_for_page
+
+    config = getattr(ctx.config, 'decisive_battle', None) or DecisiveConfig()
+    map_controller = DecisiveMapController(ctx, config)
+    map_controller.go_to_map_page()
+    map_controller.open_retreat_dialog()
+    map_controller.confirm_leave()
+    wait_for_page(
+        ctx.ctrl,
+        DecisiveBattlePage.is_current_page,
+        source='决战暂离',
+        target=PageName.DECISIVE_BATTLE,
+    )
+    goto_page(ctx, PageName.BATH)
 
 
 # ── 导航实现 ─────────────────────────────────────────────────

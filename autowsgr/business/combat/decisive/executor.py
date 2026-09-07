@@ -29,7 +29,7 @@ from typing import Any
 from autowsgr.application.runtime.executor import BaseExecutor
 from autowsgr.business.combat.decisive.chapter import DecisiveChapterOps
 from autowsgr.business.combat.decisive.handlers import DecisivePhaseHandlers
-from autowsgr.common.system import DecisiveConfig
+from autowsgr.common.system import DecisiveConfig, ManualRepairRequiredError
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.types import DecisivePhase
 
@@ -86,6 +86,9 @@ class DecisiveController(DecisivePhaseHandlers, DecisiveChapterOps):
         self._state.phase = DecisivePhase.ENTER_MAP
         try:
             return self._main_loop()
+        except ManualRepairRequiredError:
+            self._state.phase = DecisivePhase.FINISHED
+            raise
         except Exception:
             _log.exception('[决战] 执行异常')
             self._state.phase = DecisivePhase.FINISHED

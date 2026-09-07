@@ -115,6 +115,10 @@ class ActionFailedError(UIError):
 # ── 游戏逻辑异常 ──
 
 
+class ManualRepairRequiredError(ActionFailedError):
+    """Manual repair was dispatched and the active task must terminate."""
+
+
 class GameError(AutoWSGRError):
     """游戏逻辑错误。"""
 

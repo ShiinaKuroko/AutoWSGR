@@ -12,7 +12,10 @@ import autowsgr.application.runtime.executor as base_module
 import autowsgr.application.runtime.initialize.initialize as initialize_module
 import autowsgr.business.combat.campaign.executor as executor_module
 import autowsgr.business.combat.campaign.operations as operations_module
-from autowsgr.application.ui.controller.battle_preparation import BattlePreparationPage
+from autowsgr.application.ui.controller.battle_preparation import (
+    BattlePreparationPage,
+    RepairStrategy,
+)
 from autowsgr.application.ui.controller.battle_preparation.fleet_change._detect import FleetSnapshot
 from autowsgr.business.combat import CombatResult
 from autowsgr.business.combat.campaign.spec import (
@@ -344,6 +347,49 @@ def test_campaign_operations_keeps_current_fleet_and_actual_members(
     assert call.kwargs['recognize_ship_types'] is True
     page.select_fleet.assert_not_called()
     info.to_ships.assert_called_once_with(page.last_changed_fleet)
+
+
+def test_campaign_manual_repair_triggers_campaign_bath_route(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    page = MagicMock()
+    page.change_fleet.return_value = True
+    page.last_changed_fleet = ['target-ship', None, None, None, None, None]
+    info = MagicMock()
+    info.ship_damage = {}
+    page.detect_fleet_info.return_value = info
+    route = MagicMock()
+    repair_targets = MagicMock()
+
+    def apply_repair(_strategy: RepairStrategy, *, manual_repair_action) -> None:
+        manual_repair_action([0])
+
+    page.apply_repair.side_effect = apply_repair
+    monkeypatch.setattr(operations_module, 'BattlePreparationPage', lambda _ctx: page)
+    monkeypatch.setattr(operations_module, 'goto_bath_from_campaign_sortie', route)
+    monkeypatch.setattr(operations_module, 'repair_manual_targets_in_bath', repair_targets)
+
+    ctx = _ctx()
+    ctx.config.repair_manually = True
+    spec = CampaignSpec.from_params(
+        {
+            'campaign_name': '\u7b80\u5355\u9a71\u9010',
+            'fleet': ['target-ship'],
+            'repair_mode': 1,
+        },
+    )
+    operations = operations_module.CampaignOperations(
+        ctx,
+        wait=lambda _seconds: None,
+        report=lambda *_args, **_kwargs: None,
+    )
+
+    operations.prepare_battle(spec)
+
+    page.apply_repair.assert_called_once()
+    assert page.apply_repair.call_args.args == (RepairStrategy.MODERATE,)
+    route.assert_called_once_with(ctx)
+    repair_targets.assert_called_once_with(ctx, ['target-ship'])
 
 
 def test_destroyer_campaign_disables_ship_type_ocr(

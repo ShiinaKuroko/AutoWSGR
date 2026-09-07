@@ -18,6 +18,7 @@
 from __future__ import annotations
 
 import time
+from typing import TYPE_CHECKING
 
 from autowsgr.application.ui.controller.battle_preparation.base import (
     BaseBattlePreparation,
@@ -25,9 +26,13 @@ from autowsgr.application.ui.controller.battle_preparation.base import (
     RepairStrategy,
 )
 from autowsgr.common.calibration.battle_preparation import BLOOD_BAR_PROBE
-from autowsgr.common.system import ActionFailedError
+from autowsgr.common.system import ActionFailedError, ManualRepairRequiredError
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.types import ShipDamageState
+
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 
 _log = get_logger('business.logistics.repair')
@@ -92,6 +97,7 @@ def apply_quick_repair(
     strategy: RepairStrategy | None = None,
     *,
     repair_manually: bool = False,
+    manual_repair_action: Callable[[list[int]], None] | None = None,
     retry_count: int = 3,
 ) -> list[int]:
     """根据策略执行快速修理 (检查 → 修理 → 复查 → 有限重试)。
@@ -104,6 +110,9 @@ def apply_quick_repair(
         修理策略, 默认 ``RepairStrategy.SEVERE``。
     repair_manually:
         调用方要求手动修理 (如决战关闭快修时), 与全局配置取或。
+    manual_repair_action:
+        Callback receives the detected repair slot indexes.
+        手动修理触发前执行的导航动作。
     retry_count:
         修理失败复查的最大重试次数。
 
@@ -131,7 +140,14 @@ def apply_quick_repair(
             return []
         # 需要手动修理，退出程序
         if page._ctx.config.repair_manually or repair_manually:
-            raise ActionFailedError('需要进行手动修理')
+            if manual_repair_action is not None:
+                try:
+                    manual_repair_action(positions)
+                except ManualRepairRequiredError:
+                    raise
+                except Exception as exc:
+                    raise ManualRepairRequiredError('手动维修处理失败') from exc
+            raise ManualRepairRequiredError('需要进行手动修理')
         repair_slots(page, positions)
         repair_pos.extend(positions)
         # 修理完成再检查一遍

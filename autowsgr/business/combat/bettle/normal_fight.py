@@ -16,7 +16,7 @@ from autowsgr.application.ui.controller.battle_preparation import (
 )
 from autowsgr.application.ui.controller.event import BaseEventPage
 from autowsgr.application.ui.controller.map import MapPage, MapPanel
-from autowsgr.application.ui.navigation import goto_page
+from autowsgr.application.ui.navigation import goto_bath_from_normal_sortie, goto_page
 from autowsgr.business.combat import CombatMode, CombatPlan, CombatResult, run_combat
 from autowsgr.business.combat.fleet import (
     FleetSlotRule,
@@ -25,6 +25,7 @@ from autowsgr.business.combat.fleet import (
     resolve_fleet_selection,
     validate_fleet_selection_arguments,
 )
+from autowsgr.business.logistics.repair.bath_repair import repair_manual_targets_in_bath
 from autowsgr.common.system import ActionFailedError
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.types import ConditionFlag, PageName, RepairMode, ShipDamageState
@@ -351,7 +352,7 @@ class NormalFightRunner:
             _log.error('[Bettle] 地图章节导航失败: {}', e)
             _log.warning('[Bettle] 已放弃本轮出击，尝试返回主页面以继续后续队列')
             try:
-                goto_page(self._ctx, PageName.MAIN)
+                goto_page(self._ctx, PageName.HOME)
             except NavigationError as back_err:
                 _log.error('[Bettle] 返回主页面失败: {}', back_err)
             raise ActionFailedError('地图章节识别/导航失败，已跳过本轮并返回主页面') from e
@@ -415,9 +416,34 @@ class NormalFightRunner:
             min_mode = repair_modes.value
 
         if min_mode <= RepairMode.moderate_damage.value:
-            page.apply_repair(RepairStrategy.MODERATE)
+            repair_strategy = RepairStrategy.MODERATE
         elif min_mode <= RepairMode.severe_damage.value:
-            page.apply_repair(RepairStrategy.SEVERE)
+            repair_strategy = RepairStrategy.SEVERE
+        else:
+            repair_strategy = None
+
+        if repair_strategy is not None:
+            if (
+                not self._is_event
+                and getattr(self._ctx.config, 'repair_manually', False)
+            ):
+                fleet_names = resolved_ship_names or self._fleet_selection.primary_names
+
+                def manual_repair_action(positions: list[int]) -> None:
+                    targets = [
+                        fleet_names[position]
+                        for position in positions
+                        if 0 <= position < len(fleet_names) and fleet_names[position]
+                    ]
+                    goto_bath_from_normal_sortie(self._ctx)
+                    repair_manual_targets_in_bath(self._ctx, targets)
+
+                page.apply_repair(
+                    repair_strategy,
+                    manual_repair_action=manual_repair_action,
+                )
+            else:
+                page.apply_repair(repair_strategy)
 
         # 检测战前舰队信息 (血量 + 等级)
         fleet_info = page.detect_fleet_info()
@@ -482,7 +508,7 @@ class NormalFightRunner:
             except NavigationError as e:
                 _log.error('[Bettle] 弹窗直达解装失败: {}, 回退主页面', e)
                 try:
-                    goto_page(self._ctx, PageName.MAIN)
+                    goto_page(self._ctx, PageName.HOME)
                 except NavigationError as back_err:
                     _log.error('[Bettle] 返回主页面失败: {}', back_err)
                 return  # 解装未执行, 保持 DOCK_FULL 且未置 destroyed, 由上层停止

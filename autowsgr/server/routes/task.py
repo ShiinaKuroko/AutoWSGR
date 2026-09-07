@@ -7,6 +7,7 @@ from typing import Annotated, Any
 from fastapi import APIRouter, HTTPException
 from pydantic import Discriminator
 
+from autowsgr.common.system import ManualRepairRequiredError
 from autowsgr.common.system.logger import get_logger
 from autowsgr.dispatch.processor import Processor, Request
 from autowsgr.server.device_lease import DeviceOperationBusyError
@@ -327,6 +328,10 @@ async def _start_normal_fight(ctx: Any, request: NormalFightRequest) -> ApiRespo
                 )[0]
                 results.append(convert_combat_result(result, i + 1))
                 task_manager.add_result(results[-1])
+            except ManualRepairRequiredError as error:
+                _log.error('[Task] 第 {} 轮需要手动维修，任务终止: {}', i + 1, error)
+                results.append({'round': i + 1, 'success': False, 'error': str(error)})
+                break
             except Exception as e:
                 _log.error('[Task] 第 {} 轮失败: {}', i + 1, e)
                 results.append({'round': i + 1, 'success': False, 'error': str(e)})

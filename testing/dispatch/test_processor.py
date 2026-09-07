@@ -10,6 +10,7 @@ from unittest.mock import MagicMock
 import pytest
 
 import autowsgr.dispatch.processor as processor_module
+from autowsgr.common.system import ManualRepairRequiredError
 from autowsgr.dispatch import (
     MAX_PRIORITY,
     TASK_PRIORITIES,
@@ -380,3 +381,32 @@ def test_task_stopped_exception_is_a_terminal_outcome(
     outcomes = processor.run_pending()
 
     assert outcomes[0][0] == 'stopped'
+
+
+def test_manual_repair_exception_is_terminal_without_retries(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    attempts = 0
+    events: list[str] = []
+
+    def build(*_args: Any, **_kwargs: Any) -> _Executor:
+        nonlocal attempts
+        attempts += 1
+        return _Executor(error=ManualRepairRequiredError('需要进行手动修理'))
+
+    monkeypatch.setattr(processor_module, 'build_executor', build)
+    processor = Processor(
+        SimpleNamespace(),
+        on_event=lambda event, **_data: events.append(event),
+        soft_retries=1,
+        hard_retries=1,
+    )
+    request = Request(task_type='exercise', params={'fleet_id': 1}, count=3)
+    processor.submit(request)
+
+    outcomes = processor.run_pending()
+
+    assert outcomes[0][0] == 'failed'
+    assert attempts == 1
+    assert 'retry' not in events
+    assert request.progress.get('_completed', 0) == 0
