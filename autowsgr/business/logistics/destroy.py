@@ -130,7 +130,7 @@ def _enter_destroy_page_from_dialog(ctx: GameContext) -> None:
     click_and_wait_for_page(
         ctx.ctrl,
         click_coord=CLICK_DOCK_DIALOG_DESTROY,
-        checker=BuildPage.is_current_page,
+        checker=BuildPage.check_current_page,
         source='船坞满弹窗',
         target=PageName.BUILD,
     )

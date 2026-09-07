@@ -29,10 +29,10 @@ class _FakeBathPage:
     def __init__(self, results: list[tuple[str, int]]) -> None:
         self._results = list(results)
         self.repair_longest_calls = 0
-        self.go_to_choose_repair_calls = 0
+        self.open_choose_repair_overlay_calls = 0
 
-    def go_to_choose_repair(self) -> None:
-        self.go_to_choose_repair_calls += 1
+    def open_choose_repair_overlay(self) -> None:
+        self.open_choose_repair_overlay_calls += 1
 
     def repair_longest(
         self,
@@ -91,7 +91,7 @@ def test_named_repair_syncs_fleet_damage_snapshot(monkeypatch: pytest.MonkeyPatc
     import autowsgr.business.logistics.repair.bath_repair as mod
 
     class _NamedRepairPage:
-        def go_to_choose_repair(self) -> None:
+        def open_choose_repair_overlay(self) -> None:
             return None
 
         def repair_ship(self, ship_name: str) -> int:
@@ -184,7 +184,7 @@ def test_fills_all_free_slots_then_stops(monkeypatch: pytest.MonkeyPatch):
     assert mod.repair_one_available(ctx) is True
 
     assert fake.repair_longest_calls == 2  # 恰好修 2 艘, 不是 1 也不是死循环
-    assert fake.go_to_choose_repair_calls == 2  # 每艘都重开 overlay
+    assert fake.open_choose_repair_overlay_calls == 2  # 每艘都重开 overlay
     assert ctx.bathroom.is_available() is False  # 两槽全满
 
 
@@ -241,4 +241,4 @@ def test_skip_when_no_free_slot(monkeypatch: pytest.MonkeyPatch):
     assert ctx.bathroom.is_available() is False
 
     assert mod.repair_one_available(ctx) is False
-    assert fake.go_to_choose_repair_calls == 0  # 没开 overlay
+    assert fake.open_choose_repair_overlay_calls == 0  # 没开 overlay

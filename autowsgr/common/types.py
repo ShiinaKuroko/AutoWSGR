@@ -340,37 +340,6 @@ class ShipType(StrEnum):
     BG = '导战'
     Other = '其他'
 
-    @property
-    def relative_position_in_destroy(self) -> tuple[float, float]:
-        """拆解界面中该舰种按钮的相对坐标。"""
-        _map: dict[ShipType, tuple[float, float]] = {
-            ShipType.CV: (0.555, 0.197),
-            ShipType.CVL: (0.646, 0.197),
-            ShipType.AV: (0.738, 0.197),
-            ShipType.BB: (0.830, 0.197),
-            ShipType.BBV: (0.922, 0.197),
-            ShipType.BC: (0.556, 0.288),
-            ShipType.CA: (0.646, 0.288),
-            ShipType.CAV: (0.738, 0.288),
-            ShipType.CLT: (0.830, 0.288),
-            ShipType.CL: (0.922, 0.288),
-            ShipType.BM: (0.556, 0.379),
-            ShipType.DD: (0.646, 0.379),
-            ShipType.SSG: (0.738, 0.379),
-            ShipType.SS: (0.830, 0.379),
-            ShipType.SC: (0.922, 0.379),
-            ShipType.NAP: (0.555, 0.470),
-            ShipType.ASDG: (0.646, 0.470),
-            ShipType.AADG: (0.738, 0.470),
-            ShipType.KP: (0.830, 0.470),
-            ShipType.CG: (0.922, 0.470),
-            ShipType.CBG: (0.555, 0.561),
-            ShipType.BG: (0.646, 0.561),
-            ShipType.Other: (0.738, 0.561),
-        }
-        return _map[self]
-
-
 class DestroyShipWorkMode(IntEnum):
     """拆解工作模式。"""
 

@@ -43,20 +43,20 @@ def run_test(runner: UIControllerTestRunner) -> None:
 
     build_page = BuildPage(runner.ctrl)
 
-    runner.verify_current('初始验证: 建造页面', '建造页面', BuildPage.is_current_page)
+    runner.verify_current('初始验证: 建造页面', '建造页面', BuildPage.check_current_page)
     if runner.aborted:
         return
 
     runner.read_state(
         '建造页面',
-        readers={'当前标签': BuildPage.get_active_tab},
+        readers={'当前标签': BuildPage.read_active_tab},
     )
 
     for tab in [BuildTab.DESTROY, BuildTab.DEVELOP, BuildTab.DISCARD, BuildTab.BUILD]:
         runner.execute_step(
             f'切换标签 → {tab.value}',
             '建造页面',
-            BuildPage.is_current_page,
+            BuildPage.check_current_page,
             lambda t=tab: build_page.switch_tab(t),
         )
         if runner.aborted:
@@ -103,7 +103,7 @@ def main() -> None:
 
     if not ensure_page(
         ctrl,
-        BuildPage.is_current_page,
+        BuildPage.check_current_page,
         lambda: _navigate_to(ctrl, args.pause),
         '建造页面',
         auto_mode=args.auto,

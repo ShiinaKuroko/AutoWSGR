@@ -60,7 +60,7 @@ def run_test(runner: UIControllerTestRunner) -> None:  # noqa: PLR0911
     runner.execute_step(
         '侧边栏 → 建造页面',
         '建造页面',
-        BuildPage.is_current_page,
+        BuildPage.check_current_page,
         lambda: sidebar_page.navigate_to(SidebarTarget.BUILD),
     )
     if runner.aborted:
@@ -71,7 +71,7 @@ def run_test(runner: UIControllerTestRunner) -> None:  # noqa: PLR0911
         runner.execute_step(
             f'建造: 切换标签 → {tab.value}',
             '建造页面',
-            BuildPage.is_current_page,
+            BuildPage.check_current_page,
             lambda t=tab: build_page.switch_tab(t),
         )
         if runner.aborted:

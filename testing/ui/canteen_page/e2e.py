@@ -42,14 +42,14 @@ def run_test(runner: UIControllerTestRunner) -> None:
 
     canteen_page = CanteenPage(runner.ctrl)
 
-    runner.verify_current('初始验证: 食堂页面', '食堂页面', CanteenPage.is_current_page)
+    runner.verify_current('初始验证: 食堂页面', '食堂页面', CanteenPage.check_current_page)
     if runner.aborted:
         return
 
     runner.execute_step(
         '食堂页面 → ◁ 后院',
         '后院',
-        BackyardPage.is_current_page,
+        BackyardPage.check_current_page,
         canteen_page.go_back,
     )
 
@@ -68,7 +68,7 @@ def _navigate_to(ctrl: AndroidController, pause: float) -> None:
         MainPage(ctrl).navigate_to(MainPage.Target.HOME)
         time.sleep(pause)
         screen = ctrl.screenshot()
-    if BackyardPage.is_current_page(screen):
+    if BackyardPage.check_current_page(screen):
         BackyardPage(ctrl).go_to_canteen()
         time.sleep(pause)
 
@@ -87,7 +87,7 @@ def main() -> None:
 
     if not ensure_page(
         ctrl,
-        CanteenPage.is_current_page,
+        CanteenPage.check_current_page,
         lambda: _navigate_to(ctrl, args.pause),
         '食堂页面',
         auto_mode=args.auto,

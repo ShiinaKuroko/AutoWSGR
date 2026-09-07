@@ -1,26 +1,16 @@
-"""建造页面 UI 控制器。
+"""模块功能：负责建造页面标签、建造收取和舰船解体操作。
 
-已完成，需测试
+上层调用：
+- business.logistics.build：调用标签切换、建造收取和新建造入口。
+- business.logistics.destroy：调用解体标签和解装流程入口。
+- application.ui.navigation.registry：注册建造页面检查器。
 
-覆盖游戏 **建造** 页面及其标签组 (建造/解体/开发/废弃) 的交互。
-
-页面入口:
-    主页面 → 侧边栏 → 建造
-
-标签组:
-    建造/解体/开发/废弃 四个标签共享相同的顶部导航栏。
-    切换标签不会离开此页面组，只是改变内容区域。
-
-坐标体系:
-    所有坐标为相对值 (0.0-1.0)。
-
-使用方式::
-
-    from autowsgr.application.ui.controller.build_page import BuildPage, BuildTab
-
-    page = BuildPage(ctrl)
-    page.switch_tab(BuildTab.DEVELOP)
-    page.go_back()
+下层依赖：
+- application.ui.controller.build_page.constants：提供建造页面专用坐标。
+- application.ui.controller.shared.tabbed_page：识别标签页和生成标签检查器。
+- common.ui.interaction：执行点击后的页面到达等待。
+- common.vision：匹配建造结果、资源页面和确认弹窗。
+- common.types：提供页面名称和舰种枚举。
 """
 
 from __future__ import annotations
@@ -29,26 +19,12 @@ import enum
 import time
 from typing import TYPE_CHECKING
 
+from autowsgr.application.ui.controller.build_page import constants
 from autowsgr.application.ui.controller.shared.tabbed_page import (
     TabbedPageType,
     check_tabbed_page,
     get_active_tab_index,
     make_tab_checker,
-)
-from autowsgr.common.calibration.build import (
-    CLICK_BACK,
-    CLICK_CONFIRM as CLICK_CONFIRM_BUILD,
-    CLICK_DESTROY_ADD,
-    CLICK_DESTROY_CONFIRM,
-    CLICK_DESTROY_CONFIRM_FILTER,
-    CLICK_DESTROY_CONFIRM_SELECT,
-    CLICK_DESTROY_FOUR_STAR_CONFIRM,
-    CLICK_DESTROY_QUICK_SELECT,
-    CLICK_DESTROY_REMOVE_EQUIP,
-    CLICK_DESTROY_TYPE_FILTER,
-    CLICK_DISMISS_ANIMATION,
-    SLOT_POSITIONS as BUILD_SLOT_POSITIONS,
-    TAB_POSITIONS as BUILD_TAB_POSITIONS,
 )
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.types import PageName, ShipType
@@ -79,9 +55,7 @@ class BuildTab(enum.Enum):
     DISCARD = '废弃'
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# 标签索引映射
-# ═══════════════════════════════════════════════════════════════════════════════
+# ── 页面标签 ─────────────────────────────────────────────────────────────────
 
 _TAB_LIST: list[BuildTab] = list(BuildTab)
 """标签枚举值列表 — 索引与标签栏探测位置一一对应。"""
@@ -90,82 +64,36 @@ _TAB_TO_INDEX: dict[BuildTab, int] = {tab: i for i, tab in enumerate(_TAB_LIST)}
 """标签 → 标签索引映射。"""
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# 点击坐标
-# ═══════════════════════════════════════════════════════════════════════════════
-
-
-
-# ── 建造槽位 ──
-
-
-
-# ── 解体标签操作 ──
-
-
-
-
-
-
-
-
-
-# ── 建造获取动画 ──
-
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# 页面控制器
-# ═══════════════════════════════════════════════════════════════════════════════
-
-
-CLICK_TAB: dict[BuildTab, tuple[float, float]] = {
-    tab: BUILD_TAB_POSITIONS[tab.name.lower()]
-    for tab in BuildTab
-}
-
-
 class BuildPage:
-    """建造页面控制器 (含 解体/开发/废弃 标签组)。
-
-    Parameters
-    ----------
-    ctrl:
-        Android 设备控制器实例。
-    """
+    """建造页面及其解体、开发、废弃标签的 UI 操作控制器。"""
 
     def __init__(self, ctx: GameContext) -> None:
         self._ctx = ctx
         self._ctrl = ctx.ctrl
 
-    # ── 页面识别 ──────────────────────────────────────────────────────────
+    # ── 页面检查 ──────────────────────────────────────────────────────────────
 
     @staticmethod
-    def is_current_page(screen: np.ndarray) -> PageMatch:
-        """判断截图是否为建造页面组 (含全部 4 个标签)。
+    def check_current_page(screen: np.ndarray) -> PageMatch:
+        """检查截图是否属于建造页面组。
 
-        通过统一标签页检测层识别,返回带覆盖度分数的 PageMatch。
+        Args:
+            screen: RGB 截图，形状为 ``(H, W, 3)``。
 
-        Parameters
-        ----------
-        screen:
-            截图 (HxWx3, RGB)。
+        Returns:
+            包含建造标签栏的页面匹配结果。
         """
         return check_tabbed_page(screen, TabbedPageType.BUILD)
 
     @staticmethod
-    def get_active_tab(screen: np.ndarray) -> BuildTab | None:
-        """获取当前激活的标签。
+    def read_active_tab(screen: np.ndarray) -> BuildTab | None:
+        """读取建造页面当前激活的标签。
 
-        Parameters
-        ----------
-        screen:
-            截图 (HxWx3, RGB)。
+        Args:
+            screen: RGB 截图，形状为 ``(H, W, 3)``。
 
-        Returns
-        -------
-        BuildTab | None
-            当前标签，索引越界或无法确定时返回 ``None``。
+        Returns:
+            当前标签；索引无法识别或越界时返回 ``None``。
         """
         idx = get_active_tab_index(screen)
         if idx is None or idx >= len(_TAB_LIST):
@@ -177,20 +105,13 @@ class BuildPage:
     def switch_tab(self, tab: BuildTab) -> None:
         """切换到指定标签并验证到达。
 
-        会先截图判断当前标签状态并记录日志，然后点击目标标签，
-        最后验证目标标签签名匹配。
+        Args:
+            tab: 目标标签。
 
-        Parameters
-        ----------
-        tab:
-            目标标签。
-
-        Raises
-        ------
-        NavigationError
-            超时未到达目标标签。
+        Raises:
+            NavigationError: 超时未到达目标标签。
         """
-        current = self.get_active_tab(self._ctrl.screenshot())
+        current = self.read_active_tab(self._ctrl.screenshot())
         _log.info(
             '[UI] 建造页面: {} → {}',
             current.value if current else '未知',
@@ -199,7 +120,7 @@ class BuildPage:
         target_idx = _TAB_TO_INDEX[tab]
         click_and_wait_for_page(
             self._ctrl,
-            click_coord=CLICK_TAB[tab],
+            click_coord=constants.TAB_POSITIONS[tab.name.lower()],
             checker=make_tab_checker(TabbedPageType.BUILD, target_idx),
             source=f'建造-{current.value if current else "?"}',
             target=f'建造-{tab.value}',
@@ -208,12 +129,16 @@ class BuildPage:
     # ── 回退 ──────────────────────────────────────────────────────────────
 
     def go_back(self) -> None:
-        """点击回退按钮 (◁)，返回侧边栏。
+        """点击返回按钮，离开建造页面并回到侧边栏或主页面。
 
-        Raises
-        ------
-        NavigationError
-            超时仍在建造页面。
+        Args:
+            None.
+
+        Returns:
+            None. 页面到达侧边栏或主页面后返回。
+
+        Raises:
+            NavigationError: 超时仍未离开建造页面。
         """
         from autowsgr.application.ui.controller.main_page import MainPage
         from autowsgr.application.ui.controller.sidebar_page import SidebarPage
@@ -225,7 +150,7 @@ class BuildPage:
 
         click_and_wait_for_page(
             self._ctrl,
-            click_coord=CLICK_BACK,
+            click_coord=constants.CLICK_BACK,
             checker=_checker,
             source=PageName.BUILD,
             target=f'{PageName.SIDEBAR}/{PageName.MAIN}',
@@ -234,42 +159,35 @@ class BuildPage:
     # ── 建造操作 ──────────────────────────────────────────────────────────
 
     def click_slot(self, slot: int) -> None:
-        """点击建造槽位 (1-4)。
+        """点击指定建造槽位。
 
-        Parameters
-        ----------
-        slot:
-            槽位编号 (1-4)。
+        Args:
+            slot: 槽位编号，范围为 1-4。
+
+        Raises:
+            ValueError: 槽位编号不在 1-4 范围内。
         """
         if not 1 <= slot <= 4:
             raise ValueError(f'建造槽位必须为 1-4，收到: {slot}')
         _log.info('[UI] 建造页面 → 点击槽位 {}', slot)
-        self._ctrl.click(*BUILD_SLOT_POSITIONS[slot - 1])
+        self._ctrl.click(*constants.SLOT_POSITIONS[slot - 1])
         time.sleep(0.5)
 
     def collect_slot(self, slot: int) -> None:
-        """收取指定槽位的已完成建造。
+        """点击指定槽位并等待建造结果动画出现。
 
-        点击槽位后等待弹出获取动画。
-
-        Parameters
-        ----------
-        slot:
-            槽位编号 (1-4)。
+        Args:
+            slot: 槽位编号，范围为 1-4。
         """
         _log.info('[UI] 建造页面 → 收取槽位 {}', slot)
         self.click_slot(slot)
         time.sleep(1.0)
 
     def fast_build_slot(self, slot: int) -> None:
-        """对指定槽位使用快速建造。
+        """点击指定槽位并进入快速建造确认流程。
 
-        点击快速建造按钮后等待确认弹窗。
-
-        Parameters
-        ----------
-        slot:
-            槽位编号 (1-4)。
+        Args:
+            slot: 槽位编号，范围为 1-4。
         """
         _log.info('[UI] 建造页面 → 快速建造槽位 {}', slot)
         self.click_slot(slot)
@@ -278,73 +196,88 @@ class BuildPage:
     def start_build(self) -> None:
         """在当前标签下启动建造。
 
-        点击一个空闲槽位的「开始建造」按钮后，
-        等待资源选择页面，然后点击确认。
+        资源配方调整由上层流程负责；本方法只提交当前资源选择页面。
 
-        .. note::
-            资源配方调整（滑块操作）需要 ops 层配合 OCR 实现。
-            此方法仅执行确认点击。
+        Args:
+            None.
+
+        Returns:
+            None. 点击确认后等待页面动画稳定。
         """
         _log.info('[UI] 建造页面 → 确认建造')
-        self._ctrl.click(*CLICK_CONFIRM_BUILD)
+        self._ctrl.click(*constants.CLICK_CONFIRM)
         time.sleep(1.0)
 
-    def dismiss_animation(self) -> None:
-        """点击跳过建造获取动画。"""
-        self._ctrl.click(*CLICK_DISMISS_ANIMATION)
+    def click_skip_animation(self) -> None:
+        """点击跳过建造结果动画。
+
+        Args:
+            None.
+
+        Returns:
+            None.
+        """
+        self._ctrl.click(*constants.CLICK_DISMISS_ANIMATION)
 
     # ── 解体操作 ──────────────────────────────────────────────────────────
 
-    def destroy_click_add(self) -> None:
-        """解体标签 → 点击「添加」按钮。"""
+    def click_destroy_add(self) -> None:
+        """点击解体标签的添加按钮，打开待解装舰船选择。"""
         _log.info('[UI] 建造页面 (解体) → 添加')
-        self._ctrl.click(*CLICK_DESTROY_ADD)
+        self._ctrl.click(*constants.CLICK_DESTROY_ADD)
 
-    def destroy_quick_select(self) -> None:
-        """解体标签 → 点击「快速选择」按钮。"""
+    def click_destroy_quick_select(self) -> None:
+        """点击解体标签的快速选择按钮，批量选择舰船。"""
         _log.info('[UI] 建造页面 (解体) → 快速选择')
-        self._ctrl.click(*CLICK_DESTROY_QUICK_SELECT)
+        self._ctrl.click(*constants.CLICK_DESTROY_QUICK_SELECT)
 
-    def destroy_confirm_select(self) -> None:
-        """解体标签 → 点击「确认选择」。"""
+    def confirm_destroy_select(self) -> None:
+        """确认解体标签中的舰船选择。"""
         _log.info('[UI] 建造页面 (解体) → 确认选择')
-        self._ctrl.click(*CLICK_DESTROY_CONFIRM_SELECT)
+        self._ctrl.click(*constants.CLICK_DESTROY_CONFIRM_SELECT)
 
-    def destroy_toggle_remove_equip(self) -> None:
-        """解体标签 → 点击「卸下装备」复选框。"""
+    def click_destroy_remove_equip(self) -> None:
+        """点击解体标签的卸下装备选项。"""
         _log.info('[UI] 建造页面 (解体) → 卸下装备')
-        self._ctrl.click(*CLICK_DESTROY_REMOVE_EQUIP)
+        self._ctrl.click(*constants.CLICK_DESTROY_REMOVE_EQUIP)
 
-    def destroy_confirm(self) -> None:
-        """解体标签 → 点击「解装确认」。"""
+    def confirm_destroy(self) -> None:
+        """确认解体标签中的解装操作。"""
         _log.info('[UI] 建造页面 (解体) → 解装确认')
-        self._ctrl.click(*CLICK_DESTROY_CONFIRM)
+        self._ctrl.click(*constants.CLICK_DESTROY_CONFIRM)
 
-    def destroy_four_star_confirm(self) -> None:
-        """解体标签 → 四星确认弹窗点击确认。"""
+    def confirm_destroy_four_star(self) -> None:
+        """确认解体标签中的高星舰船警告。"""
         _log.info('[UI] 建造页面 (解体) → 四星确认')
-        self._ctrl.click(*CLICK_DESTROY_FOUR_STAR_CONFIRM)
+        self._ctrl.click(*constants.CLICK_DESTROY_FOUR_STAR_CONFIRM)
 
-    def destroy_open_type_filter(self) -> None:
-        """解体标签 → 打开舰船类型过滤器。"""
+    def open_destroy_type_filter(self) -> None:
+        """打开解体标签的舰船类型过滤器。"""
         _log.info('[UI] 建造页面 (解体) → 打开类型过滤')
-        self._ctrl.click(*CLICK_DESTROY_TYPE_FILTER)
+        self._ctrl.click(*constants.CLICK_DESTROY_TYPE_FILTER)
 
-    def destroy_confirm_filter(self) -> None:
-        """解体标签 → 确认舰船类型过滤。"""
+    def confirm_destroy_filter(self) -> None:
+        """确认解体标签的舰船类型过滤条件。"""
         _log.info('[UI] 建造页面 (解体) → 确认过滤')
-        self._ctrl.click(*CLICK_DESTROY_CONFIRM_FILTER)
+        self._ctrl.click(*constants.CLICK_DESTROY_CONFIRM_FILTER)
 
     # ── 组合动作 — 建造收取 ──
 
     def dismiss_build_result(self) -> None:
-        """处理建造完成后获取舰船的动画/弹窗。"""
+        """处理建造完成后的获取动画和确认弹窗。
+
+        Args:
+            None.
+
+        Returns:
+            None. 连续获取标志消失后返回。
+        """
         get_ship_templates = [Templates.Symbol.GET_SHIP, Templates.Symbol.GET_ITEM]
         for _ in range(10):
             screen = self._ctrl.screenshot()
             if not ImageChecker.template_exists(screen, get_ship_templates):
                 break
-            self.dismiss_animation()
+            self.click_skip_animation()
             time.sleep(0.5)
             screen = self._ctrl.screenshot()
             detail = ImageChecker.find_any(screen, Templates.Confirm.all())
@@ -360,17 +293,15 @@ class BuildPage:
     ) -> int:
         """收取已建造完成的舰船或装备。
 
-        必须已在建造页面对应标签上。
+        Args:
+            build_type: 建造类型，`ship` 表示舰船，其他值表示装备。
+            allow_fast_build: 是否先处理可快速建造的槽位。
 
-        Returns
-        -------
-        int
-            收取数量。
+        Returns:
+            实际收取的数量。
 
-        Raises
-        ------
-        RuntimeError
-            仓库已满。
+        Raises:
+            RuntimeError: 对应仓库已满。
         """
         collected = 0
 
@@ -420,10 +351,11 @@ class BuildPage:
     def start_new_build(self, build_type: str = 'ship') -> None:
         """在当前标签启动一次新建造。
 
-        Raises
-        ------
-        RuntimeError
-            队列已满或资源选择页面未出现。
+        Args:
+            build_type: 建造类型，`ship` 表示舰船，其他值表示装备。
+
+        Raises:
+            RuntimeError: 建造队列已满或资源选择页面未出现。
         """
         start_tmpl = (
             Templates.Build.SHIP_START if build_type == 'ship' else Templates.Build.EQUIP_START
@@ -446,7 +378,7 @@ class BuildPage:
         else:
             raise RuntimeError('资源选择页面未出现')
 
-        self._ctrl.click(*CLICK_CONFIRM_BUILD)
+        self._ctrl.click(*constants.CLICK_CONFIRM)
         time.sleep(1.0)
         _log.info('[UI] 建造已启动 ({})', build_type)
 
@@ -458,41 +390,39 @@ class BuildPage:
     ) -> None:
         """在解体标签上执行完整解装流程。
 
-        Parameters
-        ----------
-        ship_types:
-            要解体的舰种列表。
-            ``None`` (默认) 表示不过滤舰种，直接快速选择全部。
-            传入非空列表时，先打开舰种过滤器按舰种筛选，再执行后续操作。
-        remove_equipment:
-            是否在解装前卸下装备。默认 ``True``。
+        Args:
+            ship_types: 要解体的舰种列表；`None` 表示不过滤舰种。
+            remove_equipment: 是否在解装前卸下装备。
+
+        Returns:
+            None. 解装确认流程完成后返回。
         """
         _step_delay = 1.5
 
-        self.destroy_click_add()
+        self.click_destroy_add()
         time.sleep(_step_delay)
 
         if ship_types:
             # 按舰种过滤：打开过滤器 → 勾选各舰种 → 确认
-            self.destroy_open_type_filter()
+            self.open_destroy_type_filter()
             time.sleep(_step_delay)
             for ship_type in ship_types:
                 _log.debug('[UI] 解体 → 点击舰种: {}', ship_type.value)
-                self._ctrl.click(*ship_type.relative_position_in_destroy)
+                self._ctrl.click(*constants.DESTROY_TYPE_POSITIONS[ship_type.name])
                 time.sleep(0.8)
-            self.destroy_confirm_filter()
+            self.confirm_destroy_filter()
             time.sleep(_step_delay)
 
-        self.destroy_quick_select()
+        self.click_destroy_quick_select()
         time.sleep(_step_delay)
-        self.destroy_confirm_select()
+        self.confirm_destroy_select()
         time.sleep(_step_delay)
         if remove_equipment:
-            self.destroy_toggle_remove_equip()
+            self.click_destroy_remove_equip()
             time.sleep(_step_delay)
-        self.destroy_confirm()
+        self.confirm_destroy()
         time.sleep(_step_delay)
-        self.destroy_four_star_confirm()
+        self.confirm_destroy_four_star()
         time.sleep(_step_delay)
 
         _log.info(

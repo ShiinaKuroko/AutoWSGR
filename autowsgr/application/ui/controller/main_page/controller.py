@@ -55,7 +55,7 @@ def _get_target_checker(target: Target) -> Callable[[np.ndarray], bool]:
     if target is Target.HOME:
         from autowsgr.application.ui.controller.backyard_page import BackyardPage
 
-        return BackyardPage.is_current_page
+        return BackyardPage.check_current_page
     if target is Target.EVENT:
         from autowsgr.application.ui.controller.event.event_page import BaseEventPage
 

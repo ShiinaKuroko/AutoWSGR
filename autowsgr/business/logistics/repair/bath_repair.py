@@ -47,7 +47,7 @@ def repair_in_bath(ctx: GameContext) -> None:
     goto_page(ctx, PageName.BATH)
 
     page = BathPage(ctx)
-    page.go_to_choose_repair()
+    page.open_choose_repair_overlay()
     page.click_repair_all()
 
     # 点击全部修理后 overlay 已关闭，先回到浴室页面，再返回主界面
@@ -77,7 +77,7 @@ def repair_ship_by_name(ctx: GameContext, ship_name: str) -> int:
     goto_page(ctx, PageName.BATH)
 
     page = BathPage(ctx)
-    page.go_to_choose_repair()
+    page.open_choose_repair_overlay()
     repair_secs = page.repair_ship(ship_name)
 
     if repair_secs >= 0:
@@ -135,7 +135,7 @@ def repair_one_available(
     # 终止条件: 无空闲槽 (is_available False) / 无可修候选 (secs==-1) /
     # 浴场满 (secs==-2)。空闲槽数 = slot_count, 故循环上限即槽位数, 不会死循环。
     while bath.is_available():
-        page.go_to_choose_repair()
+        page.open_choose_repair_overlay()
         ship_name, secs = page.repair_longest(blacklist=blocked)
 
         if secs > 0:

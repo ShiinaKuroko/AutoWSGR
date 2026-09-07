@@ -187,7 +187,7 @@ def run_test(runner: UIControllerTestRunner) -> None:  # noqa: PLR0911, C901, PL
     runner.execute_step(
         '主页面 → 后院页面 (navigate_to HOME)',
         '后院页面',
-        BackyardPage.is_current_page,
+        BackyardPage.check_current_page,
         lambda: main_page.navigate_to(MainPage.Target.HOME),
     )
     if runner.aborted:

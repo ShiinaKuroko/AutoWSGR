@@ -43,7 +43,7 @@ def run_test(runner: UIControllerTestRunner) -> None:
 
     bath_page = BathPage(runner.ctrl)
 
-    runner.verify_current('初始验证: 浴室页面', '浴室页面', BathPage.is_current_page)
+    runner.verify_current('初始验证: 浴室页面', '浴室页面', BathPage.check_current_page)
     if runner.aborted:
         return
 
@@ -55,7 +55,7 @@ def run_test(runner: UIControllerTestRunner) -> None:
     runner.execute_step(
         '浴室页面 → ◁ 后院',
         '后院',
-        BackyardPage.is_current_page,
+        BackyardPage.check_current_page,
         bath_page.go_back,
     )
 
@@ -74,7 +74,7 @@ def _navigate_to(ctrl: AndroidController, pause: float) -> None:
         MainPage(ctrl).navigate_to(MainPage.Target.HOME)
         time.sleep(pause)
         screen = ctrl.screenshot()
-    if BackyardPage.is_current_page(screen):
+    if BackyardPage.check_current_page(screen):
         BackyardPage(ctrl).go_to_bath()
         time.sleep(pause)
 
@@ -93,7 +93,7 @@ def main() -> None:
 
     if not ensure_page(
         ctrl,
-        BathPage.is_current_page,
+        BathPage.check_current_page,
         lambda: _navigate_to(ctrl, args.pause),
         '浴室页面',
         auto_mode=args.auto,

@@ -46,7 +46,7 @@ def collect_built_ships(
         page.switch_tab(BuildTab.DEVELOP)
     else:
         screen = ctx.ctrl.screenshot()
-        tab = BuildPage.get_active_tab(screen)
+        tab = BuildPage.read_active_tab(screen)
         if tab != BuildTab.BUILD:
             page.switch_tab(BuildTab.BUILD)
 

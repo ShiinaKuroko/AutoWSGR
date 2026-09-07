@@ -49,7 +49,7 @@ def run_test(runner: UIControllerTestRunner) -> None:
     canteen_page = CanteenPage(runner.ctrl)
 
     # Step 0: 验证初始
-    runner.verify_current('初始验证: 后院页面', '后院页面', BackyardPage.is_current_page)
+    runner.verify_current('初始验证: 后院页面', '后院页面', BackyardPage.check_current_page)
     if runner.aborted:
         return
 
@@ -57,7 +57,7 @@ def run_test(runner: UIControllerTestRunner) -> None:
     runner.execute_step(
         '后院 → 浴室页面',
         '浴室页面',
-        BathPage.is_current_page,
+        BathPage.check_current_page,
         backyard_page.go_to_bath,
     )
     if runner.aborted:
@@ -67,7 +67,7 @@ def run_test(runner: UIControllerTestRunner) -> None:
     runner.execute_step(
         '浴室 → ◁ 后院页面',
         '后院页面',
-        BackyardPage.is_current_page,
+        BackyardPage.check_current_page,
         bath_page.go_back,
     )
     if runner.aborted:
@@ -77,7 +77,7 @@ def run_test(runner: UIControllerTestRunner) -> None:
     runner.execute_step(
         '后院 → 食堂页面',
         '食堂页面',
-        CanteenPage.is_current_page,
+        CanteenPage.check_current_page,
         backyard_page.go_to_canteen,
     )
     if runner.aborted:
@@ -87,7 +87,7 @@ def run_test(runner: UIControllerTestRunner) -> None:
     runner.execute_step(
         '食堂 → ◁ 后院页面',
         '后院页面',
-        BackyardPage.is_current_page,
+        BackyardPage.check_current_page,
         canteen_page.go_back,
     )
     if runner.aborted:
@@ -130,7 +130,7 @@ def main() -> None:
 
     if not ensure_page(
         ctrl,
-        BackyardPage.is_current_page,
+        BackyardPage.check_current_page,
         lambda: _navigate_to(ctrl, args.pause),
         '后院页面',
         auto_mode=args.auto,

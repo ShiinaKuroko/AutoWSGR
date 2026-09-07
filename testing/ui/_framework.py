@@ -511,11 +511,11 @@ def reset_to_main_page(ctrl: ADBController, pause: float = 1.5) -> bool:  # noqa
         if MainPage.is_current_page(screen):
             return True
         # 叶页面（深层）先返回
-        if BathPage.is_current_page(screen):
+        if BathPage.check_current_page(screen):
             BathPage(ctx).go_back()
-        elif CanteenPage.is_current_page(screen):
+        elif CanteenPage.check_current_page(screen):
             CanteenPage(ctx).go_back()
-        elif BuildPage.is_current_page(screen):
+        elif BuildPage.check_current_page(screen):
             BuildPage(ctx).go_back()
         elif IntensifyPage.is_current_page(screen):
             IntensifyPage(ctx).go_back()
@@ -530,7 +530,7 @@ def reset_to_main_page(ctrl: ADBController, pause: float = 1.5) -> bool:  # noqa
         elif BaseEventPage.is_current_page(screen):
             BaseEventPage(ctx).go_back()
         # 中间页面
-        elif BackyardPage.is_current_page(screen):
+        elif BackyardPage.check_current_page(screen):
             BackyardPage(ctx).go_back()
         elif SidebarPage.is_current_page(screen):
             SidebarPage(ctx).close()

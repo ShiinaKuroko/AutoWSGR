@@ -162,7 +162,7 @@ class SidebarPage:
         from autowsgr.application.ui.controller.intensify_page import IntensifyPage
 
         target_checker = {
-            SidebarTarget.BUILD: BuildPage.is_current_page,
+            SidebarTarget.BUILD: BuildPage.check_current_page,
             SidebarTarget.INTENSIFY: IntensifyPage.is_current_page,
             SidebarTarget.FRIEND: FriendPage.is_current_page,
         }
