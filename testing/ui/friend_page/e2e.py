@@ -37,19 +37,19 @@ if TYPE_CHECKING:
 
 
 def run_test(runner: UIControllerTestRunner) -> None:
-    from autowsgr.application.ui.controller.friend_page import FriendPage
-    from autowsgr.application.ui.controller.sidebar_page import SidebarPage
+    from autowsgr.application.ui.controller.sidebar.friend_page import FriendPage
+    from autowsgr.application.ui.controller.sidebar.main_page import SidebarPage
 
     friend_page = FriendPage(runner.ctx)
 
-    runner.verify_current('初始验证: 好友页面', '好友页面', FriendPage.is_current_page)
+    runner.verify_current('初始验证: 好友页面', '好友页面', FriendPage.check_current_page)
     if runner.aborted:
         return
 
     runner.execute_step(
         '好友页面 → ◁ 侧边栏',
         '侧边栏',
-        SidebarPage.is_current_page,
+        SidebarPage.check_current_page,
         friend_page.go_back,
     )
 
@@ -59,19 +59,19 @@ def _navigate_to(ctrl: AndroidController, pause: float) -> None:
     import time
 
     from autowsgr.application.runtime.context import GameContext
-    from autowsgr.application.ui.controller.main_page import MainPage
-    from autowsgr.application.ui.controller.sidebar_page import SidebarPage
+    from autowsgr.application.ui.controller.home import HomePage
+    from autowsgr.application.ui.controller.sidebar.main_page import SidebarPage
     from autowsgr.common.system import UserConfig
 
     if not reset_to_main_page(ctrl, pause):
         return
     ctx = GameContext(ctrl=ctrl, config=UserConfig())
     screen = ctrl.screenshot()
-    if MainPage.is_current_page(screen):
-        MainPage(ctx).navigate_to(MainPage.Target.SIDEBAR)
+    if HomePage.check_current_page(screen):
+        HomePage(ctx).navigate_to(HomePage.Target.SIDEBAR)
         time.sleep(pause)
         screen = ctrl.screenshot()
-    if SidebarPage.is_current_page(screen):
+    if SidebarPage.check_current_page(screen):
         SidebarPage(ctx).go_to_friend()
         time.sleep(pause)
 
@@ -86,11 +86,11 @@ def main() -> None:
     from loguru import logger
 
     logger.info('=== 好友页面 e2e 测试开始 ===')
-    from autowsgr.application.ui.controller.friend_page import FriendPage
+    from autowsgr.application.ui.controller.sidebar.friend_page import FriendPage
 
     if not ensure_page(
         ctrl,
-        FriendPage.is_current_page,
+        FriendPage.check_current_page,
         lambda: _navigate_to(ctrl, args.pause),
         '好友页面',
         auto_mode=args.auto,

@@ -27,8 +27,8 @@ def add_arguments(parser) -> None:
 def run(rt) -> bool:
     """执行初始化链路并验证终态契约。"""
     from autowsgr.application.runtime.initialize.initialize import _package_of, initialize
-    from autowsgr.application.ui.controller.main_page import MainPage
-    from autowsgr.application.ui.controller.main_page.overlays import detect_overlay
+    from autowsgr.application.ui.controller.home import HomePage
+    from autowsgr.application.ui.controller.home.overlays import read_overlay
     from autowsgr.application.ui.navigation import identify_current_page
 
     ctx = rt.ctx
@@ -50,6 +50,6 @@ def run(rt) -> bool:
         return False
 
     # ④ 终态契约验证: 首页 + 浮层已清
-    rt.check('终态: 主页面基础态', MainPage.is_base_page, ctx.ctrl.screenshot())
-    rt.check('终态: 无浮层残留', lambda: detect_overlay(ctx.ctrl.screenshot()) is None)
+    rt.check('终态: 主页面基础态', HomePage.check_base_page, ctx.ctrl.screenshot())
+    rt.check('终态: 无浮层残留', lambda: read_overlay(ctx.ctrl.screenshot()) is None)
     return rt.state.failed == 0

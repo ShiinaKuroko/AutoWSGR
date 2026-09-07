@@ -489,26 +489,26 @@ def reset_to_main_page(ctrl: ADBController, pause: float = 1.5) -> bool:  # noqa
         成功回到主页面时返回 ``True``，超出重试次数仍未到达则返回 ``False``。
     """
     from autowsgr.application.runtime.context import GameContext
-    from autowsgr.application.ui.controller.backyard_page import BackyardPage
-    from autowsgr.application.ui.controller.bath_page import BathPage
+    from autowsgr.application.ui.controller.backyard.main_page import BackyardPage
+    from autowsgr.application.ui.controller.backyard.bath_page import BathPage
     from autowsgr.application.ui.controller.battle_preparation import BattlePreparationPage
-    from autowsgr.application.ui.controller.build_page import BuildPage
-    from autowsgr.application.ui.controller.canteen_page import CanteenPage
+    from autowsgr.application.ui.controller.sidebar.build_page import BuildPage
+    from autowsgr.application.ui.controller.backyard.canteen_page import CanteenPage
     from autowsgr.application.ui.controller.decisive.battle_page import DecisiveBattlePage
     from autowsgr.application.ui.controller.event.event_page import BaseEventPage
-    from autowsgr.application.ui.controller.friend_page import FriendPage
-    from autowsgr.application.ui.controller.intensify_page import IntensifyPage
-    from autowsgr.application.ui.controller.main_page import MainPage
+    from autowsgr.application.ui.controller.sidebar.friend_page import FriendPage
+    from autowsgr.application.ui.controller.sidebar.intensify_page import IntensifyPage
+    from autowsgr.application.ui.controller.home import HomePage
     from autowsgr.application.ui.controller.map import MapPage
     from autowsgr.application.ui.controller.mission_page import MissionPage
-    from autowsgr.application.ui.controller.sidebar_page import SidebarPage
+    from autowsgr.application.ui.controller.sidebar.main_page import SidebarPage
     from autowsgr.common.system import UserConfig
 
     ctx = GameContext(ctrl=ctrl, config=UserConfig())
 
     for _ in range(5):
         screen = ctrl.screenshot()
-        if MainPage.is_current_page(screen):
+        if HomePage.check_current_page(screen):
             return True
         # 叶页面（深层）先返回
         if BathPage.check_current_page(screen):
@@ -517,9 +517,9 @@ def reset_to_main_page(ctrl: ADBController, pause: float = 1.5) -> bool:  # noqa
             CanteenPage(ctx).go_back()
         elif BuildPage.check_current_page(screen):
             BuildPage(ctx).go_back()
-        elif IntensifyPage.is_current_page(screen):
+        elif IntensifyPage.check_current_page(screen):
             IntensifyPage(ctx).go_back()
-        elif FriendPage.is_current_page(screen):
+        elif FriendPage.check_current_page(screen):
             FriendPage(ctx).go_back()
         elif MissionPage.is_current_page(screen):
             MissionPage(ctx).go_back()
@@ -532,7 +532,7 @@ def reset_to_main_page(ctrl: ADBController, pause: float = 1.5) -> bool:  # noqa
         # 中间页面
         elif BackyardPage.check_current_page(screen):
             BackyardPage(ctx).go_back()
-        elif SidebarPage.is_current_page(screen):
+        elif SidebarPage.check_current_page(screen):
             SidebarPage(ctx).close()
         elif MapPage.is_current_page(screen):
             MapPage(ctx).go_back()

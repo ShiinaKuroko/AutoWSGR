@@ -21,21 +21,14 @@ if TYPE_CHECKING:
 # ── 战斗页面动作 ─────────────────────────────────────────────────
 
 
-def _battle_prep_to_map(ctx: GameContext) -> None:
-    """从出征准备页返回地图，供暂停或取消时回到战斗入口。"""
-    from autowsgr.application.ui.controller.battle_preparation import BattlePreparationPage
-
-    BattlePreparationPage(ctx).go_back()
-
-
-def _decisive_to_main(ctx: GameContext) -> None:
+def _decisive_to_home(ctx: GameContext) -> None:
     """从决战页面返回主页，结束决战页面上下文。"""
     from autowsgr.application.ui.controller.decisive import DecisiveBattlePage
 
     DecisiveBattlePage(ctx).go_back()
 
 
-def _event_to_main(ctx: GameContext) -> None:
+def _event_to_home(ctx: GameContext) -> None:
     """从活动页面返回主页，结束活动页面上下文。"""
     from autowsgr.application.ui.controller.event.event_page import BaseEventPage
 
@@ -49,7 +42,7 @@ def _map_to_decisive(ctx: GameContext) -> None:
     MapPage(ctx).enter_decisive()
 
 
-def _map_to_main(ctx: GameContext) -> None:
+def _map_to_home(ctx: GameContext) -> None:
     """从地图返回主页，结束当前出征入口。"""
     from autowsgr.application.ui.controller.map import MapPage
 
@@ -59,12 +52,13 @@ def _map_to_main(ctx: GameContext) -> None:
 # ── 战斗导航图 ─────────────────────────────────────────────────
 
 # 边表描述战斗页面入口和回退关系，具体点击由上面的页面动作完成。
+# BATTLE_PREP 的父页面依赖普通/决战/活动模式，由 service.py 的显式路线处理。
+# TODO: 活动出征需先从 BATTLE_PREP 返回 EVENT_MAP，再接 EVENT_MAP → HOME → 后院 → 浴室。
 COMBAT_EDGES: tuple[NavEdge, ...] = (
-    NavEdge(PageName.MAP, PageName.MAIN, _map_to_main, '地图 → 主页面'),
-    NavEdge(PageName.BATTLE_PREP, PageName.MAP, _battle_prep_to_map, '出征准备 → 地图'),
+    NavEdge(PageName.MAP, PageName.HOME, _map_to_home, '地图 → 主页面'),
     NavEdge(PageName.MAP, PageName.DECISIVE_BATTLE, _map_to_decisive, '地图 → 决战'),
-    NavEdge(PageName.DECISIVE_BATTLE, PageName.MAIN, _decisive_to_main, '决战 → 主页面'),
-    NavEdge(PageName.EVENT_MAP, PageName.MAIN, _event_to_main, '活动 → 主页面'),
+    NavEdge(PageName.DECISIVE_BATTLE, PageName.HOME, _decisive_to_home, '决战 → 主页面'),
+    NavEdge(PageName.EVENT_MAP, PageName.HOME, _event_to_home, '活动 → 主页面'),
 )
 
 

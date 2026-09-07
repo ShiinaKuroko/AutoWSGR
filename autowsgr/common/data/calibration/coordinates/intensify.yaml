@@ -1,6 +1,0 @@
-# Intensify page coordinates, collected at the 1280x720 reference size.
-back: [28, 42]
-tabs:
-  intensify: [240, 33]
-  remake: [400, 33]
-  skill: [560, 33]

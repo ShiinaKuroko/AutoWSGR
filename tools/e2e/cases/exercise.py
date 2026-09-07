@@ -301,7 +301,7 @@ def _run_multiple_rounds(  # noqa: PLR0915 - one E2E case owns the full scenario
     rt.check('队伍按 2→3 循环切换', lambda: actual_fleets == expected_fleets)
     rt.check(
         '连续任务阶段导航从首页开始',
-        lambda: all(page == PageName.MAIN for _, page in snapshots['round_start_pages']),
+        lambda: all(page == PageName.HOME for _, page in snapshots['round_start_pages']),
     )
     rt.check(
         '连续任务存在相邻演习请求',
@@ -327,7 +327,7 @@ def _run_multiple_rounds(  # noqa: PLR0915 - one E2E case owns the full scenario
             '断点暂停均回到首页',
             lambda: (
                 len(snapshots['paused_pages']) >= len(_RELAY_PAUSES)
-                and all(page == PageName.MAIN for page in snapshots['paused_pages'])
+                and all(page == PageName.HOME for page in snapshots['paused_pages'])
             ),
         )
         completed_checks = [
@@ -339,7 +339,7 @@ def _run_multiple_rounds(  # noqa: PLR0915 - one E2E case owns the full scenario
             '断点后勤检查按顺序执行',
             lambda: completed_checks[: len(checks)] == list(checks),
         )
-    rt.check(f'{rounds}轮任务最终回到首页', lambda: identify_current_page(ctx) == PageName.MAIN)
+    rt.check(f'{rounds}轮任务最终回到首页', lambda: identify_current_page(ctx) == PageName.HOME)
     return rt.state.failed == 0
 
 
@@ -363,15 +363,15 @@ def run(rt: Any) -> bool:  # noqa: C901, PLR0912, PLR0915 - one E2E case owns it
     # ── 阶段零 (可选): 初始化链路 + 每日浮层清理 ────────────────
     if args.with_init:
         from autowsgr.application.runtime.initialize.initialize import initialize
-        from autowsgr.application.ui.controller.main_page import MainPage
-        from autowsgr.application.ui.controller.main_page.overlays import detect_overlay
+        from autowsgr.application.ui.controller.home import HomePage
+        from autowsgr.application.ui.controller.home.overlays import read_overlay
 
         if rt.action('初始化 (任意状态 → 首页 + 清浮层)', initialize, ctx) is rt.FAILED:
             return False
-        rt.check('初始化后: 主页面基础态', MainPage.is_base_page, ctx.ctrl.screenshot())
+        rt.check('初始化后: 主页面基础态', HomePage.check_base_page, ctx.ctrl.screenshot())
         rt.check(
             '初始化后: 无浮层残留',
-            lambda: detect_overlay(ctx.ctrl.screenshot()) is None,
+            lambda: read_overlay(ctx.ctrl.screenshot()) is None,
         )
 
     # ── 准备: 演习请求 (YAML 驱动) + 处理器 ─────────────────────
@@ -463,7 +463,7 @@ def run(rt: Any) -> bool:  # noqa: C901, PLR0912, PLR0915 - one E2E case owns it
             '每次打断都在主页面 (锚点铁律)',
             lambda: (
                 len(paused_pages) == len(_RELAY_PAUSES)
-                and all(page == PageName.MAIN for page in paused_pages)
+                and all(page == PageName.HOME for page in paused_pages)
             ),
         )
     elif args.pause_at:
@@ -475,7 +475,7 @@ def run(rt: Any) -> bool:  # noqa: C901, PLR0912, PLR0915 - one E2E case owns it
             ),
         )
         rt.check(
-            '打断时已回到主页面 (锚点铁律)', lambda: snapshots.get('paused_page') == PageName.MAIN
+            '打断时已回到主页面 (锚点铁律)', lambda: snapshots.get('paused_page') == PageName.HOME
         )
         rt.check(f'打断点 [{args.pause_at}] 确实触发过', lambda: bool(snapshots.get('interrupted')))
         if args.pause_at == 'rival_done':
@@ -524,6 +524,6 @@ def run(rt: Any) -> bool:  # noqa: C901, PLR0912, PLR0915 - one E2E case owns it
                 == list(checks)
             ),
         )
-    rt.check('终态: 主页面', lambda: identify_current_page(ctx) == PageName.MAIN)
+    rt.check('终态: 主页面', lambda: identify_current_page(ctx) == PageName.HOME)
 
     return rt.state.failed == 0

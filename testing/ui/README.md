@@ -163,8 +163,8 @@ python testing/ui/map_page/e2e.py --auto --debug --pause 2.0
 |---|---|
 | `main_page` | 尝试从地图/侧边栏/后院/任务调用 `go_back()` |
 | `map_page` | 主页面 → `go_to_sortie()` |
-| `sidebar_page` | 主页面 → `open_sidebar()` |
-| `backyard_page` | 主页面 → `go_home()` |
+| `sidebar_page` | 主页面 → `go_to_sidebar()` |
+| `backyard_page` | 主页面 → `go_to_backyard()` |
 | `mission_page` | 主页面 → `go_to_task()` |
 | `build_page` | 主页面 → 侧边栏 → `go_to_build()` |
 | `intensify_page` | 主页面 → 侧边栏 → `go_to_intensify()` |

@@ -135,7 +135,7 @@ class ExerciseExecutor(BaseExecutor):
             # 任务异常、停止或暂停都不能把设备留在演习链路中；清理错误
             # 只记录，不覆盖原始业务异常。
             try:
-                goto_page(self.ctx, PageName.MAIN)
+                goto_page(self.ctx, PageName.HOME)
             except Exception as error:
                 _log.error('[Exercise] 返回首页失败: {}', error)
 

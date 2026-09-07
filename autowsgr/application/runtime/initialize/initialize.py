@@ -15,7 +15,7 @@
 
 依赖 (各归其位):
     - application.ui.navigation — 页面导航与识别
-    - application.ui.controller.main_page.MainPage — 主页识别 (浮层命中 = 主页命中)
+    - application.ui.controller.home.HomePage — 主页识别 (浮层命中 = 主页命中)
     - application.ui.controller.start_screen.StartScreenPage — 启动画面识别与点击进入
     - 同包 overlays — 每日弹窗 (日期门控)
     - 同包 updater — 更新空判断 (未来扩展)
@@ -116,11 +116,11 @@ def _package_of(ctx: GameContext) -> str:
     return GameAPP(str(app)).package_name
 
 
-def _is_on_main_page(ctx: GameContext) -> bool:
+def _is_on_home_page(ctx: GameContext) -> bool:
     """截图检测当前是否在主页面 (浮层命中也算, 与旧逻辑一致)。"""
-    from autowsgr.application.ui.controller.main_page import MainPage
+    from autowsgr.application.ui.controller.home import HomePage
 
-    return bool(MainPage.is_current_page(ctx.ctrl.screenshot()))
+    return bool(HomePage.check_current_page(ctx.ctrl.screenshot()))
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -130,13 +130,13 @@ def _is_on_main_page(ctx: GameContext) -> bool:
 
 def _try_reach_main(ctx: GameContext) -> bool:
     """尝试到达主页面: 已在 → True; 否则 goto_page (失败重试到超时)。"""
-    if identify_current_page(ctx) == PageName.MAIN:
+    if identify_current_page(ctx) == PageName.HOME:
         return True
 
     deadline = time.monotonic() + _RECOVERY_TIMEOUT
     while time.monotonic() < deadline:
         try:
-            goto_page(ctx, PageName.MAIN)
+            goto_page(ctx, PageName.HOME)
         except NavigationError:
             time.sleep(_RECOVERY_RETRY_INTERVAL)
         else:
@@ -170,7 +170,7 @@ def _start_game_flow(ctx: GameContext, package: str) -> None:
     _click_enter(ctx)
 
     # ④ 验证真的到达主页面 (旧代码缺这一步)
-    if not _wait_for_main_page(ctx):
+    if not _wait_for_home_page(ctx):
         raise TimeoutError(f'点击进入后超时 ({_ENTER_MAIN_TIMEOUT:.0f}s), 未到达主页面')
 
 
@@ -194,11 +194,11 @@ def _click_enter(ctx: GameContext) -> None:
     StartScreenPage(ctx.ctrl).click_enter()
 
 
-def _wait_for_main_page(ctx: GameContext, *, timeout: float = _ENTER_MAIN_TIMEOUT) -> bool:
+def _wait_for_home_page(ctx: GameContext, *, timeout: float = _ENTER_MAIN_TIMEOUT) -> bool:
     """轮询等待到达主页面 (点击进入后的验证)。"""
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
-        if _is_on_main_page(ctx):
+        if _is_on_home_page(ctx):
             _log.info('[Initialize] 已到达主页面')
             return True
         time.sleep(_STARTUP_POLL_INTERVAL)

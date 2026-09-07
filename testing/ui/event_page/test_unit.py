@@ -180,7 +180,7 @@ class TestGoBack:
         """已在主页面 → 直接返回, 不点击。"""
         page, ctrl = _make_page()
         monkeypatch.setattr(
-            'autowsgr.application.ui.controller.main_page.MainPage.is_current_page',
+            'autowsgr.application.ui.controller.home.HomePage.check_current_page',
             MagicMock(return_value=True),
         )
 
@@ -197,7 +197,7 @@ class TestGoBack:
         ctrl.screenshot.side_effect = [frame, frame, main_frame]
         _mock_fight_button(monkeypatch, [_button_detail(), None])
         monkeypatch.setattr(
-            'autowsgr.application.ui.controller.main_page.MainPage.is_current_page',
+            'autowsgr.application.ui.controller.home.HomePage.check_current_page',
             MagicMock(side_effect=[False, False, True]),
         )
 
@@ -217,7 +217,7 @@ class TestGoBack:
         ctrl.screenshot.side_effect = [frame, main_frame]
         _mock_fight_button(monkeypatch, [None])
         monkeypatch.setattr(
-            'autowsgr.application.ui.controller.main_page.MainPage.is_current_page',
+            'autowsgr.application.ui.controller.home.HomePage.check_current_page',
             MagicMock(side_effect=[False, True]),
         )
 
@@ -234,7 +234,7 @@ class TestGoBack:
         page, ctrl = _make_page()
         ctrl.screenshot.return_value = _gradient_screen()
         monkeypatch.setattr(
-            'autowsgr.application.ui.controller.main_page.MainPage.is_current_page',
+            'autowsgr.application.ui.controller.home.HomePage.check_current_page',
             MagicMock(return_value=False),
         )
         monkeypatch.setattr(

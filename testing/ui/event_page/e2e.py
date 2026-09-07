@@ -68,12 +68,12 @@ def run_test(runner: UIControllerTestRunner) -> None:
     """执行活动地图页面控制器完整测试序列。"""
     from autowsgr.application.runtime.context import GameContext
     from autowsgr.application.ui.controller.event.event_page import BaseEventPage
-    from autowsgr.application.ui.controller.main_page import MainPage
+    from autowsgr.application.ui.controller.home import HomePage
     from autowsgr.common.system import UserConfig
 
     ctx = GameContext(ctrl=runner.ctrl, config=UserConfig())
     event_page = BaseEventPage(ctx)
-    main_page = MainPage(ctx)
+    main_page = HomePage(ctx)
 
     # ═══════════════════════════════════════════════════════════════════════
     # A. 页面识别
@@ -131,7 +131,7 @@ def run_test(runner: UIControllerTestRunner) -> None:
     runner.execute_step(
         '活动地图 → ◁ 主页面',
         '主页面',
-        MainPage.is_current_page,
+        HomePage.check_current_page,
         event_page.go_back,
     )
     if runner.aborted:
@@ -142,7 +142,7 @@ def run_test(runner: UIControllerTestRunner) -> None:
         '主页面 → 活动地图 (双向导航验证)',
         '活动地图页面',
         BaseEventPage.is_current_page,
-        lambda: main_page.navigate_to(MainPage.Target.EVENT),
+        lambda: main_page.navigate_to(HomePage.Target.EVENT),
     )
     if runner.aborted:
         return
@@ -185,16 +185,16 @@ def _try_enter_node(event_page: object, node_id: int) -> None:
 def _navigate_to(ctrl: AndroidController, pause: float) -> None:
     """从任意已知页面导航到活动地图页面。"""
     from autowsgr.application.runtime.context import GameContext
-    from autowsgr.application.ui.controller.main_page import MainPage
+    from autowsgr.application.ui.controller.home import HomePage
     from autowsgr.common.system import UserConfig
 
     if not reset_to_main_page(ctrl, pause):
         return
     time.sleep(pause)
     screen = ctrl.screenshot()
-    if MainPage.is_current_page(screen):
+    if HomePage.check_current_page(screen):
         ctx = GameContext(ctrl=ctrl, config=UserConfig())
-        MainPage(ctx).navigate_to(MainPage.Target.EVENT)
+        HomePage(ctx).navigate_to(HomePage.Target.EVENT)
         time.sleep(pause)
 
 

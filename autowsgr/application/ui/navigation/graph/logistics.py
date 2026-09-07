@@ -23,61 +23,61 @@ if TYPE_CHECKING:
 
 def _backyard_to_bath(ctx: GameContext) -> None:
     """从后院打开浴室页面并等待页面稳定。"""
-    from autowsgr.application.ui.controller.backyard_page import BackyardPage, BackyardTarget
+    from autowsgr.application.ui.controller.backyard.main_page import BackyardPage, BackyardTarget
 
     BackyardPage(ctx).navigate_to(BackyardTarget.BATH)
 
 
 def _backyard_to_canteen(ctx: GameContext) -> None:
     """从后院打开食堂页面并等待页面稳定。"""
-    from autowsgr.application.ui.controller.backyard_page import BackyardPage, BackyardTarget
+    from autowsgr.application.ui.controller.backyard.main_page import BackyardPage, BackyardTarget
 
     BackyardPage(ctx).navigate_to(BackyardTarget.CANTEEN)
 
 
-def _backyard_to_main(ctx: GameContext) -> None:
+def _backyard_to_home(ctx: GameContext) -> None:
     """从后院返回主页。"""
-    from autowsgr.application.ui.controller.backyard_page import BackyardPage
+    from autowsgr.application.ui.controller.backyard.main_page import BackyardPage
 
     BackyardPage(ctx).go_back()
 
 
 def _bath_to_backyard(ctx: GameContext) -> None:
     """从浴室返回后院。"""
-    from autowsgr.application.ui.controller.bath_page import BathPage
+    from autowsgr.application.ui.controller.backyard.bath_page import BathPage
 
     BathPage(ctx).go_back()
 
 
 def _build_to_sidebar(ctx: GameContext) -> None:
     """从建造页面返回侧边栏。"""
-    from autowsgr.application.ui.controller.build_page import BuildPage
+    from autowsgr.application.ui.controller.sidebar.build_page import BuildPage
 
     BuildPage(ctx).go_back()
 
 
 def _canteen_to_backyard(ctx: GameContext) -> None:
     """从食堂返回后院。"""
-    from autowsgr.application.ui.controller.canteen_page import CanteenPage
+    from autowsgr.application.ui.controller.backyard.canteen_page import CanteenPage
 
     CanteenPage(ctx).go_back()
 
 
 def _friend_to_sidebar(ctx: GameContext) -> None:
     """从好友页面返回侧边栏。"""
-    from autowsgr.application.ui.controller.friend_page import FriendPage
+    from autowsgr.application.ui.controller.sidebar.friend_page import FriendPage
 
     FriendPage(ctx).go_back()
 
 
 def _intensify_to_sidebar(ctx: GameContext) -> None:
     """从强化页面返回侧边栏。"""
-    from autowsgr.application.ui.controller.intensify_page import IntensifyPage
+    from autowsgr.application.ui.controller.sidebar.intensify_page import IntensifyPage
 
     IntensifyPage(ctx).go_back()
 
 
-def _mission_to_main(ctx: GameContext) -> None:
+def _mission_to_home(ctx: GameContext) -> None:
     """从任务页面返回主页。"""
     from autowsgr.application.ui.controller.mission_page import MissionPage
 
@@ -86,28 +86,28 @@ def _mission_to_main(ctx: GameContext) -> None:
 
 def _sidebar_to_build(ctx: GameContext) -> None:
     """从侧边栏打开建造页面并等待页面稳定。"""
-    from autowsgr.application.ui.controller.sidebar_page import SidebarPage, SidebarTarget
+    from autowsgr.application.ui.controller.sidebar.main_page import SidebarPage, SidebarTarget
 
     SidebarPage(ctx).navigate_to(SidebarTarget.BUILD)
 
 
 def _sidebar_to_friend(ctx: GameContext) -> None:
     """从侧边栏打开好友页面并等待页面稳定。"""
-    from autowsgr.application.ui.controller.sidebar_page import SidebarPage, SidebarTarget
+    from autowsgr.application.ui.controller.sidebar.main_page import SidebarPage, SidebarTarget
 
     SidebarPage(ctx).navigate_to(SidebarTarget.FRIEND)
 
 
 def _sidebar_to_intensify(ctx: GameContext) -> None:
     """从侧边栏打开强化页面并等待页面稳定。"""
-    from autowsgr.application.ui.controller.sidebar_page import SidebarPage, SidebarTarget
+    from autowsgr.application.ui.controller.sidebar.main_page import SidebarPage, SidebarTarget
 
     SidebarPage(ctx).navigate_to(SidebarTarget.INTENSIFY)
 
 
-def _sidebar_to_main(ctx: GameContext) -> None:
+def _sidebar_to_home(ctx: GameContext) -> None:
     """关闭侧边栏并回到主页。"""
-    from autowsgr.application.ui.controller.sidebar_page import SidebarPage
+    from autowsgr.application.ui.controller.sidebar.main_page import SidebarPage
 
     SidebarPage(ctx).close()
 
@@ -116,9 +116,9 @@ def _sidebar_to_main(ctx: GameContext) -> None:
 
 # 边表描述后勤页面入口和回退关系，具体点击由上面的页面动作完成。
 LOGISTICS_EDGES: tuple[NavEdge, ...] = (
-    NavEdge(PageName.MISSION, PageName.MAIN, _mission_to_main, '任务 → 主页面'),
-    NavEdge(PageName.BACKYARD, PageName.MAIN, _backyard_to_main, '后院 → 主页面'),
-    NavEdge(PageName.SIDEBAR, PageName.MAIN, _sidebar_to_main, '侧边栏 → 主页面'),
+    NavEdge(PageName.MISSION, PageName.HOME, _mission_to_home, '任务 → 主页面'),
+    NavEdge(PageName.BACKYARD, PageName.HOME, _backyard_to_home, '后院 → 主页面'),
+    NavEdge(PageName.SIDEBAR, PageName.HOME, _sidebar_to_home, '侧边栏 → 主页面'),
     NavEdge(PageName.BACKYARD, PageName.BATH, _backyard_to_bath, '后院 → 浴室'),
     NavEdge(PageName.BACKYARD, PageName.CANTEEN, _backyard_to_canteen, '后院 → 食堂'),
     NavEdge(PageName.BATH, PageName.BACKYARD, _bath_to_backyard, '浴室 → 后院'),

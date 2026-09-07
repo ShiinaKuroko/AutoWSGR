@@ -284,6 +284,6 @@ class GameContext:
             counts.loot,
         )
         try:
-            goto_page(self, PageName.MAIN)
+            goto_page(self, PageName.HOME)
         except Exception:
             _log.warning('[Context] 每日掉落计数同步后返回主页面失败')

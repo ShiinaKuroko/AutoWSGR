@@ -25,7 +25,7 @@ from typing import TYPE_CHECKING
 from autowsgr.application.ui.navigation import goto_page
 from autowsgr.common.types import PageName
 from autowsgr.application.ui.controller.battle_preparation import BattlePreparationPage
-from autowsgr.application.ui.controller.main_page import MainPage
+from autowsgr.application.ui.controller.home import HomePage
 from autowsgr.application.ui.navigation.recognition import get_current_page
 
 if TYPE_CHECKING:
@@ -48,7 +48,7 @@ def test_main_prep_change_fleet_back_main(
     ctx = game_ctx
 
     # 1. 主页 (launch 后应已就位)
-    assert MainPage.is_current_page(ctx.ctrl.screenshot()), (
+    assert HomePage.check_current_page(ctx.ctrl.screenshot()), (
         f'启动后应位于主页面，实际: {_current_page(ctx)}'
     )
 
@@ -63,7 +63,7 @@ def test_main_prep_change_fleet_back_main(
     assert page.change_fleet(fleet_id, ships), '换船流程应成功'
 
     # 4. 返回主页
-    goto_page(ctx, PageName.MAIN)
-    assert MainPage.is_current_page(ctx.ctrl.screenshot()), (
+    goto_page(ctx, PageName.HOME)
+    assert HomePage.check_current_page(ctx.ctrl.screenshot()), (
         f'应返回主页面，实际: {_current_page(ctx)}'
     )

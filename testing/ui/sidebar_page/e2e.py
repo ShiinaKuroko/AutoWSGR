@@ -40,11 +40,11 @@ if TYPE_CHECKING:
 
 
 def run_test(runner: UIControllerTestRunner) -> None:  # noqa: PLR0911
-    from autowsgr.application.ui.controller.build_page import BuildPage, BuildTab
-    from autowsgr.application.ui.controller.friend_page import FriendPage
-    from autowsgr.application.ui.controller.intensify_page import IntensifyPage, IntensifyTab
-    from autowsgr.application.ui.controller.main_page import MainPage
-    from autowsgr.application.ui.controller.sidebar_page import SidebarPage, SidebarTarget
+    from autowsgr.application.ui.controller.sidebar.build_page import BuildPage, BuildTab
+    from autowsgr.application.ui.controller.sidebar.friend_page import FriendPage
+    from autowsgr.application.ui.controller.sidebar.intensify_page import IntensifyPage, IntensifyTab
+    from autowsgr.application.ui.controller.home import HomePage
+    from autowsgr.application.ui.controller.sidebar.main_page import SidebarPage, SidebarTarget
 
     sidebar_page = SidebarPage(runner.ctx)
     build_page = BuildPage(runner.ctx)
@@ -52,7 +52,7 @@ def run_test(runner: UIControllerTestRunner) -> None:  # noqa: PLR0911
     friend_page = FriendPage(runner.ctx)
 
     # Step 0: 验证初始
-    runner.verify_current('初始验证: 侧边栏', '侧边栏', SidebarPage.is_current_page)
+    runner.verify_current('初始验证: 侧边栏', '侧边栏', SidebarPage.check_current_page)
     if runner.aborted:
         return
 
@@ -72,7 +72,7 @@ def run_test(runner: UIControllerTestRunner) -> None:  # noqa: PLR0911
             f'建造: 切换标签 → {tab.value}',
             '建造页面',
             BuildPage.check_current_page,
-            lambda t=tab: build_page.switch_tab(t),
+            lambda t=tab: build_page.select_tab(t),
         )
         if runner.aborted:
             return
@@ -81,7 +81,7 @@ def run_test(runner: UIControllerTestRunner) -> None:  # noqa: PLR0911
     runner.execute_step(
         '建造页面 → ◁ 侧边栏',
         '侧边栏',
-        SidebarPage.is_current_page,
+        SidebarPage.check_current_page,
         build_page.go_back,
     )
     if runner.aborted:
@@ -91,7 +91,7 @@ def run_test(runner: UIControllerTestRunner) -> None:  # noqa: PLR0911
     runner.execute_step(
         '侧边栏 → 强化页面',
         '强化页面',
-        IntensifyPage.is_current_page,
+        IntensifyPage.check_current_page,
         lambda: sidebar_page.navigate_to(SidebarTarget.INTENSIFY),
     )
     if runner.aborted:
@@ -102,8 +102,8 @@ def run_test(runner: UIControllerTestRunner) -> None:  # noqa: PLR0911
         runner.execute_step(
             f'强化: 切换标签 → {tab.value}',
             '强化页面',
-            IntensifyPage.is_current_page,
-            lambda t=tab: intensify_page.switch_tab(t),
+            IntensifyPage.check_current_page,
+            lambda t=tab: intensify_page.select_tab(t),
         )
         if runner.aborted:
             return
@@ -112,7 +112,7 @@ def run_test(runner: UIControllerTestRunner) -> None:  # noqa: PLR0911
     runner.execute_step(
         '强化页面 → ◁ 侧边栏',
         '侧边栏',
-        SidebarPage.is_current_page,
+        SidebarPage.check_current_page,
         intensify_page.go_back,
     )
     if runner.aborted:
@@ -122,7 +122,7 @@ def run_test(runner: UIControllerTestRunner) -> None:  # noqa: PLR0911
     runner.execute_step(
         '侧边栏 → 好友页面',
         '好友页面',
-        FriendPage.is_current_page,
+        FriendPage.check_current_page,
         lambda: sidebar_page.navigate_to(SidebarTarget.FRIEND),
     )
     if runner.aborted:
@@ -132,7 +132,7 @@ def run_test(runner: UIControllerTestRunner) -> None:  # noqa: PLR0911
     runner.execute_step(
         '好友页面 → ◁ 侧边栏',
         '侧边栏',
-        SidebarPage.is_current_page,
+        SidebarPage.check_current_page,
         friend_page.go_back,
     )
     if runner.aborted:
@@ -142,7 +142,7 @@ def run_test(runner: UIControllerTestRunner) -> None:  # noqa: PLR0911
     runner.execute_step(
         '侧边栏 → close → 主页面',
         '主页面',
-        MainPage.is_current_page,
+        HomePage.check_current_page,
         sidebar_page.close,
     )
 
@@ -152,15 +152,15 @@ def _navigate_to(ctrl: AndroidController, pause: float) -> None:
     import time
 
     from autowsgr.application.runtime.context import GameContext
-    from autowsgr.application.ui.controller.main_page import MainPage
+    from autowsgr.application.ui.controller.home import HomePage
     from autowsgr.common.system import UserConfig
 
     if not reset_to_main_page(ctrl, pause):
         return
     screen = ctrl.screenshot()
-    if MainPage.is_current_page(screen):
+    if HomePage.check_current_page(screen):
         ctx = GameContext(ctrl=ctrl, config=UserConfig())
-        MainPage(ctx).navigate_to(MainPage.Target.SIDEBAR)
+        HomePage(ctx).navigate_to(HomePage.Target.SIDEBAR)
         time.sleep(pause)
 
 
@@ -174,11 +174,11 @@ def main() -> None:
     from loguru import logger
 
     logger.info('=== 侧边栏 e2e 测试开始 ===')
-    from autowsgr.application.ui.controller.sidebar_page import SidebarPage
+    from autowsgr.application.ui.controller.sidebar.main_page import SidebarPage
 
     if not ensure_page(
         ctrl,
-        SidebarPage.is_current_page,
+        SidebarPage.check_current_page,
         lambda: _navigate_to(ctrl, args.pause),
         '侧边栏',
         auto_mode=args.auto,

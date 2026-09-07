@@ -170,15 +170,15 @@ class DecisiveBattlePage:
 
     def go_back(self) -> None:
         """点击左上角 ◁，直接返回主页面 (跨级)。"""
-        from autowsgr.application.ui.controller.main_page import MainPage
+        from autowsgr.application.ui.controller.home import HomePage
 
         _log.info('[决战] 决战页面 ◁ → 主页面')
         click_and_wait_for_page(
             self._ctrl,
             click_coord=CLICK_BACK,
-            checker=MainPage.is_current_page,
+            checker=HomePage.check_current_page,
             source=PageName.DECISIVE_BATTLE,
-            target=PageName.MAIN,
+            target=PageName.HOME,
         )
 
     def click_enter_map(self) -> None:

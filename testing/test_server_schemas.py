@@ -302,6 +302,15 @@ def test_invalid_rule_formation_action_is_rejected_at_http_boundary(action: obje
         NodeDecisionRequest.model_validate({'enemy_rules': [['BB > 0', action]]})
 
 
+@pytest.mark.parametrize('condition', ['ap>=1', 'ap > = 1'])
+def test_node_decision_request_accepts_legacy_rule_spelling(condition: str):
+    decision = NodeDecisionRequest.model_validate(
+        {'enemy_rules': [[condition, 4]]},
+    )
+
+    assert decision.enemy_rules == [(condition, 4)]
+
+
 def test_yaml_and_api_candidate_only_rules_share_canonical_model():
     """YAML 与 API 的纯备选结构在入口转换后应完全一致。"""
     raw_rule = {

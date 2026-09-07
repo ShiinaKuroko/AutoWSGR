@@ -1,7 +1,7 @@
 """主页面识别模板 — 主页基础页面 + 登录/操作浮层。
 
 主页面 (main page) 上可能叠加的浮层: 新闻公告 / 每日签到 / 活动预约 / 提督信息。
-浮层打开时仍识别为主页面 (``MainPage.is_current_page`` 对基础页与各浮层做 OR 组合)。
+浮层打开时仍识别为主页面 (``HomePage.check_current_page`` 对基础页与各浮层做 OR 组合)。
 """
 
 from __future__ import annotations

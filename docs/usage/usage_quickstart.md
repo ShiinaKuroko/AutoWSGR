@@ -211,6 +211,6 @@ for i, r in enumerate(results):
 | `NormalFightPlan(timer, '5-4.yaml')` | `NormalFightRunner(ctrl, plan, matcher)` |
 | `NormalExercisePlan(timer, ...)` | `ExerciseRunner(ctrl, config, matcher)` |
 | `DecisiveBattle(timer)` | `DecisiveController(ctrl, config)` |
-| `timer.go_main_page()` | `goto_page(ctrl, "主页面")` |
+| `timer.go_home_page()` | `goto_page(ctrl, "主页面")` |
 
 核心变化：用 `ctrl` (AndroidController) 替代 `timer` (God Object)。

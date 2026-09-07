@@ -34,7 +34,7 @@ def test_handle_daily_overlays_skips_after_today_is_handled(
     """当天已经处理过时，不再创建页面控制器或截图。"""
     _freeze_today(monkeypatch)
     page_type = MagicMock()
-    monkeypatch.setattr(startup, 'MainPage', page_type)
+    monkeypatch.setattr(startup, 'HomePage', page_type)
     ctx = _make_ctx(handled_on=_TODAY)
 
     startup.handle_daily_overlays(ctx)
@@ -49,7 +49,7 @@ def test_handle_daily_overlays_processes_overlay_and_confirm_fallback(
     _freeze_today(monkeypatch)
     page = MagicMock()
     page.dismiss_current_overlay.side_effect = [True, False, False]
-    monkeypatch.setattr(startup, 'MainPage', MagicMock(return_value=page))
+    monkeypatch.setattr(startup, 'HomePage', MagicMock(return_value=page))
 
     confirm = MagicMock(side_effect=[True, False])
     monkeypatch.setattr(ui_utils, 'confirm_operation', confirm)
@@ -78,7 +78,7 @@ def test_handle_daily_overlays_stops_at_attempt_limit(
     _freeze_today(monkeypatch)
     page = MagicMock()
     page.dismiss_current_overlay.return_value = True
-    monkeypatch.setattr(startup, 'MainPage', MagicMock(return_value=page))
+    monkeypatch.setattr(startup, 'HomePage', MagicMock(return_value=page))
     sleep = MagicMock()
     monkeypatch.setattr(startup.time, 'sleep', sleep)
 
@@ -92,7 +92,7 @@ def test_handle_daily_overlays_stops_at_attempt_limit(
     ('dismiss_overlays', 'expected_calls'),
     [(True, 1), (False, 0)],
 )
-def test_go_main_page_handles_overlays_after_navigation(
+def test_go_home_page_handles_overlays_after_navigation(
     monkeypatch: pytest.MonkeyPatch,
     *,
     dismiss_overlays: bool,
@@ -105,9 +105,9 @@ def test_go_main_page_handles_overlays_after_navigation(
     monkeypatch.setattr(startup, 'handle_daily_overlays', handle)
     ctx = _make_ctx()
 
-    startup.go_main_page(ctx, dismiss_overlays=dismiss_overlays)
+    startup.go_home_page(ctx, dismiss_overlays=dismiss_overlays)
 
-    goto.assert_called_once_with(ctx, PageName.MAIN)
+    goto.assert_called_once_with(ctx, PageName.HOME)
     assert handle.call_count == expected_calls
 
 
@@ -118,7 +118,7 @@ def test_ensure_game_ready_handles_overlays_for_running_game(
     monkeypatch.setattr(startup, 'is_game_running', MagicMock(return_value=True))
     recover = MagicMock()
     handle = MagicMock()
-    monkeypatch.setattr(startup, 'recover_to_main_or_restart', recover)
+    monkeypatch.setattr(startup, 'recover_to_home_or_restart', recover)
     monkeypatch.setattr(startup, 'handle_daily_overlays', handle)
     ctx = _make_ctx()
 

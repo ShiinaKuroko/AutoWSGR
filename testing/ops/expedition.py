@@ -5,7 +5,7 @@
     python testing/ops/expedition.py
     python testing/ops/expedition.py 127.0.0.1:16384
 
-无页面前置要求 — collect_expedition() 内部先 goto_page(MAIN) 再检测远征通知。
+无页面前置要求 — collect_expedition() 内部先 goto_page(HOME) 再检测远征通知。
 """
 
 from __future__ import annotations

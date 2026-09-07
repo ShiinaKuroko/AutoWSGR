@@ -153,10 +153,10 @@ DecisiveResult
 | 函数                               | 说明                              |
 |------------------------------------|-----------------------------------|
 | `is_game_running(ctrl, package)`   | 检查游戏进程是否运行                |
-| `is_on_main_page(ctrl)`           | 截图检测是否在主页面                |
+| `is_on_home_page(ctrl)`           | 截图检测是否在主页面                |
 | `wait_for_game_ui(ctrl, timeout)` | 轮询等待游戏 UI 就绪               |
 | `start_game(ctrl, app, package)`  | 启动游戏并等待                     |
-| `go_main_page(ctrl)`              | 导航到主页面                       |
+| `go_home_page(ctrl)`              | 导航到主页面                       |
 | `restart_game(ctrl, app)`         | 完整重启周期 (停止→启动→等待)       |
 | `ensure_game_ready(ctx, app)`     | 确保游戏就绪 (启动+检查+到主页面)   |
 

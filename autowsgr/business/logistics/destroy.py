@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from autowsgr.application.ui.controller.build_page import BuildPage, BuildTab
+from autowsgr.application.ui.controller.sidebar.build_page import BuildPage, BuildTab
 from autowsgr.application.ui.navigation import goto_page
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.types import DestroyShipWorkMode, PageName, ShipType
@@ -53,10 +53,10 @@ def destroy_ships(
     goto_page(ctx, PageName.BUILD)
 
     page = BuildPage(ctx)
-    page.switch_tab(BuildTab.DESTROY)
+    page.select_tab(BuildTab.DESTROY)
     page.destroy_ships(ship_types, remove_equipment=remove_equipment)
 
-    goto_page(ctx, PageName.MAIN)
+    goto_page(ctx, PageName.HOME)
     _log.info('[OPS] 解装完成')
 
 
@@ -119,7 +119,7 @@ def _enter_destroy_page_from_dialog(ctx: GameContext) -> None:
 
     点击后游戏无视 UI 栈直达建造页 (不经过主菜单/侧边栏), 后续解装
     复用 :func:`destroy_ships` — 其开头的 ``goto_page(BUILD)`` 幂等直达,
-    结尾 ``goto_page(MAIN)`` 即解装页返回的落点 (无视 UI 栈回主页)。
+    结尾 ``goto_page(HOME)`` 即解装页返回的落点 (无视 UI 栈回主页)。
 
     Raises
     ------

@@ -78,12 +78,12 @@ class BaseExecutor:
     def _check_pause(self) -> None:
         """断点检查: 处理器发了暂停 → 回主页 → 上报 → 让出执行权。"""
         if self._stop.is_set():
-            goto_page(self.ctx, PageName.MAIN)
+            goto_page(self.ctx, PageName.HOME)
             self._report('stopped')
             raise TaskStopped
         if not self._pause.is_set():
             return
-        goto_page(self.ctx, PageName.MAIN)
+        goto_page(self.ctx, PageName.HOME)
         self._report('paused')
         raise TaskPaused
 

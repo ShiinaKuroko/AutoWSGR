@@ -5,11 +5,11 @@ from autowsgr.application.ui.navigation.registry import get_registered_pages, re
 from autowsgr.common.types import PageName
 
 
-def test_battle_preparation_is_registered_and_returns_via_map() -> None:
+def test_battle_preparation_has_no_generic_map_parent_edge() -> None:
+    """出征准备页的父页面依赖战斗模式，不注册无来源区分的通用边。"""
     register_default_pages()
     assert PageName.BATTLE_PREP.value in get_registered_pages()
 
-    path = find_path(PageName.BATTLE_PREP.value, PageName.MAIN.value)
+    path = find_path(PageName.BATTLE_PREP.value, PageName.HOME.value)
 
-    assert path is not None
-    assert [edge.target for edge in path] == [PageName.MAP, PageName.MAIN]
+    assert path is None

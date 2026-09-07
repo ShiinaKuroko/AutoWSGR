@@ -376,7 +376,7 @@ class ConditionFlag(StrEnum):
 class PageName(StrEnum):
     """游戏页面名称。"""
 
-    MAIN = '主页面'
+    HOME = '主页面'
     """主页面"""
     MAP = '地图页面'
     """地图页面"""

@@ -56,7 +56,7 @@ class BettleExecutor(BaseExecutor):
         finally:
             if not self._pause.is_set() and not self._stop.is_set():
                 try:
-                    goto_page(self.ctx, PageName.MAIN)
+                    goto_page(self.ctx, PageName.HOME)
                 except Exception as error:
                     _log.error('[Bettle] 返回首页失败: {}', error)
 

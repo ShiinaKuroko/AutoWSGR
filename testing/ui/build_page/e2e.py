@@ -38,8 +38,8 @@ if TYPE_CHECKING:
 
 
 def run_test(runner: UIControllerTestRunner) -> None:
-    from autowsgr.application.ui.controller.build_page import BuildPage, BuildTab
-    from autowsgr.application.ui.controller.sidebar_page import SidebarPage
+    from autowsgr.application.ui.controller.sidebar.build_page import BuildPage, BuildTab
+    from autowsgr.application.ui.controller.sidebar.main_page import SidebarPage
 
     build_page = BuildPage(runner.ctrl)
 
@@ -57,7 +57,7 @@ def run_test(runner: UIControllerTestRunner) -> None:
             f'切换标签 → {tab.value}',
             '建造页面',
             BuildPage.check_current_page,
-            lambda t=tab: build_page.switch_tab(t),
+            lambda t=tab: build_page.select_tab(t),
         )
         if runner.aborted:
             return
@@ -65,7 +65,7 @@ def run_test(runner: UIControllerTestRunner) -> None:
     runner.execute_step(
         '建造页面 → ◁ 侧边栏',
         '侧边栏',
-        SidebarPage.is_current_page,
+        SidebarPage.check_current_page,
         build_page.go_back,
     )
 
@@ -74,17 +74,17 @@ def _navigate_to(ctrl: AndroidController, pause: float) -> None:
     """从任意已知页面导航到建造页面。"""
     import time
 
-    from autowsgr.application.ui.controller.main_page import MainPage
-    from autowsgr.application.ui.controller.sidebar_page import SidebarPage
+    from autowsgr.application.ui.controller.home import HomePage
+    from autowsgr.application.ui.controller.sidebar.main_page import SidebarPage
 
     if not reset_to_main_page(ctrl, pause):
         return
     screen = ctrl.screenshot()
-    if MainPage.is_current_page(screen):
-        MainPage(ctrl).navigate_to(MainPage.Target.SIDEBAR)
+    if HomePage.check_current_page(screen):
+        HomePage(ctrl).navigate_to(HomePage.Target.SIDEBAR)
         time.sleep(pause)
         screen = ctrl.screenshot()
-    if SidebarPage.is_current_page(screen):
+    if SidebarPage.check_current_page(screen):
         SidebarPage(ctrl).go_to_build()
         time.sleep(pause)
 
@@ -99,7 +99,7 @@ def main() -> None:
     from loguru import logger
 
     logger.info('=== 建造页面 e2e 测试开始 ===')
-    from autowsgr.application.ui.controller.build_page import BuildPage
+    from autowsgr.application.ui.controller.sidebar.build_page import BuildPage
 
     if not ensure_page(
         ctrl,

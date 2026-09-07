@@ -521,7 +521,7 @@ class TestDockFullDialogRoute:
         runner._handle_dock_full(result)
 
         assert result.flag is ConditionFlag.DOCK_FULL
-        assert goto_calls == [PageName.MAIN]
+        assert goto_calls == [PageName.HOME]
 
 
 class TestRunForTimesDockFullBehavior:

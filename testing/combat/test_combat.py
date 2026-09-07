@@ -336,6 +336,29 @@ class TestParseLegacyCondition:
         ]
 
     @pytest.mark.parametrize(
+        ('condition', 'expected'),
+        [
+            ('ap>=1', Condition(field='AP', op='>=', value=1)),
+            ('ap > = 1', Condition(field='AP', op='>=', value=1)),
+            ('bb>=2', Condition(field='BB', op='>=', value=2)),
+            ('cv > = 1', Condition(field='CV', op='>=', value=1)),
+            ('ss + cl > = 3', Condition(field='SS+CL', op='>=', value=3)),
+            ('all == 6', Condition(field='ALL', op='==', value=6)),
+            ('cvl ! = 1', Condition(field='CVL', op='!=', value=1)),
+        ],
+    )
+    def test_accepts_case_and_spaced_operator_compatibility(
+        self,
+        condition: str,
+        expected: Condition,
+    ):
+        assert _parse_legacy_condition(condition) == [expected]
+
+    def test_rejects_single_equal_operator(self):
+        with pytest.raises(ValueError, match='无法解析'):
+            _parse_legacy_condition('AP = 1')
+
+    @pytest.mark.parametrize(
         'condition',
         [
             '(BB > 0',

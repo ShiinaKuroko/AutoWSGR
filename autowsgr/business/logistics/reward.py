@@ -17,7 +17,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from autowsgr.application.runtime.executor import BaseExecutor
-from autowsgr.application.ui.controller.main_page import MainPage
+from autowsgr.application.ui.controller.home import HomePage
 from autowsgr.application.ui.controller.mission_page import MissionPage
 from autowsgr.application.ui.navigation import goto_page
 from autowsgr.common.system.logger import get_logger
@@ -39,10 +39,10 @@ class RewardCheckExecutor(BaseExecutor):
 
     def _execute(self) -> bool:
         """检查并收取任务奖励, 返回是否收取到了。"""
-        goto_page(self.ctx, PageName.MAIN)  # 锚点: 从主页出发
+        goto_page(self.ctx, PageName.HOME)  # 锚点: 从主页出发
 
         screen = self.ctx.ctrl.screenshot()
-        if not MainPage.has_task_ready(screen):
+        if not HomePage.check_task_ready(screen):
             _log.debug('[Reward] 主页无任务通知, 跳过')
             self._report('checked', collected=0)
             return False
@@ -51,7 +51,7 @@ class RewardCheckExecutor(BaseExecutor):
         page = MissionPage(self.ctx)
         collected = page.collect_rewards()
 
-        goto_page(self.ctx, PageName.MAIN)  # 锚点: 终态回主页
+        goto_page(self.ctx, PageName.HOME)  # 锚点: 终态回主页
         _log.info('[Reward] 任务奖励收取完成, 收取={}', collected)
         self._report('checked', collected=1 if collected else 0)
         return collected

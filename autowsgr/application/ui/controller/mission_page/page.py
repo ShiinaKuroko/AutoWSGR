@@ -94,15 +94,15 @@ class MissionPage:
         NavigationError
             超时仍在任务页面。
         """
-        from autowsgr.application.ui.controller.main_page import MainPage
+        from autowsgr.application.ui.controller.home import HomePage
 
         _log.info('[UI] 任务页面 -> 返回主页面')
         click_and_wait_for_page(
             self._ctrl,
             click_coord=CLICK_BACK,
-            checker=MainPage.is_current_page,
+            checker=HomePage.check_current_page,
             source=PageName.MISSION,
-            target=PageName.MAIN,
+            target=PageName.HOME,
         )
 
     # ── 奖励收取 ─────────────────────────────────────────────────────────

@@ -1,11 +1,11 @@
-"""每日弹窗处理 — 独立模块 (从旧 ops/startup.py 与 ui/main_page/overlays.py 迁移)。
+"""每日弹窗处理 — 独立模块 (从旧 ops/startup.py 与 ui/home/overlays.py 迁移)。
 
 业务定义 (保持原逻辑):
     每日 0 点后第一次回到首页时出现弹窗 (新闻公告 → 每日签到 → 活动预约),
     处理一次后当天零开销跳过 (日期门控)。
 
 复用清单 (不重写):
-    - ui/main_page/overlays.detect_overlay / dismiss_overlay — 浮层检测与消除
+    - ui/home/overlays.read_overlay / dismiss_overlay — 浮层检测与消除
     - ui/utils.confirm_operation — 确认弹窗兜底
 """
 
@@ -16,9 +16,9 @@ from dataclasses import dataclass
 from datetime import date
 from typing import TYPE_CHECKING
 
-from autowsgr.application.ui.controller.main_page.overlays import (
-    detect_overlay,
+from autowsgr.application.ui.controller.home.overlays import (
     dismiss_overlay,
+    read_overlay,
 )
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.ui.interaction import confirm_operation
@@ -82,7 +82,7 @@ def handle_daily_overlays(ctrl: AndroidController, state: OverlayState) -> None:
     for attempt in range(_OVERLAY_DISMISS_MAX):
         # ① 已知浮层直接消除
         screen = ctrl.screenshot()
-        overlay = detect_overlay(screen)
+        overlay = read_overlay(screen)
         if overlay is not None:
             _log.info(
                 '[Overlays] 消除浮层: {} ({}/{})',

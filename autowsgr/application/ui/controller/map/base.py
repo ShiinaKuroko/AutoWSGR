@@ -255,15 +255,15 @@ class BaseMapPage:
 
     def go_back(self) -> None:
         """点击回退按钮 (◁)，返回主页面。"""
-        from autowsgr.application.ui.controller.main_page import MainPage
+        from autowsgr.application.ui.controller.home import HomePage
 
         _log.info('[UI] 地图页面 → 回退')
         click_and_wait_for_page(
             self._ctrl,
             click_coord=CLICK_BACK,
-            checker=MainPage.is_current_page,
+            checker=HomePage.check_current_page,
             source=PageName.MAP,
-            target=PageName.MAIN,
+            target=PageName.HOME,
         )
 
     _PANEL_SWITCH_MAX_RETRIES = 3

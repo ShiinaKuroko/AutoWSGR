@@ -114,7 +114,7 @@ def check_page_signatures(screen: np.ndarray, page_name: str | None = None) -> N
     except ImportError:
         pass
     try:
-        from autowsgr.application.ui.controller.main_page.constants import (
+        from autowsgr.application.ui.controller.home.constants import (
             PAGE_SIGNATURE as MAIN_SIG,
         )
 

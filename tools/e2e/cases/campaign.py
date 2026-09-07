@@ -116,7 +116,7 @@ def run(rt: Any) -> bool:
     rt.check('战役完成次数一致', lambda: len(campaign_done) == args.times)
     if args.pause_at:
         rt.check('目标断点已触发', lambda: interrupted[0])
-        rt.check('打断后回到首页', lambda: paused_page == [PageName.MAIN.value])
+        rt.check('打断后回到首页', lambda: paused_page == [PageName.HOME.value])
         rt.check('插入检查已完成', lambda: check_done == [args.check])
-    rt.check('终态回到首页', lambda: identify_current_page(rt.ctx) == PageName.MAIN.value)
+    rt.check('终态回到首页', lambda: identify_current_page(rt.ctx) == PageName.HOME.value)
     return rt.state.failed == 0

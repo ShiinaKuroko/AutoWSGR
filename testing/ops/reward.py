@@ -5,7 +5,7 @@
     python testing/ops/reward.py
     python testing/ops/reward.py 127.0.0.1:16384
 
-无页面前置要求 — collect_rewards() 内部先 goto_page(MAIN) 再检测任务通知。
+无页面前置要求 — collect_rewards() 内部先 goto_page(HOME) 再检测任务通知。
 """
 
 from __future__ import annotations

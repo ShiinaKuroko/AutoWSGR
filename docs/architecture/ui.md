@@ -62,7 +62,7 @@ screenshot()
 get_current_page(screen)
     │
     ├─ 遍历 _PAGE_REGISTRY
-    │   ├─ MainPage.checker(screen) → True? → 返回 "MAIN"
+    │   ├─ HomePage.check_current_page(screen) → True? → 返回 "HOME"
     │   ├─ MapPage.checker(screen) → True? → 返回 "MAP"
     │   ├─ ...
     │   └─ 全部 False → 返回 None
@@ -111,7 +111,7 @@ class SomePage:
 
 | 页面                      | PageName            | 职责                        |
 |---------------------------|---------------------|-----------------------------|
-| `MainPage`                | `MAIN`              | 中央枢纽，导航到各功能模块    |
+| `HomePage`                | `HOME`              | 中央枢纽，导航到各功能模块    |
 | `MapPage`                 | `MAP`               | 出击/演习/远征/战役/决战 面板 |
 | `BattlePreparationPage`   | `BATTLE_PREP`       | 舰队选择、血量检测、出征      |
 | `BathPage`                | `BATH`              | 浴室修理                     |
@@ -160,7 +160,7 @@ class NavEdge:
           │   │     │
           │   │     └─── FRIEND
           │   │
-  MAIN ───┤   ├─── EVENT_MAP
+  HOME ───┤   ├─── EVENT_MAP
           │
           ├─── MAP ──── DECISIVE_BATTLE
           │     │
@@ -179,8 +179,8 @@ class NavEdge:
 
 ```python
 def _main_to_map(ctx: GameContext) -> None:
-    from autowsgr.application.ui.controller.main_page import MainPage
-    MainPage(ctx).navigate_to(MainPage.Target.SORTIE)
+    from autowsgr.application.ui.controller.home import HomePage
+    HomePage(ctx).navigate_to(HomePage.Target.SORTIE)
 
 def _map_to_main(ctx: GameContext) -> None:
     from autowsgr.application.ui.controller.map import MapPage

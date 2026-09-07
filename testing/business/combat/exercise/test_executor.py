@@ -212,7 +212,7 @@ def test_failure_cleanup_uses_shared_navigation_entry(
     with pytest.raises(RuntimeError, match='boom'):
         executor.run()
 
-    home.assert_called_once_with(executor.ctx, PageName.MAIN)
+        home.assert_called_once_with(executor.ctx, PageName.HOME)
 
 
 def test_pause_after_battle_keeps_completed_result() -> None:

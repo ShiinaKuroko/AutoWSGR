@@ -63,7 +63,7 @@
 ### 2.2 断点与锚点
 
 - **断点免费藏在等待里**: 执行器基类 `_wait()` 在等待前检查暂停信号,
-  收到信号 → 回主页 (`goto_page(MAIN)`) → 上报 `paused` → 抛 `TaskPaused`
+  收到信号 → 回主页 (`goto_page(HOME)`) → 上报 `paused` → 抛 `TaskPaused`
   让出执行权。子类用 `self._wait()` 代替 `time.sleep` 即自动获得断点。
 - **战斗等原子段内部禁止查暂停**: 原子段内只能用 `time.sleep`。
 - **锚点铁律**: 所有业务链以主页为起点, 每个打断点必须能最终回到主页;
@@ -136,7 +136,7 @@ _execute():
             _wait (断点④, 强制检查)
             if not _has_quota(): break
             复位演习面板
-    goto_page(MAIN)                   # 锚点: 终态回主页
+    goto_page(HOME)                   # 锚点: 终态回主页
 ```
 
 四个断点 (暂停检查内置于 `_wait`):
@@ -144,7 +144,7 @@ _execute():
 ③ `fleet_ready` 编队完成后 (尚未出征); ④ `rival_done` 每场战斗完成后 (强制)。
 ②③ 位于出征准备页 (不在页面注册表/导航图中, 单向中转页): 暂停时先
 `go_back` 退回地图页 (含入场动画稳定等待 + 失败重试, 见 `_wait_on_prep`)
-再走标准暂停协议 — 直接 `goto_page(MAIN)` 会因准备页被误判为活动页面而
+再走标准暂停协议 — 直接 `goto_page(HOME)` 不再经过出征准备页的模式专用返回而
 进入活动页浮层关闭死循环 (实机 2026-08-24 修复)。
 
 关键事件流 (GUI/测试可监听): `panel_ready` → (`rival_confirmed` →
@@ -190,7 +190,7 @@ python tools/e2e/run.py --with-ocr exercise --yaml <路径>
 (mock 对手序列) 已验证完整/限额/打断重跑三路径, 见会话记录。
 
 **2026-08-24 实机修复的两个存量问题** (由接力 E2E 暴露):
-1. 断点②③ (准备页) 暂停时 `_check_pause` 直接 `goto_page(MAIN)` 会把
+1. 断点②③ (准备页) 暂停时 `_check_pause` 直接 `goto_page(HOME)` 会把
    出征准备页误判为活动页面 → 进入活动页浮层关闭死循环 (连点红 X 直至超时)。
    修复: 新增 `_wait_on_prep` — 暂停时先 `go_back` 退回地图页再走标准协议。
 2. 准备页入场动画未结束时返回键点击会被吞 (入场后约 1 秒内)。
@@ -212,7 +212,7 @@ python tools/e2e/run.py --with-ocr exercise --yaml <路径>
 
 - 注册 `task_type = 'reward_check'`, 兼容层 `collect_rewards(ctx)` 原样保留
   (auto_daily 继续调用同一方法, 内部转调新执行器)。
-- 流程: 主页 → `MainPage.has_task_ready` 检测任务红点 → 无红点直接返回
+- 流程: 主页 → `HomePage.check_task_ready` 检测任务红点 → 无红点直接返回
   → 有则进任务页 `MissionPage.collect_rewards()` 一键领取 → 回主页。
 - 上报事件: `checked` (领取完成, 含 bool 结果)。
 - E2E 用例: `python tools/e2e/run.py reward --with-init` (见 3.8)。
@@ -295,8 +295,8 @@ python tools/e2e/run.py reward --with-init
 | 链路 | 归属 | 状态 |
 |------|------|------|
 | 执行器 | `business/logistics/reward.py` (`RewardCheckExecutor` + 兼容层 `collect_rewards`) | 完成 |
-| 导航器 — 页面归属 | `application/ui/controller/main_page` (含 `has_task_ready`) + **`application/ui/controller/mission_page` (本次迁入)** | 完成 |
-| 导航器 — 导航边 | `application/ui/navigation` (`_mission_to_main`) + `main_page/controller.py` (`_get_target_checker`) | 完成 |
+| 导航器 — 页面归属 | `application/ui/controller/home` (含 `check_task_ready`) + **`application/ui/controller/mission_page` (本次迁入)** | 完成 |
+| 导航器 — 导航边 | `application/ui/navigation` (`_mission_to_main`) + `home/page.py` (`_get_target_checker`) | 完成 |
 
 `mission_page` 迁移细节: 页面实现统一位于
 `autowsgr/application/ui/controller/mission_page/`，底层校准和交互位于

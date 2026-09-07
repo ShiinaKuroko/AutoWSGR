@@ -58,22 +58,22 @@ class TestDailyOverlays:
 
         self._freeze_today(monkeypatch, overlays)
         ctrl = self._make_ctrl()
-        detect = MagicMock(return_value=None)  # 没有浮层
+        read = MagicMock(return_value=None)  # 没有浮层
         confirm = MagicMock(return_value=False)  # 没有确认弹窗
-        monkeypatch.setattr(overlays, 'detect_overlay', detect)
+        monkeypatch.setattr(overlays, 'read_overlay', read)
         monkeypatch.setattr(overlays, 'confirm_operation', confirm)
 
         state = SimpleNamespace(last_handled=_YESTERDAY)
 
         # 第一次: 触发检测
         overlays.handle_daily_overlays(ctrl, state)
-        detect.assert_called_once()
+        read.assert_called_once()
         assert state.last_handled == _TODAY
 
         # 第二次: 零开销跳过
-        detect.reset_mock()
+        read.reset_mock()
         overlays.handle_daily_overlays(ctrl, state)
-        detect.assert_not_called()
+        read.assert_not_called()
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -124,7 +124,7 @@ class TestInitialize:
         from autowsgr.application.runtime.initialize import initialize, overlays
 
         ctx = _make_ctx()
-        monkeypatch.setattr(initialize, 'identify_current_page', lambda _c, **_k: PageName.MAIN)
+        monkeypatch.setattr(initialize, 'identify_current_page', lambda _c, **_k: PageName.HOME)
         dismiss = MagicMock()
         monkeypatch.setattr(overlays, 'handle_daily_overlays', dismiss)
 
@@ -148,7 +148,7 @@ class TestInitialize:
 
         initialize.initialize(ctx)
 
-        goto_page.assert_called_once_with(ctx, PageName.MAIN)
+        goto_page.assert_called_once_with(ctx, PageName.HOME)
         dismiss.assert_called_once()
 
     # ── 分支 3: 游戏未运行 → 启动 → 验证首页 ─────────────────────────────
@@ -163,7 +163,7 @@ class TestInitialize:
         ctx.ctrl.is_app_running.return_value = False
         start = MagicMock()
         monkeypatch.setattr(initialize, '_start_game_flow', start)
-        monkeypatch.setattr(initialize, 'identify_current_page', lambda _c, **_k: PageName.MAIN)
+        monkeypatch.setattr(initialize, 'identify_current_page', lambda _c, **_k: PageName.HOME)
         dismiss = MagicMock()
         monkeypatch.setattr(overlays, 'handle_daily_overlays', dismiss)
 
@@ -221,8 +221,8 @@ class TestInitialize:
         # 让 _start_game_flow 跑最小路径: 启动画面命中 → 点进入 → 完成
         monkeypatch.setattr(initialize, '_wait_for_start_screen', lambda _c: True)
         monkeypatch.setattr(initialize, '_click_enter', lambda _c: None)
-        monkeypatch.setattr(initialize, '_is_on_main_page', lambda _c: True)
-        monkeypatch.setattr(initialize, 'identify_current_page', lambda _c, **_k: PageName.MAIN)
+        monkeypatch.setattr(initialize, '_is_on_home_page', lambda _c: True)
+        monkeypatch.setattr(initialize, 'identify_current_page', lambda _c, **_k: PageName.HOME)
         monkeypatch.setattr(overlays, 'handle_daily_overlays', MagicMock())
 
         initialize.initialize(ctx)

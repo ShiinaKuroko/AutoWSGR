@@ -148,7 +148,7 @@ class CampaignExecutor(BaseExecutor):
             # 15、异常或停止后回到首页；连续战役保留当前页面。
             try:
                 if not reuse_page and not self.progress.get('_reuse_campaign_page', False):
-                    goto_page(self.ctx, PageName.MAIN)
+                    goto_page(self.ctx, PageName.HOME)
             except Exception as error:
                 _log.error('[Campaign] 返回首页失败: {}', error)
 

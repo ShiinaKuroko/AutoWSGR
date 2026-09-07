@@ -50,15 +50,15 @@ def run(rt: Any) -> bool:
     # ── 阶段零 (可选): 初始化链路 + 每日浮层清理 ────────────────
     if rt.args.with_init:
         from autowsgr.application.runtime.initialize.initialize import initialize
-        from autowsgr.application.ui.controller.main_page import MainPage
-        from autowsgr.application.ui.controller.main_page.overlays import detect_overlay
+        from autowsgr.application.ui.controller.home import HomePage
+        from autowsgr.application.ui.controller.home.overlays import read_overlay
 
         if rt.action('初始化 (任意状态 → 首页 + 清浮层)', initialize, ctx) is rt.FAILED:
             return False
-        rt.check('初始化后: 主页面基础态', MainPage.is_base_page, ctx.ctrl.screenshot())
+        rt.check('初始化后: 主页面基础态', HomePage.check_base_page, ctx.ctrl.screenshot())
         rt.check(
             '初始化后: 无浮层残留',
-            lambda: detect_overlay(ctx.ctrl.screenshot()) is None,
+            lambda: read_overlay(ctx.ctrl.screenshot()) is None,
         )
 
     # ── 阶段一: 处理器路径 (submit → run_pending) ────────────────
@@ -87,13 +87,13 @@ def run(rt: Any) -> bool:
         'checked 事件只有一次 (短链路不重跑)',
         lambda: events.count('checked') == 1,
     )
-    rt.check('终态: 主页面', lambda: identify_current_page(ctx) == PageName.MAIN)
+    rt.check('终态: 主页面', lambda: identify_current_page(ctx) == PageName.HOME)
 
     # ── 阶段二: 兼容层路径 (auto_daily 的调用方式) ───────────────
     result = rt.action('兼容层 collect_rewards(ctx)', collect_rewards, ctx)
     if result is rt.FAILED:
         return False
     rt.check('collect_rewards 返回 bool', lambda: isinstance(result, bool))
-    rt.check('兼容层调用后仍在主页面', lambda: identify_current_page(ctx) == PageName.MAIN)
+    rt.check('兼容层调用后仍在主页面', lambda: identify_current_page(ctx) == PageName.HOME)
 
     return rt.state.failed == 0

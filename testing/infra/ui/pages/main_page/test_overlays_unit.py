@@ -7,8 +7,8 @@ from unittest.mock import MagicMock, call
 import pytest
 
 import autowsgr.common.ui.interaction as ui_utils
-from autowsgr.application.ui.controller.main_page import overlays
-from autowsgr.application.ui.controller.main_page.constants import DismissCoord
+from autowsgr.application.ui.controller.home import overlays
+from autowsgr.application.ui.controller.home.constants import DISMISS_POSITIONS
 from autowsgr.common.vision import ImageChecker
 
 
@@ -27,7 +27,7 @@ def test_dismiss_sign_handles_optional_second_confirmation(
 
     overlays.dismiss_sign(ctrl)
 
-    ctrl.click.assert_called_once_with(*DismissCoord.SIGN_CONFIRM.xy)
+    ctrl.click.assert_called_once_with(*DISMISS_POSITIONS['sign_confirm'])
     assert confirm.call_args_list == [
         call(ctrl, must_confirm=True, timeout=overlays._SIGN_CONFIRM_TIMEOUT),
         call(ctrl, must_confirm=False, timeout=overlays._SIGN_CONFIRM_TIMEOUT),
@@ -44,7 +44,7 @@ def test_dismiss_sign_handles_optional_second_confirmation(
         ('overlay_user_info', overlays.OverlayKind.USER_INFO),
     ],
 )
-def test_detect_overlay_uses_templates(
+def test_read_overlay_uses_templates(
     monkeypatch: pytest.MonkeyPatch,
     *,
     template_name: str,
@@ -54,10 +54,10 @@ def test_detect_overlay_uses_templates(
     monkeypatch.setattr(
         ImageChecker, 'template_exists', lambda _s, t, **_k: t.name == template_name
     )
-    assert overlays.detect_overlay(MagicMock()) is expected
+    assert overlays.read_overlay(MagicMock()) is expected
 
 
-def test_detect_overlay_none_when_no_match(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_read_overlay_none_when_no_match(monkeypatch: pytest.MonkeyPatch) -> None:
     """无浮层命中时返回 None。"""
     monkeypatch.setattr(ImageChecker, 'template_exists', lambda *_a, **_k: False)
-    assert overlays.detect_overlay(MagicMock()) is None
+    assert overlays.read_overlay(MagicMock()) is None

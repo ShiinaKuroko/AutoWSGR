@@ -238,6 +238,8 @@ class BaseEventPage:
 
     # ── 出击 ──────────────────────────────────────────────────────────────
 
+    # TODO: Add manual-repair adaptation for event sorties:
+    # BATTLE_PREP -> EVENT_MAP -> HOME -> BACKYARD -> BATH.
     def start_fight(
         self, map: str, entrance: Literal['alpha', 'beta'] | None = None, skip_check: bool = False
     ) -> None:
@@ -419,13 +421,13 @@ class BaseEventPage:
         主页左上角, 误开"提督信息"浮层 (该浮层不遮主页识别元素 → 识别仍判主页 →
         后续点击错乱)。
         """
-        from autowsgr.application.ui.controller.main_page import MainPage
+        from autowsgr.application.ui.controller.home import HomePage
         from autowsgr.common.ui.interaction import NavigationError
 
         deadline = time.monotonic() + 15.0
         while time.monotonic() < deadline:
             screen = self._ctrl.screenshot()
-            if MainPage.is_current_page(screen):
+            if HomePage.check_current_page(screen):
                 _log.info('[UI] 活动地图 -> 已到达主页面')
                 return
             if self._fight_button_detail(screen) is not None:
@@ -438,7 +440,7 @@ class BaseEventPage:
             settled = time.monotonic() + 3.0
             while time.monotonic() < settled:
                 time.sleep(0.3)
-                if MainPage.is_current_page(self._ctrl.screenshot()):
+            if HomePage.check_current_page(self._ctrl.screenshot()):
                     _log.info('[UI] 活动地图 -> 已到达主页面')
                     return
             # 3s 内未到主页 (画面在变) → 外层循环重新评估

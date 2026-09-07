@@ -126,7 +126,7 @@ def _navigate_to(
     """
     import time
 
-    from autowsgr.application.ui.controller.main_page import MainPage
+    from autowsgr.application.ui.controller.home import HomePage
     from autowsgr.application.ui.controller.map import MapPage, MapPanel
     from autowsgr.application.ui.controller.map.data import TOTAL_CHAPTERS
     from autowsgr.common.calibration.map import MAP_NODE_POSITIONS
@@ -136,9 +136,9 @@ def _navigate_to(
 
     # 主页面 → 地图
     screen = ctrl.screenshot()
-    if not MainPage.is_current_page(screen):
+    if not HomePage.check_current_page(screen):
         return
-    MainPage(ctrl).navigate_to(MainPage.Target.SORTIE)
+    HomePage(ctrl).navigate_to(HomePage.Target.SORTIE)
     time.sleep(pause)
 
     # 确认在地图并切换到出征面板

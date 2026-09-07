@@ -39,10 +39,10 @@ if TYPE_CHECKING:
 
 
 def run_test(runner: UIControllerTestRunner) -> None:
-    from autowsgr.application.ui.controller.backyard_page import BackyardPage
-    from autowsgr.application.ui.controller.bath_page import BathPage
-    from autowsgr.application.ui.controller.canteen_page import CanteenPage
-    from autowsgr.application.ui.controller.main_page import MainPage
+    from autowsgr.application.ui.controller.backyard.main_page import BackyardPage
+    from autowsgr.application.ui.controller.backyard.bath_page import BathPage
+    from autowsgr.application.ui.controller.backyard.canteen_page import CanteenPage
+    from autowsgr.application.ui.controller.home import HomePage
 
     backyard_page = BackyardPage(runner.ctrl)
     bath_page = BathPage(runner.ctrl)
@@ -97,7 +97,7 @@ def run_test(runner: UIControllerTestRunner) -> None:
     runner.execute_step(
         '后院 → ◁ 主页面',
         '主页面',
-        MainPage.is_current_page,
+        HomePage.check_current_page,
         backyard_page.go_back,
     )
 
@@ -106,13 +106,13 @@ def _navigate_to(ctrl: AndroidController, pause: float) -> None:
     """从任意已知页面导航到后院页面。"""
     import time
 
-    from autowsgr.application.ui.controller.main_page import MainPage
+    from autowsgr.application.ui.controller.home import HomePage
 
     if not reset_to_main_page(ctrl, pause):
         return
     screen = ctrl.screenshot()
-    if MainPage.is_current_page(screen):
-        MainPage(ctrl).navigate_to(MainPage.Target.HOME)
+    if HomePage.check_current_page(screen):
+        HomePage(ctrl).go_to_backyard()
         time.sleep(pause)
 
 
@@ -126,7 +126,7 @@ def main() -> None:
     from loguru import logger
 
     logger.info('=== 后院页面 e2e 测试开始 ===')
-    from autowsgr.application.ui.controller.backyard_page import BackyardPage
+    from autowsgr.application.ui.controller.backyard.main_page import BackyardPage
 
     if not ensure_page(
         ctrl,

@@ -23,7 +23,7 @@ TODO: 处理游戏更新提示
     ensure_game_ready(ctrl, GameAPP.official)
 
 旧代码参考:
-    ``autowsgr_legacy/timer/timer.py`` — ``init`` / ``start_game`` / ``go_main_page``
+    ``autowsgr_legacy/timer/timer.py`` — ``init`` / ``start_game`` / ``go_home_page``
 """
 
 from __future__ import annotations
@@ -32,7 +32,7 @@ import time
 from datetime import date
 from typing import TYPE_CHECKING
 
-from autowsgr.application.ui.controller.main_page import MainPage
+from autowsgr.application.ui.controller.home import HomePage
 from autowsgr.application.ui.controller.start_screen import StartScreenPage
 from autowsgr.application.ui.navigation import goto_page
 from autowsgr.common.system.logger import get_logger
@@ -97,7 +97,7 @@ def is_game_running(ctrl: AndroidController, package: str = _GAME_PACKAGE_OFFICI
     return running
 
 
-def is_on_main_page(ctrl: AndroidController) -> bool:
+def is_on_home_page(ctrl: AndroidController) -> bool:
     """截图并检测当前是否在主页面。
 
     Parameters
@@ -111,7 +111,7 @@ def is_on_main_page(ctrl: AndroidController) -> bool:
         ``True`` 表示当前在主页面。
     """
     screen = ctrl.screenshot()
-    result = MainPage.is_current_page(screen)
+    result = HomePage.check_current_page(screen)
     _log.debug('[Startup] 主页面检测: {}', '是' if result else '否')
     return result
 
@@ -143,7 +143,7 @@ def wait_for_game_ui(
         超时前成功检测到返回 ``True``，超时返回 ``False``。
     """
     # 延迟导入避免循环依赖 (ui 层反向引用 ops 的模块)
-    from autowsgr.application.ui.controller.main_page.overlays import detect_overlay
+    from autowsgr.application.ui.controller.home.overlays import read_overlay
     from autowsgr.application.ui.navigation.recognition import get_current_page
 
     _log.info('[Startup] 等待游戏 UI 就绪 (超时 {:.0f}s)…', timeout)
@@ -158,7 +158,7 @@ def wait_for_game_ui(
             return True
 
         # 出现登录后浮层（依然算 UI 就绪）
-        if detect_overlay(screen) is not None:
+        if read_overlay(screen) is not None:
             _log.info('[Startup] 检测到登录浮层，游戏已加载')
             return True
 
@@ -266,7 +266,7 @@ def handle_daily_overlays(ctx: GameContext) -> None:
     # 先标记再执行: 即使本次消除中断, 当天也不会反复重试
     ctx.daily_overlay_date = today
 
-    page = MainPage(ctx)
+    page = HomePage(ctx)
     for attempt in range(_OVERLAY_DISMISS_MAX):
         # ① 已知浮层 (新闻 / 签到 / 预约) 直接消除
         if page.dismiss_current_overlay():
@@ -295,7 +295,7 @@ def handle_daily_overlays(ctx: GameContext) -> None:
         return
 
 
-def go_main_page(ctx: GameContext, *, dismiss_overlays: bool = True) -> None:
+def go_home_page(ctx: GameContext, *, dismiss_overlays: bool = True) -> None:
     """确保当前处于游戏主页面。
 
     1. 调用 :func:`~autowsgr.application.ui.navigation.goto_page` 导航到主页面
@@ -309,12 +309,12 @@ def go_main_page(ctx: GameContext, *, dismiss_overlays: bool = True) -> None:
         是否消除登录浮层，默认 ``True``。
     """
     _log.info('[Startup] 导航到主页面')
-    goto_page(ctx, PageName.MAIN)
+    goto_page(ctx, PageName.HOME)
     if dismiss_overlays:
         handle_daily_overlays(ctx)
 
 
-def recover_to_main_or_restart(
+def recover_to_home_or_restart(
     ctx: GameContext,
     app: GameAPP | str = GameAPP.official,
     *,
@@ -335,7 +335,7 @@ def recover_to_main_or_restart(
 
     while time.monotonic() < deadline:
         try:
-            goto_page(ctx, PageName.MAIN)
+            goto_page(ctx, PageName.HOME)
             _log.info('[Startup] 页面恢复成功，已回到主页面')
         except NavigationError as exc:
             _log.debug('[Startup] 恢复主页面失败，继续重试: {}', exc)
@@ -390,7 +390,7 @@ def ensure_game_ready(
         _log.info('[Startup] 游戏未运行，正在启动…')
         start_game(ctrl, package, startup_timeout=startup_timeout)
     else:
-        recover_to_main_or_restart(ctx, package)
+        recover_to_home_or_restart(ctx, package)
         _log.info('[Startup] 游戏已在运行')
 
     _log.info('[Startup] 游戏就绪')

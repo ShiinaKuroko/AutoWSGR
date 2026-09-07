@@ -1,13 +1,13 @@
 """管理页面识别器的注册和默认页面装载。
 
 `autowsgr.application.ui.navigation.recognition` 读取本文件维护的注册表；默认检查器
-来自 `autowsgr.application.ui.controller.backyard_page`、`autowsgr.application.ui.controller.bath_page`、
-`autowsgr.application.ui.controller.battle_preparation`、`autowsgr.application.ui.controller.build_page`、
-`autowsgr.application.ui.controller.canteen_page`、`autowsgr.application.ui.controller.shared.choose_ship`、
+来自 `autowsgr.application.ui.controller.backyard.main_page`、`autowsgr.application.ui.controller.backyard.bath_page`、
+`autowsgr.application.ui.controller.battle_preparation`、`autowsgr.application.ui.controller.sidebar.build_page`、
+`autowsgr.application.ui.controller.backyard.canteen_page`、`autowsgr.application.ui.controller.shared.choose_ship`、
 `autowsgr.application.ui.controller.decisive`、`autowsgr.application.ui.controller.event`、
-`autowsgr.application.ui.controller.friend_page`、`autowsgr.application.ui.controller.intensify_page`、
-`autowsgr.application.ui.controller.main_page`、`autowsgr.application.ui.controller.map`、
-`autowsgr.application.ui.controller.mission_page` 和 `autowsgr.application.ui.controller.sidebar_page`；
+`autowsgr.application.ui.controller.sidebar.friend_page`、`autowsgr.application.ui.controller.sidebar.intensify_page`、
+`autowsgr.application.ui.controller.home`、`autowsgr.application.ui.controller.map`、
+`autowsgr.application.ui.controller.mission_page` 和 `autowsgr.application.ui.controller.sidebar.main_page`；
 pytest 可以注册临时检查器。本文件依赖 `autowsgr.common.vision.page_match.PageMatch`、
 `autowsgr.common.system.logger.get_logger` 和各页面控制器，不执行截图、点击或路径查找。
 """
@@ -55,23 +55,23 @@ def register_default_pages() -> None:
         return
 
     # 2、按需加载页面检查器并写入注册表。
-    from autowsgr.application.ui.controller.backyard_page import BackyardPage
-    from autowsgr.application.ui.controller.bath_page import BathPage
+    from autowsgr.application.ui.controller.backyard.main_page import BackyardPage
+    from autowsgr.application.ui.controller.backyard.bath_page import BathPage
     from autowsgr.application.ui.controller.battle_preparation import BattlePreparationPage
-    from autowsgr.application.ui.controller.build_page import BuildPage
-    from autowsgr.application.ui.controller.canteen_page import CanteenPage
+    from autowsgr.application.ui.controller.sidebar.build_page import BuildPage
+    from autowsgr.application.ui.controller.backyard.canteen_page import CanteenPage
     from autowsgr.application.ui.controller.decisive import DecisiveBattlePage
     from autowsgr.application.ui.controller.event import BaseEventPage
-    from autowsgr.application.ui.controller.friend_page import FriendPage
-    from autowsgr.application.ui.controller.intensify_page import IntensifyPage
-    from autowsgr.application.ui.controller.main_page import MainPage
+    from autowsgr.application.ui.controller.sidebar.friend_page import FriendPage
+    from autowsgr.application.ui.controller.sidebar.intensify_page import IntensifyPage
+    from autowsgr.application.ui.controller.home import HomePage
     from autowsgr.application.ui.controller.map import MapPage
     from autowsgr.application.ui.controller.mission_page import MissionPage
     from autowsgr.application.ui.controller.shared.choose_ship import ChooseShipPage
-    from autowsgr.application.ui.controller.sidebar_page import SidebarPage
+    from autowsgr.application.ui.controller.sidebar.main_page import SidebarPage
     from autowsgr.common.types import PageName
 
-    register_page(PageName.MAIN, MainPage.is_current_page)
+    register_page(PageName.HOME, HomePage.check_current_page)
     register_page(PageName.MAP, MapPage.is_current_page)
     register_page(PageName.BATTLE_PREP, BattlePreparationPage.is_current_page)
     register_page(PageName.MISSION, MissionPage.is_current_page)
@@ -79,9 +79,9 @@ def register_default_pages() -> None:
     register_page(PageName.BATH, BathPage.check_current_page)
     register_page(PageName.CANTEEN, CanteenPage.check_current_page)
     register_page(PageName.BUILD, BuildPage.check_current_page)
-    register_page(PageName.INTENSIFY, IntensifyPage.is_current_page)
-    register_page(PageName.FRIEND, FriendPage.is_current_page)
-    register_page(PageName.SIDEBAR, SidebarPage.is_current_page, overlay=True)
+    register_page(PageName.INTENSIFY, IntensifyPage.check_current_page)
+    register_page(PageName.FRIEND, FriendPage.check_current_page)
+    register_page(PageName.SIDEBAR, SidebarPage.check_current_page, overlay=True)
     register_page(PageName.EVENT_MAP, BaseEventPage.is_current_page)
     register_page(PageName.DECISIVE_BATTLE, DecisiveBattlePage.is_current_page)
     register_page(PageName.CHOOSE_SHIP, ChooseShipPage.is_current_page)

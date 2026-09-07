@@ -37,7 +37,7 @@ if TYPE_CHECKING:
 
 
 def run_test(runner: UIControllerTestRunner) -> None:
-    from autowsgr.application.ui.controller.main_page import MainPage
+    from autowsgr.application.ui.controller.home import HomePage
     from autowsgr.application.ui.controller.mission_page import MissionPage
 
     mission_page = MissionPage(runner.ctrl)
@@ -49,7 +49,7 @@ def run_test(runner: UIControllerTestRunner) -> None:
     runner.execute_step(
         '任务页面 → ◁ 主页面',
         '主页面',
-        MainPage.is_current_page,
+        HomePage.check_current_page,
         mission_page.go_back,
     )
 
@@ -58,13 +58,13 @@ def _navigate_to(ctrl: AndroidController, pause: float) -> None:
     """从任意已知页面导航到任务页面。"""
     import time
 
-    from autowsgr.application.ui.controller.main_page import MainPage
+    from autowsgr.application.ui.controller.home import HomePage
 
     if not reset_to_main_page(ctrl, pause):
         return
     screen = ctrl.screenshot()
-    if MainPage.is_current_page(screen):
-        MainPage(ctrl).navigate_to(MainPage.Target.TASK)
+    if HomePage.check_current_page(screen):
+        HomePage(ctrl).navigate_to(HomePage.Target.TASK)
         time.sleep(pause)
 
 

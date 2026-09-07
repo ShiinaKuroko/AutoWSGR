@@ -17,7 +17,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from autowsgr.application.runtime.executor import BaseExecutor
-from autowsgr.application.ui.controller.main_page import MainPage
+from autowsgr.application.ui.controller.home import HomePage
 from autowsgr.application.ui.controller.map import MapPage, MapPanel
 from autowsgr.application.ui.navigation import goto_page
 from autowsgr.common.system.logger import get_logger
@@ -39,10 +39,10 @@ class ExpeditionCheckExecutor(BaseExecutor):
 
     def _execute(self) -> bool:
         """检查并收取远征, 返回是否收取到了。"""
-        goto_page(self.ctx, PageName.MAIN)  # 锚点: 从主页出发
+        goto_page(self.ctx, PageName.HOME)  # 锚点: 从主页出发
 
         screen = self.ctx.ctrl.screenshot()
-        if not MainPage.has_expedition_ready(screen):
+        if not HomePage.check_expedition_ready(screen):
             _log.debug('[Expedition] 主页无远征通知, 跳过')
             self._report('checked', collected=0)
             return False
@@ -51,14 +51,14 @@ class ExpeditionCheckExecutor(BaseExecutor):
         page = MapPage(self.ctx)
         screen = self.ctx.ctrl.screenshot()
         if not MapPage.has_expedition_notification(screen):
-            goto_page(self.ctx, PageName.MAIN)  # 通知消失 (刚被收过), 原路返回
+            goto_page(self.ctx, PageName.HOME)  # 通知消失 (刚被收过), 原路返回
             self._report('checked', collected=0)
             return False
 
         page.switch_panel(MapPanel.EXPEDITION)
         collected = page.collect_expedition()
 
-        goto_page(self.ctx, PageName.MAIN)  # 锚点: 终态回主页
+        goto_page(self.ctx, PageName.HOME)  # 锚点: 终态回主页
         _log.info('[Expedition] 远征检查完成, 收取 {} 个', collected)
         self._report('checked', collected=collected)
         return collected > 0

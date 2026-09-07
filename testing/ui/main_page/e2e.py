@@ -17,7 +17,7 @@
 测试内容：
 
     A. 页面识别与状态
-        1. 验证初始状态 (is_current_page + is_base_page)
+        1. 验证初始状态 (check_current_page + check_base_page)
         2. 浮层检测 — 检测并消除可能的浮层 (NEWS / SIGN / BOOKING)
         3. 状态查询 — 远征完成通知、任务可领取通知红点
 
@@ -68,13 +68,13 @@ if TYPE_CHECKING:
 
 def run_test(runner: UIControllerTestRunner) -> None:  # noqa: PLR0911, C901, PLR0912, PLR0915
     """执行主页面控制器完整测试序列。"""
-    from autowsgr.application.ui.controller.backyard_page import BackyardPage
-    from autowsgr.application.ui.controller.main_page import MainPage
+    from autowsgr.application.ui.controller.backyard.main_page import BackyardPage
+    from autowsgr.application.ui.controller.home import HomePage
     from autowsgr.application.ui.controller.map import MapPage
     from autowsgr.application.ui.controller.mission_page import MissionPage
-    from autowsgr.application.ui.controller.sidebar_page import SidebarPage
+    from autowsgr.application.ui.controller.sidebar.main_page import SidebarPage
 
-    main_page = MainPage(runner.ctrl)
+    main_page = HomePage(runner.ctrl)
     map_page = MapPage(runner.ctrl)
     mission_page = MissionPage(runner.ctrl)
     sidebar_page = SidebarPage(runner.ctrl)
@@ -84,26 +84,26 @@ def run_test(runner: UIControllerTestRunner) -> None:  # noqa: PLR0911, C901, PL
     # A. 页面识别与状态
     # ═══════════════════════════════════════════════════════════════════════
 
-    # ───── Step 1: is_current_page 验证 ──────────────────────────────
+    # ───── Step 1: check_current_page 验证 ───────────────────────────
     runner.verify_current(
-        '初始验证: 主页面 (is_current_page)',
+        '初始验证: 主页面 (check_current_page)',
         '主页面',
-        MainPage.is_current_page,
+        HomePage.check_current_page,
     )
     if runner.aborted:
         return
 
-    # ───── Step 2: is_base_page + 浮层检测与消除 ─────────────────────
+    # ───── Step 2: check_base_page + 浮层检测与消除 ──────────────────
     screen = runner.ctrl.screenshot()
-    is_base = MainPage.is_base_page(screen)
-    overlay = MainPage.detect_overlay(screen)
+    is_base = HomePage.check_base_page(screen)
+    overlay = HomePage.read_overlay(screen)
 
     if overlay is not None:
         info(f'检测到浮层: {overlay.value} — 尝试消除')
         runner.execute_step(
             f'浮层消除: {overlay.value}',
             '主页面',
-            MainPage.is_base_page,
+            HomePage.check_base_page,
             main_page.dismiss_current_overlay,
         )
         if runner.aborted:
@@ -111,14 +111,14 @@ def run_test(runner: UIControllerTestRunner) -> None:  # noqa: PLR0911, C901, PL
     elif is_base:
         ok('主页面基础状态确认 (无浮层)')
     else:
-        warn('is_current_page 通过但 is_base_page 为 False — 可能存在未识别浮层')
+        warn('check_current_page 通过但 check_base_page 为 False — 可能存在未识别浮层')
 
     # ───── Step 3: 状态查询 (远征/任务通知红点) ──────────────────────
     runner.read_state(
         '主页面状态',
         readers={
-            '远征完成通知': MainPage.has_expedition_ready,
-            '任务可领取通知': MainPage.has_task_ready,
+            '远征完成通知': HomePage.check_expedition_ready,
+            '任务可领取通知': HomePage.check_task_ready,
         },
     )
 
@@ -131,7 +131,7 @@ def run_test(runner: UIControllerTestRunner) -> None:  # noqa: PLR0911, C901, PL
         '主页面 → 地图页面 (navigate_to SORTIE)',
         '地图页面',
         MapPage.is_current_page,
-        lambda: main_page.navigate_to(MainPage.Target.SORTIE),
+        lambda: main_page.navigate_to(HomePage.Target.SORTIE),
     )
     if runner.aborted:
         return
@@ -139,7 +139,7 @@ def run_test(runner: UIControllerTestRunner) -> None:  # noqa: PLR0911, C901, PL
     runner.execute_step(
         '地图页面 → ◁ 主页面',
         '主页面',
-        MainPage.is_current_page,
+        HomePage.check_current_page,
         map_page.go_back,
     )
     if runner.aborted:
@@ -150,7 +150,7 @@ def run_test(runner: UIControllerTestRunner) -> None:  # noqa: PLR0911, C901, PL
         '主页面 → 任务页面 (navigate_to TASK)',
         '任务页面',
         MissionPage.is_current_page,
-        lambda: main_page.navigate_to(MainPage.Target.TASK),
+        lambda: main_page.navigate_to(HomePage.Target.TASK),
     )
     if runner.aborted:
         return
@@ -158,7 +158,7 @@ def run_test(runner: UIControllerTestRunner) -> None:  # noqa: PLR0911, C901, PL
     runner.execute_step(
         '任务页面 → ◁ 主页面',
         '主页面',
-        MainPage.is_current_page,
+        HomePage.check_current_page,
         mission_page.go_back,
     )
     if runner.aborted:
@@ -168,8 +168,8 @@ def run_test(runner: UIControllerTestRunner) -> None:  # noqa: PLR0911, C901, PL
     runner.execute_step(
         '主页面 → 侧边栏 (navigate_to SIDEBAR)',
         '侧边栏',
-        SidebarPage.is_current_page,
-        lambda: main_page.navigate_to(MainPage.Target.SIDEBAR),
+        SidebarPage.check_current_page,
+        lambda: main_page.go_to_sidebar(),
     )
     if runner.aborted:
         return
@@ -177,7 +177,7 @@ def run_test(runner: UIControllerTestRunner) -> None:  # noqa: PLR0911, C901, PL
     runner.execute_step(
         '侧边栏 → close → 主页面',
         '主页面',
-        MainPage.is_current_page,
+        HomePage.check_current_page,
         sidebar_page.close,
     )
     if runner.aborted:
@@ -188,7 +188,7 @@ def run_test(runner: UIControllerTestRunner) -> None:  # noqa: PLR0911, C901, PL
         '主页面 → 后院页面 (navigate_to HOME)',
         '后院页面',
         BackyardPage.check_current_page,
-        lambda: main_page.navigate_to(MainPage.Target.HOME),
+        lambda: main_page.go_to_backyard(),
     )
     if runner.aborted:
         return
@@ -196,7 +196,7 @@ def run_test(runner: UIControllerTestRunner) -> None:  # noqa: PLR0911, C901, PL
     runner.execute_step(
         '后院页面 → ◁ 主页面',
         '主页面',
-        MainPage.is_current_page,
+        HomePage.check_current_page,
         backyard_page.go_back,
     )
     if runner.aborted:
@@ -214,7 +214,7 @@ def run_test(runner: UIControllerTestRunner) -> None:  # noqa: PLR0911, C901, PL
             '主页面 → 活动地图 (navigate_to EVENT, 模板匹配)',
             '活动地图页面',
             BaseEventPage.is_current_page,
-            lambda: main_page.navigate_to(MainPage.Target.EVENT),
+            lambda: main_page.navigate_to(HomePage.Target.EVENT),
         )
     except Exception as exc:
         warn(f'活动导航测试跳过 (可能当前无活动入口): {exc}')
@@ -232,7 +232,7 @@ def run_test(runner: UIControllerTestRunner) -> None:  # noqa: PLR0911, C901, PL
             runner.execute_step(
                 '活动地图 → ◁ 主页面',
                 '主页面',
-                MainPage.is_current_page,
+                HomePage.check_current_page,
                 event_page.go_back,
             )
         else:
@@ -259,14 +259,14 @@ def run_test(runner: UIControllerTestRunner) -> None:  # noqa: PLR0911, C901, PL
     runner.execute_step(
         '地图页面 → ◁ 主页面 (收尾)',
         '主页面',
-        MainPage.is_current_page,
+        HomePage.check_current_page,
         map_page.go_back,
     )
     if runner.aborted:
         return
 
     # ───── Step 10: 最终验证 ─────────────────────────────────────────
-    runner.verify_current('最终验证: 主页面', '主页面', MainPage.is_current_page)
+    runner.verify_current('最终验证: 主页面', '主页面', HomePage.check_current_page)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -281,7 +281,7 @@ def _navigate_to(ctrl: AndroidController, pause: float) -> None:
 
 def main() -> None:
     args = parse_e2e_args(
-        '主页面 (MainPage) e2e 测试',
+        '主页面 (HomePage) e2e 测试',
         precondition='游戏位于主页面 (母港/秘书舰界面)',
         default_log_dir='logs/e2e/main_page',
     )
@@ -290,11 +290,11 @@ def main() -> None:
 
     logger.info('=== 主页面 e2e 测试开始 ===')
 
-    from autowsgr.application.ui.controller.main_page import MainPage
+    from autowsgr.application.ui.controller.home import HomePage
 
     if not ensure_page(
         ctrl,
-        MainPage.is_current_page,
+        HomePage.check_current_page,
         lambda: _navigate_to(ctrl, args.pause),
         '主页面',
         auto_mode=args.auto,

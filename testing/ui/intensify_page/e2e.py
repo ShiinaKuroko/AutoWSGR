@@ -38,26 +38,26 @@ if TYPE_CHECKING:
 
 
 def run_test(runner: UIControllerTestRunner) -> None:
-    from autowsgr.application.ui.controller.intensify_page import IntensifyPage, IntensifyTab
-    from autowsgr.application.ui.controller.sidebar_page import SidebarPage
+    from autowsgr.application.ui.controller.sidebar.intensify_page import IntensifyPage, IntensifyTab
+    from autowsgr.application.ui.controller.sidebar.main_page import SidebarPage
 
     intensify_page = IntensifyPage(runner.ctrl)
 
-    runner.verify_current('初始验证: 强化页面', '强化页面', IntensifyPage.is_current_page)
+    runner.verify_current('初始验证: 强化页面', '强化页面', IntensifyPage.check_current_page)
     if runner.aborted:
         return
 
     runner.read_state(
         '强化页面',
-        readers={'当前标签': IntensifyPage.get_active_tab},
+        readers={'当前标签': IntensifyPage.read_active_tab},
     )
 
     for tab in [IntensifyTab.REMAKE, IntensifyTab.SKILL, IntensifyTab.INTENSIFY]:
         runner.execute_step(
             f'切换标签 → {tab.value}',
             '强化页面',
-            IntensifyPage.is_current_page,
-            lambda t=tab: intensify_page.switch_tab(t),
+            IntensifyPage.check_current_page,
+            lambda t=tab: intensify_page.select_tab(t),
         )
         if runner.aborted:
             return
@@ -65,7 +65,7 @@ def run_test(runner: UIControllerTestRunner) -> None:
     runner.execute_step(
         '强化页面 → ◁ 侧边栏',
         '侧边栏',
-        SidebarPage.is_current_page,
+        SidebarPage.check_current_page,
         intensify_page.go_back,
     )
 
@@ -74,17 +74,17 @@ def _navigate_to(ctrl: AndroidController, pause: float) -> None:
     """从任意已知页面导航到强化页面。"""
     import time
 
-    from autowsgr.application.ui.controller.main_page import MainPage
-    from autowsgr.application.ui.controller.sidebar_page import SidebarPage
+    from autowsgr.application.ui.controller.home import HomePage
+    from autowsgr.application.ui.controller.sidebar.main_page import SidebarPage
 
     if not reset_to_main_page(ctrl, pause):
         return
     screen = ctrl.screenshot()
-    if MainPage.is_current_page(screen):
-        MainPage(ctrl).navigate_to(MainPage.Target.SIDEBAR)
+    if HomePage.check_current_page(screen):
+        HomePage(ctrl).navigate_to(HomePage.Target.SIDEBAR)
         time.sleep(pause)
         screen = ctrl.screenshot()
-    if SidebarPage.is_current_page(screen):
+    if SidebarPage.check_current_page(screen):
         SidebarPage(ctrl).go_to_intensify()
         time.sleep(pause)
 
@@ -99,11 +99,11 @@ def main() -> None:
     from loguru import logger
 
     logger.info('=== 强化页面 e2e 测试开始 ===')
-    from autowsgr.application.ui.controller.intensify_page import IntensifyPage
+    from autowsgr.application.ui.controller.sidebar.intensify_page import IntensifyPage
 
     if not ensure_page(
         ctrl,
-        IntensifyPage.is_current_page,
+        IntensifyPage.check_current_page,
         lambda: _navigate_to(ctrl, args.pause),
         '强化页面',
         auto_mode=args.auto,
