@@ -958,7 +958,7 @@
   `autowsgr.application.ui.pages`; the package move must update all of them together.
 - Navigation behavior is frozen for this task. Only page import paths may change
   as a consequence of the move.
-- `tabbed_page.py` and `choose_ship.py` are shared UI capabilities and belong
+- `top_tabs.py` and `choose_ship.py` are shared UI capabilities and belong
   under `controller/shared`, not `common`. `battle_preparation/fleet_change/`
   is reused by several combat flows but stays with the battle-preparation
   Controller because it composes that page's base and detection mixins; moving
@@ -971,7 +971,7 @@
 
 ### Ponytail audit follow-up
 
-- `shared/tabbed_page.py` needed `Path(__file__).resolve().parents[4]` after the
+- `shared/top_tabs.py` needed `Path(__file__).resolve().parents[4]` after the
   move; `parents[3]` resolved to `autowsgr/application` and broke template
   loading. The corrected path was verified by loading all five templates.
 - `map/data.py` had a dead `CLICK_PANEL` mapping with no callers; it was
@@ -1017,9 +1017,8 @@
   clicks, decisive map crop and return/settlement clicks, plus event templates.
   Retry counts, sleep policy, page enums, workflow maps, and business parsing
   rules remain in the Controller layer.
-- `decisive/map_controller.py` still has a stale `reward_ack_pos` reference
-  after the local constant was moved; the common reward coordinate must be used
-  on both reward-popup branches.
+ - `decisive_page/map_page.py` now uses the page-local `CLICK_REWARD_ACK` constant
+   on both reward-popup branches; the stale `reward_ack_pos` reference is gone.
 
 ## 2026-09-06 Worktree Preservation
 

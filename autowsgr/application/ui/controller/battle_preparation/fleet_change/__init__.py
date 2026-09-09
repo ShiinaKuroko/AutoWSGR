@@ -1,4 +1,18 @@
-"""舰队编成更换子包。
+"""模块功能：组织出征准备页面的舰队选船、规划、调整和模式分支。
+
+上层调用：
+- application.ui.controller.battle_preparation.preparation：组合换船 Mixin。
+- business.combat：传入普通、战役和决战舰队目标。
+
+下层依赖：
+- application.ui.controller.battle_preparation：提供准备页截图、槽位和页面操作。
+- application.ui.controller.shared.choose_ship：执行选船页面的原子操作。
+- application.ui.fleet：提供舰船选择规则和值对象。
+
+舰队选择实现保留在 UI 域，因为它直接操作选船页面并依赖 OCR；本模块不承担 OCR
+引擎生命周期管理。
+
+原有职责说明:
 
 统一 "扫描 -> 定点更换 -> 调整次序" 流程,
 常规出征与决战共用, 通过 ``_use_search`` 控制是否使用搜索框。

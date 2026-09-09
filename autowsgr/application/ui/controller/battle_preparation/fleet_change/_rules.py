@@ -1,21 +1,32 @@
-"""舰队规则匹配与校验。
+"""模块功能：判断舰名、舰种和等级是否满足舰队选择规则。
 
-本模块只判断舰名、舰种和等级是否满足指定规则，不负责目标分配、
-页面操作或舰队状态调整。
+上层调用：
+- application.ui.controller.battle_preparation.fleet_change._planning：生成可行目标。
+- application.ui.controller.battle_preparation.fleet_change._change：验证换船结果。
+
+下层依赖：
+- application.ui.controller.battle_preparation.fleet_change._detect：提供舰队快照类型。
+- application.ui.fleet：提供舰队槽位规则和值对象。
+- common.constants：提供舰名规范化和身份比较。
+
+本模块只判断规则，不负责目标分配、页面操作或舰队状态调整。
 """
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from autowsgr.application.ui.controller.battle_preparation.fleet_change._detect import (
+    FleetDetectMixin,
+)
 from autowsgr.application.ui.fleet import FleetSlotRule, ShipSelector
 from autowsgr.common.constants import normalize_ship_name, ship_name_identity
 
-from ._detect import FleetDetectMixin
-
 
 if TYPE_CHECKING:
-    from ._detect import FleetSnapshot
+    from autowsgr.application.ui.controller.battle_preparation.fleet_change._detect import (
+        FleetSnapshot,
+    )
 
 
 class FleetRuleMixin(FleetDetectMixin):

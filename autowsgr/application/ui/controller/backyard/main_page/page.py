@@ -2,7 +2,7 @@
 
 上层调用：
 - application.ui.navigation.graph.logistics：调用后院到浴室或食堂的页面边动作。
-- application.ui.controller.home：查询后院页面匹配结果。
+- application.ui.controller.home.main_page：查询后院页面匹配结果。
 - testing.ui：执行后院页面导航验证。
 
 下层依赖：
@@ -134,7 +134,7 @@ class BackyardPage:
         Raises:
             NavigationError: 超时仍未离开后院页面。
         """
-        from autowsgr.application.ui.controller.home import HomePage
+        from autowsgr.application.ui.controller.home.main_page import HomePage
 
         _log.info('[UI] 后院 → 返回主页面')
         click_and_wait_for_page(

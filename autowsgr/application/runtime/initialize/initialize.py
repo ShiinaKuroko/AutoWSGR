@@ -15,8 +15,8 @@
 
 依赖 (各归其位):
     - application.ui.navigation — 页面导航与识别
-    - application.ui.controller.home.HomePage — 主页识别 (浮层命中 = 主页命中)
-    - application.ui.controller.start_screen.StartScreenPage — 启动画面识别与点击进入
+    - application.ui.controller.home.main_page.HomePage — 主页识别 (浮层命中 = 主页命中)
+    - application.ui.controller.login.LoginPage — 启动画面识别与点击进入
     - 同包 overlays — 每日弹窗 (日期门控)
     - 同包 updater — 更新空判断 (未来扩展)
 """
@@ -118,7 +118,7 @@ def _package_of(ctx: GameContext) -> str:
 
 def _is_on_home_page(ctx: GameContext) -> bool:
     """截图检测当前是否在主页面 (浮层命中也算, 与旧逻辑一致)。"""
-    from autowsgr.application.ui.controller.home import HomePage
+    from autowsgr.application.ui.controller.home.main_page import HomePage
 
     return bool(HomePage.check_current_page(ctx.ctrl.screenshot()))
 
@@ -176,11 +176,11 @@ def _start_game_flow(ctx: GameContext, package: str) -> None:
 
 def _wait_for_start_screen(ctx: GameContext, *, timeout: float = _STARTUP_TIMEOUT) -> bool:
     """轮询等待「点击进入」启动画面出现。"""
-    from autowsgr.application.ui.controller.start_screen import StartScreenPage
+    from autowsgr.application.ui.controller.login import LoginPage
 
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
-        if StartScreenPage.is_current_page(ctx.ctrl.screenshot()):
+        if LoginPage.check_current_page(ctx.ctrl.screenshot()):
             _log.info('[Initialize] 检测到启动画面')
             return True
         time.sleep(_STARTUP_POLL_INTERVAL)
@@ -189,9 +189,9 @@ def _wait_for_start_screen(ctx: GameContext, *, timeout: float = _STARTUP_TIMEOU
 
 def _click_enter(ctx: GameContext) -> None:
     """点击「进入游戏」按钮 — 复用页面控制器 (坐标读 login.yaml)。"""
-    from autowsgr.application.ui.controller.start_screen import StartScreenPage
+    from autowsgr.application.ui.controller.login import LoginPage
 
-    StartScreenPage(ctx.ctrl).click_enter()
+    LoginPage(ctx.ctrl).click_enter()
 
 
 def _wait_for_home_page(ctx: GameContext, *, timeout: float = _ENTER_MAIN_TIMEOUT) -> bool:

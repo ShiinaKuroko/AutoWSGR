@@ -1,6 +1,14 @@
-"""出征准备 — 补给与战役支援。
+"""模块功能：执行出征准备页面的补给和战役支援控件操作。
 
-提供补给 / 支援状态查询与切换操作。
+上层调用：
+- application.ui.controller.battle_preparation.preparation：组合补给 Mixin。
+- application.combat.support：读取并切换战役支援状态。
+- business.combat：在出征前执行补给。
+
+下层依赖：
+- application.ui.controller.battle_preparation.base：提供面板切换能力。
+- application.ui.controller.battle_preparation.constants：提供补给和支援校准。
+- common.vision：读取支援和自动补给状态颜色。
 """
 
 from __future__ import annotations
@@ -9,7 +17,7 @@ import time
 from typing import TYPE_CHECKING
 
 from autowsgr.application.ui.controller.battle_preparation.base import BaseBattlePreparation
-from autowsgr.common.calibration.battle_preparation import (
+from autowsgr.application.ui.controller.battle_preparation.constants import (
     CLICK_SHIP_SLOT,
     CLICK_SUPPORT,
     SUPPORT_DISABLE,
@@ -32,13 +40,13 @@ class SupplyMixin(BaseBattlePreparation):
     """补给与战役支援 Mixin。
 
     依赖 :class:`~autowsgr.application.ui.controller.battle_preparation.base.BaseBattlePreparation` 提供的
-    ``_ctrl``, ``select_panel``, ``is_auto_supply_enabled``。
+    ``_ctrl``, ``select_panel`` 和 ``check_auto_supply_enabled``。
     """
 
     # ── 状态查询 — 战役支援 ──────────────────────────────────────────────
 
     @staticmethod
-    def is_support_enabled(screen: np.ndarray) -> bool:
+    def check_support_enabled(screen: np.ndarray) -> bool:
         """检测战役支援是否启用。灰色 (次数用尽) 也视为已启用。"""
         x, y = SUPPORT_PROBE
         pixel = PixelChecker.get_pixel(screen, x, y)
@@ -77,6 +85,6 @@ class SupplyMixin(BaseBattlePreparation):
     def apply_supply(self) -> None:
         """确保舰队已补给 (自动补给未开启则手动补给)。"""
         screen = self._ctrl.screenshot()
-        if self.is_auto_supply_enabled(screen):
+        if self.check_auto_supply_enabled(screen):
             return
         self.supply()

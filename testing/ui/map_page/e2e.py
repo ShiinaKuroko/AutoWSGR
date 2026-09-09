@@ -42,13 +42,16 @@ if TYPE_CHECKING:
 
 def run_test(runner: UIControllerTestRunner) -> None:
     """执行地图页面控制器完整测试序列。"""
-    from autowsgr.application.ui.controller.home import HomePage
-    from autowsgr.application.ui.controller.map import MapPage, MapPanel
+    from autowsgr.application.ui.controller.home.main_page import HomePage
+    from autowsgr.application.ui.controller.operations.sortie_page.battle_page import (
+        MapPage,
+        MapPanel,
+    )
 
     map_page = MapPage(runner.ctrl)
 
     # ───── Step 0: 验证初始状态 ──────────────────────────────────────
-    runner.verify_current('初始验证: 地图页面', '地图页面', MapPage.is_current_page)
+    runner.verify_current('初始验证: 地图页面', '地图页面', MapPage.check_current_page)
     if runner.aborted:
         return
 
@@ -56,9 +59,9 @@ def run_test(runner: UIControllerTestRunner) -> None:
     runner.read_state(
         '地图页面状态',
         readers={
-            '远征通知': MapPage.has_expedition_notification,
-            '当前面板': MapPage.get_active_panel,
-            '选中章节Y': MapPage.find_selected_chapter_y,
+            '远征通知': MapPage.check_expedition_notification,
+            '当前面板': MapPage.read_active_panel,
+            '选中章节Y': MapPage.read_selected_chapter_y,
         },
     )
 
@@ -74,7 +77,7 @@ def run_test(runner: UIControllerTestRunner) -> None:
         runner.execute_step(
             f'面板切换 → {panel.value}',
             '地图页面',
-            MapPage.is_current_page,
+            MapPage.check_current_page,
             lambda p=panel: map_page.switch_panel(p),
         )
         if runner.aborted:
@@ -84,7 +87,7 @@ def run_test(runner: UIControllerTestRunner) -> None:
     runner.execute_step(
         '章节 → 下一章',
         '地图页面',
-        MapPage.is_current_page,
+        MapPage.check_current_page,
         map_page.click_next_chapter,
     )
     if runner.aborted:
@@ -94,7 +97,7 @@ def run_test(runner: UIControllerTestRunner) -> None:
     runner.execute_step(
         '章节 → 上一章 (恢复)',
         '地图页面',
-        MapPage.is_current_page,
+        MapPage.check_current_page,
         map_page.click_prev_chapter,
     )
     if runner.aborted:
@@ -113,7 +116,7 @@ def _navigate_to(ctrl: AndroidController, pause: float) -> None:
     """从任意已知页面导航到地图页面（出征面板）。"""
     import time
 
-    from autowsgr.application.ui.controller.home import HomePage
+    from autowsgr.application.ui.controller.home.main_page import HomePage
 
     if not reset_to_main_page(ctrl, pause):
         return
@@ -133,11 +136,11 @@ def main() -> None:
     from loguru import logger
 
     logger.info('=== 地图页面 e2e 测试开始 ===')
-    from autowsgr.application.ui.controller.map import MapPage
+    from autowsgr.application.ui.controller.operations.sortie_page.battle_page import MapPage
 
     if not ensure_page(
         ctrl,
-        MapPage.is_current_page,
+        MapPage.check_current_page,
         lambda: _navigate_to(ctrl, args.pause),
         '地图页面',
         auto_mode=args.auto,

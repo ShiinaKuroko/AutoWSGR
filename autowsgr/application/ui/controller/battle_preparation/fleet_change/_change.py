@@ -1,4 +1,16 @@
-"""智能换船算法。
+"""模块功能：编排普通、活动、演习和决战准备页的舰队更换流程。
+
+上层调用：
+- application.ui.controller.battle_preparation.preparation：通过页面组合类公开换船入口。
+- business.combat：传入目标舰队规则并读取换船结果。
+
+下层依赖：
+- application.ui.controller.battle_preparation.fleet_change._alignment：执行槽位调整。
+- application.ui.controller.battle_preparation.fleet_change._planning：分配候选规则。
+- application.ui.controller.battle_preparation.fleet_change._detect：读取舰队快照。
+- application.ui.fleet：提供舰队选择规则和值对象。
+
+智能换船流程:
 
 1. 保留所有可用主选，并为 candidate-only 槽位分配唯一备选。
 2. 使用全部主选和备选作为全局 OCR 补救上下文。
@@ -20,18 +32,16 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING
 
+from autowsgr.application.ui.controller.battle_preparation.fleet_change import (
+    _alignment,
+    _selection,
+)
+from autowsgr.application.ui.controller.battle_preparation.fleet_change._detect import FleetSnapshot
 from autowsgr.common.constants import ship_name_identity
 from autowsgr.common.system.logger import get_logger
 
-from ._alignment import (
-    FleetAlignmentMixin,
-    _UnresolvedPrimaryError,
-)
-from ._detect import FleetSnapshot
-from ._selection import _ShipSelection as _SelectionResult
 
-
-_ShipSelection = _SelectionResult
+_ShipSelection = _selection._ShipSelection
 
 
 # 仅在类型检查时导入 Sequence，运行时不产生额外依赖。
@@ -49,7 +59,7 @@ _MAX_SET_RETRIES: int = 2
 
 
 # 为普通出征和决战准备页提供同一套智能换船流程。
-class FleetChangeMixin(FleetAlignmentMixin):
+class FleetChangeMixin(_alignment.FleetAlignmentMixin):
     """准备页换船逻辑。"""
 
     # True 使用搜索框选船，False 直接通过 OCR 列表选船。
@@ -408,7 +418,7 @@ class FleetChangeMixin(FleetAlignmentMixin):
         self._on_fleet_event = on_event
         # Step 1：切换到 YAML 指定的舰队。
         # 当前舰队已经正确时，不重复点击舰队按钮。
-        if fleet_id and self.get_selected_fleet(self._ctrl.screenshot()) != fleet_id:
+        if fleet_id and self.read_selected_fleet(self._ctrl.screenshot()) != fleet_id:
             self.select_fleet(fleet_id)
             time.sleep(0.5)
 
@@ -504,7 +514,7 @@ class FleetChangeMixin(FleetAlignmentMixin):
                     locked=locked,
                     deferred_primary_slots=deferred_primary_slots,
                 )
-            except _UnresolvedPrimaryError as error:
+            except _alignment._UnresolvedPrimaryError as error:
                 _log.error('[Fleet] 换船失败: {}', error)
                 self._log_final_result(
                     current,

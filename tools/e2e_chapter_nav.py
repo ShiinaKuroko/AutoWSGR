@@ -28,8 +28,8 @@ sys.path.insert(0, str(PROJECT_ROOT))
 from loguru import logger
 
 from autowsgr.application.runtime.launcher import Launcher
-from autowsgr.application.ui.controller.map.base import BaseMapPage
-from autowsgr.application.ui.controller.map.panels.sortie import SortiePanelMixin
+from autowsgr.application.ui.controller.operations.sortie_page.battle_page.base import BaseMapPage
+from autowsgr.application.ui.controller.operations.sortie_page.sortie import SortiePanelMixin
 from autowsgr.application.ui.navigation import goto_page
 from autowsgr.common.system import (
     AccountConfig,
@@ -85,7 +85,7 @@ def main() -> int:
     # ── 先 OCR 读一次当前章 ──
     info = None
     for _ in range(3):
-        info = page.recognize_map(ctx.ctrl.screenshot(), ctx.ocr)
+        info = page.read_map(ctx.ctrl.screenshot(), ctx.ocr)
         if info is not None:
             break
         time.sleep(0.5)
@@ -167,7 +167,7 @@ def main() -> int:
 
         wait_for_page(
             ctx.ctrl,
-            BaseMapPage.is_current_page,
+            BaseMapPage.check_current_page,
             timeout=8.0,
             source='出征准备返回',
             target=PageName.MAP,
@@ -175,7 +175,7 @@ def main() -> int:
         # 回到地图页后再次 OCR, 确认当前就是 2-1 (说明真的停在目标图而不是乱跳)
         info6 = None
         for _ in range(3):
-            info6 = page.recognize_map(ctx.ctrl.screenshot(), ctx.ocr)
+            info6 = page.read_map(ctx.ctrl.screenshot(), ctx.ocr)
             if info6 is not None:
                 break
             time.sleep(0.3)

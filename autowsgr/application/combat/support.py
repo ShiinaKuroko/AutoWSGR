@@ -20,7 +20,7 @@ def ensure_battle_support(ctx: GameContext, *, enabled: bool = True) -> None:
     """确保军阶战役支援开关处于目标状态。"""
     page = BattlePreparationPage(ctx)
     screen = ctx.ctrl.screenshot()
-    if page.is_support_enabled(screen) == enabled:
+    if page.check_support_enabled(screen) == enabled:
         _log.debug('[Combat] 战役支援已为目标状态 {}', enabled)
         return
     _log.info('[Combat] 战役支援状态不符，切换为 {}', enabled)

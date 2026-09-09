@@ -79,7 +79,7 @@ def _intensify_to_sidebar(ctx: GameContext) -> None:
 
 def _mission_to_home(ctx: GameContext) -> None:
     """从任务页面返回主页。"""
-    from autowsgr.application.ui.controller.mission_page import MissionPage
+    from autowsgr.application.ui.controller.operations.mission_page import MissionPage
 
     MissionPage(ctx).go_back()
 

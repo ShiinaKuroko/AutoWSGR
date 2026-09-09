@@ -8,7 +8,7 @@
 下层依赖：
 - application.ui.controller.sidebar.intensify_page.constants：提供返回和标签点击坐标。
 - application.ui.controller.sidebar.main_page：提供侧边栏页面检查器。
-- application.ui.controller.shared.tabbed_page：识别标签页和生成标签检查器。
+- application.ui.controller.shared.top_tabs：识别标签页和生成标签检查器。
 - common.ui.interaction：等待标签或侧边栏页面到达。
 - common.types：提供页面名称。
 """
@@ -18,7 +18,7 @@ from __future__ import annotations
 import enum
 from typing import TYPE_CHECKING
 
-from autowsgr.application.ui.controller.shared.tabbed_page import (
+from autowsgr.application.ui.controller.shared.top_tabs import (
     TabbedPageType,
     check_tabbed_page,
     get_active_tab_index,

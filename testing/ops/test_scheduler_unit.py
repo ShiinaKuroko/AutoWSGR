@@ -455,7 +455,7 @@ def test_sync_initial_counts_disables_normal_fight_on_failure():
 
 
 class _FakeSortiePage:
-    """MapPage 替身: ensure_panel no-op, get_loot_and_ship_count 返回预设值。"""
+    """MapPage 替身: ensure_panel no-op, read_loot_and_ship_count 返回预设值。"""
 
     def __init__(
         self,
@@ -471,7 +471,7 @@ class _FakeSortiePage:
     def ensure_panel(self, _panel: object) -> None:
         return None
 
-    def get_loot_and_ship_count(self, *, read_loot: bool = True) -> types.SimpleNamespace:
+    def read_loot_and_ship_count(self, *, read_loot: bool = True) -> types.SimpleNamespace:
         if self._raises is not None:
             raise self._raises('OCR 不可用')
         loot = self._loot if read_loot else None
@@ -481,7 +481,7 @@ class _FakeSortiePage:
 def _patch_ctx_sortie(monkeypatch: pytest.MonkeyPatch, page: _FakeSortiePage) -> None:
     """替换 ctx.sync_daily_drop_counts 的设备依赖 (goto_page / MapPage / sleep) 为 no-op。"""
     import autowsgr.application.runtime.context.game_context as gc_mod
-    import autowsgr.application.ui.controller.map as ui_mod
+    import autowsgr.application.ui.controller.operations.sortie_page.battle_page as ui_mod
     import autowsgr.application.ui.navigation as nav_mod
 
     monkeypatch.setattr(nav_mod, 'goto_page', lambda *_a, **_kw: None)

@@ -1,7 +1,14 @@
-"""出征准备页面基类 — 声明共享依赖与公共查询 / 导航方法。
+"""模块功能：提供出征准备页面的共享状态读取、页面操作和导航基类。
 
-所有准备页 Mixin 均继承 :class:`BaseBattlePreparation`，
-最终由 :class:`~autowsgr.application.ui.controller.battle_preparation.BattlePreparationPage` 组合。
+上层调用：
+- application.ui.controller.battle_preparation.preparation：组合完整的出征准备页面控制器。
+- application.ui.controller.battle_preparation 下的各 Mixin：复用页面状态和原子操作。
+- application.ui.navigation、business.combat：调用页面检查、回退和出征动作。
+
+下层依赖：
+- application.ui.controller.battle_preparation.constants：提供页面私有校准参数。
+- common.ui.interaction：等待页面到达或离开。
+- common.vision：执行页面模板和像素状态检查。
 """
 
 from __future__ import annotations
@@ -9,7 +16,7 @@ from __future__ import annotations
 import enum
 from typing import TYPE_CHECKING
 
-from autowsgr.common.calibration.battle_preparation import (
+from autowsgr.application.ui.controller.battle_preparation.constants import (
     AUTO_SUPPLY_ON,
     AUTO_SUPPLY_PROBE,
     CLICK_AUTO_SUPPLY,
@@ -22,7 +29,6 @@ from autowsgr.common.calibration.battle_preparation import (
     PANEL_ACTIVE,
     PANEL_CLICKS,
     PANEL_PROBES,
-    PAGE_SIGNATURE as BATTLE_PREP_PAGE_SIGNATURE,
     STATE_TOLERANCE,
 )
 from autowsgr.common.system.logger import get_logger
@@ -93,7 +99,6 @@ PANEL_PROBE: dict[Panel, tuple[float, float]] = {
 CLICK_PANEL: dict[Panel, tuple[float, float]] = {
     panel: PANEL_CLICKS[panel.name.lower()] for panel in Panel
 }
-PAGE_SIGNATURE = BATTLE_PREP_PAGE_SIGNATURE
 
 
 class BaseBattlePreparation:
@@ -115,19 +120,10 @@ class BaseBattlePreparation:
         self._ocr = ocr or ctx.ocr
         self._ship_ocr = getattr(ctx, 'ship_ocr', None)
 
-    @property
-    def _preferred_ocr(self) -> OCREngine | None:
-        """返回船只识别优先使用的 OCR 引擎。
-
-        增强船只识别 (FastOCR) 开启时优先使用它，未开启时回退默认 OCR。
-        只有名称 / 等级 / 舰种等船只信息节点应使用本属性，其余节点仍用 ``_ocr``。
-        """
-        return self._ship_ocr or self._ocr
-
     # ── 页面识别 ──────────────────────────────────────────────────────────
 
     @staticmethod
-    def is_current_page(screen: np.ndarray) -> PageMatch:
+    def check_current_page(screen: np.ndarray) -> PageMatch:
         """判断截图是否为出征准备页面。
 
         用出征准备页面独有特征模板匹配 (迁移自 classic ``fight_prepare_page``,
@@ -139,10 +135,18 @@ class BaseBattlePreparation:
             return PageMatch(name=name, matched=False, score=0.0)
         return PageMatch(name=name, matched=True, score=result.confidence)
 
+    # ── 状态查询 — 开关 ──────────────────────────────────────────────────
+
+    @staticmethod
+    def check_auto_supply_enabled(screen: np.ndarray) -> bool:
+        """检测自动补给是否启用。"""
+        x, y = AUTO_SUPPLY_PROBE
+        return PixelChecker.get_pixel(screen, x, y).near(AUTO_SUPPLY_ON, STATE_TOLERANCE)
+
     # ── 状态查询 — 舰队 / 面板 ────────────────────────────────────────────
 
     @staticmethod
-    def get_selected_fleet(screen: np.ndarray) -> int | None:
+    def read_selected_fleet(screen: np.ndarray) -> int | None:
         """获取当前选中的舰队编号 (1-4)。"""
         for fleet_id, (x, y) in FLEET_PROBE.items():
             pixel = PixelChecker.get_pixel(screen, x, y)
@@ -151,7 +155,7 @@ class BaseBattlePreparation:
         return None
 
     @staticmethod
-    def get_active_panel(screen: np.ndarray) -> Panel | None:
+    def read_active_panel(screen: np.ndarray) -> Panel | None:
         """获取当前激活的底部面板。"""
         for panel, (x, y) in PANEL_PROBE.items():
             pixel = PixelChecker.get_pixel(screen, x, y)
@@ -159,32 +163,47 @@ class BaseBattlePreparation:
                 return panel
         return None
 
-    @staticmethod
-    def is_auto_supply_enabled(screen: np.ndarray) -> bool:
-        """检测自动补给是否启用。"""
-        x, y = AUTO_SUPPLY_PROBE
-        return PixelChecker.get_pixel(screen, x, y).near(AUTO_SUPPLY_ON, STATE_TOLERANCE)
+    # ── 动作 — 舰队 / 面板选择 ───────────────────────────────────────────
 
-    # ── 动作 — 回退 / 出征 ───────────────────────────────────────────────
+    def select_fleet(self, fleet: int) -> None:
+        """选择舰队 (1-4)。"""
+        if fleet not in CLICK_FLEET:
+            raise ValueError(f'舰队编号必须为 1-4，收到: {fleet}')
+        _log.debug('[UI] 出征准备 → 选择 {}队', fleet)
+        self._ctrl.click(*CLICK_FLEET[fleet])
 
-    def go_back(self) -> None:
-        """点击回退按钮 (◁)，返回地图页面。
+    def select_panel(self, panel: Panel) -> None:
+        """切换底部面板标签。"""
+        _log.debug('[UI] 出征准备 → {}', panel.value)
+        self._ctrl.click(*CLICK_PANEL[panel])
 
-        用**到达验证** (:func:`click_and_wait_for_page`): 点击后确认真的到了
-        地图页面。此前用 ``wait_leave_page`` 语义 (checker 为 False 即"已离开")
-        存在假成功——点击后画面仍在出征准备页时, ``MapPage.is_current_page``
-        同样为 False, 第一帧就误判离开, 从未验证到达。
-        """
-        from autowsgr.application.ui.controller.map import MapPage
+    # ── 动作 — 舰船槽位 ─────────────────────────────────────────────────
 
-        _log.debug('[UI] 出征准备 → 回退')
-        click_and_wait_for_page(
-            self._ctrl,
-            click_coord=CLICK_BACK,
-            checker=MapPage.is_current_page,
-            source=PageName.BATTLE_PREP,
-            target=PageName.MAP,
-        )
+    def click_ship_slot(self, slot: int) -> None:
+        """点击指定舰船槽位 (0-5)。"""
+        if slot not in CLICK_SHIP_SLOT:
+            raise ValueError(f'舰船槽位必须为 0-5，收到: {slot}')
+        _log.debug('[UI] 出征准备 → 点击舰船位 {}', slot)
+        self._ctrl.click(*CLICK_SHIP_SLOT[slot])
+
+    # ── 动作 — 开关 ──────────────────────────────────────────────────────
+
+    def toggle_auto_supply(self) -> None:
+        """切换自动补给开关。"""
+        _log.debug('[UI] 出征准备 → 切换自动补给')
+        self._ctrl.click(*CLICK_AUTO_SUPPLY)
+
+    # ── 组合动作 — 快速面板 ──────────────────────────────────────────────
+
+    def quick_supply(self) -> None:
+        """点击「快速补给」标签。"""
+        self.select_panel(Panel.QUICK_SUPPLY)
+
+    def quick_repair(self) -> None:
+        """点击「快速修理」标签。"""
+        self.select_panel(Panel.QUICK_REPAIR)
+
+    # ── 组合动作 — 出征 ──────────────────────────────────────────────────
 
     def start_battle(self) -> None:
         """点击「开始出征」按钮。"""
@@ -202,7 +221,7 @@ class BaseBattlePreparation:
         return (
             wait_leave_page(
                 self._ctrl,
-                checker=self.is_current_page,
+                checker=self.check_current_page,
                 timeout=timeout,
                 source=PageName.BATTLE_PREP,
                 target=target,
@@ -211,40 +230,34 @@ class BaseBattlePreparation:
             is not None
         )
 
-    # ── 动作 — 舰队 / 面板选择 ───────────────────────────────────────────
+    # ── 页面回退 ──────────────────────────────────────────────────────────
 
-    def select_fleet(self, fleet: int) -> None:
-        """选择舰队 (1-4)。"""
-        if fleet not in CLICK_FLEET:
-            raise ValueError(f'舰队编号必须为 1-4，收到: {fleet}')
-        _log.debug('[UI] 出征准备 → 选择 {}队', fleet)
-        self._ctrl.click(*CLICK_FLEET[fleet])
+    def go_back(self) -> None:
+        """点击回退按钮 (◁)，返回地图页面。
 
-    def select_panel(self, panel: Panel) -> None:
-        """切换底部面板标签。"""
-        _log.debug('[UI] 出征准备 → {}', panel.value)
-        self._ctrl.click(*CLICK_PANEL[panel])
+        用**到达验证** (:func:`click_and_wait_for_page`): 点击后确认真的到了
+        地图页面。此前用 ``wait_leave_page`` 语义 (checker 为 False 即"已离开")
+        存在假成功——点击后画面仍在出征准备页时, ``MapPage.check_current_page``
+        同样为 False, 第一帧就误判离开, 从未验证到达。
+        """
+        from autowsgr.application.ui.controller.operations.sortie_page.battle_page import MapPage
 
-    def quick_supply(self) -> None:
-        """点击「快速补给」标签。"""
-        self.select_panel(Panel.QUICK_SUPPLY)
+        _log.debug('[UI] 出征准备 → 回退')
+        click_and_wait_for_page(
+            self._ctrl,
+            click_coord=CLICK_BACK,
+            checker=MapPage.check_current_page,
+            source=PageName.BATTLE_PREP,
+            target=PageName.MAP,
+        )
 
-    def quick_repair(self) -> None:
-        """点击「快速修理」标签。"""
-        self.select_panel(Panel.QUICK_REPAIR)
+    # ── 私有 OCR 选择 ────────────────────────────────────────────────────
 
-    # ── 动作 — 舰船槽位 ─────────────────────────────────────────────────
+    @property
+    def _preferred_ocr(self) -> OCREngine | None:
+        """返回船只识别优先使用的 OCR 引擎。
 
-    def click_ship_slot(self, slot: int) -> None:
-        """点击指定舰船槽位 (0-5)。"""
-        if slot not in CLICK_SHIP_SLOT:
-            raise ValueError(f'舰船槽位必须为 0-5，收到: {slot}')
-        _log.debug('[UI] 出征准备 → 点击舰船位 {}', slot)
-        self._ctrl.click(*CLICK_SHIP_SLOT[slot])
-
-    # ── 动作 — 开关 ──────────────────────────────────────────────────────
-
-    def toggle_auto_supply(self) -> None:
-        """切换自动补给开关。"""
-        _log.debug('[UI] 出征准备 → 切换自动补给')
-        self._ctrl.click(*CLICK_AUTO_SUPPLY)
+        增强船只识别 (FastOCR) 开启时优先使用它，未开启时回退默认 OCR。
+        只有名称 / 等级 / 舰种等船只信息节点应使用本属性，其余节点仍用 ``_ocr``。
+        """
+        return self._ship_ocr or self._ocr

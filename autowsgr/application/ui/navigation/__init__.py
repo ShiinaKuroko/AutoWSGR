@@ -17,6 +17,7 @@ from autowsgr.application.ui.navigation.registry import (
 from autowsgr.application.ui.navigation.service import (
     goto_bath_from_campaign_sortie,
     goto_bath_from_decisive_sortie,
+    goto_bath_from_event_sortie,
     goto_bath_from_normal_sortie,
     goto_page,
 )
@@ -36,6 +37,7 @@ __all__ = [
     # ── 业务入口 ─────────────────────────────────────────────────
     'goto_bath_from_campaign_sortie',
     'goto_bath_from_decisive_sortie',
+    'goto_bath_from_event_sortie',
     'goto_bath_from_normal_sortie',
     'goto_page',
     # ── 工具入口 ─────────────────────────────────────────────────

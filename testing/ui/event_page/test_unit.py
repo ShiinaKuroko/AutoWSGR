@@ -1,10 +1,10 @@
 """活动地图页面控制器的无设备单元测试 (mock, 不连真机)。
 
 覆盖三个关键路径:
-  - ``is_current_page``: 三层锚点 (出击按钮浮层态 / 难度图标干净页 / 标题兜底)
-  - ``_enter_node``: 出击按钮出现确认节点选择成功 (单帧, 替代旧双帧浮层检测)
+  - ``check_current_page``: 三层锚点 (出击按钮浮层态 / 难度图标干净页 / 标题兜底)
+  - ``select_node``: 出击按钮出现确认节点选择成功 (单帧, 替代旧双帧浮层检测)
   - ``go_back``: 纯模板驱动 (出击按钮可见 = 浮层在 → 点红色 X; 否则点返回)
-  - ``ensure_no_overlay``: 出击按钮可见 = 浮层在 → 点 X → 按钮消失确认
+  - ``close_node_overlay``: 出击按钮可见 = 浮层在 → 点 X → 按钮消失确认
 """
 
 from __future__ import annotations
@@ -14,10 +14,12 @@ from unittest.mock import MagicMock, call
 import numpy as np
 import pytest
 
-from autowsgr.application.ui.controller.event.event_page import (
+from autowsgr.application.ui.controller.home.event_page.constants import (
     CLICK_BACK,
     CLICK_CLOSE_NODE_OVERLAY,
     NODE_POSITIONS_BY_EVENT,
+)
+from autowsgr.application.ui.controller.home.event_page.page import (
     BaseEventPage,
     _get_fight_button_templates,
 )
@@ -52,9 +54,9 @@ def _make_page() -> tuple[BaseEventPage, MagicMock]:
 
 @pytest.fixture(autouse=True)
 def _no_sleep(monkeypatch: pytest.MonkeyPatch) -> None:
-    """屏蔽真实 sleep, 加速 _enter_node/go_back 的等待循环。"""
+    """屏蔽真实 sleep, 加速 select_node/go_back 的等待循环。"""
     monkeypatch.setattr(
-        'autowsgr.application.ui.controller.event.event_page.time.sleep', lambda *_: None
+        'autowsgr.application.ui.controller.home.event_page.page.time.sleep', lambda *_: None
     )
 
 
@@ -74,14 +76,14 @@ def _mock_fight_button(
 # ─────────────────────────────────────────────
 
 
-class TestIsCurrentPage:
+class TestCheckCurrentPage:
     """背景 (实机 2026-08-15 日志): 战后活动页落浮层态, 标题仍命中 (0.928)
     但难度图标被遮挡, 无法区分干净页/浮层页 → 误判连锁。"""
 
     def test_fight_button_means_overlay_state(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """出击按钮可见 → 浮层态也算活动页 (战后 goto_page(EVENT_MAP) 不失败)。"""
         _mock_fight_button(monkeypatch, [_button_detail()])
-        result = BaseEventPage.is_current_page(_gradient_screen())
+        result = BaseEventPage.check_current_page(_gradient_screen())
         assert result.matched
         assert result.score == pytest.approx(0.9)
 
@@ -90,10 +92,10 @@ class TestIsCurrentPage:
         _mock_fight_button(monkeypatch, [None])
         monkeypatch.setattr(
             BaseEventPage,
-            '_difficulty_icon_state',
+            '_read_difficulty_icon_state',
             staticmethod(MagicMock(return_value='H')),
         )
-        result = BaseEventPage.is_current_page(_gradient_screen())
+        result = BaseEventPage.check_current_page(_gradient_screen())
         assert result.matched
 
     def test_title_fallback_below_anchors(self, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -101,10 +103,10 @@ class TestIsCurrentPage:
         _mock_fight_button(monkeypatch, [None])
         monkeypatch.setattr(
             BaseEventPage,
-            '_difficulty_icon_state',
+            '_read_difficulty_icon_state',
             staticmethod(MagicMock(return_value=None)),
         )
-        from autowsgr.application.ui.controller.event import event_page as ep
+        from autowsgr.application.ui.controller.home.event_page import page as ep
 
         monkeypatch.setattr(
             ep,
@@ -112,7 +114,7 @@ class TestIsCurrentPage:
             list,
         )
         # 标题模板为空 → find_any 返回 None → 不匹配 (新活动未截标题图的场景)
-        result = BaseEventPage.is_current_page(_gradient_screen())
+        result = BaseEventPage.check_current_page(_gradient_screen())
         assert not result.matched
 
     def test_no_anchor_no_match(self, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -120,10 +122,10 @@ class TestIsCurrentPage:
         _mock_fight_button(monkeypatch, [None])
         monkeypatch.setattr(
             BaseEventPage,
-            '_difficulty_icon_state',
+            '_read_difficulty_icon_state',
             staticmethod(MagicMock(return_value=None)),
         )
-        result = BaseEventPage.is_current_page(_gradient_screen())
+        result = BaseEventPage.check_current_page(_gradient_screen())
         assert not result.matched
         assert result.name == str(PageName.EVENT_MAP)
 
@@ -142,17 +144,17 @@ class TestIsCurrentPage:
 
 
 # ─────────────────────────────────────────────
-# _enter_node (出击按钮出现 = 浮层弹出)
+# select_node (出击按钮出现 = 浮层弹出)
 # ─────────────────────────────────────────────
 
 
-class TestEnterNode:
+class TestSelectNode:
     def test_success_detects_fight_button(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """点击节点后出击按钮出现 → 选择成功, 第 1 次复查即停。"""
         page, ctrl = _make_page()
         _mock_fight_button(monkeypatch, [_button_detail()])
 
-        page._enter_node(1)
+        page.select_node(1)
 
         x, y = NODE_POSITIONS_BY_EVENT['20260730'][1]
         ctrl.click.assert_called_once_with(x, y)
@@ -166,7 +168,7 @@ class TestEnterNode:
         _mock_fight_button(monkeypatch, [None] * 10)
 
         with pytest.raises(ActionFailedError):
-            page._enter_node(1)
+            page.select_node(1)
         assert ctrl.screenshot.call_count == 10
 
 
@@ -180,7 +182,7 @@ class TestGoBack:
         """已在主页面 → 直接返回, 不点击。"""
         page, ctrl = _make_page()
         monkeypatch.setattr(
-            'autowsgr.application.ui.controller.home.HomePage.check_current_page',
+            'autowsgr.application.ui.controller.home.main_page.HomePage.check_current_page',
             MagicMock(return_value=True),
         )
 
@@ -197,7 +199,7 @@ class TestGoBack:
         ctrl.screenshot.side_effect = [frame, frame, main_frame]
         _mock_fight_button(monkeypatch, [_button_detail(), None])
         monkeypatch.setattr(
-            'autowsgr.application.ui.controller.home.HomePage.check_current_page',
+            'autowsgr.application.ui.controller.home.main_page.HomePage.check_current_page',
             MagicMock(side_effect=[False, False, True]),
         )
 
@@ -217,7 +219,7 @@ class TestGoBack:
         ctrl.screenshot.side_effect = [frame, main_frame]
         _mock_fight_button(monkeypatch, [None])
         monkeypatch.setattr(
-            'autowsgr.application.ui.controller.home.HomePage.check_current_page',
+            'autowsgr.application.ui.controller.home.main_page.HomePage.check_current_page',
             MagicMock(side_effect=[False, True]),
         )
 
@@ -234,7 +236,7 @@ class TestGoBack:
         page, ctrl = _make_page()
         ctrl.screenshot.return_value = _gradient_screen()
         monkeypatch.setattr(
-            'autowsgr.application.ui.controller.home.HomePage.check_current_page',
+            'autowsgr.application.ui.controller.home.main_page.HomePage.check_current_page',
             MagicMock(return_value=False),
         )
         monkeypatch.setattr(
@@ -242,7 +244,7 @@ class TestGoBack:
         )
         # time.sleep 已被 _no_sleep 屏蔽; mock monotonic 递增驱动超时
         monkeypatch.setattr(
-            'autowsgr.application.ui.controller.event.event_page.time.monotonic',
+            'autowsgr.application.ui.controller.home.event_page.page.time.monotonic',
             MagicMock(side_effect=count(0, 1)),
         )
 
@@ -251,11 +253,11 @@ class TestGoBack:
 
 
 # ─────────────────────────────────────────────
-# ensure_no_overlay (战后浮层清理: 出击按钮锚点)
+# close_node_overlay (战后浮层清理: 出击按钮锚点)
 # ─────────────────────────────────────────────
 
 
-class TestEnsureNoOverlay:
+class TestCloseNodeOverlay:
     """背景 (实机 2026-08-15 日志): H5 打完一场回港, 活动页直接落在关卡详情
     浮层态 (战后 UI 流转跳过出征准备页), 模态浮层拦截一切点击 → 死循环。"""
 
@@ -265,7 +267,7 @@ class TestEnsureNoOverlay:
         ctrl.screenshot.return_value = _gradient_screen()
         _mock_fight_button(monkeypatch, [None])
 
-        page.ensure_no_overlay()
+        page.close_node_overlay()
 
         ctrl.click.assert_not_called()
 
@@ -274,7 +276,7 @@ class TestEnsureNoOverlay:
         page, ctrl = _make_page()
         _mock_fight_button(monkeypatch, [_button_detail(), None])
 
-        page.ensure_no_overlay()
+        page.close_node_overlay()
 
         assert ctrl.click.call_args_list == [call(*CLICK_CLOSE_NODE_OVERLAY)]
 
@@ -283,6 +285,6 @@ class TestEnsureNoOverlay:
         page, ctrl = _make_page()
         _mock_fight_button(monkeypatch, [_button_detail()] * 4)
 
-        page.ensure_no_overlay()
+        page.close_node_overlay()
 
         assert ctrl.click.call_count == 3

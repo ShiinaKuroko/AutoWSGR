@@ -37,7 +37,7 @@ class _MapPage:
     def switch_panel(self, _panel: object) -> None:
         return None
 
-    def get_exercise_rival_status(self) -> _Rivals:
+    def read_exercise_rival_status(self) -> _Rivals:
         values = self.statuses.pop(0) if self.statuses else [False] * 5
         return _Rivals(values)
 

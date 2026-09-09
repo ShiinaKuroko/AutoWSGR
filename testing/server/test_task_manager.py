@@ -219,6 +219,32 @@ def test_stop_event_is_exposed_as_read_only_execution_token() -> None:
     assert manager.stop_event.is_set() is False
 
 
+def test_repairing_task_remains_active_and_preserves_progress() -> None:
+    """澡堂等待期间任务仍占用设备并报告原有进度。"""
+    manager = TaskManager()
+    repairing = threading.Event()
+    release = threading.Event()
+
+    def executor(_task: object) -> TaskOutcome:
+        manager.update_progress(current_round=1)
+        manager.set_repairing(True)
+        repairing.set()
+        assert release.wait(timeout=1)
+        manager.set_repairing(False)
+        return TaskOutcome.from_results([{'round': 1, 'success': True}])
+
+    manager.start_task(task_type='normal_fight', total_rounds=2, executor=executor)
+    assert repairing.wait(timeout=1)
+    assert manager.is_running is True
+    assert manager.get_status()['status'] == TaskStatus.REPAIRING.value
+    assert manager.get_status()['progress']['current'] == 1
+
+    release.set()
+    assert manager.wait_for_completion(timeout=1) is True
+    assert manager.current_task is not None
+    assert manager.current_task.status is TaskStatus.COMPLETED
+
+
 def test_wait_for_completion_does_not_acknowledge_a_running_worker() -> None:
     """Shutdown callers can distinguish a stop request from actual worker termination."""
     manager = TaskManager()

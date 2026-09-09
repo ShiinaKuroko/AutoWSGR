@@ -75,3 +75,43 @@ OCR；BathPage 和选船流程已经拿到了带坐标的 `OCRResult`，需要�
 
 - `home` 没有页面专属 OCR 规则，也没有新增 OCR 调用方；本次未发现新的
   OCR 兼容冲突，既有跨模块私有 API 问题继续留待 OCR 专题统一处理。
+
+## 2026-09-08 出征模块治理审查
+
+- 选船检测 `battle_preparation/fleet_change/_detect.py` 继续直接调用
+  `common.vision.ocr._fuzzy_match`；它与 `shared/choose_ship.py`、
+  `common/vision/ship_list.py` 和浴室识别共同依赖同一个私有文本匹配实现。
+- `decisive_page/recognition.py` 已集中决战章节、节点、战备舰队和技能舰船 OCR；其
+  仍依赖上下文注入的 OCR 引擎、共享 `common.vision.ship_list` 和地图 DLL。
+- 本批只完成职责归位，不优化 OCR 算法、不替换共享私有匹配实现，也不改变选船行为；
+  后续上下文/OCR 专题继续处理生命周期和跨模块兼容。
+- OCR 专题需要一次性决定原始 OCR 文本匹配的公开边界，并覆盖选船、决战、地图和
+  浴室全部调用方；本批只记录兼容冲突，保留现有行为。
+
+## 2026-09-09 决战模块第二轮治理
+
+- `decisive_page/recognition.py` 已按职责集中决战 OCR；仍依赖注入的 OCR 引擎、
+  `common.vision.ship_list` 和地图 DLL，未改变现有识别算法。
+- `map_page.read_node()` 仍在 DLL 识别外围捕获宽泛 `Exception` 并按识别失败重试；
+  这是 OCR/错误边界问题，留待专题处理。
+- `common.vision.ocr._fuzzy_match` 的共享私有 API 依赖和选船模块兼容性继续保留，
+  不在本轮改动。
+
+## 2026-09-09 公共区域与登录阶段复核
+
+- `LoginPage` 没有 OCR 文本识别；启动画面使用 `PixelSignature`，不新增 OCR 消费者。
+- `shared/top_tabs.py` 只做顶部标签模板/像素匹配，不涉及 OCR；`shared/choose_ship.py`
+  仍是 `_fuzzy_match` 的直接调用方，已由本台账的既有四方兼容清单覆盖。
+- 本轮未修改 OCR 引擎、私有匹配函数、选船算法或 ROI 公共接口；相关冲突继续留待
+  OCR 专题统一处理。
+
+## 2026-09-09 阶段二 OCR/ROI 复核
+
+- 通用 ROI、OCR 引擎、船池行定位和战斗结果识别均已有 `common.vision` 实现；本阶段
+  没有重复迁移或新增兼容包装。
+- `shared/choose_ship.py`、`battle_preparation/fleet_change/_detect.py` 和任务 OCR
+  已改为导入整个 `common.vision.ocr` 模块访问私有函数，匹配行为保持不变。
+- BathPage 和 `common/vision/ship_list.py` 仍直接导入 `_fuzzy_match`，任务 OCR 的
+  其他私有匹配边界也继续保留；必须在同一 OCR 专题中统一公开接口并覆盖所有消费者。
+- 决战节点 DLL 宽泛异常、页面 OCR 生命周期和选船 OCR/ROI 混合职责继续按台账延期，
+  本阶段没有修改浴室代码、OCR 算法或公共视觉接口。

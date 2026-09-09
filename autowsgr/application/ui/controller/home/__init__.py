@@ -1,16 +1,18 @@
-"""模块功能：导出母港主页控制器及其页面导航目标。
+"""模块功能：导出 home 区域下的主页和活动页面 Controller。
 
 上层调用：
-- application.ui.navigation：执行母港到地图、任务、后院、侧边栏和活动页面的导航。
-- application.runtime：识别母港并处理每日浮层。
-- business.logistics：读取任务和远征通知状态。
-- testing.ui：执行母港页面的导航验证。
+- application.ui.navigation：取得主页和活动页面的稳定入口。
+- application.runtime：识别主页并处理启动浮层。
+- business：执行主页和活动页面业务流程。
 
 下层依赖：
-- application.ui.controller.home.page：提供母港页面操作实现。
+- application.ui.controller.home.main_page：提供主页 Controller。
+- application.ui.controller.home.event_page：提供活动地图 Controller。
+
+本模块只负责区域级稳定导出，不执行页面注册、设备操作或导航动作。
 """
 
-from autowsgr.application.ui.controller.home.page import HomePage, Target
+from autowsgr.application.ui.controller.home.main_page import HomePage, Target
 
 
 __all__ = ['HomePage', 'Target']

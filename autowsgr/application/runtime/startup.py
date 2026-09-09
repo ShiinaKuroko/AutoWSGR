@@ -32,8 +32,8 @@ import time
 from datetime import date
 from typing import TYPE_CHECKING
 
-from autowsgr.application.ui.controller.home import HomePage
-from autowsgr.application.ui.controller.start_screen import StartScreenPage
+from autowsgr.application.ui.controller.home.main_page import HomePage
+from autowsgr.application.ui.controller.login import LoginPage
 from autowsgr.application.ui.navigation import goto_page
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.types import GameAPP, PageName
@@ -143,7 +143,7 @@ def wait_for_game_ui(
         超时前成功检测到返回 ``True``，超时返回 ``False``。
     """
     # 延迟导入避免循环依赖 (ui 层反向引用 ops 的模块)
-    from autowsgr.application.ui.controller.home.overlays import read_overlay
+    from autowsgr.application.ui.controller.home.main_page.overlays import read_overlay
     from autowsgr.application.ui.navigation.recognition import get_current_page
 
     _log.info('[Startup] 等待游戏 UI 就绪 (超时 {:.0f}s)…', timeout)
@@ -153,7 +153,7 @@ def wait_for_game_ui(
         screen = ctrl.screenshot()
 
         # 出现「点击进入」画面
-        if StartScreenPage.is_current_page(screen):
+        if LoginPage.check_current_page(screen):
             _log.info('[Startup] 检测到启动画面')
             return True
 
@@ -215,8 +215,8 @@ def start_game(
         raise TimeoutError(f'游戏启动超时 ({startup_timeout}s)，未检测到任何已知页面')
 
     # 若在启动画面，点击进入，然后等待进入主流程（检测登录浮层）
-    if StartScreenPage.is_current_page(ctrl.screenshot()):
-        StartScreenPage(ctrl).click_enter()
+    if LoginPage.check_current_page(ctrl.screenshot()):
+        LoginPage(ctrl).click_enter()
         if not wait_for_game_ui(ctrl, timeout=30.0):
             raise TimeoutError('点击启动画面后超时，未进入游戏')
 

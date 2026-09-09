@@ -34,13 +34,13 @@ async def game_acquisition() -> ApiResponse:
     """
     ctx = require_context(get_context)
 
-    from autowsgr.application.ui.controller.map import MapPage
+    from autowsgr.application.ui.controller.operations.sortie_page.battle_page import MapPage
     from autowsgr.application.ui.navigation import goto_page
 
     def _recognize() -> dict[str, int | None]:
         goto_page(ctx, '地图页面')
         map_page = MapPage(ctx)
-        counts = map_page.get_acquisition_counts()
+        counts = map_page.read_acquisition_counts()
         return {
             'ship_count': counts.ship_count,
             'ship_max': counts.ship_max,

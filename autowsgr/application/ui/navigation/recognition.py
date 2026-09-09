@@ -13,11 +13,7 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING
 
-from autowsgr.application.ui.navigation.registry import (
-    _OVERLAY_PAGES,
-    _PAGE_REGISTRY,
-    register_default_pages,
-)
+from autowsgr.application.ui.navigation import registry as _registry
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.types import PageName
 from autowsgr.common.vision.page_match import PageMatch
@@ -49,13 +45,13 @@ def get_current_page(
 ) -> str | None:
     """调用注册表检查器，根据截图返回当前页面名。"""
     # 1、只检查调用方允许的已注册页面。
-    registered = list(_PAGE_REGISTRY)
+    registered = list(_registry._PAGE_REGISTRY)
     names = [name for name in registered if candidates is None or name in candidates]
     hits: list[PageMatch] = []
     failed: list[str] = []
 
     for name in names:
-        checker = _PAGE_REGISTRY[name]
+        checker = _registry._PAGE_REGISTRY[name]
         try:
             result = _normalize_match(name, checker(screen))
         except Exception:
@@ -67,7 +63,7 @@ def get_current_page(
 
     # 2、覆盖层优先，再按匹配强度选择页面。
     if hits:
-        overlay_hits = [result for result in hits if result.name in _OVERLAY_PAGES]
+        overlay_hits = [result for result in hits if result.name in _registry._OVERLAY_PAGES]
         pool = overlay_hits or hits
         pool.sort(key=lambda result: result.score, reverse=True)
         best = pool[0]
@@ -98,7 +94,7 @@ def identify_current_page(
 ) -> str | None:
     """调用 `get_current_page` 重试识别 `UIContext.ctrl.screenshot` 的当前页面。"""
     # 1、确保默认页面检查器已经注册。
-    register_default_pages()
+    _registry.register_default_pages()
     ctrl = ctx.ctrl
     # 2、在页面动画期间重复截图识别。
     for attempt in range(MAX_IDENTIFY_ATTEMPTS):

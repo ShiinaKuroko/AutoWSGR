@@ -17,8 +17,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from autowsgr.application.runtime.executor import BaseExecutor
-from autowsgr.application.ui.controller.home import HomePage
-from autowsgr.application.ui.controller.mission_page import MissionPage
+from autowsgr.application.ui.controller.home.main_page import HomePage
+from autowsgr.application.ui.controller.operations.mission_page import MissionPage
 from autowsgr.application.ui.navigation import goto_page
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.types import PageName

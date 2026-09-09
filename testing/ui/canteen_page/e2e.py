@@ -37,8 +37,8 @@ if TYPE_CHECKING:
 
 
 def run_test(runner: UIControllerTestRunner) -> None:
-    from autowsgr.application.ui.controller.backyard.main_page import BackyardPage
     from autowsgr.application.ui.controller.backyard.canteen_page import CanteenPage
+    from autowsgr.application.ui.controller.backyard.main_page import BackyardPage
 
     canteen_page = CanteenPage(runner.ctrl)
 
@@ -59,7 +59,7 @@ def _navigate_to(ctrl: AndroidController, pause: float) -> None:
     import time
 
     from autowsgr.application.ui.controller.backyard.main_page import BackyardPage
-    from autowsgr.application.ui.controller.home import HomePage
+    from autowsgr.application.ui.controller.home.main_page import HomePage
 
     if not reset_to_main_page(ctrl, pause):
         return

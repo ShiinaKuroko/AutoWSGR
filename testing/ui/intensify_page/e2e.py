@@ -38,7 +38,10 @@ if TYPE_CHECKING:
 
 
 def run_test(runner: UIControllerTestRunner) -> None:
-    from autowsgr.application.ui.controller.sidebar.intensify_page import IntensifyPage, IntensifyTab
+    from autowsgr.application.ui.controller.sidebar.intensify_page import (
+        IntensifyPage,
+        IntensifyTab,
+    )
     from autowsgr.application.ui.controller.sidebar.main_page import SidebarPage
 
     intensify_page = IntensifyPage(runner.ctrl)
@@ -74,7 +77,7 @@ def _navigate_to(ctrl: AndroidController, pause: float) -> None:
     """从任意已知页面导航到强化页面。"""
     import time
 
-    from autowsgr.application.ui.controller.home import HomePage
+    from autowsgr.application.ui.controller.home.main_page import HomePage
     from autowsgr.application.ui.controller.sidebar.main_page import SidebarPage
 
     if not reset_to_main_page(ctrl, pause):

@@ -9,7 +9,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from autowsgr.application.ui.controller.decisive import DecisiveBattlePage, DecisiveMapController
+from autowsgr.application.ui.controller.operations.sortie_page.decisive_page import (
+    DecisiveBattlePage,
+    DecisiveMapController,
+)
 from autowsgr.business.combat.decisive.logic import DecisiveLogic
 from autowsgr.business.combat.decisive.state import DecisiveState
 from autowsgr.common.constants import DECISIVE_SKILL_NAMES, update_shipnames

@@ -8,7 +8,7 @@ from autowsgr.application.ui.controller.battle_preparation import (
     BattlePreparationPage,
     RepairStrategy,
 )
-from autowsgr.application.ui.controller.map import MapPage, MapPanel
+from autowsgr.application.ui.controller.operations.sortie_page.battle_page import MapPage, MapPanel
 from autowsgr.application.ui.navigation import goto_bath_from_campaign_sortie
 from autowsgr.business.combat.fleet import exact_fleet_rules
 from autowsgr.business.logistics.repair.bath_repair import repair_manual_targets_in_bath

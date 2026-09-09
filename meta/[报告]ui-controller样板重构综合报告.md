@@ -141,7 +141,7 @@
 页面结构为：
 
 `text
-controller/home/
+controller/home/main_page/
 ├── __init__.py
 ├── constants.py
 ├── page.py
@@ -191,7 +191,7 @@ controller/home/
 
 - 类名 `HomePage` 与现有 `MapPage`、`MissionPage`、`BackyardPage`、`SidebarPage`
   的“业务名 + Page”模式一致，无需改名。
-- 最终 Controller 包路径为 `application/ui/controller/home/`；仅目录从
+- 最终 Controller 包路径为 `application/ui/controller/home/main_page/`；仅目录从
   `home_page` 改为 `home`，`page.py`、`constants.py`、`overlays.py`、
   `event_nav.py` 和 `__init__.py` 内容职责保持不变。
 - 所有生产、测试、工具、文档和任务记录中的当前包路径已同步；`PageName.HOME`、

@@ -260,7 +260,10 @@ class GameContext:
             的触发器 (常规战) 并提示用户, 而非降级 —— 降级会退化为"靠首场
             战斗自行校准", 但战斗未必掉落, 计数器可能一直为 0 → 持续误触发。
         """
-        from autowsgr.application.ui.controller.map import MapPage, MapPanel
+        from autowsgr.application.ui.controller.operations.sortie_page.battle_page import (
+            MapPage,
+            MapPanel,
+        )
         from autowsgr.application.ui.navigation import goto_page
         from autowsgr.common.types import PageName
 
@@ -272,8 +275,8 @@ class GameContext:
         # 无战利品活动时跳过该区域避免无效 OCR 报警
         da = self.config.daily_automation
         read_loot = bool(da and da.stop_max_loot)
-        # OCR 引擎不可用时 get_loot_and_ship_count 抛 RuntimeError — 不吞, 上抛
-        counts = map_page.get_loot_and_ship_count(read_loot=read_loot)
+        # OCR 引擎不可用时 read_loot_and_ship_count 抛 RuntimeError — 不吞, 上抛
+        counts = map_page.read_loot_and_ship_count(read_loot=read_loot)
         if counts.ship is not None:
             self.dropped_ship_count = counts.ship
         if counts.loot is not None:

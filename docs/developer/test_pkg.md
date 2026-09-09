@@ -208,7 +208,7 @@ python tools/debug_screenshot.py -i screenshot.png --roi 0.5,0.5,0.8,0.8
 |------|------|----------|
 | `blood` | 舰船血量状态检测 | `config.py` |
 | `decisive_ocr` | 决战章节编号 OCR | 脚本内嵌 |
-| `detect_decisive_phase` | 决战页面阶段检测 | 文件名约定 |
+| `read_decisive_phase` | 决战页面阶段读取 | 文件名约定 |
 | `detect_fleet` | 出征准备页舰队检测 | `data.json` |
 | `difficulty` | 难度等级识别 | 脚本内嵌 |
 | `fleet_ocr` | 舰队信息 OCR | `data.json` |
@@ -217,7 +217,7 @@ python tools/debug_screenshot.py -i screenshot.png --roi 0.5,0.5,0.8,0.8
 | `misson_rec` | 任务页面识别 | `data.json` |
 | `mvp` | MVP 舰船识别 | `data.json` |
 | `node_tracker` | 地图节点追踪 | 文件名约定 |
-| `recognize_node` | 节点类型识别 | 文件名约定 |
+| `read_node` | 节点类型读取 | 文件名约定 |
 | `repair` | 维修卡 OCR | `data.json` |
 | `ship_drop` | 舰船掉落识别 | `data.json` |
 | `ui/MapPage` | 地图页面识别 | `data.json` |

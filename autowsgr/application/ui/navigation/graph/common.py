@@ -1,8 +1,9 @@
 """维护从主页进入一级页面的公共导航。
 
 `autowsgr.application.ui.navigation.graph.__init__.py` 读取 `COMMON_EDGES`，
-`autowsgr.application.ui.navigation.service.py` 执行其中的动作。动作交给
-`autowsgr.application.ui.controller.home`，点击和到达检查再由页面控制器调用
+`autowsgr.application.ui.navigation.service.py` 执行其中的动作。普通页面动作交给
+`autowsgr.application.ui.controller.home.main_page`，活动入口交给
+`autowsgr.application.ui.navigation.event`；点击和到达检查再由页面控制器及
 `autowsgr.common.ui.interaction.py` 等底层能力完成。
 """
 
@@ -35,35 +36,35 @@ class NavEdge:
 
 def _home_to_backyard(ctx: GameContext) -> None:
     """点击主页的后院入口并等待后院页面。"""
-    from autowsgr.application.ui.controller.home import HomePage
+    from autowsgr.application.ui.controller.home.main_page import HomePage
 
     HomePage(ctx).go_to_backyard()
 
 
 def _home_to_event(ctx: GameContext) -> None:
     """点击主页的活动入口并等待活动页面。"""
-    from autowsgr.application.ui.controller.home import HomePage
+    from autowsgr.application.ui.navigation.event import navigate_to_event
 
-    HomePage(ctx).navigate_to(HomePage.Target.EVENT)
+    navigate_to_event(ctx)
 
 
 def _home_to_map(ctx: GameContext) -> None:
     """点击主页的出征入口并等待地图页面。"""
-    from autowsgr.application.ui.controller.home import HomePage
+    from autowsgr.application.ui.controller.home.main_page import HomePage
 
     HomePage(ctx).navigate_to(HomePage.Target.SORTIE)
 
 
 def _home_to_mission(ctx: GameContext) -> None:
     """点击主页的任务入口并等待任务页面。"""
-    from autowsgr.application.ui.controller.home import HomePage
+    from autowsgr.application.ui.controller.home.main_page import HomePage
 
     HomePage(ctx).navigate_to(HomePage.Target.TASK)
 
 
 def _home_to_sidebar(ctx: GameContext) -> None:
     """点击主页的侧边栏入口并等待侧边栏。"""
-    from autowsgr.application.ui.controller.home import HomePage
+    from autowsgr.application.ui.controller.home.main_page import HomePage
 
     HomePage(ctx).go_to_sidebar()
 

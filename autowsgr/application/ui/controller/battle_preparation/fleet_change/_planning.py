@@ -1,4 +1,16 @@
-"""舰队目标分配与槽位规划。
+"""模块功能：根据舰队规则和当前快照计算唯一目标及槽位规划。
+
+上层调用：
+- application.ui.controller.battle_preparation.fleet_change._change：获取目标分配结果。
+- application.ui.controller.battle_preparation.fleet_change._alignment：获取槽位规划。
+
+下层依赖：
+- application.ui.controller.battle_preparation.fleet_change._rules：判断规则和舰船身份。
+- application.ui.fleet：提供舰队槽位规则和值对象。
+
+本模块只计算目标，不执行页面操作、OCR 引擎管理或舰队状态写入。
+
+目标分配规则:
 
 本模块根据 YAML 规则、OCR 快照和当前成员计算唯一目标及槽位关系，
 不执行页面操作或舰队状态调整。
@@ -9,18 +21,18 @@ from __future__ import annotations
 from functools import cache
 from typing import TYPE_CHECKING
 
+from autowsgr.application.ui.controller.battle_preparation.fleet_change._rules import FleetRuleMixin
 from autowsgr.common.constants import normalize_ship_name, ship_name_identity
 from autowsgr.common.system.logger import get_logger
-
-from ._rules import FleetRuleMixin
 
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
+    from autowsgr.application.ui.controller.battle_preparation.fleet_change._detect import (
+        FleetSnapshot,
+    )
     from autowsgr.application.ui.fleet import FleetSlotRule, ShipSelector
-
-    from ._detect import FleetSnapshot
 
 
 _log = get_logger('ui.preparation')

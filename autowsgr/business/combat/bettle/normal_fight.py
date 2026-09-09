@@ -14,9 +14,13 @@ from autowsgr.application.ui.controller.battle_preparation import (
     BattlePreparationPage,
     RepairStrategy,
 )
-from autowsgr.application.ui.controller.event import BaseEventPage
-from autowsgr.application.ui.controller.map import MapPage, MapPanel
-from autowsgr.application.ui.navigation import goto_bath_from_normal_sortie, goto_page
+from autowsgr.application.ui.controller.home.event_page import BaseEventPage
+from autowsgr.application.ui.controller.operations.sortie_page.battle_page import MapPage, MapPanel
+from autowsgr.application.ui.navigation import (
+    goto_bath_from_event_sortie,
+    goto_bath_from_normal_sortie,
+    goto_page,
+)
 from autowsgr.business.combat import CombatMode, CombatPlan, CombatResult, run_combat
 from autowsgr.business.combat.fleet import (
     FleetSlotRule,
@@ -63,6 +67,7 @@ class NormalFightRunner:
         fleet_rules: Sequence[FleetSlotRule] | None = None,
         task_type: str | None = None,
         wait: Callable[[float], None] | None = None,
+        repair_status_callback: Callable[[bool], None] | None = None,
     ) -> None:
         validate_fleet_selection_arguments(
             fleet_selection,
@@ -81,6 +86,7 @@ class NormalFightRunner:
             slot_rules=fleet_rules,
         )
         self._fleet_id = self._fleet_selection.fleet_id
+        self._repair_status_callback = repair_status_callback
 
         # 从 config 读取拆船配置
         self._dock_full_destroy = ctx.config.dock_full_destroy
@@ -340,7 +346,7 @@ class NormalFightRunner:
         da = self._ctx.config.daily_automation
         read_loot = bool(da and da.stop_max_loot)
         try:
-            counts = map_page.get_loot_and_ship_count(read_loot=read_loot)
+            counts = map_page.read_loot_and_ship_count(read_loot=read_loot)
             self._loot_count = counts.loot
             self._ship_acquired_count = counts.ship
         except RuntimeError:
@@ -423,27 +429,8 @@ class NormalFightRunner:
             repair_strategy = None
 
         if repair_strategy is not None:
-            if (
-                not self._is_event
-                and getattr(self._ctx.config, 'repair_manually', False)
-            ):
-                fleet_names = resolved_ship_names or self._fleet_selection.primary_names
-
-                def manual_repair_action(positions: list[int]) -> None:
-                    targets = [
-                        fleet_names[position]
-                        for position in positions
-                        if 0 <= position < len(fleet_names) and fleet_names[position]
-                    ]
-                    goto_bath_from_normal_sortie(self._ctx)
-                    repair_manual_targets_in_bath(self._ctx, targets)
-
-                page.apply_repair(
-                    repair_strategy,
-                    manual_repair_action=manual_repair_action,
-                )
-            else:
-                page.apply_repair(repair_strategy)
+            fleet_names = resolved_ship_names or self._fleet_selection.primary_names
+            self._apply_repair(page, repair_strategy, fleet_names)
 
         # 检测战前舰队信息 (血量 + 等级)
         fleet_info = page.detect_fleet_info()
@@ -461,6 +448,105 @@ class NormalFightRunner:
         self._sleep(1.0)
 
         return ship_stats
+
+    def _apply_repair(
+        self,
+        page: BattlePreparationPage,
+        strategy: RepairStrategy,
+        fleet_names: Sequence[str | None],
+    ) -> None:
+        """按任务维修方式执行快速修理或澡堂修理。"""
+        if self._plan.repair_method == 'bath':
+            self._repair_in_bath(page, strategy, fleet_names)
+        elif self._plan.repair_method == 'quick':
+            # 任务级配置优先于旧的全局 repair_manually。
+            page.apply_repair(strategy, repair_manually=False)
+        elif getattr(self._ctx.config, 'repair_manually', False):
+            # 兼容未声明 repair_method 的旧 YAML/客户端。
+            def manual_repair_action(positions: list[int]) -> None:
+                targets = [
+                    fleet_names[position]
+                    for position in positions
+                    if 0 <= position < len(fleet_names) and fleet_names[position]
+                ]
+                self._goto_bath_for_repair()
+                repair_manual_targets_in_bath(self._ctx, targets)
+
+            page.apply_repair(
+                strategy,
+                manual_repair_action=manual_repair_action,
+            )
+        else:
+            page.apply_repair(strategy)
+
+    def _goto_bath_for_repair(self) -> None:
+        """从当前出征准备页返回对应地图，再进入澡堂。"""
+        if self._is_event:
+            goto_bath_from_event_sortie(self._ctx)
+        else:
+            goto_bath_from_normal_sortie(self._ctx)
+
+    def _repair_in_bath(
+        self,
+        page: BattlePreparationPage,
+        strategy: RepairStrategy,
+        fleet_names: Sequence[str | None],
+    ) -> None:
+        """由任务级澡堂模式派修并等待目标舰船恢复。"""
+        positions = page.check_repair(strategy)
+        if not positions:
+            return
+
+        targets = [
+            fleet_names[position]
+            for position in positions
+            if 0 <= position < len(fleet_names) and fleet_names[position]
+        ]
+        if not targets:
+            raise ActionFailedError('无法解析澡堂维修目标')
+
+        if self._repair_status_callback is not None:
+            self._repair_status_callback(True)
+        try:
+            self._goto_bath_for_repair()
+            repair_manual_targets_in_bath(self._ctx, targets)
+
+            ships = [self._ctx.get_ship(name) for name in targets]
+            failed = [
+                ship.name
+                for ship in ships
+                if ship.damage_state != ShipDamageState.NORMAL and not ship.is_repairing
+            ]
+            if failed:
+                raise ActionFailedError(f'澡堂维修失败: {", ".join(failed)}')
+
+            deadline = (
+                max(
+                    (ship.repair_end_time for ship in ships),
+                    default=time.time(),
+                )
+                + 30.0
+            )
+            while any(ship.is_repairing for ship in ships):
+                stop_event = getattr(self._ctx, 'stop_event', None)
+                if stop_event is not None and stop_event.is_set():
+                    raise ActionFailedError('任务已停止，终止澡堂维修等待')
+                if time.time() >= deadline:
+                    raise ActionFailedError('澡堂维修等待超时')
+                self._sleep(1.0)
+
+            failed = [ship.name for ship in ships if ship.damage_state != ShipDamageState.NORMAL]
+            if failed:
+                raise ActionFailedError(f'澡堂维修后仍有受损舰船: {", ".join(failed)}')
+
+            # 派修流程结束后已返回主页，继续战斗前重新进入原出征准备页。
+            self._enter_fight()
+            self._sleep(1.0)
+            page.select_fleet(self._fleet_id)
+            self._sleep(0.5)
+        finally:
+            if self._repair_status_callback is not None:
+                self._repair_status_callback(False)
 
     # ── 战斗 ──
 
@@ -568,6 +654,7 @@ def run_normal_fight(
     fleet: Sequence[str] | None = None,
     fleet_rules: Sequence[FleetSlotRule] | None = None,
     fleet_selection: ResolvedFleetSelection | None = None,
+    repair_status_callback: Callable[[bool], None] | None = None,
 ) -> list[CombatResult]:
     """执行常规战的便捷函数。"""
     validate_fleet_selection_arguments(
@@ -586,6 +673,7 @@ def run_normal_fight(
         ctx,
         plan,
         resolved_selection,
+        repair_status_callback=repair_status_callback,
     )
     return runner.run_for_times(times, gap=gap)
 

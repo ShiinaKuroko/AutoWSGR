@@ -1,7 +1,7 @@
 """模块功能：负责侧边栏页面检查、子页面导航和页面关闭。
 
 上层调用：
-- application.ui.controller.home：从母港打开侧边栏并取得页面检查器。
+- application.ui.controller.home.main_page：从母港打开侧边栏并取得页面检查器。
 - application.ui.navigation.graph.logistics：执行侧边栏与子页面之间的页面边动作。
 - application.ui.navigation.registry：注册侧边栏页面检查器。
 - testing.ui：执行侧边栏导航验证。
@@ -146,7 +146,7 @@ class SidebarPage:
         Raises:
             NavigationError: 点击后未在限定时间内回到母港主页面。
         """
-        from autowsgr.application.ui.controller.home import HomePage
+        from autowsgr.application.ui.controller.home.main_page import HomePage
 
         _log.info('[UI] 侧边栏 → 关闭 (返回主页面)')
         click_and_wait_for_page(

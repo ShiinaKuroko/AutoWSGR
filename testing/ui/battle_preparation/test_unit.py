@@ -10,6 +10,16 @@ import numpy as np
 import pytest
 
 from autowsgr.application.runtime.context import GameContext
+from autowsgr.application.ui.controller.battle_preparation.constants import (
+    AUTO_SUPPLY_PROBE,
+    CLICK_AUTO_SUPPLY,
+    CLICK_BACK,
+    CLICK_FLEET,
+    CLICK_START_BATTLE,
+    CLICK_SUPPORT,
+    FLEET_PROBE,
+    SHIP_LEVEL_CROP,
+)
 from autowsgr.application.ui.controller.battle_preparation.fleet_change._change import (
     _ShipSelection,
 )
@@ -20,23 +30,17 @@ from autowsgr.application.ui.controller.battle_preparation.preparation import (
     BattlePreparationPage,
     Panel,
 )
-from autowsgr.application.ui.controller.decisive.legacy_fleet_change import change_fleet_legacy
-from autowsgr.application.ui.controller.decisive.preparation import DecisiveBattlePreparationPage
+from autowsgr.application.ui.controller.operations.sortie_page.decisive_page.legacy_fleet_change import (
+    change_fleet_legacy,
+)
+from autowsgr.application.ui.controller.operations.sortie_page.decisive_page.preparation_page import (
+    DecisiveBattlePreparationPage,
+)
 from autowsgr.business.combat.fleet import (
     FleetSlotRule,
     ShipSelector,
     exact_fleet_rules,
     fleet_slot_from_api,
-)
-from autowsgr.common.calibration.battle_preparation import (
-    AUTO_SUPPLY_PROBE,
-    CLICK_AUTO_SUPPLY,
-    CLICK_BACK,
-    CLICK_FLEET,
-    CLICK_START_BATTLE,
-    CLICK_SUPPORT,
-    FLEET_PROBE,
-    SHIP_LEVEL_CROP,
 )
 from autowsgr.common.constants import normalize_ship_name, ship_name_identity
 from autowsgr.common.device import AndroidController
@@ -309,39 +313,39 @@ class TestIsCurrentPage:
     """is_current_page 用页面模板匹配, 不校验舰队/面板状态。
 
     合成截图 _make_screen 已嵌入出征准备模板 (贴右上角), 故各状态变化下
-    is_current_page 仍命中; 状态查询 (get_selected_fleet / get_active_panel)
+    check_current_page 仍命中; 状态查询 (read_selected_fleet / read_active_panel)
     由专门的 Test 类覆盖。
     """
 
     def test_default_state_detected(self):
         screen = _make_screen()
-        assert BattlePreparationPage.is_current_page(screen).matched
+        assert BattlePreparationPage.check_current_page(screen).matched
 
     def test_fleet_2_selected(self):
         screen = _make_screen(selected_fleet=2)
-        assert BattlePreparationPage.is_current_page(screen).matched
+        assert BattlePreparationPage.check_current_page(screen).matched
 
     def test_fleet_4_quick_repair(self):
         screen = _make_screen(selected_fleet=4, active_panel=Panel.QUICK_REPAIR)
-        assert BattlePreparationPage.is_current_page(screen).matched
+        assert BattlePreparationPage.check_current_page(screen).matched
 
     def test_blank_screen_not_detected(self):
         # 缺少模板的屏幕不应被识别为出征准备页
         screen = np.zeros((_H, _W, 3), dtype=np.uint8)
-        assert not BattlePreparationPage.is_current_page(screen).matched
+        assert not BattlePreparationPage.check_current_page(screen).matched
 
     def test_two_fleets_selected_still_detected(self):
         """is_current_page 仅验证页面模板，不校验状态合法性。"""
         screen = _make_screen(selected_fleet=1)
         _set_pixel(screen, *FLEET_PROBE[2], _FLEET_SELECTED)
-        assert BattlePreparationPage.is_current_page(screen).matched
+        assert BattlePreparationPage.check_current_page(screen).matched
 
     def test_no_panel_selected_still_detected(self):
         """is_current_page 仅验证页面模板，不校验面板状态。"""
         screen = _make_screen()
         # 把唯一选中的面板清掉，模板仍在
         _set_pixel(screen, *PANEL_PROBE[Panel.STATS], _PANEL_UNSELECTED)
-        assert BattlePreparationPage.is_current_page(screen).matched
+        assert BattlePreparationPage.check_current_page(screen).matched
 
 
 # ─────────────────────────────────────────────
@@ -353,11 +357,11 @@ class TestGetSelectedFleet:
     @pytest.mark.parametrize('fleet', [1, 2, 3, 4])
     def test_each_fleet(self, fleet: int):
         screen = _make_screen(selected_fleet=fleet)
-        assert BattlePreparationPage.get_selected_fleet(screen) == fleet
+        assert BattlePreparationPage.read_selected_fleet(screen) == fleet
 
     def test_none_selected(self):
         screen = np.zeros((_H, _W, 3), dtype=np.uint8)
-        assert BattlePreparationPage.get_selected_fleet(screen) is None
+        assert BattlePreparationPage.read_selected_fleet(screen) is None
 
 
 # ─────────────────────────────────────────────
@@ -369,11 +373,11 @@ class TestGetActivePanel:
     @pytest.mark.parametrize('panel', list(Panel))
     def test_each_panel(self, panel: Panel):
         screen = _make_screen(active_panel=panel)
-        assert BattlePreparationPage.get_active_panel(screen) == panel
+        assert BattlePreparationPage.read_active_panel(screen) == panel
 
     def test_none_active(self):
         screen = np.zeros((_H, _W, 3), dtype=np.uint8)
-        assert BattlePreparationPage.get_active_panel(screen) is None
+        assert BattlePreparationPage.read_active_panel(screen) is None
 
 
 # ─────────────────────────────────────────────
@@ -384,11 +388,11 @@ class TestGetActivePanel:
 class TestAutoSupply:
     def test_enabled(self):
         screen = _make_screen(auto_supply=True)
-        assert BattlePreparationPage.is_auto_supply_enabled(screen) is True
+        assert BattlePreparationPage.check_auto_supply_enabled(screen) is True
 
     def test_disabled(self):
         screen = _make_screen(auto_supply=False)
-        assert BattlePreparationPage.is_auto_supply_enabled(screen) is False
+        assert BattlePreparationPage.check_auto_supply_enabled(screen) is False
 
 
 # ─────────────────────────────────────────────
@@ -410,12 +414,12 @@ class TestActions:
         pg, ctrl = page
         # go_back 用到达验证 (click_and_wait_for_page): 点击后需识别为 MAP 才算成功。
         # MapPage 识别走 tabbed 模板匹配, 构造假帧太重, 直接 mock checker 命中。
-        from autowsgr.application.ui.controller.map import MapPage
+        from autowsgr.application.ui.controller.operations.sortie_page.battle_page import MapPage
         from autowsgr.common.vision import PageMatch
 
         monkeypatch.setattr(
             MapPage,
-            'is_current_page',
+            'check_current_page',
             staticmethod(lambda _s: PageMatch(name='map', matched=True, score=0.9)),
         )
         ctrl.screenshot.return_value = np.zeros((540, 960, 3), dtype=np.uint8)
@@ -431,13 +435,13 @@ class TestActions:
     ) -> None:
         """到达验证: 点击后画面仍在准备页 (MAP 不命中) → NavigationError, 不再假成功。"""
         pg, ctrl = page
-        from autowsgr.application.ui.controller.map import MapPage
+        from autowsgr.application.ui.controller.operations.sortie_page.battle_page import MapPage
         from autowsgr.common.ui.interaction import NavigationError
         from autowsgr.common.vision import PageMatch
 
         monkeypatch.setattr(
             MapPage,
-            'is_current_page',
+            'check_current_page',
             staticmethod(lambda _s: PageMatch(name='map', matched=False, score=0.0)),
         )
         ctrl.screenshot.return_value = np.zeros((540, 960, 3), dtype=np.uint8)
@@ -563,7 +567,7 @@ class TestContextShipNameMatch:
         }
 
         with patch(
-            'autowsgr.application.ui.controller.battle_preparation.fleet_change._detect._fuzzy_match',
+            'autowsgr.application.ui.controller.battle_preparation.fleet_change._detect._ocr._fuzzy_match',
             side_effect=lambda text, *_args: pool_matches[text],
         ):
             detected = page.detect_fleet(
@@ -635,7 +639,7 @@ class TestContextShipNameMatch:
         page = BattlePreparationPage(_make_ctx(ctrl, ocr))
 
         with patch(
-            'autowsgr.application.ui.controller.battle_preparation.fleet_change._detect._fuzzy_match',
+            'autowsgr.application.ui.controller.battle_preparation.fleet_change._detect._ocr._fuzzy_match',
             side_effect=[None, '雪风'],
         ):
             detected = page.detect_fleet(
@@ -654,7 +658,7 @@ class TestContextShipNameMatch:
         page = BattlePreparationPage(_make_ctx(ctrl, ocr))
 
         with patch(
-            'autowsgr.application.ui.controller.battle_preparation.fleet_change._detect._fuzzy_match',
+            'autowsgr.application.ui.controller.battle_preparation.fleet_change._detect._ocr._fuzzy_match',
             return_value='岛风',
         ):
             detected = page.detect_fleet(
@@ -674,7 +678,7 @@ class TestContextShipNameMatch:
         screen = np.zeros((720, 1280, 3), dtype=np.uint8)
 
         with patch(
-            'autowsgr.application.ui.controller.battle_preparation.fleet_change._detect._fuzzy_match',
+            'autowsgr.application.ui.controller.battle_preparation.fleet_change._detect._ocr._fuzzy_match',
             return_value='雪风',
         ):
             names = page._recognize_fleet_names_at_slots(screen, [1])
@@ -695,11 +699,11 @@ class TestContextShipNameMatch:
 
         with (
             patch(
-                'autowsgr.application.ui.controller.battle_preparation.fleet_change._detect.apply_ship_patches',
+                'autowsgr.application.ui.controller.battle_preparation.fleet_change._detect._ocr.apply_ship_patches',
                 return_value='岛风',
             ) as apply_patches,
             patch(
-                'autowsgr.application.ui.controller.battle_preparation.fleet_change._detect._fuzzy_match',
+                'autowsgr.application.ui.controller.battle_preparation.fleet_change._detect._ocr._fuzzy_match',
                 return_value='岛风',
             ),
         ):
@@ -1336,13 +1340,15 @@ class TestDecisiveFleetChangeFeatureGate:
         page = MagicMock()
         empty_fleet = [None] * 6
         target_fleet = ['A', None, None, None, None, None]
-        page.get_selected_fleet.return_value = 3
+        page.read_selected_fleet.return_value = 3
         page.detect_fleet.side_effect = [empty_fleet, target_fleet, target_fleet]
         page._validate_with_selector.side_effect = [False, True]
         page._match_existing_members.return_value = ([False] * 6, set())
         page._change_single_ship.return_value = 'A'
 
-        with patch('autowsgr.application.ui.controller.decisive.legacy_fleet_change.time.sleep'):
+        with patch(
+            'autowsgr.application.ui.controller.operations.sortie_page.decisive_page.legacy_fleet_change.time.sleep'
+        ):
             assert change_fleet_legacy(page, 2, [' A '])
 
         page.select_fleet.assert_called_once_with(2)
@@ -1358,13 +1364,15 @@ class TestDecisiveFleetChangeFeatureGate:
         page = MagicMock()
         fleet_a_b = ['A', 'B', None, None, None, None]
         fleet_c = ['C', None, None, None, None, None]
-        page.get_selected_fleet.return_value = 1
+        page.read_selected_fleet.return_value = 1
         page.detect_fleet.side_effect = [fleet_a_b, fleet_c, fleet_c]
         page._validate_with_selector.side_effect = [False, True]
         page._match_existing_members.return_value = ([False] * 6, set())
         page._change_single_ship.side_effect = ['C', None]
 
-        with patch('autowsgr.application.ui.controller.decisive.legacy_fleet_change.time.sleep'):
+        with patch(
+            'autowsgr.application.ui.controller.operations.sortie_page.decisive_page.legacy_fleet_change.time.sleep'
+        ):
             assert change_fleet_legacy(page, 1, ['C'])
 
         actions = [
@@ -1389,7 +1397,7 @@ class TestDecisiveFleetChangeFeatureGate:
         )
 
         with patch(
-            'autowsgr.application.ui.controller.decisive.preparation.change_fleet_legacy',
+            'autowsgr.application.ui.controller.operations.sortie_page.decisive_page.preparation_page.change_fleet_legacy',
             return_value=True,
         ) as legacy_change:
             assert page.change_fleet(None, ['A'])
@@ -1431,7 +1439,7 @@ class TestSmartFleetChange:
         ]
 
         with (
-            patch.object(page, 'get_selected_fleet', return_value=1),
+            patch.object(page, 'read_selected_fleet', return_value=1),
             patch.object(
                 page,
                 'detect_fleet_snapshot',
@@ -1468,7 +1476,7 @@ class TestSmartFleetChange:
             current.insert(dst, current.pop(src))
 
         with (
-            patch.object(page, 'get_selected_fleet', return_value=1),
+            patch.object(page, 'read_selected_fleet', return_value=1),
             patch.object(
                 page,
                 'detect_fleet_snapshot',
@@ -1617,7 +1625,7 @@ class TestSmartFleetChange:
             actions.append(('remove', slot, name))
 
         with (
-            patch.object(page, 'get_selected_fleet', return_value=1),
+            patch.object(page, 'read_selected_fleet', return_value=1),
             patch.object(
                 page,
                 'detect_fleet_snapshot',
@@ -1648,7 +1656,7 @@ class TestSmartFleetChange:
         page = BattlePreparationPage(_make_ctx(MagicMock(spec=AndroidController)))
 
         with (
-            patch.object(page, 'get_selected_fleet', return_value=1),
+            patch.object(page, 'read_selected_fleet', return_value=1),
             patch.object(page, 'detect_fleet_snapshot') as detect,
             pytest.raises(ValueError, match='1 队槽位 0 不能为空'),
         ):

@@ -17,12 +17,12 @@
 测试内容：
 
     A. 页面识别
-        1. 验证初始状态 (is_current_page)
+        1. 验证初始状态 (check_current_page)
 
     B. 难度系统
-        3. 读取当前难度 (_get_difficulty)
-        4. 切换到相反难度，验证 (_change_difficulty)
-        5. 切换回原难度，验证 (_change_difficulty)
+        3. 读取当前难度 (read_difficulty)
+        4. 切换到相反难度，验证 (select_difficulty)
+        5. 切换回原难度，验证 (select_difficulty)
 
     C. 导航
         6. 活动地图 → ◁ 返回主页面
@@ -67,8 +67,8 @@ if TYPE_CHECKING:
 def run_test(runner: UIControllerTestRunner) -> None:
     """执行活动地图页面控制器完整测试序列。"""
     from autowsgr.application.runtime.context import GameContext
-    from autowsgr.application.ui.controller.event.event_page import BaseEventPage
-    from autowsgr.application.ui.controller.home import HomePage
+    from autowsgr.application.ui.controller.home.event_page.page import BaseEventPage
+    from autowsgr.application.ui.controller.home.main_page import HomePage
     from autowsgr.common.system import UserConfig
 
     ctx = GameContext(ctrl=runner.ctrl, config=UserConfig())
@@ -79,11 +79,11 @@ def run_test(runner: UIControllerTestRunner) -> None:
     # A. 页面识别
     # ═══════════════════════════════════════════════════════════════════════
 
-    # ───── Step 1: 验证初始状态 (is_current_page) ────────────────────
+    # ───── Step 1: 验证初始状态 (check_current_page) ─────────────────
     runner.verify_current(
-        '初始验证: 活动地图页面 (is_current_page)',
+        '初始验证: 活动地图页面 (check_current_page)',
         '活动地图页面',
-        BaseEventPage.is_current_page,
+        BaseEventPage.check_current_page,
     )
     if runner.aborted:
         return
@@ -95,7 +95,7 @@ def run_test(runner: UIControllerTestRunner) -> None:
     # ───── Step 3: 读取当前难度 ──────────────────────────────────────
     initial_difficulty: str = 'H'  # 默认值，读取失败时维持
     try:
-        initial_difficulty = event_page._get_difficulty()
+        initial_difficulty = event_page.read_difficulty()
         ok(f'当前难度: {initial_difficulty} ({"困难" if initial_difficulty == "H" else "简单"})')
     except Exception as exc:
         warn(f'读取难度失败: {exc}')
@@ -106,8 +106,8 @@ def run_test(runner: UIControllerTestRunner) -> None:
     runner.execute_step(
         f'切换难度: {initial_difficulty} → {opposite} ({opposite_label})',
         '活动地图页面',
-        lambda _s: event_page._get_difficulty() == opposite,
-        lambda: event_page._change_difficulty(opposite),
+        lambda _s: event_page.read_difficulty() == opposite,
+        lambda: event_page.select_difficulty(opposite),
     )
     if runner.aborted:
         return
@@ -117,8 +117,8 @@ def run_test(runner: UIControllerTestRunner) -> None:
     runner.execute_step(
         f'切换回原难度: {opposite} → {initial_difficulty} ({initial_label})',
         '活动地图页面',
-        lambda _s: event_page._get_difficulty() == initial_difficulty,
-        lambda: event_page._change_difficulty(initial_difficulty),
+        lambda _s: event_page.read_difficulty() == initial_difficulty,
+        lambda: event_page.select_difficulty(initial_difficulty),
     )
     if runner.aborted:
         return
@@ -141,7 +141,7 @@ def run_test(runner: UIControllerTestRunner) -> None:
     runner.execute_step(
         '主页面 → 活动地图 (双向导航验证)',
         '活动地图页面',
-        BaseEventPage.is_current_page,
+        BaseEventPage.check_current_page,
         lambda: main_page.navigate_to(HomePage.Target.EVENT),
     )
     if runner.aborted:
@@ -155,8 +155,8 @@ def run_test(runner: UIControllerTestRunner) -> None:
     runner.execute_step(
         '选择节点 1 → 检测浮层 (节点进入页)',
         '活动地图页面',
-        BaseEventPage.is_current_page,
-        lambda: _try_enter_node(event_page, node_id=1),
+        BaseEventPage.check_current_page,
+        lambda: _try_select_node(event_page, node_id=1),
     )
     if runner.aborted:
         return
@@ -165,14 +165,14 @@ def run_test(runner: UIControllerTestRunner) -> None:
     runner.verify_current(
         '最终验证: 活动地图页面',
         '活动地图页面',
-        BaseEventPage.is_current_page,
+        BaseEventPage.check_current_page,
     )
 
 
-def _try_enter_node(event_page: object, node_id: int) -> None:
+def _try_select_node(event_page: object, node_id: int) -> None:
     """尝试选择一个节点。异常时静默处理（不中断测试）。"""
     try:
-        event_page._enter_node(node_id)  # type: ignore[attr-defined]
+        event_page.select_node(node_id)  # type: ignore[attr-defined]
     except Exception:  # noqa: S110
         pass  # 节点选择可能因活动状态而失败，不影响测试流程
 
@@ -185,7 +185,7 @@ def _try_enter_node(event_page: object, node_id: int) -> None:
 def _navigate_to(ctrl: AndroidController, pause: float) -> None:
     """从任意已知页面导航到活动地图页面。"""
     from autowsgr.application.runtime.context import GameContext
-    from autowsgr.application.ui.controller.home import HomePage
+    from autowsgr.application.ui.controller.home.main_page import HomePage
     from autowsgr.common.system import UserConfig
 
     if not reset_to_main_page(ctrl, pause):
@@ -214,11 +214,11 @@ def main() -> None:
 
     logger.info('=== 活动地图页面 e2e 测试开始 ===')
 
-    from autowsgr.application.ui.controller.event.event_page import BaseEventPage
+    from autowsgr.application.ui.controller.home.event_page.page import BaseEventPage
 
     if not ensure_page(
         ctrl,
-        BaseEventPage.is_current_page,
+        BaseEventPage.check_current_page,
         lambda: _navigate_to(ctrl, args.pause),
         '活动地图页面',
         auto_mode=args.auto,

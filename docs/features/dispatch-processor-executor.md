@@ -203,7 +203,7 @@ python tools/e2e/run.py --with-ocr exercise --yaml <路径>
    FleetPolicy 已迁至 `business/fleet_policy.py`) → 已删除。
    若发现 `from autowsgr.dispatch import FleetPolicy` 的引用, 改为
    `from autowsgr.business.fleet_policy import FleetPolicy`。
-3. `application/ui/controller/shared/tabbed_page.py` 模板目录相对路径在目录迁移后失效
+3. `application/ui/controller/shared/top_tabs.py` 模板目录相对路径在目录迁移后失效
    (`ui/map.png` 找不到) → 改为 `parents[4] / 'data' / 'images' / 'ui'`。
 4. `exercise.py` 的 `ConditionFlag` 应从 `autowsgr.types` 导入
    (不在 `autowsgr.infra.combat.engine` 包中)。
@@ -236,7 +236,7 @@ python tools/e2e/run.py --with-ocr exercise --yaml <路径>
 
 | 分类 | 加载器 | 用途 | 页面文件 |
 |------|--------|------|----------|
-| `coordinates/` | `point(page,key)` (归一化到 0-1 相对坐标), `points(page,key)` (坐标对列表) | 点击/探测坐标, 1280x720 绝对像素存储 | main, mission, map, exercise, battle_prep, start_screen |
+| `coordinates/` | `point(page,key)` (归一化到 0-1 相对坐标), `points(page,key)` (坐标对列表) | 点击/探测坐标, 1280x720 绝对像素存储 | main, mission, map, exercise, battle_prep, login |
 | `colors/` | `color` / `tolerance` / `param` | 颜色 + 容差, 纯阈值 | main, mission, exercise, battle_prep |
 | `ocr/` | `param` | OCR 参数与裁切区域 (相对浮点) | mission, battle_prep |
 | `signatures/` | `signature` → `PixelSignature.from_dict` | 页面/浮层像素签名 | main, start_screen, battle_prep |
@@ -295,11 +295,11 @@ python tools/e2e/run.py reward --with-init
 | 链路 | 归属 | 状态 |
 |------|------|------|
 | 执行器 | `business/logistics/reward.py` (`RewardCheckExecutor` + 兼容层 `collect_rewards`) | 完成 |
-| 导航器 — 页面归属 | `application/ui/controller/home` (含 `check_task_ready`) + **`application/ui/controller/mission_page` (本次迁入)** | 完成 |
+| 导航器 — 页面归属 | `application/ui/controller/home/main_page` (含 `check_task_ready`) + **`application/ui/controller/operations/mission_page` (本次迁入)** | 完成 |
 | 导航器 — 导航边 | `application/ui/navigation` (`_mission_to_main`) + `home/page.py` (`_get_target_checker`) | 完成 |
 
 `mission_page` 迁移细节: 页面实现统一位于
-`autowsgr/application/ui/controller/mission_page/`，底层校准和交互位于
+`autowsgr/application/ui/controller/operations/mission_page/`，底层校准和交互位于
 `autowsgr/common/`；页面实现统一位于 `application/ui/controller/`。
 导航器与执行器均使用新路径。旧导入顺序说明仅保留作历史记录。
 

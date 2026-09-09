@@ -1,7 +1,16 @@
-"""船池选择页面操作。
+"""模块功能：打开、退出并操作出征准备页面的船池选择页。
 
-本模块只负责打开、取消和操作选船页面，不决定目标舰船、备选降级
-或舰队调整顺序。
+上层调用：
+- application.ui.controller.battle_preparation.fleet_change._alignment：调用单槽位选船。
+- application.ui.controller.battle_preparation.fleet_change._change：调用目标舰船更换。
+
+下层依赖：
+- application.ui.controller.shared.choose_ship：执行选船页搜索、OCR 和点击。
+- application.ui.controller.battle_preparation.constants：提供准备页返回坐标。
+- application.ui.fleet：提供单条舰船选择规则。
+
+本模块只执行页面动作，不决定目标舰船、备选降级或舰队调整顺序；OCR 生命周期问题
+留待专项处理。
 """
 
 from __future__ import annotations
@@ -9,11 +18,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from autowsgr.application.ui.controller.battle_preparation.constants import CLICK_BACK
+from autowsgr.application.ui.controller.battle_preparation.fleet_change._planning import (
+    FleetPlanningMixin,
+)
 from autowsgr.application.ui.fleet import ShipSelector
-from autowsgr.common.calibration.battle_preparation import CLICK_BACK
 from autowsgr.common.system.logger import get_logger
-
-from ._planning import FleetPlanningMixin
 
 
 if TYPE_CHECKING:
@@ -61,7 +71,7 @@ class FleetSelectionMixin(FleetPlanningMixin):
         self._ctrl.click(*CLICK_BACK)
         wait_for_page(
             self._ctrl,
-            self.is_current_page,
+            self.check_current_page,
             timeout=_CHOOSE_PAGE_TIMEOUT,
             source='编队选船',
             target='编队',

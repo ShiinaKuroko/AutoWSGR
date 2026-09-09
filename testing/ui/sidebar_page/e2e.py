@@ -40,10 +40,13 @@ if TYPE_CHECKING:
 
 
 def run_test(runner: UIControllerTestRunner) -> None:  # noqa: PLR0911
+    from autowsgr.application.ui.controller.home.main_page import HomePage
     from autowsgr.application.ui.controller.sidebar.build_page import BuildPage, BuildTab
     from autowsgr.application.ui.controller.sidebar.friend_page import FriendPage
-    from autowsgr.application.ui.controller.sidebar.intensify_page import IntensifyPage, IntensifyTab
-    from autowsgr.application.ui.controller.home import HomePage
+    from autowsgr.application.ui.controller.sidebar.intensify_page import (
+        IntensifyPage,
+        IntensifyTab,
+    )
     from autowsgr.application.ui.controller.sidebar.main_page import SidebarPage, SidebarTarget
 
     sidebar_page = SidebarPage(runner.ctx)
@@ -152,7 +155,7 @@ def _navigate_to(ctrl: AndroidController, pause: float) -> None:
     import time
 
     from autowsgr.application.runtime.context import GameContext
-    from autowsgr.application.ui.controller.home import HomePage
+    from autowsgr.application.ui.controller.home.main_page import HomePage
     from autowsgr.common.system import UserConfig
 
     if not reset_to_main_page(ctrl, pause):

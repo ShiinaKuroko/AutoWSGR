@@ -33,6 +33,7 @@ class TaskStatus(Enum):
 
     IDLE = 'idle'
     RUNNING = 'running'
+    REPAIRING = 'repairing'
     COMPLETED = 'completed'
     FAILED = 'failed'
     STOPPED = 'stopped'
@@ -137,8 +138,11 @@ class TaskManager:
 
     @property
     def is_running(self) -> bool:
-        """是否有任务正在运行。"""
-        return self._current_task is not None and self._current_task.status == TaskStatus.RUNNING
+        """是否有任务正在运行或等待澡堂维修。"""
+        return self._current_task is not None and self._current_task.status in (
+            TaskStatus.RUNNING,
+            TaskStatus.REPAIRING,
+        )
 
     @property
     def stop_event(self) -> threading.Event:
@@ -301,6 +305,27 @@ class TaskManager:
             _log.info('[Task] 请求停止任务: {}', self._current_task.task_id)
             return True
 
+    def set_repairing(self, repairing: bool) -> None:
+        """更新任务的澡堂维修状态，并通过 WebSocket 通知客户端。"""
+        task = self._current_task
+        if task is None:
+            return
+
+        with self._lock:
+            if task.status not in (TaskStatus.RUNNING, TaskStatus.REPAIRING):
+                return
+            task.status = TaskStatus.REPAIRING if repairing else TaskStatus.RUNNING
+            status = task.status.value
+            progress = task.progress
+
+        self._submit_to_loop(
+            ws_manager.send_task_update(
+                task_id=task.task_id,
+                status=status,
+                progress=progress,
+            )
+        )
+
     def wait_for_completion(self, timeout: float | None = None) -> bool:
         """等待当前 worker 实际退出。
 
@@ -333,7 +358,7 @@ class TaskManager:
         self._submit_to_loop(
             ws_manager.send_task_update(
                 task_id=self._current_task.task_id,
-                status='running',
+                status=self._current_task.status.value,
                 progress=self._current_task.progress,
             )
         )
@@ -368,7 +393,9 @@ class TaskManager:
         return {
             'task_id': task.task_id,
             'status': task.status.value,
-            'progress': task.progress if task.status == TaskStatus.RUNNING else None,
+            'progress': task.progress
+            if task.status in (TaskStatus.RUNNING, TaskStatus.REPAIRING)
+            else None,
             'result': result,
             'error': task.error,
         }

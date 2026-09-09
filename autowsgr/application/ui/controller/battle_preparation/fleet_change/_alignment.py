@@ -1,23 +1,37 @@
-"""舰队成员调整、备选降级与位置排序。"""
+"""模块功能：在出征准备页执行舰队成员替换、清理和位置排序。
+
+上层调用：
+- application.ui.controller.battle_preparation.fleet_change._change：调用成员调整和排序。
+- application.ui.controller.battle_preparation.fleet_change.campaign：复用固定槽位操作。
+
+下层依赖：
+- application.ui.controller.battle_preparation.fleet_change._selection：提供选船页面操作。
+- application.ui.controller.battle_preparation.constants：提供舰船槽位坐标。
+- common.constants：提供舰名身份比较。
+
+本模块只编排已确定的目标和候选，不决定 OCR 生命周期或业务任务调度。
+"""
 
 from __future__ import annotations
 
 import time
 from typing import TYPE_CHECKING
 
-from autowsgr.common.calibration.battle_preparation import CLICK_SHIP_SLOT
+from autowsgr.application.ui.controller.battle_preparation.constants import CLICK_SHIP_SLOT
+from autowsgr.application.ui.controller.battle_preparation.fleet_change._selection import (
+    FleetSelectionMixin,
+)
 from autowsgr.common.constants import ship_name_identity
 from autowsgr.common.system.logger import get_logger
-
-from ._selection import FleetSelectionMixin
 
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
+    from autowsgr.application.ui.controller.battle_preparation.fleet_change._detect import (
+        FleetSnapshot,
+    )
     from autowsgr.application.ui.fleet import FleetSlotRule, ShipSelector
-
-    from ._detect import FleetSnapshot
 
 
 _log = get_logger('ui.preparation')

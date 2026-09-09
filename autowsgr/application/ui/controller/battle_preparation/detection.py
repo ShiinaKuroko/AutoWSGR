@@ -1,6 +1,17 @@
-"""出征准备 — 舰船状态检测与舰队信息识别。
+"""模块功能：读取出征准备页面的舰船损伤、等级、舰种和舰队信息。
 
-提供血量检测、等级 OCR 识别等静态 / 实例方法。
+上层调用：
+- application.ui.controller.battle_preparation.preparation：提供完整页面控制器的检测能力。
+- application.ui.controller.battle_preparation.fleet_change：读取换船前后的舰队快照。
+- business.combat：在出征前读取舰队状态。
+
+下层依赖：
+- application.ui.controller.battle_preparation.base：提供截图、舰队切换和 OCR 引用。
+- application.ui.controller.battle_preparation.constants：提供血条和文本裁剪区域。
+- common.vision：提供像素检测、血量分类和 OCR 结果解析。
+
+舰名、舰种和等级识别仍与准备页状态聚合在同一 Mixin 中；拆分 OCR 生命周期属于
+后续上下文/OCR 专题，本阶段只整理页面边界和调用命名。
 """
 
 from __future__ import annotations
@@ -10,12 +21,12 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 from autowsgr.application.ui.controller.battle_preparation.base import BaseBattlePreparation
-from autowsgr.application.ui.ship_list import extract_ship_type_from_text
-from autowsgr.common.calibration.battle_preparation import (
+from autowsgr.application.ui.controller.battle_preparation.constants import (
     BLOOD_BAR_PROBE,
     SHIP_LEVEL_CROP,
     SHIP_TYPE_CROP,
 )
+from autowsgr.application.ui.ship_list import extract_ship_type_from_text
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.types import ShipDamageState, ShipType
 from autowsgr.common.vision import PixelChecker
@@ -95,7 +106,7 @@ class DetectionMixin(BaseBattlePreparation):
     """舰船状态检测 Mixin。
 
     依赖 :class:`~autowsgr.application.ui.controller.battle_preparation.base.BaseBattlePreparation` 提供的
-    ``_ctrl``, ``_ocr``, ``get_selected_fleet``, ``select_fleet``。
+    ``_ctrl``, ``_ocr``, ``read_selected_fleet`` 和 ``select_fleet``。
     """
 
     # ── 血量检测 ──────────────────────────────────────────────────────────
@@ -118,6 +129,55 @@ class DetectionMixin(BaseBattlePreparation):
             ' | '.join(f'槽{i}={result[i].name}' for i in range(len(result))),
         )
         return result
+
+    # ── 舰队信息聚合 ─────────────────────────────────────────────────────
+
+    def detect_fleet_info(
+        self,
+        fleet_id: int | None = None,
+    ) -> FleetInfo:
+        """识别指定舰队的详细信息（等级、血量）。
+
+        若 ``fleet_id`` 不为 ``None`` 且与当前选中的舰队不同，
+        将先切换到目标舰队。
+
+        Parameters
+        ----------
+        fleet_id:
+            目标舰队编号 (1-4)。为 ``None`` 则不切换舰队。
+
+        Returns
+        -------
+        FleetInfo
+            包含舰队编号、各舰船等级和血量信息。
+        """
+        if fleet_id is not None:
+            screen = self._ctrl.screenshot()
+            current_fleet = self.read_selected_fleet(screen)
+            if current_fleet != fleet_id:
+                self.select_fleet(fleet_id)
+                time.sleep(0.5)
+
+        screen = self._ctrl.screenshot()
+        actual_fleet = self.read_selected_fleet(screen)
+        damage = self.detect_ship_damage(screen)
+        levels = self._recognize_fleet_levels(screen)
+
+        info = FleetInfo(
+            fleet_id=actual_fleet,
+            ship_levels=levels,
+            ship_damage=damage,
+        )
+
+        _log.info(
+            '[UI] 舰队 {} 信息: {}',
+            actual_fleet or '?',
+            ' | '.join(
+                f'槽{i}=Lv.{levels.get(i, "?")} {damage[i].name if i in damage else "?"}'
+                for i in range(6)
+            ),
+        )
+        return info
 
     # ── 等级 OCR ──────────────────────────────────────────────────────────
 
@@ -244,55 +304,6 @@ class DetectionMixin(BaseBattlePreparation):
                 return None
             detected = ship_type
         return detected
-
-    # ── 舰队信息聚合 ─────────────────────────────────────────────────────
-
-    def detect_fleet_info(
-        self,
-        fleet_id: int | None = None,
-    ) -> FleetInfo:
-        """识别指定舰队的详细信息（等级、血量）。
-
-        若 ``fleet_id`` 不为 ``None`` 且与当前选中的舰队不同，
-        将先切换到目标舰队。
-
-        Parameters
-        ----------
-        fleet_id:
-            目标舰队编号 (1-4)。为 ``None`` 则不切换舰队。
-
-        Returns
-        -------
-        FleetInfo
-            包含舰队编号、各舰船等级和血量信息。
-        """
-        if fleet_id is not None:
-            screen = self._ctrl.screenshot()
-            current_fleet = self.get_selected_fleet(screen)
-            if current_fleet != fleet_id:
-                self.select_fleet(fleet_id)
-                time.sleep(0.5)
-
-        screen = self._ctrl.screenshot()
-        actual_fleet = self.get_selected_fleet(screen)
-        damage = self.detect_ship_damage(screen)
-        levels = self._recognize_fleet_levels(screen)
-
-        info = FleetInfo(
-            fleet_id=actual_fleet,
-            ship_levels=levels,
-            ship_damage=damage,
-        )
-
-        _log.info(
-            '[UI] 舰队 {} 信息: {}',
-            actual_fleet or '?',
-            ' | '.join(
-                f'槽{i}=Lv.{levels.get(i, "?")} {damage[i].name if i in damage else "?"}'
-                for i in range(6)
-            ),
-        )
-        return info
 
     # ── 工具 ──────────────────────────────────────────────────────────────
 

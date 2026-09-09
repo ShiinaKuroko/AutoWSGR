@@ -1,18 +1,16 @@
-"""快速修理 — 出征准备页内的修理策略执行。
+"""模块功能：执行出征准备页面的快速修理策略、点击和有限复查。
 
-性质:
-    战斗链路的内部步骤 (面板切换, 不跨页面), 不满足打断点契约,
-    不进调度视野 — 放在本域仅为与浴场修理同地管理。
+上层调用：
+- application.ui.controller.battle_preparation.repair：公开修理 Mixin 的薄委托。
+- business.combat：在普通、战役和决战出征前触发修理。
 
-职责边界:
-    本模块持有「策略」(何时修、修到什么程度、手动修理门禁、重试编排);
-    页面持有「操作能力」(select_panel 面板切换、detect_ship_damage 血条探测)。
-    与 overlays 的拆法一致: 业务决策在 business, UI 操作在页面/infra。
+下层依赖：
+- application.ui.controller.battle_preparation.base：提供面板和页面控制器能力。
+- application.ui.controller.battle_preparation.constants：提供血条操作坐标。
+- common.system：提供动作失败和手动修理终止异常。
 
-调用方式:
-    BattlePreparationPage.apply_repair / check_repair / repair_slots
-    委托到本模块函数 (见 ui/battle/repair.py 的薄壳),
-    战斗链路调用方 (normal_fight / campaign / decisive) 无感。
+本模块只编排准备页内的修理策略；页面操作由传入的 Controller 执行，跨页面澡堂
+导航由调用方回调负责。
 """
 
 from __future__ import annotations
@@ -25,7 +23,7 @@ from autowsgr.application.ui.controller.battle_preparation.base import (
     Panel,
     RepairStrategy,
 )
-from autowsgr.common.calibration.battle_preparation import BLOOD_BAR_PROBE
+from autowsgr.application.ui.controller.battle_preparation.constants import BLOOD_BAR_PROBE
 from autowsgr.common.system import ActionFailedError, ManualRepairRequiredError
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.types import ShipDamageState
@@ -36,29 +34,6 @@ if TYPE_CHECKING:
 
 
 _log = get_logger('business.logistics.repair')
-
-
-def repair_slots(page: BaseBattlePreparation, positions: list[int]) -> None:
-    """切换到快速修理面板并修理指定位置的舰船。
-
-    Parameters
-    ----------
-    page:
-        出征准备页控制器 (提供 ``_ctrl`` 与 ``select_panel`` 能力)。
-    positions:
-        需要修理的槽位号列表。
-    """
-    if not positions:
-        return
-    page.select_panel(Panel.QUICK_REPAIR)
-    time.sleep(0.8)
-    for pos in positions:
-        if pos not in BLOOD_BAR_PROBE:
-            _log.warning('[QuickRepair] 无效修理位置: {}', pos)
-            continue
-        page._ctrl.click(*BLOOD_BAR_PROBE[pos])
-        time.sleep(1.5)
-        _log.info('[QuickRepair] 出征准备 → 修理位置 {}', pos)
 
 
 def check_repair(page: BaseBattlePreparation, strategy: RepairStrategy) -> list[int]:
@@ -92,11 +67,34 @@ def check_repair(page: BaseBattlePreparation, strategy: RepairStrategy) -> list[
     return positions
 
 
+def repair_slots(page: BaseBattlePreparation, positions: list[int]) -> None:
+    """切换到快速修理面板并修理指定位置的舰船。
+
+    Parameters
+    ----------
+    page:
+        出征准备页控制器 (提供 ``_ctrl`` 与 ``select_panel`` 能力)。
+    positions:
+        需要修理的槽位号列表。
+    """
+    if not positions:
+        return
+    page.select_panel(Panel.QUICK_REPAIR)
+    time.sleep(0.8)
+    for pos in positions:
+        if pos not in BLOOD_BAR_PROBE:
+            _log.warning('[QuickRepair] 无效修理位置: {}', pos)
+            continue
+        page._ctrl.click(*BLOOD_BAR_PROBE[pos])
+        time.sleep(1.5)
+        _log.info('[QuickRepair] 出征准备 → 修理位置 {}', pos)
+
+
 def apply_quick_repair(
     page: BaseBattlePreparation,
     strategy: RepairStrategy | None = None,
     *,
-    repair_manually: bool = False,
+    repair_manually: bool | None = None,
     manual_repair_action: Callable[[list[int]], None] | None = None,
     retry_count: int = 3,
 ) -> list[int]:
@@ -109,7 +107,7 @@ def apply_quick_repair(
     strategy:
         修理策略, 默认 ``RepairStrategy.SEVERE``。
     repair_manually:
-        调用方要求手动修理 (如决战关闭快修时), 与全局配置取或。
+        显式传入时覆盖全局配置；``None`` 表示沿用全局 ``repair_manually``。
     manual_repair_action:
         Callback receives the detected repair slot indexes.
         手动修理触发前执行的导航动作。
@@ -132,6 +130,9 @@ def apply_quick_repair(
     if strategy is RepairStrategy.NEVER:
         return []
 
+    manual_repair_enabled = (
+        page._ctx.config.repair_manually if repair_manually is None else repair_manually
+    )
     repair_pos = []
     positions = check_repair(page, strategy)
     for i in range(retry_count):
@@ -139,7 +140,7 @@ def apply_quick_repair(
         if not positions:
             return []
         # 需要手动修理，退出程序
-        if page._ctx.config.repair_manually or repair_manually:
+        if manual_repair_enabled:
             if manual_repair_action is not None:
                 try:
                     manual_repair_action(positions)

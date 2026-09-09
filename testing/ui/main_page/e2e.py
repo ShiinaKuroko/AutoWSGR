@@ -69,9 +69,9 @@ if TYPE_CHECKING:
 def run_test(runner: UIControllerTestRunner) -> None:  # noqa: PLR0911, C901, PLR0912, PLR0915
     """执行主页面控制器完整测试序列。"""
     from autowsgr.application.ui.controller.backyard.main_page import BackyardPage
-    from autowsgr.application.ui.controller.home import HomePage
-    from autowsgr.application.ui.controller.map import MapPage
-    from autowsgr.application.ui.controller.mission_page import MissionPage
+    from autowsgr.application.ui.controller.home.main_page import HomePage
+    from autowsgr.application.ui.controller.operations.mission_page import MissionPage
+    from autowsgr.application.ui.controller.operations.sortie_page.battle_page import MapPage
     from autowsgr.application.ui.controller.sidebar.main_page import SidebarPage
 
     main_page = HomePage(runner.ctrl)
@@ -130,7 +130,7 @@ def run_test(runner: UIControllerTestRunner) -> None:  # noqa: PLR0911, C901, PL
     runner.execute_step(
         '主页面 → 地图页面 (navigate_to SORTIE)',
         '地图页面',
-        MapPage.is_current_page,
+        MapPage.check_current_page,
         lambda: main_page.navigate_to(HomePage.Target.SORTIE),
     )
     if runner.aborted:
@@ -149,7 +149,7 @@ def run_test(runner: UIControllerTestRunner) -> None:  # noqa: PLR0911, C901, PL
     runner.execute_step(
         '主页面 → 任务页面 (navigate_to TASK)',
         '任务页面',
-        MissionPage.is_current_page,
+        MissionPage.check_current_page,
         lambda: main_page.navigate_to(HomePage.Target.TASK),
     )
     if runner.aborted:
@@ -169,7 +169,7 @@ def run_test(runner: UIControllerTestRunner) -> None:  # noqa: PLR0911, C901, PL
         '主页面 → 侧边栏 (navigate_to SIDEBAR)',
         '侧边栏',
         SidebarPage.check_current_page,
-        lambda: main_page.go_to_sidebar(),
+        main_page.go_to_sidebar,
     )
     if runner.aborted:
         return
@@ -188,7 +188,7 @@ def run_test(runner: UIControllerTestRunner) -> None:  # noqa: PLR0911, C901, PL
         '主页面 → 后院页面 (navigate_to HOME)',
         '后院页面',
         BackyardPage.check_current_page,
-        lambda: main_page.go_to_backyard(),
+        main_page.go_to_backyard,
     )
     if runner.aborted:
         return
@@ -208,12 +208,12 @@ def run_test(runner: UIControllerTestRunner) -> None:  # noqa: PLR0911, C901, PL
 
     # ───── Step 8: 主页面 → 活动地图 ────────────────────────────────
     try:
-        from autowsgr.application.ui.controller.event.event_page import BaseEventPage
+        from autowsgr.application.ui.controller.home.event_page.page import BaseEventPage
 
         runner.execute_step(
             '主页面 → 活动地图 (navigate_to EVENT, 模板匹配)',
             '活动地图页面',
-            BaseEventPage.is_current_page,
+            BaseEventPage.check_current_page,
             lambda: main_page.navigate_to(HomePage.Target.EVENT),
         )
     except Exception as exc:
@@ -225,9 +225,9 @@ def run_test(runner: UIControllerTestRunner) -> None:  # noqa: PLR0911, C901, PL
     # ───── Step 8b: 活动地图 → ◁ 主页面 ─────────────────────────────
     screen = runner.ctrl.screenshot()
     try:
-        from autowsgr.application.ui.controller.event.event_page import BaseEventPage
+        from autowsgr.application.ui.controller.home.event_page.page import BaseEventPage
 
-        if BaseEventPage.is_current_page(screen):
+        if BaseEventPage.check_current_page(screen):
             event_page = BaseEventPage(runner.ctrl)
             runner.execute_step(
                 '活动地图 → ◁ 主页面',
@@ -250,7 +250,7 @@ def run_test(runner: UIControllerTestRunner) -> None:  # noqa: PLR0911, C901, PL
     runner.execute_step(
         '便捷方法 go_to_sortie()',
         '地图页面',
-        MapPage.is_current_page,
+        MapPage.check_current_page,
         main_page.go_to_sortie,
     )
     if runner.aborted:
@@ -290,7 +290,7 @@ def main() -> None:
 
     logger.info('=== 主页面 e2e 测试开始 ===')
 
-    from autowsgr.application.ui.controller.home import HomePage
+    from autowsgr.application.ui.controller.home.main_page import HomePage
 
     if not ensure_page(
         ctrl,

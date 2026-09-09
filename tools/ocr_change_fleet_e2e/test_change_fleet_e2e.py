@@ -25,7 +25,7 @@ from typing import TYPE_CHECKING
 from autowsgr.application.ui.navigation import goto_page
 from autowsgr.common.types import PageName
 from autowsgr.application.ui.controller.battle_preparation import BattlePreparationPage
-from autowsgr.application.ui.controller.home import HomePage
+from autowsgr.application.ui.controller.home.main_page import HomePage
 from autowsgr.application.ui.navigation.recognition import get_current_page
 
 if TYPE_CHECKING:
@@ -54,7 +54,7 @@ def test_main_prep_change_fleet_back_main(
 
     # 2. 出征 → 编队 (出征准备页)
     goto_page(ctx, PageName.BATTLE_PREP)
-    assert BattlePreparationPage.is_current_page(ctx.ctrl.screenshot()), (
+    assert BattlePreparationPage.check_current_page(ctx.ctrl.screenshot()), (
         f'应位于出征准备页，实际: {_current_page(ctx)}'
     )
 

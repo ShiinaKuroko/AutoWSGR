@@ -1,4 +1,16 @@
-"""准备页舰队 OCR 检测。
+"""模块功能：识别出征准备页面的舰队名称、槽位占用、舰种和等级信息。
+
+上层调用：
+- application.ui.controller.battle_preparation.preparation：提供舰队检测入口。
+- application.ui.controller.battle_preparation.fleet_change._change：读取换船前后的快照。
+- application.ui.controller.battle_preparation.fleet_change._rules：校验目标舰队规则。
+
+下层依赖：
+- application.ui.controller.battle_preparation.base：提供准备页 OCR 和截图上下文。
+- application.ui.controller.battle_preparation.detection：读取血条和详细舰船信息。
+- common.vision.ocr：提供 OCR 文本处理和舰名匹配。
+
+识别流程:
 
 1. 截取准备页下方的舰名区域。
 2. 调用 OCR 读取区域内的文字和坐标。
@@ -18,6 +30,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+import autowsgr.common.vision.ocr as _ocr
 from autowsgr.application.ui.controller.battle_preparation.base import BaseBattlePreparation
 from autowsgr.application.ui.controller.battle_preparation.detection import DetectionMixin
 from autowsgr.common.calibration.choose_ship import (
@@ -28,10 +41,6 @@ from autowsgr.common.calibration.choose_ship import (
 from autowsgr.common.constants import SHIPNAMES, normalize_ship_name, ship_name_identity
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.types import ShipDamageState, ShipType
-from autowsgr.common.vision.ocr import (
-    _fuzzy_match,
-    apply_ship_patches,
-)
 
 
 # 仅在类型检查时导入运行逻辑不需要的类型。
@@ -112,7 +121,7 @@ class FleetDetectMixin(BaseBattlePreparation):
         if not text or not candidates:
             return None
 
-        matched = _fuzzy_match(apply_ship_patches(text), candidates, threshold=3)
+        matched = _ocr._fuzzy_match(_ocr.apply_ship_patches(text), candidates, threshold=3)
         if matched is not None:
             _log.debug("[Fleet] 目标槽位匹配: '{}' -> '{}'", text, matched)
         return matched
@@ -155,9 +164,9 @@ class FleetDetectMixin(BaseBattlePreparation):
         prepared_results = []
         for result in results:
             raw_text = result.text.strip()
-            patched_text = apply_ship_patches(raw_text)
+            patched_text = _ocr.apply_ship_patches(raw_text)
             pool_match = (
-                _fuzzy_match(patched_text, SHIPNAMES, SHIP_FUZZY_THRESHOLD)
+                _ocr._fuzzy_match(patched_text, SHIPNAMES, SHIP_FUZZY_THRESHOLD)
                 if raw_text and result.bbox is not None
                 else None
             )
@@ -253,8 +262,8 @@ class FleetDetectMixin(BaseBattlePreparation):
 
             result = max(results, key=lambda item: item.confidence)
             raw_text = result.text.strip()
-            patched_text = apply_ship_patches(raw_text)
-            matched = _fuzzy_match(
+            patched_text = _ocr.apply_ship_patches(raw_text)
+            matched = _ocr._fuzzy_match(
                 patched_text,
                 SHIPNAMES,
                 SHIP_FUZZY_THRESHOLD,

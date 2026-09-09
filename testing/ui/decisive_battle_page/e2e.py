@@ -38,19 +38,21 @@ if TYPE_CHECKING:
 
 
 def run_test(runner: UIControllerTestRunner) -> None:
-    from autowsgr.application.ui.controller.decisive.battle_page import DecisiveBattlePage
-    from autowsgr.application.ui.controller.home import HomePage
+    from autowsgr.application.ui.controller.home.main_page import HomePage
+    from autowsgr.application.ui.controller.operations.sortie_page.decisive_page.page import (
+        DecisiveBattlePage,
+    )
 
     db_page = DecisiveBattlePage(runner.ctrl)
 
-    runner.verify_current('初始验证: 决战页面', '决战页面', DecisiveBattlePage.is_current_page)
+    runner.verify_current('初始验证: 决战页面', '决战页面', DecisiveBattlePage.check_current_page)
     if runner.aborted:
         return
 
     runner.execute_step(
         '决战页面 → ◁ 前一章节',
         '决战页面',
-        DecisiveBattlePage.is_current_page,
+        DecisiveBattlePage.check_current_page,
         db_page.go_prev_chapter,
     )
     if runner.aborted:
@@ -59,7 +61,7 @@ def run_test(runner: UIControllerTestRunner) -> None:
     runner.execute_step(
         '决战页面 → ▷ 后一章节 (还原)',
         '决战页面',
-        DecisiveBattlePage.is_current_page,
+        DecisiveBattlePage.check_current_page,
         db_page.go_next_chapter,
     )
     if runner.aborted:
@@ -77,8 +79,11 @@ def _navigate_to(ctrl: AndroidController, pause: float) -> None:
     """从任意已知页面导航到决战总览。"""
     import time
 
-    from autowsgr.application.ui.controller.home import HomePage
-    from autowsgr.application.ui.controller.map import MapPage, MapPanel
+    from autowsgr.application.ui.controller.home.main_page import HomePage
+    from autowsgr.application.ui.controller.operations.sortie_page.battle_page import (
+        MapPage,
+        MapPanel,
+    )
 
     if not reset_to_main_page(ctrl, pause):
         return
@@ -87,8 +92,8 @@ def _navigate_to(ctrl: AndroidController, pause: float) -> None:
         HomePage(ctrl).navigate_to(HomePage.Target.SORTIE)
         time.sleep(pause)
         screen = ctrl.screenshot()
-    if MapPage.is_current_page(screen):
-        if MapPage.get_active_panel(screen) != MapPanel.DECISIVE:
+    if MapPage.check_current_page(screen):
+        if MapPage.read_active_panel(screen) != MapPanel.DECISIVE:
             MapPage(ctrl).switch_panel(MapPanel.DECISIVE)
             time.sleep(pause)
             screen = ctrl.screenshot()
@@ -106,11 +111,13 @@ def main() -> None:
     from loguru import logger
 
     logger.info('=== 决战页面 e2e 测试开始 ===')
-    from autowsgr.application.ui.controller.decisive.battle_page import DecisiveBattlePage
+    from autowsgr.application.ui.controller.operations.sortie_page.decisive_page.page import (
+        DecisiveBattlePage,
+    )
 
     if not ensure_page(
         ctrl,
-        DecisiveBattlePage.is_current_page,
+        DecisiveBattlePage.check_current_page,
         lambda: _navigate_to(ctrl, args.pause),
         '决战页面',
         auto_mode=args.auto,

@@ -8,7 +8,7 @@ from autowsgr.application.ui.controller.battle_preparation import (
     BattlePreparationPage,
     RepairStrategy,
 )
-from autowsgr.application.ui.controller.map import MapPage, MapPanel
+from autowsgr.application.ui.controller.operations.sortie_page.battle_page import MapPage, MapPanel
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.types import RepairMode, ShipDamageState
 from autowsgr.common.ui.interaction import NavigationError
@@ -45,7 +45,7 @@ class ExerciseOperations:
 
     def pick_rival(self, rival: int | None) -> int | None:
         """读取可挑战对手并返回指定或最靠前的一个。"""
-        rivals = MapPage(self.ctx).get_exercise_rival_status().rivals
+        rivals = MapPage(self.ctx).read_exercise_rival_status().rivals
         if rival is not None:
             return rival if rivals[rival - 1] else None
         return next((index for index, available in enumerate(rivals, start=1) if available), None)

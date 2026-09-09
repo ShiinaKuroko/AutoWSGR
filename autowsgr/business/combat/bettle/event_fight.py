@@ -34,7 +34,7 @@ from autowsgr.common.system.logger import get_logger
 
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import Callable, Sequence
 
     from autowsgr.application.runtime import RuntimeContext as GameContext
 
@@ -79,6 +79,7 @@ class EventFightRunner(NormalFightRunner):
         map_code: str | None = None,  # noqa: ARG002 - 已废弃, 仅为兼容旧签名保留
         entrance: Literal['alpha', 'beta'] | None = None,
         event_name: str | None = None,
+        repair_status_callback: Callable[[bool], None] | None = None,
     ) -> None:
         # entrance override: 覆盖 plan.entrance (UI 层 a/b ↔ α/β)
         if entrance is not None:
@@ -94,6 +95,7 @@ class EventFightRunner(NormalFightRunner):
             fleet=fleet,
             fleet_rules=fleet_rules,
             task_type='event_fight',
+            repair_status_callback=repair_status_callback,
         )
 
 
@@ -114,6 +116,7 @@ def run_event_fight(
     fleet: Sequence[str] | None = None,
     fleet_rules: Sequence[FleetSlotRule] | None = None,
     fleet_selection: ResolvedFleetSelection | None = None,
+    repair_status_callback: Callable[[bool], None] | None = None,
 ) -> list[CombatResult]:
     """执行活动战的便捷函数 (兼容入口, 委托 :class:`NormalFightRunner`)。
 
@@ -157,6 +160,7 @@ def run_event_fight(
         resolved_selection,
         map_code=map_code,
         entrance=entrance,
+        repair_status_callback=repair_status_callback,
     )
     return runner.run_for_times(times, gap=gap)
 

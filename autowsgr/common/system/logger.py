@@ -17,7 +17,7 @@
     vision.dll        — DLL 调用
     ui                — 页面导航 / 浮层 / 通用 UI 操作
     ui.preparation    — 出征准备页 (血量/换船/补给)
-    ui.decisive       — 决战专属 UI (编成/OCR/地图控制器)
+    ui.decisive       — 决战专属 UI (编成/OCR/地图页)
     combat            — 战斗引擎 / 状态处理器 / 操作
     combat.recognition — 战斗状态识别 / 敌方编成识别 / 规则
     combat.tracker    — 节点追踪器
@@ -189,7 +189,7 @@ def _make_channel_filter(sink_level: int) -> Callable:
 def caller_info(depth: int = 1) -> str:
     """返回调用者的全量相对路径信息。
 
-    格式: ``ui/decisive/preparation.py:276 in swap_fleet``
+    格式: ``ui/decisive_page/preparation_page.py:276 in swap_fleet``
 
     Parameters
     ----------

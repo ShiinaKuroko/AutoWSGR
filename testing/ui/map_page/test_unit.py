@@ -2,14 +2,30 @@
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, call, patch
 
+import numpy as np
 import pytest
 
 from autowsgr.application.runtime.context import GameContext
-from autowsgr.application.ui.controller.map import MapPage, parse_map_title
-from autowsgr.application.ui.controller.map.data import CHAPTER_MAP_COUNTS, MAP_DATABASE
+from autowsgr.application.ui.controller.operations.sortie_page.battle_page import (
+    MapPage,
+    parse_map_title,
+)
+from autowsgr.application.ui.controller.operations.sortie_page.battle_page import (
+    constants as battle_constants,
+)
+from autowsgr.application.ui.controller.operations.sortie_page.battle_page.data import (
+    CHAPTER_MAP_COUNTS,
+    MAP_DATABASE,
+    ChapterSlot,
+    choose_chapter_slot,
+)
+from autowsgr.application.ui.controller.operations.sortie_page.battle_page.recognition import (
+    parse_chapter_label,
+)
 from autowsgr.common.device import AndroidController
+from autowsgr.common.vision import OCRResult
 
 
 # ─────────────────────────────────────────────
@@ -153,6 +169,63 @@ class TestMapDatabase:
         assert len(MAP_DATABASE) >= 40
 
 
+class TestChapterSlots:
+    @staticmethod
+    def slots(values: list[int | None]) -> tuple[ChapterSlot, ...]:
+        return tuple(
+            ChapterSlot(index=i, chapter=chapter, text='', confidence=1.0)
+            for i, chapter in enumerate(values)
+        )
+
+    def test_parse_labels_and_placeholder(self):
+        assert parse_chapter_label('第六章') == 6
+        assert parse_chapter_label('第10章') == 10
+        assert parse_chapter_label('---') is None
+        assert parse_chapter_label('3十章') is None
+
+    def test_prefers_visible_target(self):
+        slots = self.slots([8, 9, 10, None, None])
+        assert choose_chapter_slot(10, 9, slots) == 1
+
+    def test_uses_two_slot_jump_when_available(self):
+        slots = self.slots([8, 9, 10, None, None])
+        assert choose_chapter_slot(10, 5, slots) == 0
+
+    def test_uses_one_slot_jump_after_overshoot(self):
+        slots = self.slots([4, 5, 6, 7, 8])
+        assert choose_chapter_slot(6, 5, slots) == 1
+
+    def test_uses_two_slot_jump_at_lower_boundary(self):
+        slots = self.slots([None, None, 1, 2, 3])
+        assert choose_chapter_slot(1, 5, slots) == 4
+
+    def test_refuses_placeholder_slot(self):
+        slots = self.slots([None, 9, 10, None, None])
+        assert choose_chapter_slot(10, 8, slots) is None
+
+
+class TestBattlePageCalibration:
+    def test_static_coordinates_keep_reference_pixels(self):
+        """页面私有四位坐标在基准分辨率下保持旧校准像素。"""
+        from autowsgr.common.calibration import map as legacy
+
+        def pixels(coord: tuple[float, float]) -> tuple[int, int]:
+            return int(coord[0] * 1280), int(coord[1] * 720)
+
+        assert pixels(battle_constants.CLICK_BACK) == pixels(legacy.CLICK_BACK)
+        assert {
+            name: pixels(coord) for name, coord in battle_constants.PANEL_POSITIONS.items()
+        } == {name: pixels(coord) for name, coord in legacy.PANEL_POSITIONS.items()}
+        for name in (
+            'CLICK_ENTER_SORTIE',
+            'CLICK_ENTER_DECISIVE',
+            'CLICK_MAP_NEXT',
+            'CLICK_MAP_PREV',
+            'CLICK_EXPEDITION_SKIP',
+        ):
+            assert pixels(getattr(battle_constants, name)) == pixels(getattr(legacy, name))
+
+
 # ─────────────────────────────────────────────
 # 动作 — 章节导航
 # ─────────────────────────────────────────────
@@ -175,3 +248,35 @@ class TestNavigateToChapter:
         pg = MapPage(ctx)
         with pytest.raises(RuntimeError, match='OCR'):
             pg.navigate_to_chapter(5)
+
+    def test_fixed_slots_navigate_by_two_then_one(self):
+        ctrl = MagicMock(spec=AndroidController)
+        ocr = MagicMock()
+        ctx = GameContext(ctrl=ctrl, config=MagicMock(), ocr=ocr)
+        pg = MapPage(ctx)
+        screen = np.zeros((720, 1280, 3), dtype=np.uint8)
+        ctrl.screenshot.return_value = screen
+
+        slot_reads = [
+            ['第八章', '第九章', '第十章', '---', '---'],
+            ['第六章', '第七章', '第八章', '第九章', '第十章'],
+            ['第四章', '第五章', '第六章', '第七章', '第八章'],
+            ['第三章', '第四章', '第五章', '第六章', '第七章'],
+            ['第三章', '第四章', '第五章', '第六章', '第七章'],
+        ]
+        ocr.recognize_single.side_effect = [
+            OCRResult(text=text, confidence=0.95) for row in slot_reads for text in row
+        ]
+        ocr.recognize_maxlen.side_effect = [
+            OCRResult(text=text, confidence=0.95) for text in ['10-1', '8-1', '6-1', '5-3', '5-3']
+        ]
+
+        with patch('autowsgr.application.ui.controller.operations.sortie_page.sortie.time.sleep'):
+            result = pg.navigate_to_chapter(5)
+
+        assert result == 5
+        assert ctrl.click.call_args_list == [
+            call(0.1, 0.31),
+            call(0.1, 0.31),
+            call(0.1, 0.43),
+        ]

@@ -121,7 +121,7 @@ class SomePage:
 | `BackyardPage`            | `BACKYARD`          | 后院 (入口: 浴室/食堂)       |
 | `SidebarPage`             | `SIDEBAR`           | 侧边栏 (入口: 建造/强化/好友) |
 | `MissionPage`             | `MISSION`           | 任务奖励领取                  |
-| `StartScreenPage`         | `START_SCREEN`      | 游戏启动画面                  |
+| `LoginPage`               | —                   | 登录前启动画面（不注册为 PageName） |
 | `IntensifyPage`           | `INTENSIFY`         | 强化界面                     |
 | `FriendPage`              | `FRIEND`            | 好友界面                     |
 | `ChooseShipPage`          | `CHOOSE_SHIP`       | 选船界面                     |
@@ -179,11 +179,11 @@ class NavEdge:
 
 ```python
 def _main_to_map(ctx: GameContext) -> None:
-    from autowsgr.application.ui.controller.home import HomePage
+    from autowsgr.application.ui.controller.home.main_page import HomePage
     HomePage(ctx).navigate_to(HomePage.Target.SORTIE)
 
 def _map_to_main(ctx: GameContext) -> None:
-    from autowsgr.application.ui.controller.map import MapPage
+    from autowsgr.application.ui.controller.operations.sortie_page.battle_page import MapPage
     MapPage(ctx).go_back()
 ```
 

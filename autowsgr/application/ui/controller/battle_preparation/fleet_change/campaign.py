@@ -1,13 +1,23 @@
-"""战役专用的逐槽位编队操作。"""
+"""模块功能：在战役出征准备页按固定物理槽位执行舰队编成。
+
+上层调用：
+- application.ui.controller.battle_preparation.preparation：组合战役编队入口。
+- business.combat.campaign：传入战役舰种或舰名规则。
+
+下层依赖：
+- application.ui.controller.battle_preparation.fleet_change._change：提供通用换船能力。
+- application.ui.controller.battle_preparation.detection：提供舰队快照和状态校验。
+
+战役页面不使用拖动和槽位左移；固定槽位约束属于页面行为，不能下沉到 common。
+"""
 
 from __future__ import annotations
 
 import time
 from typing import TYPE_CHECKING
 
+from autowsgr.application.ui.controller.battle_preparation.fleet_change import _change
 from autowsgr.common.system.logger import get_logger
-
-from ._change import _MAX_SET_RETRIES, FleetChangeMixin
 
 
 if TYPE_CHECKING:
@@ -19,7 +29,7 @@ if TYPE_CHECKING:
 _log = get_logger('ui.preparation')
 
 
-class CampaignFleetChangeMixin(FleetChangeMixin):
+class CampaignFleetChangeMixin(_change.FleetChangeMixin):
     """战役编队：固定物理槽位，只能点对点更换，禁止拖动和左移。"""
 
     def change_fleet(
@@ -41,7 +51,7 @@ class CampaignFleetChangeMixin(FleetChangeMixin):
             )
         if len(ship_names) > 6:
             raise ValueError('战役编队最多包含 6 个槽位')
-        if fleet_id is not None and self.get_selected_fleet(self._ctrl.screenshot()) != fleet_id:
+        if fleet_id is not None and self.read_selected_fleet(self._ctrl.screenshot()) != fleet_id:
             self.select_fleet(fleet_id)
             time.sleep(0.5)
         return self._change_campaign_fleet(
@@ -120,7 +130,7 @@ class CampaignFleetChangeMixin(FleetChangeMixin):
             self._clear_campaign_fleet(current, occupied)
             verified_slots.clear()
 
-        for attempt in range(_MAX_SET_RETRIES + 1):
+        for attempt in range(_change._MAX_SET_RETRIES + 1):
             names = self._target_names(assigned)
             if self._validate_assignment(current, occupied, assigned, verified_slots):
                 return self._finish_campaign_fleet(current, occupied, assigned, verified_slots)
@@ -141,7 +151,7 @@ class CampaignFleetChangeMixin(FleetChangeMixin):
             )
             if self._validate_assignment(current, occupied, assigned, verified_slots):
                 return self._finish_campaign_fleet(current, occupied, assigned, verified_slots)
-            if attempt < _MAX_SET_RETRIES:
+            if attempt < _change._MAX_SET_RETRIES:
                 time.sleep(0.5)
 
         self._log_final_result(

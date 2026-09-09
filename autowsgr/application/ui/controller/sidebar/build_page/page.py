@@ -7,7 +7,7 @@
 
 下层依赖：
 - application.ui.controller.sidebar.build_page.constants：提供建造页面专用坐标。
-- application.ui.controller.shared.tabbed_page：识别标签页和生成标签检查器。
+- application.ui.controller.shared.top_tabs：识别标签页和生成标签检查器。
 - common.ui.interaction：执行点击后的页面到达等待。
 - common.vision：匹配建造结果、资源页面和确认弹窗。
 - common.types：提供页面名称和舰种枚举。
@@ -19,13 +19,13 @@ import enum
 import time
 from typing import TYPE_CHECKING
 
-from autowsgr.application.ui.controller.sidebar.build_page import constants
-from autowsgr.application.ui.controller.shared.tabbed_page import (
+from autowsgr.application.ui.controller.shared.top_tabs import (
     TabbedPageType,
     check_tabbed_page,
     get_active_tab_index,
     make_tab_checker,
 )
+from autowsgr.application.ui.controller.sidebar.build_page import constants
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.types import PageName, ShipType
 from autowsgr.common.ui.interaction import click_and_wait_for_page
@@ -133,7 +133,7 @@ class BuildPage:
         Raises:
             NavigationError: 超时仍未离开建造页面。
         """
-        from autowsgr.application.ui.controller.home import HomePage
+        from autowsgr.application.ui.controller.home.main_page import HomePage
         from autowsgr.application.ui.controller.sidebar.main_page import SidebarPage
 
         _log.info('[UI] 建造页面 → 返回侧边栏')

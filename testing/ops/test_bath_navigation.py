@@ -5,13 +5,13 @@ from unittest.mock import MagicMock
 
 import pytest
 
-import autowsgr.application.ui.controller.battle_preparation.repair_action as repair_action
-import autowsgr.business.logistics.repair.bath_repair as bath_repair
 from autowsgr.application.ui.controller.battle_preparation import (
     BattlePreparationPage,
     RepairStrategy,
+    repair_action,
 )
 from autowsgr.application.ui.navigation import service
+from autowsgr.business.logistics.repair import bath_repair
 from autowsgr.common.system import ManualRepairRequiredError
 from autowsgr.common.types import PageName, ShipDamageState
 
@@ -33,6 +33,23 @@ def test_normal_sortie_returns_to_map_before_bath(monkeypatch: pytest.MonkeyPatc
     goto_page.assert_called_once_with(ctx, PageName.BATH)
 
 
+def test_event_sortie_returns_to_event_map_before_bath(monkeypatch: pytest.MonkeyPatch) -> None:
+    """活动出征准备页先回活动地图，再进入澡堂。"""
+    click_and_wait = MagicMock()
+    monkeypatch.setattr('autowsgr.common.ui.interaction.click_and_wait_for_page', click_and_wait)
+    goto_page = MagicMock()
+    monkeypatch.setattr(service, 'goto_page', goto_page)
+    ctx = SimpleNamespace(ctrl=object())
+
+    service.goto_bath_from_event_sortie(ctx)
+
+    click_and_wait.assert_called_once()
+    assert click_and_wait.call_args.args[0] is ctx.ctrl
+    assert click_and_wait.call_args.kwargs['source'] is PageName.BATTLE_PREP
+    assert click_and_wait.call_args.kwargs['target'] is PageName.EVENT_MAP
+    goto_page.assert_called_once_with(ctx, PageName.BATH)
+
+
 def test_campaign_sortie_returns_via_campaign_selection_before_bath(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -43,7 +60,7 @@ def test_campaign_sortie_returns_via_campaign_selection_before_bath(
         lambda _ctx: preparation,
     )
     monkeypatch.setattr(
-        'autowsgr.application.ui.controller.map.MapPage',
+        'autowsgr.application.ui.controller.operations.sortie_page.battle_page.MapPage',
         lambda _ctx: campaign_selection,
     )
     goto_page = MagicMock()
@@ -66,7 +83,7 @@ def test_decisive_sortie_leaves_saved_map_before_bath(monkeypatch: pytest.Monkey
         ctrl=object(),
     )
     monkeypatch.setattr(
-        'autowsgr.application.ui.controller.decisive.DecisiveMapController',
+        'autowsgr.application.ui.controller.operations.sortie_page.decisive_page.DecisiveMapController',
         lambda _ctx, _config: controller,
     )
     goto_page = MagicMock()

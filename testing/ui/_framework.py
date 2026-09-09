@@ -489,18 +489,20 @@ def reset_to_main_page(ctrl: ADBController, pause: float = 1.5) -> bool:  # noqa
         成功回到主页面时返回 ``True``，超出重试次数仍未到达则返回 ``False``。
     """
     from autowsgr.application.runtime.context import GameContext
-    from autowsgr.application.ui.controller.backyard.main_page import BackyardPage
     from autowsgr.application.ui.controller.backyard.bath_page import BathPage
-    from autowsgr.application.ui.controller.battle_preparation import BattlePreparationPage
-    from autowsgr.application.ui.controller.sidebar.build_page import BuildPage
     from autowsgr.application.ui.controller.backyard.canteen_page import CanteenPage
-    from autowsgr.application.ui.controller.decisive.battle_page import DecisiveBattlePage
-    from autowsgr.application.ui.controller.event.event_page import BaseEventPage
+    from autowsgr.application.ui.controller.backyard.main_page import BackyardPage
+    from autowsgr.application.ui.controller.battle_preparation import BattlePreparationPage
+    from autowsgr.application.ui.controller.home.event_page.page import BaseEventPage
+    from autowsgr.application.ui.controller.home.main_page import HomePage
+    from autowsgr.application.ui.controller.operations.mission_page import MissionPage
+    from autowsgr.application.ui.controller.operations.sortie_page.battle_page import MapPage
+    from autowsgr.application.ui.controller.operations.sortie_page.decisive_page.page import (
+        DecisiveBattlePage,
+    )
+    from autowsgr.application.ui.controller.sidebar.build_page import BuildPage
     from autowsgr.application.ui.controller.sidebar.friend_page import FriendPage
     from autowsgr.application.ui.controller.sidebar.intensify_page import IntensifyPage
-    from autowsgr.application.ui.controller.home import HomePage
-    from autowsgr.application.ui.controller.map import MapPage
-    from autowsgr.application.ui.controller.mission_page import MissionPage
     from autowsgr.application.ui.controller.sidebar.main_page import SidebarPage
     from autowsgr.common.system import UserConfig
 
@@ -521,20 +523,20 @@ def reset_to_main_page(ctrl: ADBController, pause: float = 1.5) -> bool:  # noqa
             IntensifyPage(ctx).go_back()
         elif FriendPage.check_current_page(screen):
             FriendPage(ctx).go_back()
-        elif MissionPage.is_current_page(screen):
+        elif MissionPage.check_current_page(screen):
             MissionPage(ctx).go_back()
-        elif BattlePreparationPage.is_current_page(screen):
+        elif BattlePreparationPage.check_current_page(screen):
             BattlePreparationPage(ctx).go_back()
-        elif DecisiveBattlePage.is_current_page(screen):
+        elif DecisiveBattlePage.check_current_page(screen):
             DecisiveBattlePage(ctx).go_back()
-        elif BaseEventPage.is_current_page(screen):
+        elif BaseEventPage.check_current_page(screen):
             BaseEventPage(ctx).go_back()
         # 中间页面
         elif BackyardPage.check_current_page(screen):
             BackyardPage(ctx).go_back()
         elif SidebarPage.check_current_page(screen):
             SidebarPage(ctx).close()
-        elif MapPage.is_current_page(screen):
+        elif MapPage.check_current_page(screen):
             MapPage(ctx).go_back()
         else:
             # 未知页面，无法自动返回

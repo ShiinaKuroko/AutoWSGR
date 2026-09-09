@@ -73,3 +73,43 @@
   `GameContext`，本次未发现新的上下文/OCR 生命周期问题。
 - 主页没有页面专属 OCR 规则，因此没有新增识别入口；既有 BathPage 上下文问题
   仍按本台账延期，不因主页迁移提前处理。
+
+## 2026-09-08 出征模块治理审查
+
+- `BaseBattlePreparation(ctx, ocr=None)` 使用 `ocr or ctx.ocr`，同时从 `ctx` 读取
+  `ship_ocr`；`DecisiveBattlePreparationPage` 又重复赋值 `_ocr`，形成准备页内部
+  的多套 OCR 优先级。
+- `ChooseShipPage` 另行读取 `ctx.ship_ocr` 并回退 `ctx.ocr`，选船识别与准备页检测
+  没有由同一个明确的上下文入口统一说明所有权。
+- `BaseMapPage`、`DecisiveBattlePage` 和 `DecisiveMapController` 也各自保存或接收
+  OCR，地图标题、决战章节和舰队识别的生命周期契约尚未统一。
+- 本批不重建 `GameContext`、不合并 OCR 实例、不增加兼容 fallback；待上下文专题
+  先确认 `GameContext.ocr`/`ship_ocr` 的唯一创建者、注入时机和缺失行为后集中处理。
+
+## 2026-09-09 决战模块第二轮治理
+
+- 决战总览、地图和准备页现在都从调用方接收 `GameContext`，OCR 识别集中通过注入的
+  `ctx.ocr` 执行；本轮没有创建或刷新上下文。
+- `recognition.py` 已收拢决战 OCR，但 `GameContext.ocr` 与 `ctx.ship_ocr` 的所有权、
+  创建时机、生命周期和缺失行为仍未统一，留待上下文专题。
+- 节点 DLL 识别的重试/异常边界和地图页跨页面读取链也暂不改变，避免影响后续大型
+  决战升级移植。
+
+## 2026-09-09 公共区域与登录阶段复核
+
+- `LoginPage` 只保存调用方注入的 `AndroidController`，没有创建或刷新
+  `GameContext`，本轮没有新增上下文生命周期问题。
+- `shared/choose_ship.py` 继续读取注入的 `GameContext`、`ctx.ocr` 和可选的
+  `ctx.ship_ocr`；其 OCR 优先级与准备页检测不一致的问题已在本台账中记录，延期到
+  上下文专题，不在公共区域整合时增加第二套状态源。
+- `shared/top_tabs.py` 不持有上下文或 OCR 引擎，只执行截图模板/像素匹配；本轮没有
+  新的上下文问题。
+
+## 2026-09-09 阶段二 OCR/ROI 复核
+
+- `Launcher.create_ocr()`/`build_context()` 是当前 OCR 创建和注入入口；本阶段未在
+  Controller 中创建新 OCR 或刷新 `GameContext`。
+- `BaseBattlePreparation`、`ChooseShipPage`、决战准备页和地图控制器对 `ocr`/
+  `ship_ocr` 的优先级仍未统一；该问题与 BathPage 隐式创建 OCR 一并留待上下文专题。
+- 本阶段未将选船或准备页 OCR 拆出到新模块，原因是会同时改变 Mixin/MRO、模式分支
+  和选船状态所有权；相关代码保持现状并已完成 focused 回归。

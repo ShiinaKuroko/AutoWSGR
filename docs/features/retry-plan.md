@@ -97,12 +97,12 @@ For each target operation, we will define a dedicated method (if not already pre
     ```python
     @retry_action(retries=1, delay=1.0, exceptions=(TimeoutError,))
     def _enter_game(ctrl: AndroidController) -> None:
-        StartScreenPage(ctrl).click_enter()
+        LoginPage(ctrl).click_enter()
         if not wait_for_game_ui(ctrl, timeout=30.0):
             raise TimeoutError("Timeout waiting for game UI")
 
     # In start_game:
-    if StartScreenPage.is_current_page(ctrl.screenshot()):
+    if LoginPage.check_current_page(ctrl.screenshot()):
         _enter_game(ctrl)
     ```
     *Note: Since `startup.py` uses standalone functions, we can define the helper inside `start_game` or at module level. Defining it at module level (or as a private helper) is cleaner.*

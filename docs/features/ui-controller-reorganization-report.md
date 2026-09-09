@@ -12,10 +12,10 @@ forwarding package was added.
 ## Final ownership
 
 - `application/ui/controller`: page controllers and page-local workflow
-  composition (`map`, `battle_preparation`, `decisive`, `event`, `mission_page`,
+  composition (`map`, `battle_preparation`, `decisive`, `event`, `operations/mission_page`,
   `main_page`, and the standalone page controllers).
 - `application/ui/controller/shared`: page-semantic capabilities shared by
-  multiple controllers: `choose_ship.py` and `tabbed_page.py`.
+  multiple controllers: `choose_ship.py` and `top_tabs.py`.
 - `application/ui/controller/battle_preparation/fleet_change`: shared by
   several combat flows, but kept beside the preparation base and detection
   mixins. Moving it under `shared` caused a real import cycle through
@@ -24,10 +24,12 @@ forwarding package was added.
   preparation and combat result recognition.
 - `common/vision/map.py`: map counter OCR and `LootShipCount`, used directly by
   sortie and campaign controllers.
-- `common/calibration/map.py`: map coordinates, probes, colors, navigation
-  timing values, and counter OCR crop regions.
-- `battle_preparation/constants.py`: removed because it only re-exported
-  values already owned by `common.calibration.battle_preparation`.
+- `application/ui/controller/operations/sortie_page/battle_page/constants.py`: map coordinates, probes, colors,
+  navigation timing values, and Controller-side OCR crop regions.
+- `application/ui/controller/battle_preparation/constants.py`: preparation-page
+  coordinates, state colors, blood-bar probes, and fleet detail crop regions.
+- The legacy `common.calibration` modules remain only where external tools or
+  shared vision code still consume their compatibility values.
 
 ## Callers
 
@@ -43,7 +45,7 @@ import in `registry.py`.
 ## Review findings addressed
 
 Ponytail review confirmed the page/shared/common split and found one migration
-regression: `shared/tabbed_page.py` still used the old `parents[3]` template
+regression: `shared/top_tabs.py` still used the old `parents[3]` template
 root. It now uses `parents[4]`, and all five tabbed templates load from
 `autowsgr/common/data/images/ui`.
 

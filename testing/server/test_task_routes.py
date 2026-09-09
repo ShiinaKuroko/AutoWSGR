@@ -70,6 +70,10 @@ class _ExecutingTaskManager:
     def update_progress(**_progress: object) -> None:
         return None
 
+    @staticmethod
+    def set_repairing(_repairing: bool) -> None:
+        return None
+
     def add_result(self, result: dict[str, Any]) -> None:
         self.results.append(result)
 
@@ -597,6 +601,7 @@ def test_fight_routes_resolve_all_fleet_sources_before_runner(
         *,
         times: int,
         fleet_selection: ResolvedFleetSelection,
+        **_kwargs: object,
     ) -> list[CombatResult]:
         assert times == 1
         captured.append(fleet_selection)
@@ -675,6 +680,7 @@ def test_event_route_top_level_fleet_id_overrides_api_plan(
         *,
         times: int,
         fleet_selection: ResolvedFleetSelection,
+        **_kwargs: object,
     ) -> list[CombatResult]:
         assert times == 1
         captured.append(fleet_selection)
@@ -706,6 +712,7 @@ def test_normal_route_applies_explicit_node_overrides_to_yaml_plan(
         *,
         times: int,
         fleet_selection: ResolvedFleetSelection,
+        **_kwargs: object,
     ) -> list[CombatResult]:
         assert times == 1
         assert fleet_selection.fleet_id == 1

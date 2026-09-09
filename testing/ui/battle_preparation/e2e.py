@@ -45,7 +45,7 @@ def run_test(runner: UIControllerTestRunner) -> None:
     bp_page = BattlePreparationPage(runner.ctrl)
 
     runner.verify_current(
-        '初始验证: 出征准备页面', '出征准备页面', BattlePreparationPage.is_current_page
+        '初始验证: 出征准备页面', '出征准备页面', BattlePreparationPage.check_current_page
     )
     if runner.aborted:
         return
@@ -53,9 +53,9 @@ def run_test(runner: UIControllerTestRunner) -> None:
     runner.read_state(
         '出征准备页面',
         readers={
-            '当前舰队': BattlePreparationPage.get_selected_fleet,
-            '当前面板': BattlePreparationPage.get_active_panel,
-            '自动补给': BattlePreparationPage.is_auto_supply_enabled,
+            '当前舰队': BattlePreparationPage.read_selected_fleet,
+            '当前面板': BattlePreparationPage.read_active_panel,
+            '自动补给': BattlePreparationPage.check_auto_supply_enabled,
         },
     )
 
@@ -64,7 +64,7 @@ def run_test(runner: UIControllerTestRunner) -> None:
         runner.execute_step(
             f'切换舰队 → 第{fleet_id}舰队',
             '出征准备页面',
-            BattlePreparationPage.is_current_page,
+            BattlePreparationPage.check_current_page,
             lambda fid=fleet_id: bp_page.select_fleet(fid),
         )
         if runner.aborted:
@@ -75,7 +75,7 @@ def run_test(runner: UIControllerTestRunner) -> None:
         runner.execute_step(
             f'切换面板 → {panel.value}',
             '出征准备页面',
-            BattlePreparationPage.is_current_page,
+            BattlePreparationPage.check_current_page,
             lambda p=panel: bp_page.select_panel(p),
         )
         if runner.aborted:
@@ -86,7 +86,7 @@ def run_test(runner: UIControllerTestRunner) -> None:
         runner.execute_step(
             f'拨动自动补给 (第{i}次)',
             '出征准备页面',
-            BattlePreparationPage.is_current_page,
+            BattlePreparationPage.check_current_page,
             bp_page.toggle_auto_supply,
         )
         if runner.aborted:
@@ -126,10 +126,17 @@ def _navigate_to(
     """
     import time
 
-    from autowsgr.application.ui.controller.home import HomePage
-    from autowsgr.application.ui.controller.map import MapPage, MapPanel
-    from autowsgr.application.ui.controller.map.data import TOTAL_CHAPTERS
-    from autowsgr.common.calibration.map import MAP_NODE_POSITIONS
+    from autowsgr.application.ui.controller.home.main_page import HomePage
+    from autowsgr.application.ui.controller.operations.sortie_page.battle_page import (
+        MapPage,
+        MapPanel,
+    )
+    from autowsgr.application.ui.controller.operations.sortie_page.battle_page.constants import (
+        MAP_NODE_POSITIONS,
+    )
+    from autowsgr.application.ui.controller.operations.sortie_page.battle_page.data import (
+        TOTAL_CHAPTERS,
+    )
 
     if not reset_to_main_page(ctrl, pause):
         return
@@ -143,9 +150,9 @@ def _navigate_to(
 
     # 确认在地图并切换到出征面板
     screen = ctrl.screenshot()
-    if not MapPage.is_current_page(screen):
+    if not MapPage.check_current_page(screen):
         return
-    if MapPage.get_active_panel(screen) != MapPanel.SORTIE:
+    if MapPage.read_active_panel(screen) != MapPanel.SORTIE:
         MapPage(ctrl).switch_panel(MapPanel.SORTIE)
         time.sleep(pause)
 
@@ -187,7 +194,7 @@ def main() -> None:
 
     if not ensure_page(
         ctrl,
-        BattlePreparationPage.is_current_page,
+        BattlePreparationPage.check_current_page,
         lambda: _navigate_to(ctrl, args.pause, chapter=chapter, map_node=map_node),
         '出征准备页面',
         auto_mode=args.auto,

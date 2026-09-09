@@ -8,7 +8,7 @@
 下层依赖：
 - application.ui.controller.sidebar.friend_page.constants：提供好友页面返回坐标。
 - application.ui.controller.sidebar.main_page：提供侧边栏页面检查器。
-- application.ui.controller.shared.tabbed_page：识别好友标签页页面。
+- application.ui.controller.shared.top_tabs：识别好友标签页页面。
 - common.ui.interaction：等待侧边栏页面到达。
 - common.types：提供页面名称和匹配结果类型。
 """
@@ -21,16 +21,17 @@ from autowsgr.application.ui.controller.sidebar.friend_page import constants
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.types import PageName
 from autowsgr.common.ui.interaction import click_and_wait_for_page
-from autowsgr.common.vision import PageMatch
 
 
 if TYPE_CHECKING:
     import numpy as np
 
     from autowsgr.application.ui.context import UIContext as GameContext
+    from autowsgr.common.vision import PageMatch
 
 
 _log = get_logger('ui')
+
 
 class FriendPage:
     """好友页面内的 UI 操作控制器。"""
@@ -51,7 +52,7 @@ class FriendPage:
         Returns:
             好友页面匹配结果。
         """
-        from autowsgr.application.ui.controller.shared.tabbed_page import (
+        from autowsgr.application.ui.controller.shared.top_tabs import (
             TabbedPageType,
             check_tabbed_page,
         )

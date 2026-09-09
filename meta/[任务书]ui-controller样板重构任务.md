@@ -88,7 +88,7 @@ Next Step: 等待人工 review。
 
 ### B1：真实母港主页重塑（已完成）
 
-- 将 Controller 目录从 `controller/main_page` 重命名为 `controller/home_page`。
+- 将 Controller 目录从 `controller/home/main_page` 重命名为 `controller/home/main_page_page`。
 - 将 Controller 文件从 `controller.py` 规范为 `page.py`，并将 `MainPage` 重命名为 `HomePage`。
 - 保留业务状态 `PageName.HOME` 和视觉资源 `Templates.MainPage`，同步所有仓内调用方。
 - 将主页实际使用的坐标、颜色和像素签名下沉到页面私有 `constants.py`；
@@ -100,7 +100,7 @@ Next Step: 等待人工 review。
 ### B2：母港主页目录名简化（已完成）
 
 - `HomePage` 类名符合其他页面的“业务名 + Page”命名约定。
-- 将 Controller 目录从 `controller/home_page` 简化为 `controller/home`。
+- 将 Controller 目录从 `controller/home/main_page_page` 简化为 `controller/home/main_page`。
 - 保留 `HomePage`、`PageName.HOME`、`Templates.MainPage` 和页面内部文件结构。
 - 已重读本任务书，完成 import smoke、focused pytest、AST/compile 和
   `git diff --check`；Task Status 更新为 `done`，等待人工 review。

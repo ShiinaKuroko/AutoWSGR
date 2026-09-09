@@ -2,7 +2,7 @@
 
 上层调用：
 - application.ui.navigation.graph.logistics：调用后院与浴室、食堂之间的页面边动作。
-- application.ui.controller.home：查询后院页面识别结果。
+- application.ui.controller.home.main_page：查询后院页面识别结果。
 - testing.ui：执行后院页面导航验证。
 
 下层依赖：

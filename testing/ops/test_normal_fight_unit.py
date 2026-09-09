@@ -363,7 +363,7 @@ class TestFleetSelectionCallChain:
             occupied=[True, False, False, False, False, False],
         )
         snapshots = iter([empty_snapshot, target_snapshot, target_snapshot, target_snapshot])
-        monkeypatch.setattr(BattlePreparationPage, 'get_selected_fleet', lambda _self, _screen: 4)
+        monkeypatch.setattr(BattlePreparationPage, 'read_selected_fleet', lambda _self, _screen: 4)
         monkeypatch.setattr(
             page,
             '_detect_initial_snapshot',
@@ -392,6 +392,65 @@ class TestFleetSelectionCallChain:
         runner.run()
 
         page.start_battle.assert_called_once()
+
+
+class TestTaskRepairMethod:
+    def test_quick_method_overrides_global_manual_repair(self):
+        ctx = SimpleNamespace(
+            ctrl=None,
+            config=SimpleNamespace(dock_full_destroy=False, repair_manually=True),
+        )
+        plan = CombatPlan.from_dict({'repair_method': 'quick'})
+        runner = NormalFightRunner(ctx, plan, resolve_fleet_selection(plan))
+        page = MagicMock()
+
+        runner._apply_repair(page, normal_fight_module.RepairStrategy.SEVERE, ['target'])
+
+        page.apply_repair.assert_called_once_with(
+            normal_fight_module.RepairStrategy.SEVERE,
+            repair_manually=False,
+        )
+
+    def test_bath_method_dispatches_and_reenters_preparation(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        ship = SimpleNamespace(
+            name='target',
+            damage_state=ShipDamageState.NORMAL,
+            is_repairing=False,
+            repair_end_time=0.0,
+        )
+        ctx = SimpleNamespace(
+            ctrl=None,
+            config=SimpleNamespace(dock_full_destroy=False, repair_manually=False),
+            get_ship=lambda _name: ship,
+        )
+        plan = CombatPlan.from_dict({'repair_method': 'bath', 'fleet': ['target']})
+        runner = NormalFightRunner(
+            ctx,
+            plan,
+            resolve_fleet_selection(plan),
+            wait=lambda _seconds: None,
+        )
+        page = MagicMock()
+        page.check_repair.return_value = [0]
+        route = MagicMock()
+        repair_targets = MagicMock()
+        states: list[bool] = []
+        monkeypatch.setattr(normal_fight_module, 'goto_bath_from_normal_sortie', route)
+        monkeypatch.setattr(normal_fight_module, 'repair_manual_targets_in_bath', repair_targets)
+        monkeypatch.setattr(runner, '_enter_fight', MagicMock())
+        runner._repair_status_callback = states.append
+
+        runner._apply_repair(page, normal_fight_module.RepairStrategy.SEVERE, ['target'])
+
+        page.check_repair.assert_called_once_with(normal_fight_module.RepairStrategy.SEVERE)
+        route.assert_called_once_with(ctx)
+        repair_targets.assert_called_once_with(ctx, ['target'])
+        runner._enter_fight.assert_called_once_with()
+        page.select_fleet.assert_called_once_with(runner._fleet_id)
+        assert states == [True, False]
 
 
 class TestEventNormalMerge:

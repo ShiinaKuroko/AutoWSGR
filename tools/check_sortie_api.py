@@ -15,7 +15,9 @@ def main() -> int:
     """Validate common counter ownership and sortie entry points."""
     errors: list[str] = []
     try:
-        from autowsgr.application.ui.controller.map.panels.sortie import SortiePanelMixin
+        from autowsgr.application.ui.controller.operations.sortie_page.sortie import (
+            SortiePanelMixin,
+        )
         from autowsgr.common.vision import map as counter_module
         from autowsgr.common.vision.map import (
             LOOT_MAX,
@@ -28,7 +30,8 @@ def main() -> int:
         errors.append(f'canonical imports failed: {exc}')
     else:
         old_module = (
-            PROJECT_ROOT / 'autowsgr/application/ui/controller/map/panels/sortie_counters.py'
+            PROJECT_ROOT
+            / 'autowsgr/application/ui/controller/operations/sortie_page/battle_page/panels/sortie_counters.py'
         )
         if old_module.exists():
             errors.append('old Controller counter module still exists')
@@ -49,9 +52,9 @@ def main() -> int:
             'enter_sortie',
             'navigate_to_chapter',
             'navigate_to_map',
-            'recognize_map',
-            'get_loot_and_ship_count',
-            'click_chapter',
+            'read_map',
+            'read_loot_and_ship_count',
+            'click_chapter_slot',
         )
         missing = [name for name in required_methods if not hasattr(SortiePanelMixin, name)]
         if missing:

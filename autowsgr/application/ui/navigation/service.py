@@ -13,12 +13,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from autowsgr.application.ui.navigation import recognition as _recognition
 from autowsgr.application.ui.navigation.graph import find_path
-from autowsgr.application.ui.navigation.recognition import (
-    _resync_stack,
-    _sync_ctx_page,
-    identify_current_page,
-)
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.types import PageName
 from autowsgr.common.ui.interaction import NavigationError
@@ -39,11 +35,11 @@ def goto_page(ctx: GameContext, target: str) -> None:
     except NavigationError as e:
         # 1、记录失败并重新识别当前页面。
         _log.error('[Navigate] 导航失败: {}', e)
-        resynced = _resync_stack(ctx)
+        resynced = _recognition._resync_stack(ctx)
 
         # 2、重建栈后重新确认页面，再执行一次导航。
         _log.info('[Navigate] 栈重建 (resync): {}, 执行一次重试', resynced or '识别失败')
-        current_page = identify_current_page(ctx)
+        current_page = _recognition.identify_current_page(ctx)
 
         _log.info('[Navigate] 当前页面: {}, 执行一次重试', current_page)
         _goto_page(ctx, target)
@@ -61,6 +57,22 @@ def goto_bath_from_normal_sortie(ctx: GameContext) -> None:
     goto_page(ctx, PageName.BATH)
 
 
+def goto_bath_from_event_sortie(ctx: GameContext) -> None:
+    """从活动出征准备页返回活动地图后进入澡堂。"""
+    from autowsgr.application.ui.controller.battle_preparation.constants import CLICK_BACK
+    from autowsgr.application.ui.controller.home.event_page import BaseEventPage
+    from autowsgr.common.ui.interaction import click_and_wait_for_page
+
+    click_and_wait_for_page(
+        ctx.ctrl,
+        click_coord=CLICK_BACK,
+        checker=BaseEventPage.check_current_page,
+        source=PageName.BATTLE_PREP,
+        target=PageName.EVENT_MAP,
+    )
+    goto_page(ctx, PageName.BATH)
+
+
 def goto_bath_from_campaign_sortie(ctx: GameContext) -> None:
     """从战役编队页经战役选择和主页进入澡堂。
 
@@ -73,7 +85,7 @@ def goto_bath_from_campaign_sortie(ctx: GameContext) -> None:
     from autowsgr.application.ui.controller.battle_preparation import (
         BattlePreparationPage,
     )
-    from autowsgr.application.ui.controller.map import MapPage
+    from autowsgr.application.ui.controller.operations.sortie_page.battle_page import MapPage
 
     BattlePreparationPage(ctx).go_back()
     MapPage(ctx).go_back()
@@ -89,7 +101,7 @@ def goto_bath_from_decisive_sortie(ctx: GameContext) -> None:
     Args:
         ctx: 当前游戏上下文。
     """
-    from autowsgr.application.ui.controller.decisive import (
+    from autowsgr.application.ui.controller.operations.sortie_page.decisive_page import (
         DecisiveBattlePage,
         DecisiveMapController,
     )
@@ -103,7 +115,7 @@ def goto_bath_from_decisive_sortie(ctx: GameContext) -> None:
     map_controller.confirm_leave()
     wait_for_page(
         ctx.ctrl,
-        DecisiveBattlePage.is_current_page,
+        DecisiveBattlePage.check_current_page,
         source='决战暂离',
         target=PageName.DECISIVE_BATTLE,
     )
@@ -122,14 +134,14 @@ def _goto_page(ctx: GameContext, target: str) -> None:
 
     for step in range(max_steps):
         # 1、识别当前页面，并与页面栈对账。
-        current = identify_current_page(ctx, candidates=candidates)
+        current = _recognition.identify_current_page(ctx, candidates=candidates)
         if current is None:
             raise NavigationError(
                 f'无法识别当前页面，导航中止 (目标: {target})',
                 screen=ctx.ctrl.screenshot(),
             )
         stack.observe(current)
-        _sync_ctx_page(ctx, current)
+        _recognition._sync_ctx_page(ctx, current)
 
         # 2、已经在目标页面时结束本次导航。
         if current == target:

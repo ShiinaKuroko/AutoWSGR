@@ -33,6 +33,7 @@ if TYPE_CHECKING:
 
 _log = get_logger('ui')
 
+
 class CanteenPage:
     """食堂页面内的 UI 操作控制器。"""
 
@@ -58,27 +59,12 @@ class CanteenPage:
             return PageMatch(name=name, matched=False, score=0.0)
         return PageMatch(name=name, matched=True, score=result.confidence)
 
-    # ── 页面回退 ──────────────────────────────────────────────────────────────
+    # ── 浮层关闭 ──────────────────────────────────────────────────────────
 
-    def go_back(self) -> None:
-        """点击返回按钮，离开食堂并回到后院。
-
-        Args:
-            None.
-
-        Raises:
-            NavigationError: 超时仍未离开食堂页面。
-        """
-        from autowsgr.application.ui.controller.backyard.main_page import BackyardPage
-
-        _log.info('[UI] 食堂 → 返回后院')
-        click_and_wait_for_page(
-            self._ctrl,
-            click_coord=constants.CLICK_BACK,
-            checker=BackyardPage.check_current_page,
-            source='食堂',
-            target='后院',
-        )
+    def close_popup(self) -> None:
+        """关闭做菜提示弹窗。"""
+        _log.info('[UI] 食堂 → 关闭弹窗')
+        self._ctrl.click(*constants.CLICK_DISMISS_POPUP)
 
     # ── 操作 ──────────────────────────────────────────────────────────────
 
@@ -119,18 +105,6 @@ class CanteenPage:
         """
         _log.info('[UI] 食堂 → 取消做菜 (保留生效中的菜)')
         self._ctrl.click(*constants.CLICK_CANCEL_COOK)
-
-    def close_popup(self) -> None:
-        """关闭做菜提示弹窗。
-
-        Args:
-            None.
-
-        Returns:
-            None.
-        """
-        _log.info('[UI] 食堂 → 关闭弹窗')
-        self._ctrl.click(*constants.CLICK_DISMISS_POPUP)
 
     def click_skip_animation(self) -> None:
         """点击结果动画区域，跳过做菜动画。
@@ -197,3 +171,22 @@ class CanteenPage:
         _log.info('[UI] 做菜完成 (菜谱 {})', position)
 
         return True
+
+    # ── 页面回退 ──────────────────────────────────────────────────────────
+
+    def go_back(self) -> None:
+        """点击返回按钮，离开食堂并回到后院。
+
+        Raises:
+            NavigationError: 超时仍未离开食堂页面。
+        """
+        from autowsgr.application.ui.controller.backyard.main_page import BackyardPage
+
+        _log.info('[UI] 食堂 → 返回后院')
+        click_and_wait_for_page(
+            self._ctrl,
+            click_coord=constants.CLICK_BACK,
+            checker=BackyardPage.check_current_page,
+            source='食堂',
+            target='后院',
+        )

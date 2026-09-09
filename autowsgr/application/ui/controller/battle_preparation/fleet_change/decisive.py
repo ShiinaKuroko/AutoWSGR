@@ -1,4 +1,15 @@
-"""决战编队分支。"""
+"""模块功能：执行决战出征准备页的无搜索框舰队编成流程。
+
+上层调用：
+- application.ui.controller.battle_preparation.fleet_change：公开决战编队分支。
+- application.ui.controller.operations.sortie_page.decisive_page.preparation_page：在决战准备页触发换船。
+
+下层依赖：
+- application.ui.controller.battle_preparation.fleet_change._change：提供页面选船和排序。
+- common.system.logger：记录编队阶段和失败原因。
+
+决战选船不使用搜索框；页面差异保留在本模块，不改变通用选船算法。
+"""
 
 from __future__ import annotations
 

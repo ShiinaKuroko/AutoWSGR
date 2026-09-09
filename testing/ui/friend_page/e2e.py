@@ -59,7 +59,7 @@ def _navigate_to(ctrl: AndroidController, pause: float) -> None:
     import time
 
     from autowsgr.application.runtime.context import GameContext
-    from autowsgr.application.ui.controller.home import HomePage
+    from autowsgr.application.ui.controller.home.main_page import HomePage
     from autowsgr.application.ui.controller.sidebar.main_page import SidebarPage
     from autowsgr.common.system import UserConfig
 

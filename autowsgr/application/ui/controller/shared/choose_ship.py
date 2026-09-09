@@ -9,6 +9,7 @@ import time
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+import autowsgr.common.vision.ocr as _ocr
 from autowsgr.application.ui.ship_list import extract_ship_type_from_text
 from autowsgr.common.calibration.choose_ship import (
     CLICK_DISMISS_KEYBOARD,
@@ -26,7 +27,6 @@ from autowsgr.common.system.logger import get_logger
 from autowsgr.common.types import PageName
 from autowsgr.common.ui.interaction import wait_for_page, wait_leave_page
 from autowsgr.common.vision import PageMatch, PixelChecker
-from autowsgr.common.vision.ocr import _fuzzy_match
 from autowsgr.common.vision.ship_list import (
     LevelOCRRetryNeededError,
     locate_ship_rows,
@@ -480,7 +480,9 @@ class ChooseShipPage:
                 _OCR_MAX_ATTEMPTS,
             )
             if attempt < _OCR_MAX_ATTEMPTS - 1:
-                self._ctrl.swipe(SCROLL_X, SCROLL_FROM_Y, SCROLL_X, SCROLL_TO_Y, duration=SCROLL_DURATION)
+                self._ctrl.swipe(
+                    SCROLL_X, SCROLL_FROM_Y, SCROLL_X, SCROLL_TO_Y, duration=SCROLL_DURATION
+                )
                 time.sleep(0.5)
 
         return None
@@ -555,5 +557,8 @@ class ChooseShipPage:
         if normalized_target == normalized_matched:
             return True
 
-        pool_target = _fuzzy_match(target, SHIPNAMES, threshold=0)
+        pool_target = _ocr._fuzzy_match(target, SHIPNAMES, threshold=0)
         return pool_target is not None and normalize_ship_name(pool_target) == normalized_matched
+
+
+__all__ = ['ChooseShipPage']

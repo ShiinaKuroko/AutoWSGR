@@ -476,6 +476,20 @@ def test_api_combat_plan_parses_event_entrance_and_node_fields():
     assert plan.nodes['A'].SL_when_enter_fight is True
 
 
+@pytest.mark.parametrize('repair_method', ['quick', 'bath'])
+def test_api_combat_plan_preserves_repair_method(repair_method: str):
+    request = CombatPlanRequest(repair_method=repair_method)
+
+    plan = build_combat_plan(request)
+
+    assert plan.repair_method == repair_method
+
+
+def test_api_combat_plan_rejects_unknown_repair_method():
+    with pytest.raises(ValueError, match='repair_method'):
+        CombatPlanRequest.model_validate({'repair_method': 'manual'})
+
+
 def test_api_node_args_inherit_defaults_and_keep_explicit_overrides():
     request = CombatPlanRequest(
         node_defaults=NodeDecisionRequest(

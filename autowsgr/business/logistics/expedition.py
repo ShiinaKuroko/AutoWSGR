@@ -17,8 +17,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from autowsgr.application.runtime.executor import BaseExecutor
-from autowsgr.application.ui.controller.home import HomePage
-from autowsgr.application.ui.controller.map import MapPage, MapPanel
+from autowsgr.application.ui.controller.home.main_page import HomePage
+from autowsgr.application.ui.controller.operations.sortie_page.battle_page import MapPage, MapPanel
 from autowsgr.application.ui.navigation import goto_page
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.types import PageName
@@ -50,7 +50,7 @@ class ExpeditionCheckExecutor(BaseExecutor):
         goto_page(self.ctx, PageName.MAP)
         page = MapPage(self.ctx)
         screen = self.ctx.ctrl.screenshot()
-        if not MapPage.has_expedition_notification(screen):
+        if not MapPage.check_expedition_notification(screen):
             goto_page(self.ctx, PageName.HOME)  # 通知消失 (刚被收过), 原路返回
             self._report('checked', collected=0)
             return False
