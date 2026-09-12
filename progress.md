@@ -1130,3 +1130,6 @@
 - F10 最终交付完成：报告、任务书和计划状态已更新并重读；最终 scoped pre-commit 全部
   通过，`git diff --check` 通过（仅提示既有 `meta/.gitignore` 的 CRLF/LF 转换）。未执行
   commit、merge、cherry-pick、push、reset、stash 或 worktree 清理；任务书状态为 `done`。
+- 用户随后要求提交当前 worktree 全部项目改动，已创建 commit `3b69518`
+  （`refactor(ui): complete controller architecture migration`）；`.pytest_tmp/` 仅为测试
+  临时产物，未纳入提交。
