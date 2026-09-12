@@ -4,11 +4,12 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from autowsgr.application.ui.controller.battle_preparation import (
+from autowsgr.application.ui.controller.fleet import (
     BattlePreparationPage,
     RepairStrategy,
 )
-from autowsgr.application.ui.controller.operations.sortie_page.battle_page import MapPage, MapPanel
+from autowsgr.application.ui.controller.operations.sortie_page.campaign_page import CampaignPage
+from autowsgr.application.ui.controller.operations.sortie_page.main_page import SortieTab
 from autowsgr.application.ui.navigation import goto_bath_from_campaign_sortie
 from autowsgr.business.combat.fleet import exact_fleet_rules
 from autowsgr.business.logistics.repair.bath_repair import repair_manual_targets_in_bath
@@ -46,8 +47,8 @@ class CampaignOperations:
 
     def enter_campaign(self, spec: CampaignSpec) -> None:
         """从地图页进入指定战役的出征准备页。"""
-        page = MapPage(self.ctx)
-        page.ensure_panel(MapPanel.BATTLE)
+        page = CampaignPage(self.ctx)
+        page.select_tab(SortieTab.CAMPAIGN)
         self._report('panel_ready', campaign=spec.campaign_name)
         self._wait(0)
         page.enter_campaign(
@@ -74,16 +75,15 @@ class CampaignOperations:
             slot_rules = exact_fleet_rules(selection.plain_fleet)
         if slot_rules is not None:
             _log.info('[Campaign] 战役队伍加载：编队配置加载成功')
-            if not page.change_fleet(
-                None,
-                slot_rules,
+            fleet_snapshot = page.adjust_fleet(
+                fleet_id=None,
+                fleet_rules=slot_rules,
                 task_type='campaign',
                 reset_fleet=reset_fleet,
                 recognize_ship_types=not spec.skip_ship_type_validation,
                 on_event=self._on_fleet_event,
-            ):
-                raise RuntimeError('战役编队未满足任务规则')
-            self._report('fleet_ready', members=page.last_changed_fleet)
+            )
+            self._report('fleet_ready', members=fleet_snapshot.names)
         elif spec.required_ship_types is not None:
             if not page.validate_campaign_fleet(
                 spec.required_ship_types,
@@ -92,16 +92,22 @@ class CampaignOperations:
                 raise RuntimeError('当前舰队不满足困难战役舰种和数量限制')
             _log.info('[Campaign] 战役队伍加载：未配置编队，沿用当前队伍')
             self._report('fleet_ready')
+            fleet_snapshot = page.read_fleet_snapshot(
+                recognize_ship_types=not spec.skip_ship_type_validation,
+            )
         else:
             _log.info('[Campaign] 战役队伍加载：未配置编队，沿用当前队伍')
             self._report('fleet_ready')
+            fleet_snapshot = page.read_fleet_snapshot(
+                recognize_ship_types=not spec.skip_ship_type_validation,
+            )
 
         strategy = _repair_strategy(spec.plan.repair_mode)
         if strategy is not None:
             if getattr(self.ctx.config, 'repair_manually', False):
-                fleet_names = page.last_changed_fleet or selection.primary_names
-
-                def manual_repair_action(positions: list[int]) -> None:
+                fleet_names = fleet_snapshot.names or selection.primary_names or []
+                positions = page.check_repair(strategy)
+                if positions:
                     targets = [
                         fleet_names[position]
                         for position in positions
@@ -109,17 +115,12 @@ class CampaignOperations:
                     ]
                     goto_bath_from_campaign_sortie(self.ctx)
                     repair_manual_targets_in_bath(self.ctx, targets)
-
-                page.apply_repair(
-                    strategy,
-                    manual_repair_action=manual_repair_action,
-                )
             else:
                 page.apply_repair(strategy)
 
-        info = page.detect_fleet_info()
-        ship_stats = [info.ship_damage.get(index, ShipDamageState.NORMAL) for index in range(6)]
-        ships = info.to_ships(page.last_changed_fleet or selection.primary_names)
+        damage = page.read_ship_damage()
+        ship_stats = [damage.get(index, ShipDamageState.NORMAL) for index in range(6)]
+        ships = [self.ctx.get_ship(name) for name in fleet_snapshot.names if name]
         return page, ship_stats, ships
 
     def _on_fleet_event(self, event: str, **data: Any) -> None:

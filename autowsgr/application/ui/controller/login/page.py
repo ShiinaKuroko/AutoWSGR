@@ -37,8 +37,7 @@ _CLICK_SETTLE = 2.0
 class LoginPage:
     """游戏登录前启动画面的 UI 控制器。
 
-    Parameters
-    ----------
+    Args:
     ctrl:
         Android 设备控制器实例。
     """
@@ -50,13 +49,11 @@ class LoginPage:
     def check_current_page(screen: np.ndarray) -> PageMatch:
         """判断截图是否为登录前启动画面。
 
-        Parameters
-        ----------
+        Args:
         screen:
             截图 (HxWx3, RGB)。
 
-        Returns
-        -------
+        Returns:
         PageMatch
             启动画面的像素签名匹配结果。
         """

@@ -9,7 +9,7 @@
 下层依赖：
 - application.ui.controller.home.main_page.constants：提供母港页面专用校准。
 - application.ui.navigation.event：执行活动入口的专用导航。
-- application.ui.controller.home.main_page.overlays：检测和消除母港浮层。
+- application.ui.controller.home.main_page.overlay：检测和消除母港浮层。
 - common.ui.interaction：等待目标页面到达。
 - common.vision：执行模板和像素签名检查。
 """
@@ -21,7 +21,7 @@ import time
 from typing import TYPE_CHECKING
 
 from autowsgr.application.ui.controller.home.main_page import constants
-from autowsgr.application.ui.controller.home.main_page.overlays import (
+from autowsgr.application.ui.controller.home.main_page.overlay import (
     OverlayKind,
     dismiss_overlay,
     read_overlay,
@@ -85,9 +85,9 @@ def _get_target_checker(target: Target) -> Callable[[np.ndarray], bool]:
         ValueError: target 不属于已支持的页面目标。
     """
     if target is Target.SORTIE:
-        from autowsgr.application.ui.controller.operations.sortie_page.battle_page import MapPage
+        from autowsgr.application.ui.controller.operations.sortie_page.main_page import SortiePage
 
-        return MapPage.check_current_page
+        return SortiePage.check_current_page
     if target is Target.TASK:
         from autowsgr.application.ui.controller.operations.mission_page import MissionPage
 

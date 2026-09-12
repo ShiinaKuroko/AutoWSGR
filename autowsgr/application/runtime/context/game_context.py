@@ -261,22 +261,27 @@ class GameContext:
             战斗自行校准", 但战斗未必掉落, 计数器可能一直为 0 → 持续误触发。
         """
         from autowsgr.application.ui.controller.operations.sortie_page.battle_page import (
-            MapPage,
-            MapPanel,
+            BattlePage,
+            recognition,
         )
+        from autowsgr.application.ui.controller.operations.sortie_page.main_page import SortieTab
         from autowsgr.application.ui.navigation import goto_page
         from autowsgr.common.types import PageName
 
         goto_page(self, PageName.MAP)
-        map_page = MapPage(self)
-        map_page.ensure_panel(MapPanel.SORTIE)
+        battle_page = BattlePage(self)
+        battle_page.select_tab(SortieTab.SORTIE)
         time.sleep(0.25)
         # 战利品 OCR 与 YAML 联动: 仅在开启 stop_max_loot (战利品检查) 时识别,
         # 无战利品活动时跳过该区域避免无效 OCR 报警
         da = self.config.daily_automation
         read_loot = bool(da and da.stop_max_loot)
         # OCR 引擎不可用时 read_loot_and_ship_count 抛 RuntimeError — 不吞, 上抛
-        counts = map_page.read_loot_and_ship_count(read_loot=read_loot)
+        counts = recognition._read_loot_and_ship_count(
+            self.ctrl.screenshot(),
+            self.ocr,
+            read_loot=read_loot,
+        )
         if counts.ship is not None:
             self.dropped_ship_count = counts.ship
         if counts.loot is not None:

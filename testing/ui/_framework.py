@@ -492,14 +492,14 @@ def reset_to_main_page(ctrl: ADBController, pause: float = 1.5) -> bool:  # noqa
     from autowsgr.application.ui.controller.backyard.bath_page import BathPage
     from autowsgr.application.ui.controller.backyard.canteen_page import CanteenPage
     from autowsgr.application.ui.controller.backyard.main_page import BackyardPage
-    from autowsgr.application.ui.controller.battle_preparation import BattlePreparationPage
+    from autowsgr.application.ui.controller.fleet import BattlePreparationPage
     from autowsgr.application.ui.controller.home.event_page.page import BaseEventPage
     from autowsgr.application.ui.controller.home.main_page import HomePage
     from autowsgr.application.ui.controller.operations.mission_page import MissionPage
-    from autowsgr.application.ui.controller.operations.sortie_page.battle_page import MapPage
     from autowsgr.application.ui.controller.operations.sortie_page.decisive_page.page import (
         DecisiveBattlePage,
     )
+    from autowsgr.application.ui.controller.operations.sortie_page.main_page import SortiePage
     from autowsgr.application.ui.controller.sidebar.build_page import BuildPage
     from autowsgr.application.ui.controller.sidebar.friend_page import FriendPage
     from autowsgr.application.ui.controller.sidebar.intensify_page import IntensifyPage
@@ -535,9 +535,9 @@ def reset_to_main_page(ctrl: ADBController, pause: float = 1.5) -> bool:  # noqa
         elif BackyardPage.check_current_page(screen):
             BackyardPage(ctx).go_back()
         elif SidebarPage.check_current_page(screen):
-            SidebarPage(ctx).close()
-        elif MapPage.check_current_page(screen):
-            MapPage(ctx).go_back()
+            SidebarPage(ctx).close_sidebar()
+        elif SortiePage.check_current_page(screen):
+            SortiePage(ctx).go_back()
         else:
             # 未知页面，无法自动返回
             return False

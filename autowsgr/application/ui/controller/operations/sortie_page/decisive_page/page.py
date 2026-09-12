@@ -1,7 +1,7 @@
 """模块功能：执行决战总览页的页面检查、章节操作、磁盘购买和页面回退。
 
 上层调用：
-- application.ui.controller.operations.sortie_page.decisive：从地图面板进入决战总览。
+- application.ui.controller.operations.sortie_page.main_page：选择决战顶部标签。
 - application.ui.navigation：确认决战总览页并执行跨页面回退。
 - business.combat.decisive：读取章节状态并推进决战入口流程。
 - testing.ui：验证决战总览页识别和操作。
@@ -24,6 +24,7 @@ from autowsgr.application.ui.controller.operations.sortie_page.decisive_page.con
     CLICK_BUY_CONFIRM,
     CLICK_BUY_RESOURCE,
     CLICK_BUY_TICKET_OPEN,
+    CLICK_ENTER_DECISIVE,
     CLICK_ENTER_MAP,
     CLICK_NEXT_CHAPTER,
     CLICK_PREV_CHAPTER,
@@ -34,6 +35,10 @@ from autowsgr.application.ui.controller.operations.sortie_page.decisive_page.con
 )
 from autowsgr.application.ui.controller.operations.sortie_page.decisive_page.recognition import (
     read_chapter_number,
+)
+from autowsgr.application.ui.controller.operations.sortie_page.main_page import (
+    SortiePage,
+    SortieTab,
 )
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.types import DecisiveEntryStatus, PageName
@@ -56,6 +61,29 @@ _CHAPTER_SWITCH_DELAY = 0.8  # 章节按钮点击后的页面动画等待时间�
 _CHAPTER_NAV_MAX_ATTEMPTS = 8  # 章节导航读取失败时的最大重试次数。
 MIN_CHAPTER = 1  # 决战章节编号允许的最小值。
 MAX_CHAPTER = 6  # 决战章节编号允许的最大值。
+
+
+class DecisiveEntryPage(SortiePage):
+    """决战入口页面控制器，负责从 sortie_page 进入决战总览。"""
+
+    def enter_decisive(self) -> None:
+        """选择决战顶部标签并进入决战总览页。
+
+        Raises:
+            NavigationError: 点击入口后未到达决战总览页。
+        """
+        _log.info('[UI] sortie_page → 决战总览')
+        time.sleep(0.5)
+        self.select_tab(SortieTab.DECISIVE)
+        time.sleep(0.5)
+
+        click_and_wait_for_page(
+            self._ctrl,
+            click_coord=CLICK_ENTER_DECISIVE,
+            checker=DecisiveBattlePage.check_current_page,
+            source='sortie_page-决战',
+            target=PageName.DECISIVE_BATTLE,
+        )
 
 
 class DecisiveBattlePage:
@@ -181,13 +209,13 @@ class DecisiveBattlePage:
 
     # 章节导航。
 
-    def go_prev_chapter(self) -> None:
+    def click_previous_chapter(self) -> None:
         """点击前一章节按钮。"""
         _log.info('[决战] 切换到前一章节')
         self._ctrl.click(*CLICK_PREV_CHAPTER)
         time.sleep(_CHAPTER_SWITCH_DELAY)
 
-    def go_next_chapter(self) -> None:
+    def click_next_chapter(self) -> None:
         """点击后一章节按钮。"""
         _log.info('[决战] 切换到后一章节')
         self._ctrl.click(*CLICK_NEXT_CHAPTER)
@@ -269,9 +297,9 @@ class DecisiveBattlePage:
                 _log.info('[决战] 已到达 Ex-{}', target)
                 return
             if current > target:
-                self.go_prev_chapter()
+                self.click_previous_chapter()
             else:
-                self.go_next_chapter()
+                self.click_next_chapter()
 
         raise NavigationError(
             f'决战章节导航失败：超过 {_CHAPTER_NAV_MAX_ATTEMPTS} 次尝试，目标 Ex-{target}',
@@ -294,4 +322,4 @@ class DecisiveBattlePage:
         )
 
 
-__all__ = ['DecisiveBattlePage']
+__all__ = ['DecisiveBattlePage', 'DecisiveEntryPage']

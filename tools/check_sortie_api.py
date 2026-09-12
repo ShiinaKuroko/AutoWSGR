@@ -15,10 +15,11 @@ def main() -> int:
     """Validate common counter ownership and sortie entry points."""
     errors: list[str] = []
     try:
-        from autowsgr.application.ui.controller.operations.sortie_page.sortie import (
-            SortiePanelMixin,
+        from autowsgr.application.ui.controller.operations.sortie_page.battle_page import (
+            BattlePage,
+            recognition,
         )
-        from autowsgr.common.vision import map as counter_module
+        from autowsgr.common.vision import map
         from autowsgr.common.vision.map import (
             LOOT_MAX,
             SHIP_MAX,
@@ -40,26 +41,35 @@ def main() -> int:
         fields = tuple(LootShipCount.__dataclass_fields__)
         if fields != ('loot', 'loot_max', 'ship', 'ship_max'):
             errors.append(f'LootShipCount fields are {fields}')
-        if counter_module.LootShipCount is not LootShipCount:
+        if map.LootShipCount is not LootShipCount:
             errors.append('common counter module exposes a duplicate model')
         for name, expected in (
             ('recognize_loot_count', recognize_loot_count),
             ('recognize_ship_count', recognize_ship_count),
         ):
-            if getattr(counter_module, name) is not expected:
+            if getattr(map, name) is not expected:
                 errors.append(f'{name} is not owned by common')
         required_methods = (
             'enter_sortie',
-            'navigate_to_chapter',
-            'navigate_to_map',
-            'read_map',
-            'read_loot_and_ship_count',
+            'select_chapter',
+            'select_map',
             'click_chapter_slot',
         )
-        missing = [name for name in required_methods if not hasattr(SortiePanelMixin, name)]
+        missing = [name for name in required_methods if not hasattr(BattlePage, name)]
         if missing:
-            errors.append(f'SortiePanelMixin missing methods: {missing}')
-        params = list(inspect.signature(SortiePanelMixin.enter_sortie).parameters)
+            errors.append(f'BattlePage missing methods: {missing}')
+        required_recognition = (
+            '_read_chapter_slots',
+            '_read_map',
+            '_read_loot_and_ship_count',
+            '_read_selected_chapter_y',
+        )
+        missing_recognition = [
+            name for name in required_recognition if not hasattr(recognition, name)
+        ]
+        if missing_recognition:
+            errors.append(f'battle_page recognition missing functions: {missing_recognition}')
+        params = list(inspect.signature(BattlePage.enter_sortie).parameters)
         if params != ['self', 'chapter', 'map_num']:
             errors.append(f'enter_sortie parameters are {params}')
 

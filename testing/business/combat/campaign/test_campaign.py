@@ -12,11 +12,14 @@ import autowsgr.application.runtime.executor as base_module
 import autowsgr.application.runtime.initialize.initialize as initialize_module
 import autowsgr.business.combat.campaign.executor as executor_module
 import autowsgr.business.combat.campaign.operations as operations_module
-from autowsgr.application.ui.controller.battle_preparation import (
+from autowsgr.application.ui.controller.fleet import (
     BattlePreparationPage,
+    FleetSnapshot,
     RepairStrategy,
 )
-from autowsgr.application.ui.controller.battle_preparation.fleet_change._detect import FleetSnapshot
+from autowsgr.application.ui.controller.fleet.formation.fleet_adjustment.workflow import (
+    FleetAdjustment,
+)
 from autowsgr.business.combat import CombatResult
 from autowsgr.business.combat.campaign.spec import (
     CAMPAIGN_FLEET_TYPES,
@@ -38,6 +41,7 @@ def _ctx() -> SimpleNamespace:
             daily_automation=SimpleNamespace(auto_set_support=False),
         ),
         ocr=None,
+        get_ship=lambda name: SimpleNamespace(name=name),
     )
 
 
@@ -143,9 +147,9 @@ def test_campaign_type_validation_preserves_physical_empty_slots(
     ctx.ocr = object()
     page = BattlePreparationPage(ctx)
     monkeypatch.setattr(
-        page,
-        'detect_fleet_snapshot',
-        lambda **_kwargs: FleetSnapshot(
+        FleetAdjustment,
+        '_read_fleet_snapshot',
+        lambda _self, **_kwargs: FleetSnapshot(
             names=['A', None, 'C', None, None, None],
             occupied=[True, False, True, False, False, False],
             ship_types=[ShipType.SS, None, ShipType.SS, None, None, None],
@@ -167,19 +171,24 @@ def test_campaign_fleet_changes_each_physical_slot_without_dragging(
     )
     changes: list[tuple[int, str | None]] = []
 
-    monkeypatch.setattr(page, '_detect_initial_snapshot', lambda *_args: initial)
+    adjustment = FleetAdjustment(ctx, page)
     monkeypatch.setattr(
-        page,
+        adjustment,
+        '_detect_initial_snapshot',
+        lambda *_args, **_kwargs: initial,
+    )
+    monkeypatch.setattr(
+        adjustment,
         '_detect_position_snapshot',
         lambda current, _names, **_kwargs: (list(current), [name is not None for name in current]),
     )
     monkeypatch.setattr(
-        page,
+        adjustment,
         '_change_single_ship',
         lambda slot, name, **_kwargs: changes.append((slot, name)) or name,
     )
 
-    assert page.change_fleet(
+    assert adjustment.adjust_fleet(
         None,
         exact_fleet_rules(['A', 'B']),
         task_type='campaign',
@@ -190,9 +199,9 @@ def test_campaign_fleet_changes_each_physical_slot_without_dragging(
 
 def test_campaign_fleet_rejects_more_than_six_slots() -> None:
     with pytest.raises(ValueError, match='最多包含 6 个'):
-        BattlePreparationPage(_ctx()).change_fleet(
-            None,
-            exact_fleet_rules([f'ship-{index}' for index in range(7)]),
+        BattlePreparationPage(_ctx()).adjust_fleet(
+            fleet_id=None,
+            fleet_rules=exact_fleet_rules([f'ship-{index}' for index in range(7)]),
             task_type='campaign',
         )
 
@@ -272,17 +281,17 @@ def test_campaign_operations_use_page_difficulty_contract(
 ) -> None:
     captured: dict[str, object] = {}
 
-    class MapPageStub:
+    class CampaignPageStub:
         def __init__(self, _ctx: object) -> None:
             pass
 
-        def ensure_panel(self, _panel: object) -> None:
+        def select_tab(self, _tab: object) -> None:
             pass
 
         def enter_campaign(self, **kwargs: object) -> None:
             captured.update(kwargs)
 
-    monkeypatch.setattr(operations_module, 'MapPage', MapPageStub)
+    monkeypatch.setattr(operations_module, 'CampaignPage', CampaignPageStub)
     operations = operations_module.CampaignOperations(
         _ctx(),
         wait=lambda _seconds: None,
@@ -320,11 +329,11 @@ def test_campaign_operations_keeps_current_fleet_and_actual_members(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     page = MagicMock()
-    page.change_fleet.return_value = True
-    page.last_changed_fleet = ['实际舰船', None, None, None, None, None]
-    info = MagicMock()
-    info.ship_damage = {}
-    page.detect_fleet_info.return_value = info
+    page.adjust_fleet.return_value = FleetSnapshot(
+        names=['实际舰船', None, None, None, None, None],
+        occupied=[True, False, False, False, False, False],
+    )
+    page.read_ship_damage.return_value = {}
     monkeypatch.setattr(operations_module, 'BattlePreparationPage', lambda _ctx: page)
 
     spec = CampaignSpec.from_params(
@@ -341,30 +350,26 @@ def test_campaign_operations_keeps_current_fleet_and_actual_members(
 
     operations.prepare_battle(spec)
 
-    call = page.change_fleet.call_args
-    assert call.args[0] is None
+    call = page.adjust_fleet.call_args
+    assert call.kwargs['fleet_id'] is None
     assert call.kwargs['task_type'] == 'campaign'
     assert call.kwargs['recognize_ship_types'] is True
     page.select_fleet.assert_not_called()
-    info.to_ships.assert_called_once_with(page.last_changed_fleet)
 
 
 def test_campaign_manual_repair_triggers_campaign_bath_route(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     page = MagicMock()
-    page.change_fleet.return_value = True
-    page.last_changed_fleet = ['target-ship', None, None, None, None, None]
-    info = MagicMock()
-    info.ship_damage = {}
-    page.detect_fleet_info.return_value = info
+    page.adjust_fleet.return_value = FleetSnapshot(
+        names=['target-ship', None, None, None, None, None],
+        occupied=[True, False, False, False, False, False],
+    )
+    page.read_ship_damage.return_value = {}
+    page.check_repair.return_value = [0]
     route = MagicMock()
     repair_targets = MagicMock()
 
-    def apply_repair(_strategy: RepairStrategy, *, manual_repair_action) -> None:
-        manual_repair_action([0])
-
-    page.apply_repair.side_effect = apply_repair
     monkeypatch.setattr(operations_module, 'BattlePreparationPage', lambda _ctx: page)
     monkeypatch.setattr(operations_module, 'goto_bath_from_campaign_sortie', route)
     monkeypatch.setattr(operations_module, 'repair_manual_targets_in_bath', repair_targets)
@@ -386,8 +391,7 @@ def test_campaign_manual_repair_triggers_campaign_bath_route(
 
     operations.prepare_battle(spec)
 
-    page.apply_repair.assert_called_once()
-    assert page.apply_repair.call_args.args == (RepairStrategy.MODERATE,)
+    page.check_repair.assert_called_once_with(RepairStrategy.MODERATE)
     route.assert_called_once_with(ctx)
     repair_targets.assert_called_once_with(ctx, ['target-ship'])
 
@@ -396,11 +400,11 @@ def test_destroyer_campaign_disables_ship_type_ocr(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     page = MagicMock()
-    page.change_fleet.return_value = True
-    page.last_changed_fleet = ['目标舰船'] + [None] * 5
-    info = MagicMock()
-    info.ship_damage = {}
-    page.detect_fleet_info.return_value = info
+    page.adjust_fleet.return_value = FleetSnapshot(
+        names=['目标舰船'] + [None] * 5,
+        occupied=[True] + [False] * 5,
+    )
+    page.read_ship_damage.return_value = {}
     monkeypatch.setattr(operations_module, 'BattlePreparationPage', lambda _ctx: page)
 
     rules = [{'name': f'舰船-{index}', 'min_level': 100} for index in range(6)]
@@ -418,7 +422,7 @@ def test_destroyer_campaign_disables_ship_type_ocr(
 
     operations.prepare_battle(spec)
 
-    assert page.change_fleet.call_args.kwargs['recognize_ship_types'] is False
+    assert page.adjust_fleet.call_args.kwargs['recognize_ship_types'] is False
 
 
 def test_campaign_operations_saves_fleet_checkpoint() -> None:

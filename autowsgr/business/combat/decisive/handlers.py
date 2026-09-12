@@ -19,7 +19,7 @@ from typing import TYPE_CHECKING
 
 import cv2
 
-from autowsgr.application.ui.controller.battle_preparation import (
+from autowsgr.application.ui.controller.fleet import (
     BattlePreparationPage,
     RepairStrategy,
 )
@@ -357,11 +357,15 @@ class DecisivePhaseHandlers(DecisiveBase):
 
         self._map.enter_formation()
         time.sleep(0.5)  # 等待编队页加载完成（对齐 check_fleet 的做法）
-        page = BattlePreparationPage(self._ctx, self._ocr)
+        page = BattlePreparationPage(self._ctx)
 
         current_fleet = self._state.fleet[:]
         if current_fleet != best_fleet:
-            page.change_fleet(None, best_fleet[1:], task_type='decisive')
+            page.adjust_fleet(
+                fleet_id=None,
+                fleet_rules=best_fleet[1:],
+                task_type='decisive',
+            )
             self._state.fleet = best_fleet
         else:
             self._state.fleet = best_fleet
@@ -372,8 +376,8 @@ class DecisivePhaseHandlers(DecisiveBase):
         if self._config.use_quick_repair:
             page.apply_repair(strategy)
         else:
-
-            def manual_repair_action(positions: list[int]) -> None:
+            positions = page.check_repair(strategy)
+            if positions:
                 targets = [
                     self._state.fleet[position + 1]
                     for position in positions
@@ -383,14 +387,8 @@ class DecisivePhaseHandlers(DecisiveBase):
                 goto_bath_from_decisive_sortie(self._ctx)
                 repair_manual_targets_in_bath(self._ctx, targets)
 
-            page.apply_repair(
-                strategy,
-                repair_manually=True,
-                manual_repair_action=manual_repair_action,
-            )
-
         screen = self._ctrl.screenshot()
-        damage = page.detect_ship_damage(screen)
+        damage = page.read_ship_damage(screen)
         self._state.ship_stats = [damage.get(i, ShipDamageState.NORMAL) for i in range(6)]
         self._sync_ship_states()
 

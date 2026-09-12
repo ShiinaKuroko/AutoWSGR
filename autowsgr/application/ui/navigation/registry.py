@@ -2,8 +2,8 @@
 
 `autowsgr.application.ui.navigation.recognition` 读取本文件维护的注册表；默认检查器
 来自 `autowsgr.application.ui.controller.backyard.main_page`、`autowsgr.application.ui.controller.backyard.bath_page`、
-`autowsgr.application.ui.controller.battle_preparation`、`autowsgr.application.ui.controller.sidebar.build_page`、
-`autowsgr.application.ui.controller.backyard.canteen_page`、`autowsgr.application.ui.controller.shared.choose_ship`、
+`autowsgr.application.ui.controller.fleet`、`autowsgr.application.ui.controller.sidebar.build_page`、
+`autowsgr.application.ui.controller.backyard.canteen_page`、
 `autowsgr.application.ui.controller.operations.sortie_page.decisive_page`、`autowsgr.application.ui.controller.home.event_page`、
 `autowsgr.application.ui.controller.sidebar.friend_page`、`autowsgr.application.ui.controller.sidebar.intensify_page`、
 `autowsgr.application.ui.controller.home.main_page`、`autowsgr.application.ui.controller.operations.sortie_page.battle_page`、
@@ -58,15 +58,17 @@ def register_default_pages() -> None:
     from autowsgr.application.ui.controller.backyard.bath_page import BathPage
     from autowsgr.application.ui.controller.backyard.canteen_page import CanteenPage
     from autowsgr.application.ui.controller.backyard.main_page import BackyardPage
-    from autowsgr.application.ui.controller.battle_preparation import BattlePreparationPage
+    from autowsgr.application.ui.controller.fleet import (
+        BattlePreparationPage,
+        check_ship_selection_page,
+    )
     from autowsgr.application.ui.controller.home.event_page import BaseEventPage
     from autowsgr.application.ui.controller.home.main_page import HomePage
     from autowsgr.application.ui.controller.operations.mission_page import MissionPage
-    from autowsgr.application.ui.controller.operations.sortie_page.battle_page import MapPage
     from autowsgr.application.ui.controller.operations.sortie_page.decisive_page import (
         DecisiveBattlePage,
     )
-    from autowsgr.application.ui.controller.shared.choose_ship import ChooseShipPage
+    from autowsgr.application.ui.controller.operations.sortie_page.main_page import SortiePage
     from autowsgr.application.ui.controller.sidebar.build_page import BuildPage
     from autowsgr.application.ui.controller.sidebar.friend_page import FriendPage
     from autowsgr.application.ui.controller.sidebar.intensify_page import IntensifyPage
@@ -74,7 +76,7 @@ def register_default_pages() -> None:
     from autowsgr.common.types import PageName
 
     register_page(PageName.HOME, HomePage.check_current_page)
-    register_page(PageName.MAP, MapPage.check_current_page)
+    register_page(PageName.MAP, SortiePage.check_current_page)
     register_page(PageName.BATTLE_PREP, BattlePreparationPage.check_current_page)
     register_page(PageName.MISSION, MissionPage.check_current_page)
     register_page(PageName.BACKYARD, BackyardPage.check_current_page)
@@ -86,7 +88,7 @@ def register_default_pages() -> None:
     register_page(PageName.SIDEBAR, SidebarPage.check_current_page, overlay=True)
     register_page(PageName.EVENT_MAP, BaseEventPage.check_current_page)
     register_page(PageName.DECISIVE_BATTLE, DecisiveBattlePage.check_current_page)
-    register_page(PageName.CHOOSE_SHIP, ChooseShipPage.is_current_page)
+    register_page(PageName.CHOOSE_SHIP, check_ship_selection_page)
     _DEFAULT_PAGES_REGISTERED.add('default')
 
 

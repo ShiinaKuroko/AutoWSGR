@@ -100,10 +100,22 @@ OCR；BathPage 和选船流程已经拿到了带坐标的 `OCRResult`，需要�
 ## 2026-09-09 公共区域与登录阶段复核
 
 - `LoginPage` 没有 OCR 文本识别；启动画面使用 `PixelSignature`，不新增 OCR 消费者。
-- `shared/top_tabs.py` 只做顶部标签模板/像素匹配，不涉及 OCR；`shared/choose_ship.py`
+- `sortie_page/main_page/page.py` 只做顶部标签模板/像素匹配，不涉及 OCR；
+  `shared/choose_ship_page/page.py`
   仍是 `_fuzzy_match` 的直接调用方，已由本台账的既有四方兼容清单覆盖。
 - 本轮未修改 OCR 引擎、私有匹配函数、选船算法或 ROI 公共接口；相关冲突继续留待
   OCR 专题统一处理。
+
+## 2026-09-09 严格规范返工 OCR 复核
+
+- 结构重命名后，选船页面的当前调用入口为
+  `application.ui.controller.shared.choose_ship_page.page`，准备页编队检测入口为
+  `application.ui.controller.operations.battle_preparation_page.fleet_change._detect`；
+  两者仍依赖 `common.vision.ocr._fuzzy_match`，未在本批次替换私有 API。
+- 出征准备页舰种 OCR 裁剪仍保留高精度相对坐标，未为了四位格式强行改变像素映射；
+  该参数与 OCR/ROI 兼容性一起留待视觉专题验证。
+- 选船包化只改变路径和公开检查/选择命名，未拆算法、未创建第二套 OCR 识别模块，
+  后续专题需同时覆盖浴室、选船、准备页、决战和 `common.vision.ship_list` 的全部消费者。
 
 ## 2026-09-09 阶段二 OCR/ROI 复核
 

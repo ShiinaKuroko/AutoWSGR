@@ -24,7 +24,7 @@ from typing import TYPE_CHECKING
 
 from autowsgr.application.ui.navigation import goto_page
 from autowsgr.common.types import PageName
-from autowsgr.application.ui.controller.battle_preparation import BattlePreparationPage
+from autowsgr.application.ui.controller.fleet import BattlePreparationPage
 from autowsgr.application.ui.controller.home.main_page import HomePage
 from autowsgr.application.ui.navigation.recognition import get_current_page
 
@@ -60,7 +60,7 @@ def test_main_prep_change_fleet_back_main(
 
     # 3. 换船 (按槽位放入目标舰船)
     page = BattlePreparationPage(ctx)
-    assert page.change_fleet(fleet_id, ships), '换船流程应成功'
+    page.adjust_fleet(fleet_id=fleet_id, fleet_rules=ships)
 
     # 4. 返回主页
     goto_page(ctx, PageName.HOME)

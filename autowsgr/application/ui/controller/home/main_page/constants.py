@@ -2,7 +2,7 @@
 
 上层调用：
 - application.ui.controller.home.main_page.page：执行母港导航和通知状态检查。
-- application.ui.controller.home.main_page.overlays：执行母港浮层消除。
+- application.ui.controller.home.main_page.overlay：执行母港浮层消除。
 - application.ui.navigation.event：点击活动入口。
 
 下层依赖：

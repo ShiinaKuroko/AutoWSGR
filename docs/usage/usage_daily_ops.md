@@ -74,7 +74,7 @@ goto_page(ctrl, "主页面")  # 自动关闭弹窗后到达主页面
 | 页面名称 | 对应控制器 |
 |---------|-----------|
 | `"主页面"` | HomePage |
-| `"地图页面"` | MapPage |
+| `"地图页面"` | SortiePage |
 | `"出征准备页面"` | BattlePreparationPage |
 | `"后院页面"` | BackyardPage |
 | `"浴室页面"` | BathPage |

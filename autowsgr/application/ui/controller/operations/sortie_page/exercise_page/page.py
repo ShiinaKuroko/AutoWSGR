@@ -1,11 +1,11 @@
-"""模块功能：执行演习面板的对手状态读取、选择、刷新和出征准备操作。
+"""模块功能：执行演习页面的对手状态读取、选择、刷新和出征准备操作。
 
 上层调用：
 - business.combat.exercise：选择可挑战对手并进入演习准备。
 - testing.ui、testing.business：验证对手列表和阵容识别。
 
 下层依赖：
-- application.ui.controller.operations.sortie_page.battle_page.base：提供地图页面上下文和面板切换。
+- application.ui.controller.operations.sortie_page.main_page：提供 sortie_page 页面壳和顶部标签。
 - application.ui.controller.operations.sortie_page.exercise_page.constants：提供演习坐标和颜色校准。
 - common.vision：读取对手按钮和阵容状态。
 
@@ -19,8 +19,8 @@ import time
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
-from autowsgr.application.ui.controller.operations.sortie_page.battle_page.base import BaseMapPage
 from autowsgr.application.ui.controller.operations.sortie_page.exercise_page import constants
+from autowsgr.application.ui.controller.operations.sortie_page.main_page import SortiePage
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.types import PageName
 from autowsgr.common.ui.interaction import click_and_wait_for_page
@@ -64,10 +64,10 @@ class ExerciseRivalStatus:
 # ── 演习面板控制器 ──────────────────────────────────────────────────────────
 
 
-class ExercisePanelMixin(BaseMapPage):
-    """Mixin: 演习面板操作 — 对手状态检测 / 选择 / 战斗入口 / 刷新 / 阵容识别。
+class ExercisePage(SortiePage):
+    """演习页面控制器，直接管理对手状态、选择、刷新和出征准备。
 
-    所有方法假设调用前已处于演习面板 (:attr:`MapPanel.EXERCISE`)。
+    所有方法假设调用前已处于演习顶部标签。
     """
 
     # ── 对手状态 ────────────────────────────────────────────────────────────
@@ -152,7 +152,7 @@ class ExercisePanelMixin(BaseMapPage):
         Raises:
             NavigationError: 超时未到达出征准备页面。
         """
-        from autowsgr.application.ui.controller.battle_preparation import BattlePreparationPage
+        from autowsgr.application.ui.controller.fleet import BattlePreparationPage
 
         _log.info('[UI] 演习 → 开始战斗 (对手信息页 → 出征准备)')
         click_and_wait_for_page(
@@ -174,7 +174,7 @@ class ExercisePanelMixin(BaseMapPage):
 
     # ── 对手阵容读取 ────────────────────────────────────────────────────────
 
-    def recognize_rival_formation(self) -> list[str] | None:
+    def read_rival_formation(self) -> list[str] | None:
         """读取对手阵容接口；当前未实现 OCR，始终返回 ``None``。
 
         Returns:

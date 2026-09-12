@@ -14,21 +14,22 @@
 from __future__ import annotations
 
 import time
+from typing import Any
 
 
 DESC = '初始化链路: 任意状态 → 首页待机 (SL 兜底)'
 
 
-def add_arguments(parser) -> None:
+def add_arguments(parser: Any) -> None:
     """case 专属参数。"""
     parser.add_argument('--cold', action='store_true', help='先强杀游戏再初始化 (测冷启动分支)')
 
 
-def run(rt) -> bool:
+def run(rt: Any) -> bool:
     """执行初始化链路并验证终态契约。"""
     from autowsgr.application.runtime.initialize.initialize import _package_of, initialize
     from autowsgr.application.ui.controller.home.main_page import HomePage
-    from autowsgr.application.ui.controller.home.main_page.overlays import read_overlay
+    from autowsgr.application.ui.controller.home.main_page.overlay import read_overlay
     from autowsgr.application.ui.navigation import identify_current_page
 
     ctx = rt.ctx

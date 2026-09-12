@@ -14,6 +14,7 @@ from __future__ import annotations
 
 READY_COLOR = (253, 228, 66)  # 远征完成颜色，用于识别可收取槽位。
 SLOT_TOLERANCE: float = 30.0  # 远征槽位颜色容差，用于兼容截图渲染差异。
+CLICK_SKIP = (0.7600, 0.5000)  # 远征结算跳过区域，用于结束奖励动画。
 SLOT_PROBES = (
     (0.8516, 0.2736),  # 第 1 个远征槽位状态探测点。
     (0.8531, 0.4736),  # 第 2 个远征槽位状态探测点。
@@ -22,4 +23,4 @@ SLOT_PROBES = (
 )
 
 
-__all__ = ['READY_COLOR', 'SLOT_PROBES', 'SLOT_TOLERANCE']
+__all__ = ['CLICK_SKIP', 'READY_COLOR', 'SLOT_PROBES', 'SLOT_TOLERANCE']

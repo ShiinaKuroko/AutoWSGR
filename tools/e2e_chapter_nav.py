@@ -7,15 +7,16 @@
 
 测试流程:
 - 进入地图页, OCR 识别当前章 C0
-- navigate_to_chapter(C0 - 3 if C0 > 3 else C0 + 3)  → 向中间方向跨 3 章 (每次单步±1, 实际跳 3 次)
+- select_chapter(C0 - 3 if C0 > 3 else C0 + 3)  → 向中间方向跨 3 章 (每次单步±1, 实际跳 3 次)
 - OCR 确认目标章到达
-- navigate_to_chapter(1) → 跳回第 1 章
-- navigate_to_chapter(10) → 跳到第 10 章
-- navigate_to_chapter(1) → 再回到 1 章 (大跨度 9 章校验)
+- select_chapter(1) → 跳回第 1 章
+- select_chapter(10) → 跳到第 10 章
+- select_chapter(1) → 再回到 1 章 (大跨度 9 章校验)
 """
 
 from __future__ import annotations
 
+# ruff: noqa: E402
 import sys
 import time
 from pathlib import Path
@@ -28,8 +29,10 @@ sys.path.insert(0, str(PROJECT_ROOT))
 from loguru import logger
 
 from autowsgr.application.runtime.launcher import Launcher
-from autowsgr.application.ui.controller.operations.sortie_page.battle_page.base import BaseMapPage
-from autowsgr.application.ui.controller.operations.sortie_page.sortie import SortiePanelMixin
+from autowsgr.application.ui.controller.operations.sortie_page.battle_page import (
+    BattlePage,
+    recognition,
+)
 from autowsgr.application.ui.navigation import goto_page
 from autowsgr.common.system import (
     AccountConfig,
@@ -53,7 +56,7 @@ def build_cfg() -> UserConfig:
     )
 
 
-def main() -> int:
+def main() -> int:  # noqa: PLR0912, PLR0915
     cfg = build_cfg()
     launcher = Launcher()
     launcher.set_config(cfg)
@@ -72,20 +75,12 @@ def main() -> int:
     logger.info('[E2E] 进入地图页')
     goto_page(ctx, PageName.MAP)
 
-    # 构造面板控制器实例: 同时继承 SortiePanelMixin + BaseMapPage,
-    # 这样 enter_sortie 用到的 ensure_panel / switch_panel 才不会 AttributeError。
-    # SortiePanelMixin 本身也继承 BaseMapPage, 实际是同一祖先, MRO 不会冲突。
-    class _Map(SortiePanelMixin, BaseMapPage):
-        def __init__(self, ctx):
-            # BaseMapPage.__init__ 会绑定 self._ctx / self._ctrl / self._ocr
-            BaseMapPage.__init__(self, ctx)
-
-    page = _Map(ctx)
+    page = BattlePage(ctx)
 
     # ── 先 OCR 读一次当前章 ──
     info = None
     for _ in range(3):
-        info = page.read_map(ctx.ctrl.screenshot(), ctx.ocr)
+        info = recognition._read_map(ctx.ctrl.screenshot(), ctx.ocr)
         if info is not None:
             break
         time.sleep(0.5)
@@ -103,7 +98,7 @@ def main() -> int:
     target1 = cur_chapter - 3 if cur_chapter > 5 else cur_chapter + 3
     if 1 <= target1 <= 10 and target1 != cur_chapter:
         logger.info(f'[E2E] === Test 1: 跳 {cur_chapter} → {target1} 章 ===')
-        result = page.navigate_to_chapter(target1)
+        result = page.select_chapter(target1)
         ok = result == target1
         logger.info(
             '[E2E] Test 1 结果: 期望={} 实际={} {}'.format(target1, result, '✓' if ok else '✗')
@@ -116,7 +111,7 @@ def main() -> int:
     # ── Test 2: 跳回第 1 章 (若已在1章则跳过) ──
     if cur_chapter != 1:
         logger.info(f'[E2E] === Test 2: 跳 {cur_chapter} → 第 1 章 ===')
-        result = page.navigate_to_chapter(1)
+        result = page.select_chapter(1)
         ok = result == 1
         logger.info('[E2E] Test 2 结果: 期望=1 实际={} {}'.format(result, '✓' if ok else '✗'))
         results.append((cur_chapter, 1, ok))
@@ -127,7 +122,7 @@ def main() -> int:
     # ── Test 3: 跳 1 → 10 章 (大跨度 +9) ──
     if cur_chapter == 1:
         logger.info('[E2E] === Test 3: 跳 1 → 第 10 章 (大跨度 +9) ===')
-        result = page.navigate_to_chapter(10)
+        result = page.select_chapter(10)
         ok = result == 10
         logger.info('[E2E] Test 3 结果: 期望=10 实际={} {}'.format(result, '✓' if ok else '✗'))
         results.append((1, 10, ok))
@@ -136,7 +131,7 @@ def main() -> int:
     # ── Test 4: 跳 10 → 1 章 (大跨度 -9) ──
     if cur_chapter == 10:
         logger.info('[E2E] === Test 4: 跳 10 → 第 1 章 (大跨度 -9) ===')
-        result = page.navigate_to_chapter(1)
+        result = page.select_chapter(1)
         ok = result == 1
         logger.info('[E2E] Test 4 结果: 期望=1 实际={} {}'.format(result, '✓' if ok else '✗'))
         results.append((10, 1, ok))
@@ -145,8 +140,8 @@ def main() -> int:
     # ── Test 5: 1 → 2 → 3 单步校验 ──
     if cur_chapter == 1:
         logger.info('[E2E] === Test 5: 1→2→3 连续单步 ===')
-        r2 = page.navigate_to_chapter(2)
-        r3 = page.navigate_to_chapter(3) if r2 == 2 else None
+        r2 = page.select_chapter(2)
+        r3 = page.select_chapter(3) if r2 == 2 else None
         ok = r2 == 2 and r3 == 3
         logger.info('[E2E] Test 5 结果: 期望=2,3 实际={},{} {}'.format(r2, r3, '✓' if ok else '✗'))
         results.append((1, 3, ok))
@@ -156,8 +151,8 @@ def main() -> int:
     ok6 = False
     try:
         # 先确保停在 第 2 章 (若从 Test 5 的 3 出发则回退一步)
-        page.navigate_to_chapter(2)
-        # 进入出征准备页 (内部会 navigate_to_map(1) + CLICK_ENTER_SORTIE)
+        page.select_chapter(2)
+        # 进入出征准备页 (内部会 select_map(1) + CLICK_ENTER_SORTIE)
         page.enter_sortie(2, 1)
         # 不抛 NavigationError 就是成功。立即返回地图页, 避免留在准备页污染后续。
         logger.info('[E2E] Test 6: enter_sortie 无异常, 尝试返回地图页')
@@ -167,7 +162,7 @@ def main() -> int:
 
         wait_for_page(
             ctx.ctrl,
-            BaseMapPage.check_current_page,
+            BattlePage.check_current_page,
             timeout=8.0,
             source='出征准备返回',
             target=PageName.MAP,
@@ -175,7 +170,7 @@ def main() -> int:
         # 回到地图页后再次 OCR, 确认当前就是 2-1 (说明真的停在目标图而不是乱跳)
         info6 = None
         for _ in range(3):
-            info6 = page.read_map(ctx.ctrl.screenshot(), ctx.ocr)
+            info6 = recognition._read_map(ctx.ctrl.screenshot(), ctx.ocr)
             if info6 is not None:
                 break
             time.sleep(0.3)
@@ -192,8 +187,8 @@ def main() -> int:
         try:
             ctx.ctrl.press_back()
             time.sleep(1.0)
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug('[E2E] 回退返回失败: {}', exc)
     results.append((2, 1, ok6))
 
     # ── 汇总 ──

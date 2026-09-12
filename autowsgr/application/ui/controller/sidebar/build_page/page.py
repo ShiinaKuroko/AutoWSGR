@@ -7,7 +7,7 @@
 
 下层依赖：
 - application.ui.controller.sidebar.build_page.constants：提供建造页面专用坐标。
-- application.ui.controller.shared.top_tabs：识别标签页和生成标签检查器。
+- application.ui.controller.operations.sortie_page.main_page：识别标签页和生成标签检查器。
 - common.ui.interaction：执行点击后的页面到达等待。
 - common.vision：匹配建造结果、资源页面和确认弹窗。
 - common.types：提供页面名称和舰种枚举。
@@ -19,11 +19,11 @@ import enum
 import time
 from typing import TYPE_CHECKING
 
-from autowsgr.application.ui.controller.shared.top_tabs import (
+from autowsgr.application.ui.controller.operations.sortie_page.main_page import (
     TabbedPageType,
     check_tabbed_page,
-    get_active_tab_index,
-    make_tab_checker,
+    create_tab_checker,
+    read_active_tab_index,
 )
 from autowsgr.application.ui.controller.sidebar.build_page import constants
 from autowsgr.common.system.logger import get_logger
@@ -88,7 +88,7 @@ class BuildPage:
         Returns:
             当前标签；索引无法识别或越界时返回 ``None``。
         """
-        index = get_active_tab_index(screen)
+        index = read_active_tab_index(screen)
         if index is None or index >= len(_TAB_ORDER):
             return None
         return _TAB_ORDER[index]
@@ -114,39 +114,9 @@ class BuildPage:
         click_and_wait_for_page(
             self._ctrl,
             click_coord=constants.TAB_POSITIONS[tab.name.lower()],
-            checker=make_tab_checker(TabbedPageType.BUILD, target_idx),
+            checker=create_tab_checker(TabbedPageType.BUILD, target_idx),
             source=f'建造-{current.value if current else "?"}',
             target=f'建造-{tab.value}',
-        )
-
-    # ── 页面返回 ──────────────────────────────────────────────────────────────
-
-    def go_back(self) -> None:
-        """点击返回按钮，离开建造页面并回到侧边栏或主页面。
-
-        Args:
-            None.
-
-        Returns:
-            None. 页面到达侧边栏或主页面后返回。
-
-        Raises:
-            NavigationError: 超时仍未离开建造页面。
-        """
-        from autowsgr.application.ui.controller.home.main_page import HomePage
-        from autowsgr.application.ui.controller.sidebar.main_page import SidebarPage
-
-        _log.info('[UI] 建造页面 → 返回侧边栏')
-
-        def _checker(screen: np.ndarray) -> bool:
-            return SidebarPage.check_current_page(screen) or HomePage.check_current_page(screen)
-
-        click_and_wait_for_page(
-            self._ctrl,
-            click_coord=constants.CLICK_BACK,
-            checker=_checker,
-            source=PageName.BUILD,
-            target=f'{PageName.SIDEBAR}/{PageName.HOME}',
         )
 
     # ── 建造原子动作 ──────────────────────────────────────────────────────────
@@ -219,6 +189,16 @@ class BuildPage:
         _log.info('[UI] 建造页面 (解体) → 添加')
         self._ctrl.click(*constants.CLICK_DESTROY_ADD)
 
+    def open_destroy_type_filter(self) -> None:
+        """打开解体标签的舰船类型过滤器。"""
+        _log.info('[UI] 建造页面 (解体) → 打开类型过滤')
+        self._ctrl.click(*constants.CLICK_DESTROY_TYPE_FILTER)
+
+    def confirm_destroy_filter(self) -> None:
+        """确认解体标签的舰船类型过滤条件。"""
+        _log.info('[UI] 建造页面 (解体) → 确认过滤')
+        self._ctrl.click(*constants.CLICK_DESTROY_CONFIRM_FILTER)
+
     def click_destroy_quick_select(self) -> None:
         """点击解体标签的快速选择按钮，批量选择舰船。"""
         _log.info('[UI] 建造页面 (解体) → 快速选择')
@@ -243,16 +223,6 @@ class BuildPage:
         """确认解体标签中的高星舰船警告。"""
         _log.info('[UI] 建造页面 (解体) → 四星确认')
         self._ctrl.click(*constants.CLICK_DESTROY_FOUR_STAR_CONFIRM)
-
-    def open_destroy_type_filter(self) -> None:
-        """打开解体标签的舰船类型过滤器。"""
-        _log.info('[UI] 建造页面 (解体) → 打开类型过滤')
-        self._ctrl.click(*constants.CLICK_DESTROY_TYPE_FILTER)
-
-    def confirm_destroy_filter(self) -> None:
-        """确认解体标签的舰船类型过滤条件。"""
-        _log.info('[UI] 建造页面 (解体) → 确认过滤')
-        self._ctrl.click(*constants.CLICK_DESTROY_CONFIRM_FILTER)
 
     # ── 建造组合动作 ──────────────────────────────────────────────────────────
 
@@ -424,4 +394,34 @@ class BuildPage:
             '[UI] 解装完成 (舰种={}, 卸下装备={})',
             [t.value for t in ship_types] if ship_types else '全部',
             remove_equipment,
+        )
+
+    # ── 页面返回 ──────────────────────────────────────────────────────────────
+
+    def go_back(self) -> None:
+        """点击返回按钮，离开建造页面并回到侧边栏或主页面。
+
+        Args:
+            None.
+
+        Returns:
+            None. 页面到达侧边栏或主页面后返回。
+
+        Raises:
+            NavigationError: 超时仍未离开建造页面。
+        """
+        from autowsgr.application.ui.controller.home.main_page import HomePage
+        from autowsgr.application.ui.controller.sidebar.main_page import SidebarPage
+
+        _log.info('[UI] 建造页面 → 返回侧边栏')
+
+        def _checker(screen: np.ndarray) -> bool:
+            return SidebarPage.check_current_page(screen) or HomePage.check_current_page(screen)
+
+        click_and_wait_for_page(
+            self._ctrl,
+            click_coord=constants.CLICK_BACK,
+            checker=_checker,
+            source=PageName.BUILD,
+            target=f'{PageName.SIDEBAR}/{PageName.HOME}',
         )

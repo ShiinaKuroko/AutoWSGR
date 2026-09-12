@@ -106,7 +106,7 @@ def _load_mission_db() -> dict:
         return yaml.safe_load(file)
 
 
-def get_all_mission_names() -> list[str]:
+def read_all_mission_names() -> list[str]:
     """读取日常和周常任务名称，供 OCR 模糊匹配使用。"""
     db = _load_mission_db()
     names: list[str] = []
@@ -138,8 +138,7 @@ def _is_claim_color(c: Color) -> bool:
 def find_button_rows(screen: np.ndarray) -> list[tuple[float, ButtonType]]:
     """扫描截图右侧, 定位所有 "前往"/"领取" 按钮行。
 
-    Returns
-    -------
+    Returns:
     list[tuple[float, ButtonType]]
         每个元素为 (y_center_relative, button_type), 按 y 从上到下排列。
     """
@@ -300,7 +299,7 @@ __all__ = [
     'ButtonType',
     'MissionInfo',
     'find_button_rows',
-    'get_all_mission_names',
     'match_mission_name',
+    'read_all_mission_names',
     'recognize_row',
 ]

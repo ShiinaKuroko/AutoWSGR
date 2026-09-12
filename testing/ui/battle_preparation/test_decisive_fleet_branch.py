@@ -1,29 +1,42 @@
-"""统一编队入口的决战分支回归。"""
-
-from __future__ import annotations
+"""决战编队入口的页面路由回归。"""
 
 from types import SimpleNamespace
-from typing import TYPE_CHECKING
 from unittest.mock import MagicMock
 
-import autowsgr.application.ui.controller.battle_preparation.fleet_change.decisive as decisive_module
-from autowsgr.application.ui.controller.battle_preparation import BattlePreparationPage
+import pytest
+
+from autowsgr.application.ui.controller.fleet import BattlePreparationPage, FleetSnapshot, formation
 
 
-if TYPE_CHECKING:
-    import pytest
-
-
-def test_task_type_decisive_uses_decisive_fleet_branch(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_decisive_fleet_uses_formation_entry(monkeypatch: pytest.MonkeyPatch) -> None:
     captured: dict[str, object] = {}
+    snapshot = FleetSnapshot(
+        names=['A', None, None, None, None, None],
+        occupied=[True, False, False, False, False, False],
+    )
 
-    def change(page: object, names: object, *, on_event: object = None) -> bool:
-        captured.update(page=page, names=names, on_event=on_event)
-        return True
+    def adjust(ctx: object, page: object, **kwargs: object) -> FleetSnapshot:
+        captured.update(ctx=ctx, page=page, kwargs=kwargs)
+        return snapshot
 
-    monkeypatch.setattr(decisive_module, 'change_decisive_fleet', change)
-    page = BattlePreparationPage(SimpleNamespace(ctrl=MagicMock(), ocr=MagicMock()))
+    monkeypatch.setattr(formation, 'adjust_fleet', adjust)
+    ctx = SimpleNamespace(ctrl=MagicMock(), ocr=MagicMock())
+    page = BattlePreparationPage(ctx)
 
-    assert page.change_fleet(None, ['A'], task_type='decisive')
+    assert (
+        page.adjust_fleet(
+            fleet_id=None,
+            fleet_rules=['A'],
+            task_type='decisive',
+        )
+        is snapshot
+    )
     assert captured['page'] is page
-    assert captured['names'] == ['A']
+    assert captured['kwargs'] == {
+        'fleet_id': None,
+        'fleet_rules': ['A'],
+        'task_type': 'decisive',
+        'reset_fleet': True,
+        'recognize_ship_types': True,
+        'on_event': None,
+    }

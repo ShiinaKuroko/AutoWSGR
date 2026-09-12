@@ -455,7 +455,7 @@ def test_sync_initial_counts_disables_normal_fight_on_failure():
 
 
 class _FakeSortiePage:
-    """MapPage 替身: ensure_panel no-op, read_loot_and_ship_count 返回预设值。"""
+    """BattlePage 替身: select_tab no-op, read_loot_and_ship_count 返回预设值。"""
 
     def __init__(
         self,
@@ -468,7 +468,7 @@ class _FakeSortiePage:
         self._loot = loot
         self._raises = raises
 
-    def ensure_panel(self, _panel: object) -> None:
+    def select_tab(self, _tab: object) -> None:
         return None
 
     def read_loot_and_ship_count(self, *, read_loot: bool = True) -> types.SimpleNamespace:
@@ -479,21 +479,28 @@ class _FakeSortiePage:
 
 
 def _patch_ctx_sortie(monkeypatch: pytest.MonkeyPatch, page: _FakeSortiePage) -> None:
-    """替换 ctx.sync_daily_drop_counts 的设备依赖 (goto_page / MapPage / sleep) 为 no-op。"""
-    import autowsgr.application.runtime.context.game_context as gc_mod
-    import autowsgr.application.ui.controller.operations.sortie_page.battle_page as ui_mod
-    import autowsgr.application.ui.navigation as nav_mod
+    """替换 ctx.sync_daily_drop_counts 的设备依赖 (goto_page / BattlePage / sleep) 为 no-op。"""
+    from autowsgr.application.runtime.context import game_context
+    from autowsgr.application.ui import navigation
+    from autowsgr.application.ui.controller.operations.sortie_page import battle_page
+    from autowsgr.application.ui.controller.operations.sortie_page.battle_page import recognition
 
-    monkeypatch.setattr(nav_mod, 'goto_page', lambda *_a, **_kw: None)
-    monkeypatch.setattr(ui_mod, 'MapPage', lambda _ctx: page)
-    monkeypatch.setattr(gc_mod, 'time', types.SimpleNamespace(sleep=lambda *_a: None))
+    monkeypatch.setattr(navigation, 'goto_page', lambda *_a, **_kw: None)
+    monkeypatch.setattr(battle_page, 'BattlePage', lambda _ctx: page)
+    monkeypatch.setattr(
+        recognition,
+        '_read_loot_and_ship_count',
+        lambda _screen, _ocr, *, read_loot=True: page.read_loot_and_ship_count(read_loot=read_loot),
+    )
+    monkeypatch.setattr(game_context, 'time', types.SimpleNamespace(sleep=lambda *_a: None))
 
 
 def _make_ctx() -> GameContext:
     # 提供 daily_automation 配置 (stop_max_loot=True) 以使战利品 OCR 联动逻辑生效
     da = types.SimpleNamespace(stop_max_loot=True, stop_max_ship=True)
+    ctrl = types.SimpleNamespace(screenshot=object)
     return GameContext(
-        ctrl=object(),
+        ctrl=ctrl,
         config=types.SimpleNamespace(daily_automation=da),
         ocr=object(),
     )  # type: ignore[arg-type]

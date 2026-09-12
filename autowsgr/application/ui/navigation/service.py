@@ -51,7 +51,7 @@ def goto_bath_from_normal_sortie(ctx: GameContext) -> None:
     Args:
         ctx: 当前游戏上下文。
     """
-    from autowsgr.application.ui.controller.battle_preparation import BattlePreparationPage
+    from autowsgr.application.ui.controller.fleet import BattlePreparationPage
 
     BattlePreparationPage(ctx).go_back()
     goto_page(ctx, PageName.BATH)
@@ -59,36 +59,26 @@ def goto_bath_from_normal_sortie(ctx: GameContext) -> None:
 
 def goto_bath_from_event_sortie(ctx: GameContext) -> None:
     """从活动出征准备页返回活动地图后进入澡堂。"""
-    from autowsgr.application.ui.controller.battle_preparation.constants import CLICK_BACK
-    from autowsgr.application.ui.controller.home.event_page import BaseEventPage
-    from autowsgr.common.ui.interaction import click_and_wait_for_page
+    from autowsgr.application.ui.controller.fleet import BattlePreparationPage
 
-    click_and_wait_for_page(
-        ctx.ctrl,
-        click_coord=CLICK_BACK,
-        checker=BaseEventPage.check_current_page,
-        source=PageName.BATTLE_PREP,
-        target=PageName.EVENT_MAP,
-    )
+    BattlePreparationPage(ctx).go_back_to_event()
     goto_page(ctx, PageName.BATH)
 
 
 def goto_bath_from_campaign_sortie(ctx: GameContext) -> None:
     """从战役编队页经战役选择和主页进入澡堂。
 
-    战役选择与普通地图共用 ``MapPage``，但这里显式执行两次回退，
+    战役选择与普通出征地图共用 sortie_page 页面壳，但这里显式执行两次回退，
     保留战役编队页 → 战役选择 → 主页 → 后院 → 澡堂的业务路径。
 
     Args:
         ctx: 当前游戏上下文。
     """
-    from autowsgr.application.ui.controller.battle_preparation import (
-        BattlePreparationPage,
-    )
-    from autowsgr.application.ui.controller.operations.sortie_page.battle_page import MapPage
+    from autowsgr.application.ui.controller.fleet import BattlePreparationPage
+    from autowsgr.application.ui.controller.operations.sortie_page.main_page import SortiePage
 
     BattlePreparationPage(ctx).go_back()
-    MapPage(ctx).go_back()
+    SortiePage(ctx).go_back()
     goto_page(ctx, PageName.BATH)
 
 
@@ -110,7 +100,7 @@ def goto_bath_from_decisive_sortie(ctx: GameContext) -> None:
 
     config = getattr(ctx.config, 'decisive_battle', None) or DecisiveConfig()
     map_controller = DecisiveMapController(ctx, config)
-    map_controller.go_to_map_page()
+    map_controller.navigate_to_map_page()
     map_controller.open_retreat_dialog()
     map_controller.confirm_leave()
     wait_for_page(

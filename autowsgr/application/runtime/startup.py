@@ -143,7 +143,7 @@ def wait_for_game_ui(
         超时前成功检测到返回 ``True``，超时返回 ``False``。
     """
     # 延迟导入避免循环依赖 (ui 层反向引用 ops 的模块)
-    from autowsgr.application.ui.controller.home.main_page.overlays import read_overlay
+    from autowsgr.application.ui.controller.home.main_page.overlay import read_overlay
     from autowsgr.application.ui.navigation.recognition import get_current_page
 
     _log.info('[Startup] 等待游戏 UI 就绪 (超时 {:.0f}s)…', timeout)

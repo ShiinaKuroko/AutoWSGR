@@ -8,7 +8,7 @@
 下层依赖：
 - application.ui.controller.operations.sortie_page.decisive_page.page：提供总览页操作。
 - application.ui.controller.operations.sortie_page.decisive_page.map_page：提供地图页操作。
-- application.ui.controller.operations.sortie_page.decisive_page.preparation_page：提供准备页适配。
+- application.ui.controller.fleet：提供统一准备页入口。
 
 本包只导出稳定页面入口；校准、识别和旧编队兼容实现由子模块负责。
 """
@@ -18,14 +18,12 @@ from autowsgr.application.ui.controller.operations.sortie_page.decisive_page.map
 )
 from autowsgr.application.ui.controller.operations.sortie_page.decisive_page.page import (
     DecisiveBattlePage,
-)
-from autowsgr.application.ui.controller.operations.sortie_page.decisive_page.preparation_page import (
-    DecisiveBattlePreparationPage,
+    DecisiveEntryPage,
 )
 
 
 __all__ = [
     'DecisiveBattlePage',
-    'DecisiveBattlePreparationPage',
+    'DecisiveEntryPage',
     'DecisiveMapController',
 ]

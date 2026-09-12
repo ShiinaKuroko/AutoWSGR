@@ -9,7 +9,7 @@ TODO，本轮只记录问题，不修改决战生产逻辑。
 - 为决战提供与普通战、活动战同层级的清晰入口。
 - 将任务执行参数与持久化决战配置分开。
 - 只保留一个默认值来源，避免 API、GUI 和 YAML 相互覆盖。
-- 决战流程稳定后移除临时换船算法开关。
+- 临时换船算法开关已在 Fleet 架构重构中删除。
 
 ## 当前配置冲突
 
@@ -33,8 +33,6 @@ DecisiveConfig 默认值
   默认值不同。
 - GUI 缺少舰队配置时发送 `[]`，会覆盖 YAML 中的舰队。
 - `use_quick_repair` 的 API 默认 `True` 会覆盖 YAML 的 `False`。
-- GUI 未提供 `use_new_fleet_change_algorithm`，但 API 默认 `False`，
-  会覆盖 YAML 中设置的 `True`。
 - `decisive_rounds` 同时被 API 循环和直接脚本读取，职责重复。
 
 以下字段当前不会被 GUI 覆盖，但 GUI 也无法配置：
@@ -52,7 +50,6 @@ DecisiveConfig 默认值
 4. `decisive_rounds` 迁移为任务执行参数，不属于持久化决战策略。
 5. 决战配置和流程入口整理到独立模块。
 6. 增加 YAML、API、GUI 三条入口的配置优先级回归测试。
-7. 决战流程重构完成后删除 `use_new_fleet_change_algorithm` 临时开关。
 
 ## 本轮不做
 

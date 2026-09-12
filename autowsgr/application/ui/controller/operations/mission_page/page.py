@@ -8,7 +8,7 @@
 下层依赖：
 - application.ui.controller.operations.mission_page.constants：提供页面坐标和时序参数。
 - application.ui.controller.operations.mission_page.recognition：提供任务库、按钮扫描和 OCR 识别。
-- application.ui.controller.shared.top_tabs：检查任务标签页。
+- application.ui.controller.operations.sortie_page.main_page：检查任务标签页。
 - common.ui.interaction：执行点击后的页面到达等待。
 - common.vision：匹配任务页面和奖励确认弹窗。
 
@@ -24,10 +24,13 @@ from typing import TYPE_CHECKING
 from autowsgr.application.ui.controller.operations.mission_page import constants
 from autowsgr.application.ui.controller.operations.mission_page.recognition import (
     find_button_rows,
-    get_all_mission_names,
+    read_all_mission_names,
     recognize_row,
 )
-from autowsgr.application.ui.controller.shared.top_tabs import TabbedPageType, check_tabbed_page
+from autowsgr.application.ui.controller.operations.sortie_page.main_page import (
+    TabbedPageType,
+    check_tabbed_page,
+)
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.types import PageName
 from autowsgr.common.ui.interaction import click_and_wait_for_page
@@ -70,8 +73,7 @@ CLICK_PANEL: dict[MissionPanel, tuple[float, float]] = {
 class MissionPage:
     """任务页面控制器。
 
-    Parameters
-    ----------
+    Args:
     ctx:
         游戏上下文实例。
     """
@@ -92,8 +94,7 @@ class MissionPage:
     def select_panel(self, panel: MissionPanel) -> None:
         """切换到指定子标签 (日常/周常)。
 
-        Parameters
-        ----------
+        Args:
         panel:
             目标面板。
         """
@@ -106,13 +107,11 @@ class MissionPage:
     def read_missions(self, screen: np.ndarray) -> list[MissionInfo]:
         """识别截图中可见的任务列表 (单帧, 不滚动)。
 
-        Parameters
-        ----------
+        Args:
         screen:
             任务页面截图 (HxWx3, RGB)。
 
-        Returns
-        -------
+        Returns:
         list[MissionInfo]
             可见任务列表, 按从上到下排列。
         """
@@ -121,7 +120,7 @@ class MissionPage:
             _log.debug('[UI] 任务页面: 未检测到按钮行')
             return []
 
-        candidates = get_all_mission_names()
+        candidates = read_all_mission_names()
         missions: list[MissionInfo] = []
         for anchor_y, btn_type in rows:
             info = recognize_row(screen, anchor_y, btn_type, self._ctx.ocr, candidates)
@@ -145,15 +144,13 @@ class MissionPage:
     ) -> list[MissionInfo]:
         """识别指定子标签下的全部任务 (含自动滚动)。
 
-        Parameters
-        ----------
+        Args:
         panel:
             子标签: ``MissionPanel.DAILY`` 或 ``MissionPanel.WEEKLY``。
         max_scrolls:
             最大滚动次数。
 
-        Returns
-        -------
+        Returns:
         list[MissionInfo]
             全部任务列表。
         """
@@ -188,8 +185,7 @@ class MissionPage:
 
         必须已在任务页面。依次尝试一键领取和单个领取。
 
-        Returns
-        -------
+        Returns:
         bool
             是否成功领取并确认了奖励。
         """
@@ -216,8 +212,7 @@ class MissionPage:
     def go_back(self) -> None:
         """点击回退按钮, 返回主页面。
 
-        Raises
-        ------
+        Raises:
         NavigationError
             超时仍在任务页面。
         """

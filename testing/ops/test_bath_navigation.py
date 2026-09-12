@@ -5,11 +5,11 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from autowsgr.application.ui.controller.battle_preparation import (
+from autowsgr.application.ui.controller.fleet import (
     BattlePreparationPage,
     RepairStrategy,
-    repair_action,
 )
+from autowsgr.application.ui.controller.fleet.support.repair import workflow as repair_workflow
 from autowsgr.application.ui.navigation import service
 from autowsgr.business.logistics.repair import bath_repair
 from autowsgr.common.system import ManualRepairRequiredError
@@ -20,7 +20,7 @@ def test_normal_sortie_returns_to_map_before_bath(monkeypatch: pytest.MonkeyPatc
     """普通出征准备页先回普通地图，再进入澡堂。"""
     page = MagicMock()
     monkeypatch.setattr(
-        'autowsgr.application.ui.controller.battle_preparation.BattlePreparationPage',
+        'autowsgr.application.ui.controller.fleet.BattlePreparationPage',
         lambda _ctx: page,
     )
     goto_page = MagicMock()
@@ -35,18 +35,18 @@ def test_normal_sortie_returns_to_map_before_bath(monkeypatch: pytest.MonkeyPatc
 
 def test_event_sortie_returns_to_event_map_before_bath(monkeypatch: pytest.MonkeyPatch) -> None:
     """活动出征准备页先回活动地图，再进入澡堂。"""
-    click_and_wait = MagicMock()
-    monkeypatch.setattr('autowsgr.common.ui.interaction.click_and_wait_for_page', click_and_wait)
+    page = MagicMock()
+    monkeypatch.setattr(
+        'autowsgr.application.ui.controller.fleet.BattlePreparationPage',
+        lambda _ctx: page,
+    )
     goto_page = MagicMock()
     monkeypatch.setattr(service, 'goto_page', goto_page)
     ctx = SimpleNamespace(ctrl=object())
 
     service.goto_bath_from_event_sortie(ctx)
 
-    click_and_wait.assert_called_once()
-    assert click_and_wait.call_args.args[0] is ctx.ctrl
-    assert click_and_wait.call_args.kwargs['source'] is PageName.BATTLE_PREP
-    assert click_and_wait.call_args.kwargs['target'] is PageName.EVENT_MAP
+    page.go_back_to_event.assert_called_once_with()
     goto_page.assert_called_once_with(ctx, PageName.BATH)
 
 
@@ -56,11 +56,11 @@ def test_campaign_sortie_returns_via_campaign_selection_before_bath(
     preparation = MagicMock()
     campaign_selection = MagicMock()
     monkeypatch.setattr(
-        'autowsgr.application.ui.controller.battle_preparation.BattlePreparationPage',
+        'autowsgr.application.ui.controller.fleet.BattlePreparationPage',
         lambda _ctx: preparation,
     )
     monkeypatch.setattr(
-        'autowsgr.application.ui.controller.operations.sortie_page.battle_page.MapPage',
+        'autowsgr.application.ui.controller.operations.sortie_page.main_page.SortiePage',
         lambda _ctx: campaign_selection,
     )
     goto_page = MagicMock()
@@ -93,7 +93,7 @@ def test_decisive_sortie_leaves_saved_map_before_bath(monkeypatch: pytest.Monkey
 
     service.goto_bath_from_decisive_sortie(ctx)
 
-    controller.go_to_map_page.assert_called_once_with()
+    controller.navigate_to_map_page.assert_called_once_with()
     controller.open_retreat_dialog.assert_called_once_with()
     controller.confirm_leave.assert_called_once_with()
     controller.confirm_retreat.assert_not_called()
@@ -112,16 +112,10 @@ def test_manual_repair_action_runs_before_manual_repair_error(
         ocr=MagicMock(),
     )
     page = BattlePreparationPage(ctx)
-    monkeypatch.setattr(repair_action, 'check_repair', lambda _page, _strategy: [0])
-    manual_repair_action = MagicMock()
+    monkeypatch.setattr(repair_workflow, 'check_repair', lambda _ctx, _strategy: [0])
 
-    with pytest.raises(ManualRepairRequiredError, match='需要进行手动修理'):
-        page.apply_repair(
-            RepairStrategy.MODERATE,
-            manual_repair_action=manual_repair_action,
-        )
-
-    manual_repair_action.assert_called_once_with([0])
+    with pytest.raises(ManualRepairRequiredError, match=r'\[0\]'):
+        page.apply_repair(RepairStrategy.MODERATE)
 
 
 def test_manual_bath_repair_dispatches_targets_and_returns_home(

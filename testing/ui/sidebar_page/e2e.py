@@ -146,7 +146,7 @@ def run_test(runner: UIControllerTestRunner) -> None:  # noqa: PLR0911
         '侧边栏 → close → 主页面',
         '主页面',
         HomePage.check_current_page,
-        sidebar_page.close,
+        sidebar_page.close_sidebar,
     )
 
 

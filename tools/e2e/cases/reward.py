@@ -51,7 +51,7 @@ def run(rt: Any) -> bool:
     if rt.args.with_init:
         from autowsgr.application.runtime.initialize.initialize import initialize
         from autowsgr.application.ui.controller.home.main_page import HomePage
-        from autowsgr.application.ui.controller.home.main_page.overlays import read_overlay
+        from autowsgr.application.ui.controller.home.main_page.overlay import read_overlay
 
         if rt.action('初始化 (任意状态 → 首页 + 清浮层)', initialize, ctx) is rt.FAILED:
             return False
@@ -65,7 +65,7 @@ def run(rt: Any) -> bool:
     req = Request(task_type='reward_check', source='cli')
     events: list[str] = []
 
-    def on_event(event: str, **data: Any) -> None:
+    def on_event(event: str, **_data: Any) -> None:
         events.append(event)
 
     processor = Processor(ctx, on_event=on_event)

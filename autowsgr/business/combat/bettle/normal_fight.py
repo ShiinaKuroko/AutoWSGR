@@ -10,12 +10,13 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING, Literal
 
-from autowsgr.application.ui.controller.battle_preparation import (
-    BattlePreparationPage,
-    RepairStrategy,
-)
+from autowsgr.application.ui.controller.fleet import BattlePreparationPage, RepairStrategy
 from autowsgr.application.ui.controller.home.event_page import BaseEventPage
-from autowsgr.application.ui.controller.operations.sortie_page.battle_page import MapPage, MapPanel
+from autowsgr.application.ui.controller.operations.sortie_page.battle_page import (
+    BattlePage,
+    recognition,
+)
+from autowsgr.application.ui.controller.operations.sortie_page.main_page import SortieTab
 from autowsgr.application.ui.navigation import (
     goto_bath_from_event_sortie,
     goto_bath_from_normal_sortie,
@@ -40,17 +41,11 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
     from pathlib import Path
 
-    from autowsgr.application.runtime import RuntimeContext as GameContext
+    from autowsgr.application.runtime import RuntimeContext
     from autowsgr.application.runtime.context.ship import Ship
 
 
 _log = get_logger('business.combat.bettle')
-
-
-def _require_fleet_change(success: bool, source: str) -> None:
-    """换船失败时停止出征，避免使用错误舰队进入战斗。"""
-    if not success:
-        raise ActionFailedError(f'{source} 编队失败')
 
 
 class NormalFightRunner:
@@ -58,7 +53,7 @@ class NormalFightRunner:
 
     def __init__(
         self,
-        ctx: GameContext,
+        ctx: RuntimeContext,
         plan: CombatPlan,
         fleet_selection: ResolvedFleetSelection | None = None,
         *,
@@ -336,24 +331,28 @@ class NormalFightRunner:
     def _enter_normal(self) -> None:
         """导航到常规出征面板并进入地图。"""
         goto_page(self._ctx, PageName.MAP)
-        map_page = MapPage(self._ctx)
+        battle_page = BattlePage(self._ctx)
 
         # 在出征面板读取今日已获取数量
-        map_page.ensure_panel(MapPanel.SORTIE)
+        battle_page.select_tab(SortieTab.SORTIE)
         self._sleep(0.25)
         # 战利品 OCR 与 YAML 联动: 仅在开启 stop_max_loot (战利品检查) 时识别,
         # 无战利品活动时跳过该区域避免无效 OCR 报警
         da = self._ctx.config.daily_automation
         read_loot = bool(da and da.stop_max_loot)
         try:
-            counts = map_page.read_loot_and_ship_count(read_loot=read_loot)
+            counts = recognition._read_loot_and_ship_count(
+                self._ctx.ctrl.screenshot(),
+                self._ctx.ocr,
+                read_loot=read_loot,
+            )
             self._loot_count = counts.loot
             self._ship_acquired_count = counts.ship
         except RuntimeError:
             _log.warning('[Bettle] 无法读取今日获取数量 (OCR 不可用)')
 
         try:
-            map_page.enter_sortie(self._plan.chapter, self._plan.map_id)
+            battle_page.enter_sortie(self._plan.chapter, self._plan.map_id)
         except NavigationError as e:
             _log.error('[Bettle] 地图章节导航失败: {}', e)
             _log.warning('[Bettle] 已放弃本轮出击，尝试返回主页面以继续后续队列')
@@ -386,29 +385,19 @@ class NormalFightRunner:
         self._sleep(1.0)
         page = BattlePreparationPage(self._ctx)
 
-        # 选择舰队
-        page.select_fleet(self._fleet_id)
-        self._sleep(0.5)
-
-        resolved_ship_names: list[str | None] | None = None
-
         # 换船规则已经在 runner 启动前完成优先级解析和入口转换。
         slot_rules = self._fleet_selection.slot_rules
         plain_fleet = self._fleet_selection.plain_fleet
-        if slot_rules is not None:
-            _require_fleet_change(
-                page.change_fleet(self._fleet_id, slot_rules),
-                'fleet_rules',
-            )
-            self._sleep(0.5)
-            resolved_ship_names = page.last_changed_fleet
-        elif plain_fleet is not None:
-            _require_fleet_change(
-                page.change_fleet(self._fleet_id, exact_fleet_rules(plain_fleet)),
-                'fleet',
-            )
-            self._sleep(0.5)
-            resolved_ship_names = page.last_changed_fleet
+        fleet_rules = slot_rules
+        if fleet_rules is None and plain_fleet is not None:
+            fleet_rules = exact_fleet_rules(plain_fleet)
+        snapshot = page.adjust_fleet(
+            fleet_id=self._fleet_id,
+            fleet_rules=fleet_rules,
+            task_type='event' if self._is_event else 'normal',
+        )
+        resolved_ship_names = list(snapshot.names)
+        self._sleep(0.5)
 
         # 补给
         page.apply_supply()
@@ -433,15 +422,15 @@ class NormalFightRunner:
             self._apply_repair(page, repair_strategy, fleet_names)
 
         # 检测战前舰队信息 (血量 + 等级)
-        fleet_info = page.detect_fleet_info()
-        ship_stats = [fleet_info.ship_damage.get(i, ShipDamageState.NORMAL) for i in range(6)]
+        damage = page.read_ship_damage()
+        ship_stats = [damage.get(i, ShipDamageState.NORMAL) for i in range(6)]
         if ShipDamageState.SEVERE in ship_stats:
             _log.error('[Bettle] 出征前检测到大破舰船，退出程序')
             raise ActionFailedError('出征前检测到大破舰船，退出程序')
         ship_names = resolved_ship_names
         if ship_names is None:
             ship_names = self._fleet_selection.primary_names
-        self._fleet_ships = fleet_info.to_ships(ship_names)
+        self._fleet_ships = [self._ctx.get_ship(name) for name in ship_names if name]
 
         # 出征
         page.start_battle()
@@ -459,23 +448,9 @@ class NormalFightRunner:
         if self._plan.repair_method == 'bath':
             self._repair_in_bath(page, strategy, fleet_names)
         elif self._plan.repair_method == 'quick':
-            # 任务级配置优先于旧的全局 repair_manually。
             page.apply_repair(strategy, repair_manually=False)
         elif getattr(self._ctx.config, 'repair_manually', False):
-            # 兼容未声明 repair_method 的旧 YAML/客户端。
-            def manual_repair_action(positions: list[int]) -> None:
-                targets = [
-                    fleet_names[position]
-                    for position in positions
-                    if 0 <= position < len(fleet_names) and fleet_names[position]
-                ]
-                self._goto_bath_for_repair()
-                repair_manual_targets_in_bath(self._ctx, targets)
-
-            page.apply_repair(
-                strategy,
-                manual_repair_action=manual_repair_action,
-            )
+            self._repair_in_bath(page, strategy, fleet_names)
         else:
             page.apply_repair(strategy)
 
@@ -645,7 +620,7 @@ def get_normal_fight_plan(
 
 
 def run_normal_fight(
-    ctx: GameContext,
+    ctx: RuntimeContext,
     plan: CombatPlan,
     *,
     times: int = 1,
@@ -679,7 +654,7 @@ def run_normal_fight(
 
 
 def run_normal_fight_from_yaml(
-    ctx: GameContext,
+    ctx: RuntimeContext,
     yaml_path: str,
     *,
     times: int = 1,

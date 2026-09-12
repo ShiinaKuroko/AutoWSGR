@@ -9,7 +9,7 @@
 - application.ui.controller.operations.sortie_page.decisive_page.constants：提供地图、浮层和识别校准。
 - application.ui.controller.operations.sortie_page.decisive_page.overlay：识别浮层类型和页面状态。
 - application.ui.controller.operations.sortie_page.decisive_page.recognition：执行战备舰队、节点和技能舰船 OCR。
-- application.ui.controller.battle_preparation：执行决战出征准备页动作。
+- application.ui.controller.fleet：执行决战出征准备页动作。
 - common.vision：提供截图、模板、像素和节点识别能力。
 
 本控制器只负责决战地图页面操作；决战状态机的业务决策由上层负责。
@@ -22,10 +22,7 @@ from typing import TYPE_CHECKING
 
 import cv2
 
-from autowsgr.application.ui.controller.battle_preparation.preparation import (
-    BattlePreparationPage,
-    RepairStrategy,
-)
+from autowsgr.application.ui.controller.fleet import BattlePreparationPage, RepairStrategy
 from autowsgr.application.ui.controller.operations.sortie_page.decisive_page.constants import (
     ADVANCE_CARD_POSITIONS,
     CLICK_ADVANCE_CONFIRM,
@@ -165,8 +162,7 @@ class DecisiveMapController:
             3. overlay        — 战备舰队 / 前进点（必须先于地图页判断）
             4. 地图页         — 无 overlay 的正常决战地图页
 
-        Returns
-        -------
+        Returns:
         DecisivePhase | None
             检测到的阶段；过场动画中等未知状态返回 ``None``。
         """
@@ -438,8 +434,7 @@ class DecisiveMapController:
 
         对齐 legacy ``_check_fleet``: 同时收集编队成员与列表中的舰船。
 
-        Returns
-        -------
+        Returns:
         tuple[list[str | None], dict[int, ShipDamageState], set[str]]
             ``(fleet, damage, all_ships)``:
 
@@ -451,11 +446,12 @@ class DecisiveMapController:
 
         self.enter_formation()
         time.sleep(0.5)  # 等待编队页加载完成
-        page = BattlePreparationPage(self._ctx, self._ocr)
+        page = BattlePreparationPage(self._ctx)
 
         screen = self._ctrl.screenshot()
-        fleet = page.detect_fleet(screen)
-        damage = page.detect_ship_damage(screen)
+        fleet_snapshot = page.read_fleet_snapshot(recognize_ship_types=False)
+        fleet = fleet_snapshot.names
+        damage = page.read_ship_damage(screen)
 
         # 进入选船列表：先确认已离开出征准备页，再进行一次识别
         page.click_ship_slot(0)
@@ -548,7 +544,7 @@ class DecisiveMapController:
         self._ctrl.click(*CLICK_SORTIE)
         time.sleep(2.0)
 
-    def go_to_map_page(self) -> None:
+    def navigate_to_map_page(self) -> None:
         """确保当前在决战地图页（若在准备页则点击左上角返回）。"""
         screen = self._ctrl.screenshot()
         if check_decisive_map_page(screen):
@@ -560,7 +556,7 @@ class DecisiveMapController:
 
     def open_retreat_dialog(self) -> None:
         """点击左上角撤退按钮，打开确认退出 overlay。"""
-        self.go_to_map_page()
+        self.navigate_to_map_page()
         self._ctrl.click(*CLICK_RETREAT_BUTTON)
         time.sleep(1.0)
         self.wait_for_overlay(DecisiveOverlay.CONFIRM_EXIT, timeout=5.0)
@@ -691,14 +687,17 @@ class DecisiveMapController:
         使用统一准备页的 ``task_type='decisive'`` 分支
         执行换船，原理是 OCR 选船列表直接点击目标，无需输入搜索框。
 
-        Parameters
-        ----------
+        Args:
         ship_names:
             目标舰船名列表 (按槽位 0-5)；``None``/``""`` 表示该位留空。
         """
         _log.info('[地图控制器] 进入准备页换船: {}', ship_names)
-        page = BattlePreparationPage(self._ctx, self._ocr)
-        page.change_fleet(None, ship_names, task_type='decisive')
+        page = BattlePreparationPage(self._ctx)
+        page.adjust_fleet(
+            fleet_id=None,
+            fleet_rules=ship_names,
+            task_type='decisive',
+        )
 
     # 等待方法
 
@@ -739,8 +738,7 @@ class DecisiveMapController:
         不依赖任何图像模板，仅利用舰船指示器在决战地图上独特的
         橙黄色高亮面积远大于其它同色碎片这一视觉特征。
 
-        Returns
-        -------
+        Returns:
         float | None
             舰标中心 X 占图像宽度比例 (0-1)；检测失败返回 ``None``。
         """

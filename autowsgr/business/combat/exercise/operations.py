@@ -4,11 +4,15 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from autowsgr.application.ui.controller.battle_preparation import (
+from autowsgr.application.ui.controller.fleet import (
     BattlePreparationPage,
     RepairStrategy,
 )
-from autowsgr.application.ui.controller.operations.sortie_page.battle_page import MapPage, MapPanel
+from autowsgr.application.ui.controller.operations.sortie_page.exercise_page import ExercisePage
+from autowsgr.application.ui.controller.operations.sortie_page.main_page import (
+    SortiePage,
+    SortieTab,
+)
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.types import RepairMode, ShipDamageState
 from autowsgr.common.ui.interaction import NavigationError
@@ -40,12 +44,12 @@ class ExerciseOperations:
 
     def switch_to_exercise_panel(self) -> None:
         """在地图页切换到演习面板。"""
-        MapPage(self.ctx).switch_panel(MapPanel.EXERCISE)
+        SortiePage(self.ctx).click_tab(SortieTab.EXERCISE)
         self._report('panel_ready')
 
     def pick_rival(self, rival: int | None) -> int | None:
         """读取可挑战对手并返回指定或最靠前的一个。"""
-        rivals = MapPage(self.ctx).read_exercise_rival_status().rivals
+        rivals = ExercisePage(self.ctx).read_exercise_rival_status().rivals
         if rival is not None:
             return rival if rivals[rival - 1] else None
         return next((index for index, available in enumerate(rivals, start=1) if available), None)
@@ -53,11 +57,11 @@ class ExerciseOperations:
     def select_rival(self, rival: int) -> None:
         """选择一个对手。"""
         _log.info('[Exercise] 选择对手：{}号', rival)
-        MapPage(self.ctx).select_exercise_rival(rival)
+        ExercisePage(self.ctx).select_exercise_rival(rival)
 
     def enter_battle(self) -> None:
         """从对手预览页进入出征准备页。"""
-        MapPage(self.ctx).enter_exercise_battle()
+        ExercisePage(self.ctx).enter_exercise_battle()
 
     def configure_fleet(
         self,
@@ -87,13 +91,12 @@ class ExerciseOperations:
                     '宽泛' if option.relaxed_constraints else '严格',
                 )
 
-        if not page.change_fleet(
-            fleet_id,
-            slot_rules,
+        page.adjust_fleet(
+            fleet_id=fleet_id,
+            fleet_rules=slot_rules,
             task_type='exercise',
             on_event=self._on_fleet_event,
-        ):
-            raise RuntimeError('演习编队未满足 YAML 规则')
+        )
         return page
 
     def prepare_battle(
@@ -106,7 +109,7 @@ class ExerciseOperations:
         strategy = self.repair_strategy(plan)
         if strategy is not None:
             page.apply_repair(strategy)
-        damage = page.detect_ship_damage(self.ctx.ctrl.screenshot())
+        damage = page.read_ship_damage()
         return [damage.get(index, ShipDamageState.NORMAL) for index in range(6)]
 
     def start_battle(self, page: BattlePreparationPage, *, rival: int) -> None:

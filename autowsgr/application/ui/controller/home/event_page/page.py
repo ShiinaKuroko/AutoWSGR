@@ -66,8 +66,7 @@ _log = get_logger('ui')
 class BaseEventPage:
     """活动地图页面内的 UI 操作控制器。
 
-    Parameters
-    ----------
+    Args:
     ctx:
         由调用方注入的运行时 UI 上下文。
     event_name:
@@ -207,9 +206,7 @@ class BaseEventPage:
             if entrance is not None:
                 self.select_entrance(entrance)
 
-        from autowsgr.application.ui.controller.battle_preparation.preparation import (
-            BattlePreparationPage,
-        )
+        from autowsgr.application.ui.controller.fleet import BattlePreparationPage
 
         screen = self._ctrl.screenshot()
         detail = self._fight_button_detail(screen)

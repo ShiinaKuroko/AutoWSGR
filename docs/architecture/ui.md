@@ -63,7 +63,7 @@ get_current_page(screen)
     │
     ├─ 遍历 _PAGE_REGISTRY
     │   ├─ HomePage.check_current_page(screen) → True? → 返回 "HOME"
-    │   ├─ MapPage.checker(screen) → True? → 返回 "MAP"
+    │   ├─ SortiePage.check_current_page(screen) → True? → 返回 "MAP"
     │   ├─ ...
     │   └─ 全部 False → 返回 None
     │
@@ -112,7 +112,11 @@ class SomePage:
 | 页面                      | PageName            | 职责                        |
 |---------------------------|---------------------|-----------------------------|
 | `HomePage`                | `HOME`              | 中央枢纽，导航到各功能模块    |
-| `MapPage`                 | `MAP`               | 出击/演习/远征/战役/决战 面板 |
+| `SortiePage`              | `MAP`               | sortie_page 页面壳和顶部标签 |
+| `BattlePage`              | `MAP`               | 普通出征章节、地图和出征入口 |
+| `CampaignPage`            | `MAP`               | 战役选择和出征准备入口       |
+| `ExercisePage`             | `MAP`               | 演习对手和出征入口           |
+| `ExpeditionPage`           | `MAP`               | 远征槽位和奖励收取           |
 | `BattlePreparationPage`   | `BATTLE_PREP`       | 舰队选择、血量检测、出征      |
 | `BathPage`                | `BATH`              | 浴室修理                     |
 | `CanteenPage`             | `CANTEEN`           | 食堂烹饪                     |
@@ -124,7 +128,7 @@ class SomePage:
 | `LoginPage`               | —                   | 登录前启动画面（不注册为 PageName） |
 | `IntensifyPage`           | `INTENSIFY`         | 强化界面                     |
 | `FriendPage`              | `FRIEND`            | 好友界面                     |
-| `ChooseShipPage`          | `CHOOSE_SHIP`       | 选船界面                     |
+| `ShipSelectionPage`       | `CHOOSE_SHIP`       | 选船界面                     |
 | `BaseEventPage`           | `EVENT_MAP`         | 活动地图页面                  |
 
 ---
@@ -183,8 +187,8 @@ def _main_to_map(ctx: GameContext) -> None:
     HomePage(ctx).navigate_to(HomePage.Target.SORTIE)
 
 def _map_to_main(ctx: GameContext) -> None:
-    from autowsgr.application.ui.controller.operations.sortie_page.battle_page import MapPage
-    MapPage(ctx).go_back()
+    from autowsgr.application.ui.controller.operations.sortie_page.main_page import SortiePage
+    SortiePage(ctx).go_back()
 ```
 
 延迟导入避免了页面模块间的循环依赖。

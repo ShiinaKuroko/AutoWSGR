@@ -5,7 +5,7 @@
 
 - :class:`~autowsgr.application.ui.controller.operations.sortie_page.decisive_page.map_page.DecisiveMapController`
   — 决战地图页所有交互（overlay 处理、出征、撤退、节点间修理）
-- :class:`~autowsgr.application.ui.controller.battle_preparation.BattlePreparationPage`
+- :class:`~autowsgr.application.ui.controller.fleet.BattlePreparationPage`
   — 出征准备页操作（编队、修理、开始战斗）
 - :class:`~autowsgr.application.ui.controller.operations.sortie_page.decisive_page.page.DecisiveBattlePage`
   — 决战总览页操作（章节导航、重置）

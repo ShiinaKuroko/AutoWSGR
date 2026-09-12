@@ -20,6 +20,7 @@ from autowsgr.common.calibration.choose_ship import (
 )
 from autowsgr.common.constants import SHIPNAMES
 from autowsgr.common.system.logger import get_logger
+from autowsgr.common.types import ShipType
 from autowsgr.common.vision.api_dll import get_api_dll
 from autowsgr.common.vision.ocr import EasyOCREngine, OCRResult, _fuzzy_match, apply_ship_patches
 from autowsgr.common.vision.ocr_rules import (
@@ -49,6 +50,17 @@ _log = get_logger('ui')
 _MAX_LEVEL_NOISE_CHARS = 2
 _MAX_NOISY_LEVEL_HITS_BEFORE_RETRY = 5
 _MIN_SPLIT_LEVEL_CONFIDENCE = 0.85
+
+
+def extract_ship_type_from_text(text: str) -> ShipType | None:
+    """Extract a ship type enum from OCR text."""
+    if not text:
+        return None
+    normalized = re.sub(r'[（(][^（()）]*[)）]', '', text).replace(' ', '')
+    for ship_type in ShipType:
+        if ship_type is not ShipType.Other and ship_type.value in normalized:
+            return ship_type
+    return None
 
 
 def upscale_text_crop(screen: np.ndarray, scale: int) -> np.ndarray:

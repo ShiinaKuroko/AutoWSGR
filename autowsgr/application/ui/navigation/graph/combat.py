@@ -39,16 +39,18 @@ def _event_to_home(ctx: GameContext) -> None:
 
 def _map_to_decisive(ctx: GameContext) -> None:
     """从地图切换到决战面板，并等待决战页面。"""
-    from autowsgr.application.ui.controller.operations.sortie_page.battle_page import MapPage
+    from autowsgr.application.ui.controller.operations.sortie_page.decisive_page import (
+        DecisiveEntryPage,
+    )
 
-    MapPage(ctx).enter_decisive()
+    DecisiveEntryPage(ctx).enter_decisive()
 
 
 def _map_to_home(ctx: GameContext) -> None:
     """从地图返回主页，结束当前出征入口。"""
-    from autowsgr.application.ui.controller.operations.sortie_page.battle_page import MapPage
+    from autowsgr.application.ui.controller.operations.sortie_page.main_page import SortiePage
 
-    MapPage(ctx).go_back()
+    SortiePage(ctx).go_back()
 
 
 # ── 战斗导航图 ─────────────────────────────────────────────────

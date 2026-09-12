@@ -140,7 +140,7 @@ class SidebarPage:
 
     # ── 页面关闭 ──────────────────────────────────────────────────────────────
 
-    def close(self) -> None:
+    def close_sidebar(self) -> None:
         """关闭侧边栏并确认回到母港主页面。
 
         Raises:

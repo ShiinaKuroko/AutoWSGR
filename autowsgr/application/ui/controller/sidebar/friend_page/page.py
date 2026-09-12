@@ -8,7 +8,7 @@
 下层依赖：
 - application.ui.controller.sidebar.friend_page.constants：提供好友页面返回坐标。
 - application.ui.controller.sidebar.main_page：提供侧边栏页面检查器。
-- application.ui.controller.shared.top_tabs：识别好友标签页页面。
+- application.ui.controller.operations.sortie_page.main_page：识别好友标签页页面。
 - common.ui.interaction：等待侧边栏页面到达。
 - common.types：提供页面名称和匹配结果类型。
 """
@@ -52,7 +52,7 @@ class FriendPage:
         Returns:
             好友页面匹配结果。
         """
-        from autowsgr.application.ui.controller.shared.top_tabs import (
+        from autowsgr.application.ui.controller.operations.sortie_page.main_page import (
             TabbedPageType,
             check_tabbed_page,
         )

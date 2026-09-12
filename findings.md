@@ -644,6 +644,41 @@
 - 阶段三没有把 `ShiinaKuroko` 的旧 `ops`/`infra` 目录搬进目标；功能分别落在当前
   `business`、`application`、`server`、`dispatch` 和测试边界，排除项和已存在项均已写入台账。
 
+## 2026-09-09 Strict Controller Rework Baseline
+
+- 当前目标分支工作区干净，真实 Controller 文件树与旧报告不一致：顶层仍有
+  `battle_preparation/` 页面组，`operations/sortie_page/` 仍有 `sortie.py` 和
+  `decisive.py`，`home/main_page/` 仍有 `overlays.py`；这些路径需要按职责重新命名
+  或归位，不能以“已迁移”代替治理。
+- `battle_preparation/preparation.py` 是页面组合入口，却不是规范要求的 `page.py`；
+  `shared/choose_ship.py` 是跨模式页面控制器，但仍混合 OCR、上下文和共享校准，按
+  用户约束保留算法并把结构/视觉风险留在 TODO。
+- 当前生产、测试和工具消费者已经逐项定位；结构批次需要同步路径，不保留没有真实
+  消费者的兼容别名。浴室页面和选船算法不在本批次改动范围。
+- 结构批次的命名决策：`battle_preparation` 归入
+  `operations/sortie_page/battle_preparation_page`，其页面组合入口由 `preparation.py`
+  改为 `page.py`；`sortie.py` 和 `decisive.py` 改为 `sortie_panel.py` 和
+  `decisive_panel.py`，因为它们是顶部标签 Mixin；主页 `overlays.py` 改为
+  `overlay.py`。这些是物理重命名和引用同步，不保留无消费者别名。
+- `shared/choose_ship.py` 确认是跨模式页面控制器，包化为
+  `shared/choose_ship_page/page.py` 但保留其现有选船算法、OCR 调用和共享校准依赖；
+  不创建空 `recognition.py`，校准下沉和 OCR/上下文生命周期继续进入 TODO。
+- 行为编排批次已将明确的 `is/get/ensure/switch` 状态或面板入口统一为
+  `check/read/open/click/select` 语义；`start/enter/collect/change` 仅保留为有独立
+  业务结果的组合动作，不把它们改成无意义的 `click_*` 包装。
+- `BuildPage` 的解体过滤流程和 `ChooseShipPage` 的私有辅助已按实际调用链排序；除
+  保护的 BathPage 外，模块级说明、私有导入和旧路径审计通过。
+
+## 2026-09-09 Strict Controller Rework Final Verification
+
+- 最终 focused 回归为 `364 passed`；controller、navigation、business 和 application
+  相关目录 compileall、稳定入口 import smoke、目标文件 pre-commit 与 `git diff --check`
+  全部通过。
+- 当前 Controller 内没有旧文件名、旧路径或已治理的旧公共 API 名称残留；页面模块文件级
+  说明审计通过，`backyard/bath_page` 没有进入 diff。
+- 未执行真实游戏/模拟器 E2E；选船 OCR/上下文、决战节点视觉异常、BathPage OCR 和
+  `PageName` 语义统一继续由既有 TODO/台账承接。
+
 ## 2026-09-09 Stage 4 Decisive Debug Audit
 
 - 参考决战 debug worktree 的核心提交为 `7bd0ece`、`c55f994`、`9596446`；当前工作区
@@ -658,3 +693,463 @@
   用时序测试证明新轮询等价后再评估调整。
 - 已产出阶段四参考计划，明确资源路径映射、依赖顺序、冲突、验证门禁、回滚点和用户
   确认项；本阶段不修改任何决战代码或参考 worktree。
+
+## 2026-09-09 Vertical Sortie Page Split
+
+- 用户确认 `sortie_page/main_page` 承载 sortie 页面壳和顶部标签能力；
+  `check_current_page` 的业务语义是“已进入 sortie_page”，不是普通出征地图识别。
+- `sortie_page` 最终只保留 `main_page`、`battle_page`、`campaign_page`、
+  `decisive_page`、`exercise_page` 和 `expedition_page` 六个页面目录；现有
+  `sortie_panel.py`、`decisive_panel.py` 和聚合 `MapPage` 不再作为架构目标。
+- 普通出征章节/地图定位、地图 OCR 确认、掉落/战果/舰船数量读取和进入出征准备归入
+  `battle_page`；顶部标签读取/切换归入 `main_page`；各模式动作归入对应页面。
+- 现有 `battle_preparation_page` 位于 `sortie_page` 下，与“只保留六个目录”的约束冲突，
+  需要在结构盘点阶段确认迁移到 `operations` 直属页面组。
+
+## 2026-09-10 Fleet Main Page Rework
+
+- 当前 `fleet/main_page/page.py` 仍继承 `DetectionMixin`、`SupplyMixin`、`RepairMixin`、
+  `CampaignFleetChangeMixin` 和空的 `BaseBattlePreparation`；`base.py` 已没有可复用的
+  基类状态，因此页面继承只是在隐藏能力依赖。
+- 准备页能力按 `preparation`（页面原子操作和页面状态）、`fleet_status`（舰队状态识别）、
+  `supply`（补给/支援）和 `repair`（快速维修）拆分；识别实现进入各能力的
+  `recognition.py`，校准值进入同目录 `constants.py`。
+- `fleet_change` 核心算法内部仍依赖页面方法和 `_ctrl`/`_ctx`；用私有组合适配对象转发
+  页面能力，保留算法和现有页面实例 patch 契约，不让 `BattlePreparationPage` 继承算法类。
+- 最终结构为 `page.py` 加 `preparation`、`fleet_status`、`supply`、`repair`、
+  `fleet_change`；旧 flat 能力文件已删除，准备页页面类基类仅为 `object`。
+- 适配后的准备页/换船/业务回归为 `368 passed`；能力入口、消费者 smoke、compileall、
+  目标 pre-commit 和 `git diff --check` 均通过。
+
+## 2026-09-12 Fleet Rewrite Planning and Standards Audit
+
+- Battle Page 的可复用样板是包级单一入口、页面主流程优先、识别实现私有和校准配置集中；
+  不应机械要求每个小流程同时创建 `workflow.py` 与 `operations.py`。
+- Fleet 重写目标确定为根主流程加 `main_page`、`formation`、`inspection`、`supply`、
+  `repair`、`departure`、`shipyard_page` 子流程；旧兼容全部删除。
+- 当前两份规范存在通用规则重复、基础规范命名错误、流程排序冲突、`as` 和坐标精度规则
+  过宽、任务特例污染以及缺少包边界/状态/错误/机器门禁等问题。
+- `navigation-code-style.md` 此前未进入 Meta `.gitignore` 白名单，其他 worktree 无法可靠取得；
+  已将导航规范、新任务书和规范评审文档加入精确白名单。
+- 仓库没有现成 Code Graph 工具；第一版可用标准库 AST 构建模块、符号、导入、调用、
+  注册、配置、资源和测试关系，不依赖 `uv.lock` 中的传递依赖 `networkx`。
+
+## 2026-09-12 Fleet Three-Boundary Architecture Correction
+
+- 维护者否决根 `workflow.py` 加 `formation/inspection/supply/repair/departure` 平铺结构；
+  Fleet 一级目录必须只表达三类职责：页面控制器、选船核心、辅助功能。
+- 页面控制器负责编队/准备页面 UI 控制与对外主流程编排；它可以调用另外两类一级模块，
+  但不得重新实现 OCR、规则规划、船池搜索、补给或维修细节。
+- 选船核心必须按真实流程节点继续拆分为编队识别、编队调整和编队选船：识别产生当前事实，
+  调整消费 YAML 规则并产生目标/变更计划，选船负责船池搜索、候选校验和单舰替换执行。
+- 辅助功能承载补给、战役支援、维修等可独立触发的业务流程；每项按业务功能建包，不能用
+  `utils`、`helpers` 或笼统状态检查包收纳未分类代码。
+- 损伤识别属于维修流程所需事实时由维修模块拥有；舰名、舰种、等级、槽位占用等用于编队
+  规划的事实由编队识别拥有，禁止两边复制同一识别实现或共享可写状态。
+- 当前 `main_page/page.py` 同时转发页面操作、舰队识别、换船、补给和维修，并通过
+  `__getattr__` 暴露 `FleetChangeController`；它是兼容聚合器，不是目标页面控制器。
+- 当前 `fleet_change` 由 `_detect -> _rules -> _planning -> _selection -> _alignment ->
+  _change -> campaign` 的 Mixin 继承链组成，`FleetChangeController` 又通过
+  `__getattribute__`/`__getattr__` 回调页面；目标结构必须改为流程节点的显式调用。
+- 当前 `shipyard_page/page.py` 同时包含搜索框操作、候选卡 OCR、约束判断和点击执行；目标上
+  它属于“编队选船”节点，不再作为与选船核心平级的 Fleet 一级页面包。
+- 页面控制器不是纯原子动作集合：按用户已确认的 Battle Page 样板，`main_page/page.py`
+  顶部应提供“确认准备页 -> 选择舰队 -> 调用选船核心 -> 调用辅助流程 -> 点击进入战斗”的
+  主流程，随后才排列页面检查和原子 UI 方法；不再另设根 `workflow.py` 聚合层。
+- 页面身份、当前舰队标签和当前面板等非 OCR 页面状态归 `main_page`；舰名/舰种/等级/槽位
+  OCR 归选船核心的编队识别；血条损伤识别归辅助功能的维修包；自动补给和战役支援状态
+  分别归各自辅助包，避免建立横向 `fleet_status` 杂项模块。
+- `start_battle`、`try_start_battle` 和 `go_back` 是准备页面本身的 UI/终态动作，归
+  `main_page`，不再创建旧任务书提出的 `departure` 一级流程。
+- 当前原始 YAML 的加载、字段验证和预设转换位于 `business.combat` 配置入口，Fleet 实际
+  接收 `FleetSlotRule`/`ShipSelector`；“YAML 识别”在选船核心中应定义为理解和执行这两个
+  规范化模型所表达的主选、备选、舰种和等级规则，不把文件 I/O 或 Schema 下沉到 UI。
+- `FleetSlotRule`、`ShipSelector` 是无 UI 依赖的共享值对象，继续由 `common.fleet` 拥有；
+  选船核心消费它们，不复制第二套模型或维护第二套 YAML 解析结果。
+
+## 2026-09-12 Fleet F0 Definition Inventory
+
+当前 Fleet 源目录包含 30 个 Python 文件。以下为本轮 AST 盘点出的全部 class、method 和
+顶层函数；它们必须在迁移表中各自拥有唯一目标，不得按文件整体搬迁后再猜职责。
+
+- `main_page/page.py`：`BattlePreparationPage.__init__`、`prepare_and_start_battle`、
+  `check_current_page`、`check_auto_supply_enabled`、`read_selected_fleet`、
+  `read_active_panel`、`_preferred_ocr`、`select_fleet`、`select_panel`、
+  `click_ship_slot`、`toggle_auto_supply`、`open_quick_supply`、`open_quick_repair`、
+  `start_battle`、`try_start_battle`、`go_back`、`detect_ship_damage`、
+  `detect_fleet_info`、`_recognize_fleet_levels`、`_recognize_fleet_ship_types`、
+  `_best_ship_type_from_results`、`_parse_level`、`detect_fleet`、`detect_fleet_snapshot`、
+  `fill_missing_fleet_snapshot`、`change_fleet`、`validate_campaign_fleet`,
+  `last_changed_fleet`、`check_support_enabled`、`toggle_battle_support`、`supply`、
+  `apply_supply`、`check_repair`、`repair_slots`、`apply_repair`、`__getattr__`、
+  `FleetInfo` 类属性挂载。
+- `main_page/preparation/operations.py`：`select_fleet`、`select_panel`、
+  `click_ship_slot`、`switch_auto_supply`、`open_quick_supply`、`open_quick_repair`、
+  `start_battle`、`try_start_battle`、`go_back`。
+- `main_page/preparation/recognition.py`：`check_current_page`、
+  `check_auto_supply_enabled`、`read_selected_fleet`、`read_active_panel`。
+- `main_page/preparation/constants.py`：`Panel` 枚举。
+- `main_page/fleet_status/operations.py`：`FleetInfo.to_ships`、`read_fleet_info`。
+- `main_page/fleet_status/recognition.py`：`detect_ship_damage`、`read_fleet_levels`、
+  `read_fleet_ship_types`、`_best_ship_type_from_results`、`_parse_level`、
+  `_best_level_from_results`。
+- `main_page/fleet_change/_detect.py`：`FleetSnapshot.unknown_slots`、
+  `FleetSnapshot.unknown_type_slots`、`FleetSnapshot.unknown_level_slots`、
+  `FleetSnapshot.has_unknown_details`、`FleetDetectMixin._match_context_ship_name`、
+  `detect_fleet`、`_recognize_fleet_names_at_slots`、`detect_fleet_snapshot`、
+  `fill_missing_fleet_snapshot`。
+- `main_page/fleet_change/_rules.py`：`FleetRuleMixin._option_matches_name`、
+  `_slot_options`、`_matches_search_name`、`_option_for_name`、
+  `_requires_selection_validation`、`_snapshot_satisfies_option`、`_slot_matches`、
+  `_validate_with_selector`。
+- `main_page/fleet_change/_planning.py`：`FleetPlanningMixin._plan_target_options`、
+  `_ocr_target_pool`、`_target_names`、`_validate_assignment`、`_member_set_satisfied`、
+  `_mark_snapshot_verified_slots`、`_match_existing_members`、`_assignment_locations`、
+  `_target_order`、`_replacement_slot`。
+- `main_page/fleet_change/_selection.py`：`_ShipSelection` 数据类、
+  `FleetSelectionMixin._open_choose_page`、`_cancel_choose_page`、
+  `_try_select_option`、`_change_single_ship`。
+- `main_page/fleet_change/_alignment.py`：`_UnresolvedPrimaryError`、
+  `FleetAlignmentMixin._deferred_primary_slots`、`_select_deferred_fallback`、
+  `_try_deferred_primary`、`_resolve_deferred_primaries`、`_align_member_set`、
+  `_remove_extra_members`、`_full_align`、`_local_fix`、`_reorder`、`_circular_move`。
+- `main_page/fleet_change/_change.py`：`FleetChangeMixin._emit_fleet_event`、
+  `last_changed_fleet`、`_merge_position_snapshot`、`_snapshot_option_match_result`、
+  `_snapshot_slot_match_result`、`_log_snapshot_debug`、`_assignment_failure_reason`、
+  `_log_final_result`、`_detect_position_snapshot`、`_prepare_members_for_reorder`、
+  `change_fleet`、`_level4_detail_requirements`、`_retry_invalid_strict_details`、
+  `_detect_initial_snapshot`。
+- `main_page/fleet_change/campaign.py`：`CampaignFleetChangeMixin.change_fleet`、
+  `validate_campaign_fleet`、`_change_campaign_fleet`、`_clear_campaign_fleet`、
+  `_replace_campaign_slots`、`_select_campaign_slot`、`_clear_campaign_slot`、
+  `_campaign_slot_satisfied`、`_finish_campaign_fleet`。
+- `main_page/fleet_change/decisive_fleet.py`：`change_decisive_fleet`。
+- `main_page/fleet_change/operations.py`：`FleetChangeController.__init__`、
+  `__getattribute__`、`__getattr__`、`create_controller`、`change_fleet`。
+- `shipyard_page/page.py`：`_CardConstraintResult.is_fallback`、
+  `fallback_priority`、`ChooseShipPage.__init__`、`check_current_page`、
+  `open_search_box`、`input_ship_name`、`dismiss_keyboard`、`click_remove_ship`、
+  `select_single_ship`、`_normalize_hit_entry`、`_is_level_in_range`、
+  `_check_hit_constraints`、`_click_ship_in_list`、`_detect_ship_type_in_single_card`、
+  `_extract_ship_type_from_text`、`_is_ship_type_in_rule`、`_normalize_search_keyword`、
+  `_matches_ship_name`、`_preferred_ocr`、`_detect_hit_ship_type`、
+  `_wait_leave_current_page`。
+- `main_page/repair/operations.py`：`RepairStrategy`、`check_repair`、`repair_slots`、
+  `apply_quick_repair`。
+- `main_page/supply/operations.py`：`switch_battle_support`、`supply`、`apply_supply`。
+- `main_page/supply/recognition.py`：`check_support_enabled`。
+- `__init__.py` 中的包级 `__getattr__` 以及所有 `__all__` 重导出也属于 F0 审计对象，
+  但不作为业务方法迁移。
+
+F0 外部引用初步结果：生产业务主要从 `fleet.main_page` 取得 `BattlePreparationPage`，
+示例和 E2E 工具也使用该页面；现有 UI/业务测试还直接 patch 或导入旧的深层实现，包括
+`fleet_change._detect`、`fleet_change._change`、`main_page.preparation`、
+`main_page.fleet_status` 和 `shipyard_page`。这些深层测试引用不能直接视为新 API，必须在
+后续按业务行为迁移或按旧兼容测试删除。
+
+当前发现的运行期可写状态包括页面保存的 `_ctx`、`_ctrl`、`_ocr`、`_ship_ocr`、
+`_fleet_change`，以及旧换船控制器保存的 `_last_changed_fleet`、`_initial_snapshot`、
+`_on_fleet_event`。前四项是注入引用，后三项分别是待删除的旁路结果、识别中间状态和
+事件 callback 状态，F0 必须继续追踪其所有读写方。
+
+F0 生产消费者清单：
+
+- `business.combat.bettle.normal_fight`：创建准备页、选择舰队、换船、补给、维修并启动普通战斗。
+- `business.combat.exercise.operations`：创建准备页、读取/应用演习编队和维修策略。
+- `business.combat.campaign.operations`：创建准备页、执行战役舰队校验/换船和维修策略。
+- `business.combat.decisive.handlers` 与 `operations.sortie_page.decisive_page.map_page`：
+  创建准备页、决战换船/维修和准备页检查。
+- `application.combat.support` 与 `business.logistics.repair.quick_repair`：调用准备页或维修
+  子模块完成支持流程。
+- `application.ui.navigation.registry`、`navigation.service`、主页活动导航和 sortie 页面：
+  注册或等待准备页检查，并执行准备页返回。
+- `examples/change_fleet.py`、`tools/ocr_change_fleet_e2e`：直接作为手工/端到端入口创建页面。
+
+F0 非生产引用主要集中在 `testing/ui/battle_preparation`、战役/普通/导航测试和旧页面
+E2E；其中同时存在真实行为断言与旧私有路径 patch，不能一次性全部保留或全部删除。
+
+生产流程补充结论：普通、演习、战役和决战业务当前各自编排舰队选择、补给、维修、战前
+状态读取和出征；Fleet 重构后这些页面动作应收敛到 `main_page` 的主流程入口，但任务
+上报、战斗次数耗尽、澡堂导航和任务状态仍属于业务/导航层，不得下沉到 Fleet。
+
+F0 直接消费者按迁移性质分组：
+
+- 生产入口：`business/combat/bettle/normal_fight.py`、`business/combat/exercise/operations.py`、
+  `business/combat/campaign/operations.py`、`business/combat/decisive/handlers.py`，需要改为
+  调用新的页面主流程并继续保留各自业务状态机职责。
+- 决战页面和导航：`operations/sortie_page/decisive_page/map_page.py`、
+  `decisive_page/preparation_page.py`、`decisive_page/legacy_fleet_change.py`、
+  `application/ui/navigation/registry.py`、`navigation/service.py`；其中决战旧准备页继承
+  和旧算法入口应在 F0 标为删除/重写，不得继续保留兼容。
+- 其他生产调用：`application/combat/support.py`、`business/logistics/repair/quick_repair.py`、
+  `home/event_page/page.py`、普通/战役/演习 sortie 页面、`common/system/config_compat.py`。
+- 行为测试：`testing/ui/battle_preparation/test_unit.py`、
+  `testing/ui/battle_preparation/test_decisive_fleet_branch.py`、
+  `testing/ui/battle_preparation/test_main_page_flow.py`、
+  `testing/ui/test_choose_ship_page.py`、战役/演习业务测试、普通战斗与澡堂导航测试；
+  测试中既有新行为验证也有旧私有 patch，须逐项迁移或删除。
+- 工具、示例和文档：`examples/change_fleet.py`、`tools/ocr_change_fleet_e2e/`、
+  `docs/architecture/`、`docs/developer/`、`docs/features/`、`docs/usage/`；其中代码工具
+  随 API 迁移，文档只同步最终入口，不保留失效路径说明。
+
+F0 当前定义的初步唯一归属：
+
+- `main_page` 保留准备页 `check_current_page`、`read_selected_fleet`、`read_active_panel`、
+  `select_fleet`、`select_panel`、`click_ship_slot`、`start_battle`、`try_start_battle`、
+  `go_back` 和 `prepare_and_start_battle`；页面方法直接调用 `main_page.constants`，不再
+  通过 `preparation` 包转发。
+- `formation/fleet_recognition` 接收 `FleetSnapshot`、舰名/槽位/舰种/等级识别和纯解析；
+  `main_page` 上的 `detect_fleet`、`detect_fleet_snapshot`、`fill_missing_fleet_snapshot`
+  只作为主流程调用该节点的过渡定义，最终不保留页面转发方法。
+- `formation/fleet_adjustment` 接收规则匹配、主选/备选规划、成员集合调整、移除、排序、
+  复查以及战役/决战分支；`change_fleet` 和 `validate_campaign_fleet` 改为该节点入口。
+- `formation/ship_selection` 接收 `_selection.py` 和 `shipyard_page/page.py` 的船池 UI、
+  候选 OCR、约束筛选、单舰选择/移除和选船页退出；`ChooseShipPage` 旧类名不保留。
+- `support/supply` 接收自动补给状态、自动补给切换、快速补给打开和补给动作；
+  `support/campaign_support` 接收战役支援识别和切换；`support/repair` 接收损伤识别、
+  修理策略、快速维修、复查和手动维修中断。
+- `detect_fleet_info`、`FleetInfo`、`FleetInfo.to_ships`、`last_changed_fleet`、
+  `_preferred_ocr`、页面私有算法挂载和三个动态代理目前标为“拆分后删除”，最终以 F0
+  消费者核对决定替代结果契约，不恢复旧聚合器。
+
+F0 结果模型结论：`FleetInfo` 只是把舰队编号、等级和损伤再次聚合，并由 `to_ships` 创建
+`SimpleNamespace` 供业务临时消费；它没有独立页面事实所有权。目标应由编队识别返回
+`FleetSnapshot`，维修返回明确的损伤/修理结果，业务层需要的战斗对象由业务层自行转换，
+不在 Fleet 保留第二个聚合模型。
+
+F0 决战分支结论：`decisive_fleet.py` 通过设置 `_use_search`、写入
+`_last_changed_fleet`、调用页面私有 `_change_single_ship`/`_reorder`/`_validate_with_selector`
+完成决战编队；这是旧 Mixin 边界泄漏，目标迁入 `formation/fleet_adjustment/decisive.py`
+后改为显式调用编队识别、调整和选船入口。
+
+F0 输入边界确认：`business/combat/fleet.py` 已集中拥有 YAML/API 槽位转换、舰种代码解析、
+主选/备选规则模型和舰队选择优先级；Fleet 不应复制这些入口。需要迁移的是它们的 UI
+消费者，不是把 YAML 解析器再搬进 Controller。
+
+F0 兼容点确认：`fleet/__init__.py` 当前没有公共出口，`main_page/__init__.py` 通过包级
+`__getattr__` 延迟提供页面类，`business/logistics/repair/quick_repair.py` 通过
+`sys.modules` 把旧模块替换成维修包；这些都是任务书明确要求删除的兼容机制。
+
+F0 特殊页面确认：`application/ui/navigation/registry.py` 是选船页面检查器的唯一生产注册
+方；决战 `preparation_page.py` 和 `legacy_fleet_change.py` 仍各自依赖旧准备页/换船入口，
+后续必须改为 `formation` 选船核心与 `main_page` 的明确入口，不能保留第二套决战页面流程。
+
+F0 校准归属确认：现 `preparation/constants.py` 混合准备页基础控件、自动补给和面板校准；
+`fleet_status/constants.py` 混合血条、等级和舰种 ROI；`repair/constants.py` 又引用血条
+坐标；`supply/constants.py` 混合战役支援和补给时序。重构时按业务拥有者拆开，不能把这些
+映射原样复制到多个新包。现有舰种 ROI 还包含高于四位的小数，属于 OCR/ROI 专项中需要
+保留校准精度、不能机械四舍五入的内容。
+
+F0 测试边界确认：`testing/ui/battle_preparation/test_unit.py` 既覆盖页面原子动作，也覆盖
+大量编队识别、规则规划、决战分支和旧私有 patch；`test_choose_ship_page.py` 直接覆盖船池
+卡片筛选。后续应按三个选船节点和三个辅助流程重新分组，旧路径 patch 全部删除，不把
+这份混合测试继续作为新模块的入口契约。
+
+F0 页面基础实现确认：当前准备页的页面模板检查、舰队标签读取、面板读取、舰队/槽位/面板
+点击、开始出征和返回动作都可以直接下沉到 `main_page/page.py`；`check_current_page` 不是
+OCR 规则，而是 `Templates.Page.BATTLE_PREP` 模板匹配。`try_start_battle` 只需要改为调用
+页面自身的 checker，不需要保留独立 `preparation.recognition` 模块。
+
+## 2026-09-12 Fleet F1 Page Controller Started
+
+- 已将 `main_page/page.py` 改为只包含准备页主流程、页面检查、舰队/面板读取、槽位/面板
+  点击、开始出征和准备页返回；删除旧页面上的识别、换船、补给、维修和动态代理出口。
+- 已将准备页校准物理迁移到 `main_page/constants.py`，删除独立 `preparation` 包文件；
+  自动补给和战役支援等配置待对应辅助包迁移时进一步分离。
+- F1 期间旧 `preparation` 路径仍被尚未迁移的旧辅助/换船实现引用，属于明确的中间断点；
+  不创建兼容 re-export，后续阶段直接改调用方。
+
+## 2026-09-12 Fleet F2 Formation Recognition Started
+
+- 已建立 `formation/fleet_recognition/`，将 `FleetSnapshot` 与舰名、槽位占用、舰种、等级
+  识别统一放入识别节点；识别函数只接收截图和显式 OCR 引擎。
+- 旧 `main_page/fleet_change/_detect.py` 和 `main_page/fleet_status/` 已删除，页面不再
+  暴露舰队识别转发方法；旧换船代码的引用将在 F4/F5 重写时直接迁移。
+- 编队识别节点保留现有 OCR 匹配行为，未创建新的 OCR 引擎或上下文；`_fuzzy_match` 私有
+  依赖仍按既有 OCR 专题范围处理。
+
+F2 视觉边界待 F8 决定：编队识别需要知道槽位是否有船，当前临时通过血条探测点和
+`classify_blood` 得到布尔占用状态；维修又需要同一探测点得到损伤状态。后续不得在两个
+模块复制颜色分类逻辑，应由 `main_page` 主流程协调一次识别结果，或将无业务语义的像素
+分类下沉到 common 后由两个业务包消费。当前不在 F2 扩大范围。
+
+F2 验证样例修正：项目 `SHIP_LEVEL_MAX` 为 110，首次 smoke 使用 `Lv. 120` 不符合当前
+等级范围；该失败不代表识别迁移失败，后续使用项目允许的等级输入验证。
+
+## 2026-09-12 Fleet F3 Ship Selection Started
+
+- 已建立 `formation/ship_selection/`，将船池页面拆为 `page.py` 页面动作、`recognition.py`
+  船卡 OCR/约束判断和 `workflow.py` 搜索/滚动/点击/移除流程。
+- `ShipSelectionPage` 只持有调用方注入的上下文和设备引用；选船工作流通过页面公开原子
+  方法操作设备，不再依赖准备页私有属性或 Mixin。
+- 已删除旧 `shipyard_page/` 和 `fleet_change/_selection.py`；现有 `_fuzzy_match` 仅按原
+  语义迁移到识别模块，未在本阶段优化 OCR。
+
+## 2026-09-12 Fleet F4 Adjustment Migration Started
+
+- 已将旧 `_rules.py`、`_planning.py`、`_alignment.py`、`_change.py`、`campaign.py` 和
+  `decisive_fleet.py` 物理迁移到 `formation/fleet_adjustment/`，下一步把 Mixin 改为
+  `FleetRules`、`FleetPlanner`、`FleetAlignment` 和 `FleetAdjustment` 的显式组合。
+- 规则和规划模块可以保持无状态；对齐和调整流程需要保存当前快照、有限重试和页面/上下文
+  引用，这些状态必须只属于 `FleetAdjustment`，不能继续散落在类属性或页面对象上。
+- 决战分支当前直接操作页面私有 `_change_single_ship`、`_reorder` 和 `_validate_with_selector`；
+  F4 必须改为调整流程对象调用选船节点和页面公开动作。
+
+F4 算法内部结构确认：旧 `_change.py` 是实际的普通/活动/演习调整主流程，包含快照合并、
+验证日志、初始四轮识别、成员集合调整、排序和局部重试；旧 `_alignment.py` 是成员替换、
+删除和拖拽实现；`_planning.py` 的规划函数与 `_rules.py` 的规则函数可无状态化。目标应
+保留这些业务阶段，但把状态集中到 `FleetAdjustment`，不把每个算法阶段继续拆成新的一级
+模块或用代理串联。
+
+F4 旧战役分支确认：原 `campaign.py` 通过继承通用换船类复用规划、识别和单槽选择，只把
+“清空不压缩、固定物理槽位、点对点换船”作为差异；重构后这些差异保留为
+`fleet_adjustment/campaign.py` 的函数，接收 `FleetAdjustment` 的显式操作依赖，不新增
+页面类或继承层。
+
+F4 旧决战分支确认：原 `decisive_fleet.py` 同时承担目标匹配、单舰替换、清空多余舰船和
+拖拽排序；重构后保留为 `fleet_adjustment/decisive.py` 的模式流程，具体识别、选船和页面
+动作分别调用已有节点，不在决战文件复制通用逻辑。
+
+F4 当前实现确认：`FleetAdjustment` 以显式 `FleetAlignment`、`FleetPlanner` 和页面对象
+组合；`rules.py` 与 `planning.py` 不再依赖识别 Mixin。通用、战役、决战调整均统一返回
+`FleetSnapshot` 或抛出明确异常，旧的 `bool` 成功值和 `last_changed_fleet` 已从新流程中移除。
+
+## 2026-09-12 Fleet F6 Supply Migration Complete
+
+- 已建立 `support/supply/`，迁移自动补给状态识别、自动补给切换、快速补给面板和指定槽位
+  补给流程；补给坐标与时序集中在本包 constants。
+- 已删除旧 `main_page/supply/`，页面主流程改为显式调用 `apply_supply(ctx, page)`；战役支援
+  代码没有混入补给包，待 F7 单独迁移。
+- 验证：目标 pre-commit、compileall、自动补给开关分支 smoke 和 `git diff --check` 通过；
+  未运行旧路径测试，未执行实机验证。
+
+## 2026-09-12 Fleet F7 Campaign Support Complete
+
+- 已建立 `support/campaign_support/`，将战役支援颜色识别、启用/关闭切换和切换后复查
+  从 supply 中独立出来。
+- 支援状态使用 `ENABLED`、`DISABLED`、`EXHAUSTED` 三态；耗尽时不再把状态压成可点击的
+  布尔值，关闭请求直接失败，不误触发消耗性操作。
+- 验证：目标 pre-commit、compileall、三态识别 smoke、切换复查 smoke 和
+  `git diff --check` 通过；未运行旧路径测试，未执行实机验证。
+
+## 2026-09-12 Fleet F8 Repair Complete
+
+- 已建立 `support/repair/`，迁移损伤识别、`RepairStrategy`、快速维修、复查和有限重试；
+  血条探测点由 `main_page.constants` 唯一拥有。
+- 手动维修不再接收跨页面 callback，直接抛出带槽位的 `ManualRepairRequiredError`；澡堂
+  导航继续由业务/导航层负责。
+- 已删除旧 `main_page/repair/`，页面主流程改为显式调用 `apply_repair(ctx, page, strategy)`。
+- 验证：目标 pre-commit、compileall、无损伤/快速维修/手动中断/策略判断 smoke 和
+  `git diff --check` 通过；未运行旧路径测试，未执行实机验证。
+
+## 2026-09-12 Fleet F9 Consumer Migration Started
+
+- 生产层的普通、演习、战役和决战流程目前仍分别调用准备页的换船、补给、维修、损伤
+  读取和出征方法；新的根入口需要逐步替换这些能力组合，不能只改 import 名称。
+- 根包将公开 `BattlePreparationPage`、`FleetSnapshot` 和 `RepairStrategy` 等稳定契约；
+  选船节点和辅助包内部实现不作为业务深层入口。
+- 导航注册需要船池页面只读 checker；该 checker 作为根包的注册专用入口，业务代码不得
+  以此穿透 `formation/ship_selection`。
+
+F9 当前迁移顺序：先更新 `navigation.registry` 的准备页/船池 checker 和
+`navigation.service` 的准备页返回入口，再更新普通、演习、战役、决战业务对准备流程的
+调用；决战 `preparation_page.py`/`legacy_fleet_change.py` 属于旧兼容实现，直接删除或
+改为新 `formation` 入口，不保留第二个决战准备类。旧测试中只 patch 私有路径的部分按
+任务书删除，仍验证主流程行为的部分迁移到新入口。
+
+F9 第一批迁移结果：生产代码中准备页构造已统一为只传入运行上下文，准备页/船池页面
+checker 已改为从 Fleet 根包取得；剩余旧路径集中在决战兼容页面、维修兼容别名和测试/文档，
+不再有新的生产模块从 `fleet.main_page` 或 `fleet.shipyard_page` 导入。
+
+F9 决战兼容清理结果：`decisive_page/preparation_page.py` 和
+`decisive_page/legacy_fleet_change.py` 已删除，决战页面包不再导出旧准备页子类或旧算法
+开关。决战地图和状态机后续必须通过 `BattlePreparationPage` 的新页面流程出口接入。
+
+F9 业务调用语义确认：普通战斗当前依赖“调整后的舰名 + 损伤/等级组成的战斗 Ship 对象”，
+战役还依赖编队事件断点和战役次数耗尽回退，演习依赖先编队后单独出征，决战依赖节点状态
+机和澡堂维修分支。新的 `FleetSnapshot` 不再提供旧 `FleetInfo.to_ships`，这些业务结果
+转换必须留在各自业务层，Fleet 只返回页面事实和明确维修异常。
+
+F9 页面入口迁移结果：`BattlePreparationPage` 现在提供 `adjust_fleet`、
+`read_fleet_snapshot`、`read_ship_damage`、`apply_supply`、`apply_repair`、
+`check_repair`、`validate_campaign_fleet` 和准备页返回出口；这些是显式页面流程调用，不是
+动态代理。普通、战役、演习、决战生产调用已切到这些入口，导航注册通过根包 checker 完成。
+
+F9 测试迁移结果：页面主流程、决战入口、澡堂导航和船池节点已有新契约测试；原
+`testing/ui/battle_preparation/test_unit.py` 已删除，因为它整体依赖旧 Mixin/私有 patch。
+战役与普通业务测试仍包含旧页面方法的替身和断言，需要继续按新 `adjust_fleet`、快照和
+损伤读取结果迁移，不能为它们恢复旧 API。
+
+F10 续作预检：当前绑定仍指向 `codex/20260830-autowsgr-upgrade`，任务书已重读并确认
+F0-F9 完成、F10 未完成。现有风险集中在旧路径/旧符号扫描，以及普通/战役业务把
+`FleetSnapshot` 转换为运行时 `Ship` 的行为复核；本阶段不修改 `bath_page`，不恢复旧兼容。
+
+F10 首轮静态扫描：Fleet 当前文件树只有 `main_page`、`formation`、`support` 三个一级
+边界，Fleet 内没有 `Mixin`、`FleetChangeController`、`create_controller`、
+`last_changed_fleet`、动态属性代理或旧 Fleet 路径。仍发现根包/节点内部及测试中的若干
+深层导入，需按“稳定根入口、节点内实现边界、测试是否只验证真实业务”的规则逐项复核；
+普通和战役业务均把快照舰名通过 `ctx.get_ship()` 转成运行时舰船，需确认这是业务层的
+唯一转换且不应回收到 Fleet。
+
+F10 文件初查：`main_page/page.py` 已包含准备页主流程和页面原子动作，`formation` 已
+按识别/调整/选船分包，`support` 已按补给/战役支援/维修分包；未发现旧 Mixin 或动态
+代理实现。待核对项是根包是否应经 `formation.fleet_recognition` 公开出口导出模型、
+节点内部是否存在可消除的跨边界深层导入，以及 `page.py` 中局部导入是否只是为避开
+循环依赖而遗留的实现细节。
+
+F10 导入图复核：`ship_selection.page` 顶层导入 `main_page.page` 仅为 `go_back` 提供
+准备页 checker；由于 `main_page.page` 的流程入口会调用 `formation`，该依赖形成
+`main_page -> formation -> ship_selection -> main_page` 的反向循环。调用方已有真实的
+`BattlePreparationPage.check_current_page`，应将 checker 作为显式参数传入选船页面返回
+动作，消除反向导入而不增加兼容层。Fleet 根包的 `FleetSnapshot` 也应从
+`formation.fleet_recognition` 的公开出口导入，避免直接穿透 `models.py`。
+
+F10 修正后复核：根包已通过 `formation.fleet_recognition` 公开出口导出 `FleetSnapshot`，
+选船页面返回动作已接收调用方 checker，Fleet 的实际运行时导入不再有页面反向依赖。
+普通/战役业务使用 `ctx.get_ship()` 将快照名称映射到运行时 `Ship`，这是业务层唯一转换，
+Fleet 保持只返回识别事实；迁移后的 `common/fleet.py` 仍需补齐项目统一文件级说明。
+
+F10 旧词扫描：当前 Fleet 源码旧目录、Mixin、动态代理、旧 Controller 名称和旁路状态均
+已清零；仓内剩余 `fleet_change` 主要是历史文档和 `use_new_fleet_change_algorithm`
+配置/API。后者只在 `common.system.config`、`server.schemas`、`server.routes.task` 和
+旧配置测试中出现，未发现运行时代码消费者，符合无消费者旧兼容 API 的删除候选；文档
+历史引用需在最终报告中区分为历史记录还是当前契约。
+
+F10 旧兼容清理：已删除 `use_new_fleet_change_algorithm` 的配置字段、决战请求字段、
+路由透传和只验证该开关的两个旧测试；当前 `autowsgr`、`testing`、`tools`、`examples`
+和 `docs` 均不再出现该符号。历史报告中仍可能出现旧架构文件名，但不再是可导入或可
+执行的当前契约。
+
+F10 状态收敛：`FleetAdjustment` 不再保存自己的 `_initial_snapshot`，初始快照只由
+`FleetAlignment` 持有并用于重规划后的已验证槽位标记；未复制新的状态源，也未改变
+调整流程的快照输入输出。
+
+F10 行为门禁：Fleet 主流程、准备页、识别/调整/选船、补给/维修、澡堂导航以及普通、
+战役、演习调用方 focused 测试共 `90 passed`；当前快照到运行时 `Ship` 的业务层转换和
+手动维修异常路径均通过现有替身契约验证。
+
+F10 配置/API 回归：删除无消费者决战换船开关后，`testing/infra/test_config.py` 与
+`testing/test_server_schemas.py` 共 `140 passed`；首次运行的 12 个错误仅是 Windows
+pytest 临时目录父路径不存在，创建工作区内忽略目录后重跑通过。
+
+F10 快照状态复核：初始 `FleetSnapshot` 由 `FleetAdjustment` 唯一持有，对齐节点通过
+`_full_align`/`_local_fix` 显式接收同一快照；战役和决战模式仍从该编排器读取快照字段，
+focused 回归再次 `90 passed`。没有恢复 `FleetAlignment` 的影子快照属性。
+
+F10 配置布局复核：Fleet 全部校准配置仍位于各自 `constants.py`，识别文件只保留 OCR
+算法参数，页面文件没有定义坐标、ROI 或颜色；字典型配置已补充整体业务语义注释。
+迁移到 `common/fleet.py` 的规则值对象已补齐通用文件说明。Scoped pre-commit 第二轮
+所有钩子通过。
+
+F10 import 规范收紧：严格静态门禁初次发现 Fleet 内仍有 `numpy as np` 和
+`UIContext as GameContext` 语义别名；已统一改为真实导入名和真实类型名，当前 Fleet
+代码不再含 import `as` 别名，也没有私有 `from` 导入。
+
+F10 最终验证结论：编译、Fleet 根入口导入、导航注册入口、准确运行时依赖图和静态结构
+门禁均通过；最终 focused 回归共 `230 passed`。受影响源码未执行真实游戏/模拟器 E2E，
+因此页面像素校准、OCR 稳定性和跨模式实机返回路径仍不能由本次测试证明。
+
+F10 已关闭：最终 scoped pre-commit（包含综合报告、任务书和计划文件）全部通过，
+`git diff --check` 通过；任务书 F10、`task_plan.md` Phase 32 和综合报告均已完成。
+当前工作区仍包含本任务之前的大量未提交架构迁移，未执行任何提交或清理；本任务新增的
+pytest 临时目录因安全守卫拒绝递归删除而保留，内容仅为测试临时文件。

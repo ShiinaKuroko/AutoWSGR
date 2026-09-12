@@ -71,11 +71,11 @@ def run_test(runner: UIControllerTestRunner) -> None:  # noqa: PLR0911, C901, PL
     from autowsgr.application.ui.controller.backyard.main_page import BackyardPage
     from autowsgr.application.ui.controller.home.main_page import HomePage
     from autowsgr.application.ui.controller.operations.mission_page import MissionPage
-    from autowsgr.application.ui.controller.operations.sortie_page.battle_page import MapPage
+    from autowsgr.application.ui.controller.operations.sortie_page.main_page import SortiePage
     from autowsgr.application.ui.controller.sidebar.main_page import SidebarPage
 
     main_page = HomePage(runner.ctrl)
-    map_page = MapPage(runner.ctrl)
+    sortie_page = SortiePage(runner.ctx)
     mission_page = MissionPage(runner.ctrl)
     sidebar_page = SidebarPage(runner.ctrl)
     backyard_page = BackyardPage(runner.ctrl)
@@ -130,7 +130,7 @@ def run_test(runner: UIControllerTestRunner) -> None:  # noqa: PLR0911, C901, PL
     runner.execute_step(
         '主页面 → 地图页面 (navigate_to SORTIE)',
         '地图页面',
-        MapPage.check_current_page,
+        SortiePage.check_current_page,
         lambda: main_page.navigate_to(HomePage.Target.SORTIE),
     )
     if runner.aborted:
@@ -140,7 +140,7 @@ def run_test(runner: UIControllerTestRunner) -> None:  # noqa: PLR0911, C901, PL
         '地图页面 → ◁ 主页面',
         '主页面',
         HomePage.check_current_page,
-        map_page.go_back,
+        sortie_page.go_back,
     )
     if runner.aborted:
         return
@@ -178,7 +178,7 @@ def run_test(runner: UIControllerTestRunner) -> None:  # noqa: PLR0911, C901, PL
         '侧边栏 → close → 主页面',
         '主页面',
         HomePage.check_current_page,
-        sidebar_page.close,
+        sidebar_page.close_sidebar,
     )
     if runner.aborted:
         return
@@ -250,7 +250,7 @@ def run_test(runner: UIControllerTestRunner) -> None:  # noqa: PLR0911, C901, PL
     runner.execute_step(
         '便捷方法 go_to_sortie()',
         '地图页面',
-        MapPage.check_current_page,
+        SortiePage.check_current_page,
         main_page.go_to_sortie,
     )
     if runner.aborted:
@@ -260,7 +260,7 @@ def run_test(runner: UIControllerTestRunner) -> None:  # noqa: PLR0911, C901, PL
         '地图页面 → ◁ 主页面 (收尾)',
         '主页面',
         HomePage.check_current_page,
-        map_page.go_back,
+        sortie_page.go_back,
     )
     if runner.aborted:
         return

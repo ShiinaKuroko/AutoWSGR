@@ -27,14 +27,14 @@ class _Rivals:
         self.rivals = values
 
 
-class _MapPage:
+class _ExercisePage:
     statuses: ClassVar[list[list[bool]]] = []
     selected: ClassVar[list[int]] = []
 
     def __init__(self, _ctx: object) -> None:
         pass
 
-    def switch_panel(self, _panel: object) -> None:
+    def click_tab(self, _tab: object) -> None:
         return None
 
     def read_exercise_rival_status(self) -> _Rivals:
@@ -58,29 +58,26 @@ class _PreparationPage:
         self.task_type = None
         self.events: list[str] = []
 
-    @staticmethod
-    def is_current_page(_screen: object) -> bool:
-        return _PreparationPage.on_preparation_page
-
     def select_fleet(self, fleet_id: int) -> None:
         self.events.append(f'fleet:{fleet_id}')
 
-    def change_fleet(
+    def adjust_fleet(
         self,
-        fleet_id: int,
-        rules: object,
         *,
+        fleet_id: int,
+        fleet_rules: object,
         task_type: str = 'normal',
         on_event: Callable[..., None] | None = None,
-    ) -> bool:
+        **_kwargs: object,
+    ) -> object:
         self.events.append(f'change:{fleet_id}')
         self.task_type = task_type
-        self.rules = rules
+        self.rules = fleet_rules
         if on_event is not None:
             on_event('fleet_validation', passed=True, members=['A'])
-            on_event('ship_selected', slot=1, option=rules[0].primary, selected='A')
+            on_event('ship_selected', slot=1, option=fleet_rules[0].primary, selected='A')
             on_event('fleet_result', members=['A', None], passed=True)
-        return True
+        return self
 
     def apply_repair(self, _strategy: object) -> None:
         self.events.append('repair')
@@ -89,7 +86,7 @@ class _PreparationPage:
         self.events.append('supply')
 
     @staticmethod
-    def detect_ship_damage(_screen: object) -> dict[int, ShipDamageState]:
+    def read_ship_damage() -> dict[int, ShipDamageState]:
         return dict.fromkeys(range(6), ShipDamageState.NORMAL)
 
     def start_battle(self) -> None:
@@ -116,11 +113,12 @@ def _ctx() -> SimpleNamespace:
 
 @pytest.fixture(autouse=True)
 def _patch_pages(monkeypatch: pytest.MonkeyPatch) -> None:
-    _MapPage.statuses = [[True, False, False, False, False], [False] * 5]
-    _MapPage.selected = []
+    _ExercisePage.statuses = [[True, False, False, False, False], [False] * 5]
+    _ExercisePage.selected = []
     _PreparationPage.instances = []
     _PreparationPage.on_preparation_page = False
-    monkeypatch.setattr(operations_module, 'MapPage', _MapPage)
+    monkeypatch.setattr(operations_module, 'SortiePage', _ExercisePage)
+    monkeypatch.setattr(operations_module, 'ExercisePage', _ExercisePage)
     monkeypatch.setattr(operations_module, 'BattlePreparationPage', _PreparationPage)
     monkeypatch.setattr(executor_module, 'goto_page', MagicMock())
     monkeypatch.setattr(initialize_module, 'initialize', lambda _ctx: None)
@@ -155,7 +153,7 @@ def test_executor_uses_yaml_fleet_and_exercise_combat_plan() -> None:
     result = executor.run()
 
     assert len(result) == 1
-    assert _MapPage.selected == [1]
+    assert _ExercisePage.selected == [1]
     page = _PreparationPage.instances[0]
     assert page.task_type == 'exercise'
     assert page.rules is not None
@@ -223,7 +221,7 @@ def test_pause_after_battle_keeps_completed_result() -> None:
         if event == 'rival_done':
             pause.set()
 
-    _MapPage.statuses = [[True, False, False, False, False]]
+    _ExercisePage.statuses = [[True, False, False, False, False]]
     first = executor_module.ExerciseExecutor(
         _ctx(),
         {'fleet_id': 2, 'rivals_limit': 1},
@@ -235,7 +233,7 @@ def test_pause_after_battle_keeps_completed_result() -> None:
         first.run()
 
     pause.clear()
-    _MapPage.statuses = [[False] * 5]
+    _ExercisePage.statuses = [[False] * 5]
     resumed = executor_module.ExerciseExecutor(
         _ctx(),
         {'fleet_id': 2, 'rivals_limit': 1},

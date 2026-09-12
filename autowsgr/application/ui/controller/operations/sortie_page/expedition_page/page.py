@@ -1,11 +1,11 @@
-"""模块功能：读取远征槽位状态并收取已完成的远征。
+"""模块功能：读取远征槽位状态、跳过结算动画并收取已完成的远征。
 
 上层调用：
 - business.logistics.expedition：检查通知并执行远征收取。
 - testing.ui：验证远征槽位和结算操作。
 
 下层依赖：
-- application.ui.controller.operations.sortie_page.battle_page.base：提供地图页面状态和跳过动画动作。
+- application.ui.controller.operations.sortie_page.main_page：提供 sortie_page 页面壳。
 - application.ui.controller.operations.sortie_page.expedition_page.constants：提供远征状态颜色和槽位坐标。
 - common.ui.interaction、common.vision：确认结算和页面返回。
 """
@@ -15,8 +15,8 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING
 
-from autowsgr.application.ui.controller.operations.sortie_page.battle_page.base import BaseMapPage
 from autowsgr.application.ui.controller.operations.sortie_page.expedition_page import constants
+from autowsgr.application.ui.controller.operations.sortie_page.main_page import SortiePage
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.types import PageName
 from autowsgr.common.ui.interaction import confirm_operation, wait_for_page
@@ -32,8 +32,8 @@ _log = get_logger('ui')
 _READY_COLOR = Color.from_rgb_tuple(constants.READY_COLOR)
 
 
-class ExpeditionPanelMixin(BaseMapPage):
-    """Mixin: 远征面板操作 — 远征收取。"""
+class ExpeditionPage(SortiePage):
+    """远征页面控制器，直接管理槽位读取、结算动画和收取。"""
 
     # ── 查询 ─────────────────────────────────────────────────────────────
 
@@ -58,7 +58,13 @@ class ExpeditionPanelMixin(BaseMapPage):
                 return i
         return None
 
-    # ── 操作 ─────────────────────────────────────────────────────────────
+    # ── 结算动画 ──────────────────────────────────────────────────────────
+
+    def click_expedition_skip(self) -> None:
+        """点击远征结算页面的跳过区域，结束奖励动画。"""
+        self._ctrl.click(*constants.CLICK_SKIP)
+
+    # ── 远征收取 ──────────────────────────────────────────────────────────
 
     def collect_expedition(self) -> int:
         """在远征面板收取已完成的远征。

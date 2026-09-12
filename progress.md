@@ -822,7 +822,61 @@
   ID、0577 的 2 秒等待、旧 `enemy_spec.yaml` 删除和新模板纳入均需要单独确认。
 - 已产出 `meta/[计划]决战流程升级移植参考计划.md`；阶段四只读任务完成，不执行代码移植。
 
-## 2026-09-09 Task Complete
+## 2026-09-09 Strict Controller Rework Started
+
+- 用户否定此前 Controller 阶段二“完成”的验收结论；已将主任务和 task_plan 改回
+  `in_progress`，新增严格规范返工阶段，旧阶段记录只保留为历史背景。
+- 完成当前文件树、顶层类/方法、私有导入和生产/测试/工具引用的只读盘点；确认
+  `battle_preparation`、`sortie.py`、`decisive.py`、`overlays.py` 以及若干方法前缀
+  仍需实际治理。
+- 下一步按真实调用方先执行页面目录/文件命名批次，再重新读取任务书和两份规范。
+
+## 2026-09-09 Strict Rework Naming Decision
+
+- 已重读返工任务书和两份规范；决定先处理结构命名批次，保持业务类名和方法行为不变。
+- 目标路径为 `operations/sortie_page/battle_preparation_page/page.py`、
+  `sortie_panel.py`、`decisive_panel.py` 和 `home/main_page/overlay.py`；所有消费者
+  通过明确路径同步，暂不动 `bath_page`、选船算法或 OCR/上下文实现。
+- 该批次的验收重点是旧路径零残留、包级稳定出口、import smoke、compileall、目标
+  pre-commit 和 `git diff --check`。
+- 结构命名范围补充：`shared/choose_ship.py` 将仅包化为
+  `shared/choose_ship_page/page.py`，不拆改选船策略；由于它仍直接使用共享校准和
+  OCR，上下文/视觉边界在本批次只记录 TODO。
+
+## 2026-09-09 Strict Rework Structural and Naming Batch Complete
+
+- 实际完成目录/文件命名治理：`battle_preparation` 归入
+  `operations/sortie_page/battle_preparation_page` 并将组合入口改为 `page.py`；
+  `sortie.py`/`decisive.py` 改为 `sortie_panel.py`/`decisive_panel.py`；主页浮层改为
+  `overlay.py`；选船页包化为 `shared/choose_ship_page/page.py`。
+- 统一了顶部标签公共入口、选船页面检查/选择入口、准备页快捷面板、地图面板选择、
+  决战章节按钮和侧边栏关闭入口；`BuildPage.go_back` 与选船私有辅助按调用链归位。
+- 当前受影响回归 `364 passed`；controller/业务/测试/工具的 compile/import smoke、
+  旧路径扫描、目标文件 pre-commit 和 `git diff --check` 通过。
+- OCR、ROI、上下文和私有匹配 API 风险已写入当前 TODO；没有修改 `backyard/bath_page`
+  或选船算法。下一步继续 R.2/R.3 剩余页面治理。
+
+## 2026-09-09 Strict Rework Behavior and Documentation Batch Complete
+
+- 统一顶部标签、选船、地图面板、准备页快捷面板、决战章节/地图入口和侧边栏关闭
+  的公开语义；修正 `BuildPage` 解体流程及选船私有辅助的函数顺序。
+- 统一任务 OCR 读取入口 `read_all_mission_names`，移除 Controller 内旧的
+  `is_current_page`、`ensure_*`、`switch_panel`、`get_*` 等目标命名残留；同步真实
+  生产、测试、工具和文档消费者。
+- 文件级说明、常量坐标格式、私有导入和旧路径审计已通过；OCR/上下文/ROI/私有 API
+  和选船 `go_back` 风险写入 TODO，报告明确未执行实机 E2E。
+- R.2/R.3 已完成，R.4 只剩最终一次验证、范围核对和报告状态收尾。
+
+## 2026-09-09 Strict Controller Rework Finalized
+
+- 最终验证完成：`364 passed`；compileall、import smoke、旧路径/旧命名扫描、模块说明
+  审计、BathPage 范围审计、绑定校验、受影响文件 pre-commit 和 `git diff --check` 全部通过。
+- 返工报告已标记完成，并明确未执行真实游戏/模拟器 E2E；上下文、OCR、ROI、私有 API、
+  选船 `go_back` 和 `PageName` 语义统一继续留在 TODO。
+- 当前任务书和 `task_plan.md` 已标记 `done`；没有执行 commit、merge、cherry-pick、
+  reset、stash、清理或远程操作。
+
+## 2026-09-09 Historical Task Complete (superseded)
 
 - 阶段一至阶段四任务书状态、`task_plan.md`、`findings.md`、`progress.md`、台账、阶段
   报告和决战参考计划已同步；主任务状态标记为 `done`。
@@ -830,3 +884,249 @@
   目标文件 scoped pre-commit 和 `git diff --check` 通过。
 - 当前 worktree 仍保留用户已有的大量未提交/已暂存架构迁移改动；本任务没有执行提交、
   合并、cherry-pick、reset、stash、清理或远程操作。
+
+## 2026-09-09 Vertical Sortie Page Split Started
+
+- 已绑定并验证当前 worktree：`codex/20260830-autowsgr-upgrade`。
+- 已重新读取 UI Controller 和 navigation 两份规范及出征任务书。
+- 已将本次垂直拆分追加为 task plan Phase 29：`sortie_page/main_page` 承载 sortie
+  页面壳和顶部标签，取消五个 Mixin 聚合，按六个具体页面垂直管理。
+- 尚未修改业务代码；下一步先完成六个页面、`battle_preparation_page`、聚合器和全部消费者盘点。
+- 盘点期间一次直接读取带方括号文件名的 PowerShell 命令失败，原因是未使用
+  `-LiteralPath`；随后已改用文件对象读取，未产生代码变化。
+
+## 2026-09-09 Vertical Sortie Page Split Core Migration
+
+- `shared/top_tabs.py` 已迁移为 `sortie_page/main_page/page.py`，新增 `SortiePage`、
+  `SortieTab` 和 sortie 页面壳常量/数据出口。
+- 普通出征代码已从 `sortie_panel.py` 迁入 `battle_page/page.py`；`MapPanel`、顶部标签
+  坐标、地图页返回和远征跳过校准已按页面职责拆分。
+- `CampaignPage`、`ExercisePage`、`ExpeditionPage` 已取消 Mixin 命名并直接继承
+  `SortiePage`；决战入口迁入 `decisive_page/page.py` 的 `DecisiveEntryPage`。
+- `battle_preparation_page` 已迁为 `operations/battle_preparation_page`，`sortie_page`
+  源目录目前只保留用户指定的六个页面目录。
+- 新入口导入、focused 页面/业务/导航回归和 `tools/check_sortie_api.py`：`104 passed`、
+  API 检查通过；系统 Python 因缺少 `cv2` 的导入失败已改用 `uv run --locked` 验证。
+- 尚未完成：剩余测试/工具语义同步、全量旧路径/私有出口审计和目标文件 pre-commit。
+
+## 2026-09-09 Vertical Sortie Page Split Complete
+
+- `sortie_page/main_page` 现在承载 sortie 页面壳、顶部标签识别/切换和通用返回；
+  `MapPage` 的通用聚合入口已删除。
+- `battle_page` 现在只承载普通出征章节、地图定位、地图 OCR 确认、统计读取和进入
+  出征准备；`MapPanel` 已改为 `SortieTab`，战役使用 `CAMPAIGN` 语义。
+- `campaign_page`、`exercise_page`、`expedition_page` 和 `decisive_page` 已分别拥有
+  直接页面入口；`sortie_panel.py`、`decisive_panel.py` 和 `BaseMapPage` 已删除。
+- `battle_preparation_page` 已移出 `sortie_page`，成为 `operations` 直属独立页面；
+  `sortie_page` 源目录只保留 `main_page`、`battle_page`、`campaign_page`、
+  `decisive_page`、`exercise_page`、`expedition_page`。
+- 所有生产、测试、工具和当前文档引用已同步；OCR/上下文 TODO 路径已更新，选船算法
+  和 `backyard/bath_page` 未改动。
+- 最终验证：`365 passed`；新页面 import smoke、compileall、目标 pre-commit、旧聚合
+  扫描和 `git diff --check` 均通过。未执行真实游戏/模拟器 E2E。
+- 未执行 commit、merge、cherry-pick、reset、stash、清理或远程操作；现有用户未提交
+  改动全部保留。
+
+## 2026-09-10 Fleet Main Page Rework Started
+
+- 已重新核实绑定 worktree、现有工作区状态、方法台账、直接调用方和换船算法依赖。
+- 当前准备页页面仍为五个 Mixin 的继承聚合；本轮目标是拆成能力子包，并让页面类改为
+  无继承的流程入口，保持现有业务和测试调用契约。
+- 尚未修改业务源码；下一步创建能力包入口并迁移准备页、舰队状态、补给和维修实现。
+
+## 2026-09-10 Fleet Main Page Rework Complete
+
+- 已完成 `preparation`、`fleet_status`、`supply`、`repair` 能力包及统一出口；页面类改为
+  无继承的流程入口，换船核心由 `FleetChangeController` 组合适配。
+- 已删除 `main_page` 下旧 `base.py`、`constants.py`、`detection.py`、`supply.py`、
+  `repair.py`、`repair_action.py`；生产、测试、导航和文档旧引用已同步。
+- 验证结果：准备页/换船/维修/普通/战役/演习/决战回归 `368 passed`；能力导出和旧兼容
+  消费者 smoke、compileall、目标 pre-commit、旧路径扫描和 `git diff --check` 通过。
+- 未执行真实游戏/模拟器 E2E；未执行 commit、merge、cherry-pick、reset、stash 或清理，
+  其他既有工作区修改全部保留。
+
+## 2026-09-12 Fleet Rewrite Taskbook and Standards Audit
+
+- 新增 `meta/[任务书]fleet业务流程重构任务.md`，包含破坏性重写授权、目标目录、方法迁移、
+  编码建议、F0-F10 阶段、门禁、检查和强制重读要求。
+- 新增 `meta/[评审]代码规范泛化与Code Graph建设规划.md`，完成规范问题清单、建议规范
+  层级、Code Graph schema/CLI/阶段/门禁和六项待确认决定。
+- 两份现有规范保持原样；未修改 Fleet 源码，未运行行为测试。
+- 首轮 scoped pre-commit 仅由 end-of-file-fixer 为两份新文档补充末尾换行；重跑后全部通过。
+- 发现 `navigation-code-style.md` 被 Meta 白名单忽略；已在 `meta/.gitignore` 中仅追加导航规范、
+  Fleet 任务书和规范评审文档三条精确例外，未修改其他忽略规则。
+
+## 2026-09-12 Fleet Taskbook Architecture Correction Started
+
+- 维护者将 Fleet 目标结构修正为页面控制器、选船核心、辅助功能三个一级边界。
+- 已同步主任务状态和架构发现；下一步按全部现有定义对账，重写 Fleet 任务书的目录结构、
+  依赖方向、流程契约、方法迁移和 F0-F10 阶段。
+- 本轮只修改规划与评审文档，不修改 Fleet 业务源码。
+- 已完成第一轮定义与消费者扫描：确认页面聚合转发、Mixin 继承链、页面反向代理和
+  `shipyard_page` 职责混合均需在新任务书中显式拆除。
+
+## 2026-09-12 Fleet Taskbook Architecture Correction Complete
+
+- Fleet 任务书已改为三个一级业务边界：`main_page` 页面控制器、`formation` 选船核心、
+  `support` 辅助功能；删除旧任务书的根 workflow 和平铺流程目标。
+- `formation` 已按编队识别、编队调整、编队选船三个节点规划；`support` 已按补给、战役
+  支援、维修三个独立流程规划，并明确每个现有定义的目标业务归属。
+- 规范评审已补充页面流程与跨页面流程包的区分，并将 Fleet 三边界依赖加入 Code Graph
+  样例门禁。
+- 本轮没有修改 `autowsgr/application/ui/controller/fleet/` 源码；等待维护者确认后再执行 F0。
+- 五个规划/评审文件的 scoped pre-commit 全部通过；`git diff --check` 通过，仅显示既有
+  `meta/.gitignore` 的 CRLF 转 LF 提示。
+
+## 2026-09-12 Fleet Taskbook Narrowed to Code Governance
+
+- 维护者确认本次 Fleet 任务只做代码治理；Code Graph 不属于任务书范围。
+- 已从 Fleet 任务书删除规范评审引用、图谱产物、图谱阶段、图谱门禁和图谱交付物。
+- 保留调用方盘点、依赖方向、循环依赖和深层导入检查，这些属于代码治理本身。
+- 独立的 Code Graph 规划文档保持不变，等待以后单独立项。
+- 任务书关键词复查无 Code Graph 残留；目标 Markdown pre-commit 和 `git diff --check`
+  通过，后者仅有既有 `meta/.gitignore` 换行提示。
+
+## 2026-09-12 Fleet F0 Definition and Caller Inventory Complete
+
+- 已盘点 Fleet 30 个 Python 文件中的全部 class、method、顶层函数、常量、包出口、动态
+  挂载和可写状态，结果写入 `findings.md`。
+- 已盘点普通、演习、战役、决战、导航、工具、示例、测试和文档消费者，并明确旧深层
+  import 与有效业务行为的处理方式。
+- 已冻结目标归属：`main_page` 页面控制器，`formation` 的识别/调整/选船三个节点，
+  `support` 的补给/战役支援/维修三个辅助流程。
+- F0 门禁满足，任务书已重读；下一阶段为 F1 页面控制器重写，尚未修改 Fleet 源码。
+
+## 2026-09-12 Fleet F1 Page Controller Complete
+
+- `main_page/page.py` 已收敛为准备页主流程、页面模板检查、舰队/面板读取、页面点击、
+  开始出征和返回动作；删除页面上的识别、换船、补给、维修和动态代理出口。
+- 准备页校准已从旧 `preparation/constants.py` 物理迁移到 `main_page/constants.py`，
+  旧 `preparation` 包已删除；自动补给等功能配置待辅助流程阶段继续拆分。
+- 验证：Fleet compileall、根入口 import smoke、基础点击 smoke、目标 pre-commit 和
+  `git diff --check` 通过；无 pytest，未执行实机验证。
+- F1 任务书已重读；下一阶段为 F2 编队识别节点。
+
+## 2026-09-12 Fleet F2 Formation Recognition Complete
+
+- 已建立 `formation/fleet_recognition/`，迁移 `FleetSnapshot`、舰名、槽位占用、舰种和
+  等级识别；识别入口只接收截图和显式 OCR 引擎。
+- 已删除旧 `main_page/fleet_change/_detect.py` 与 `main_page/fleet_status/`，页面不再
+  暴露舰队识别聚合出口；旧换船实现待 F4/F5 直接重写。
+- 保留既有舰名 OCR 规则，未创建 OCR 引擎或上下文；私有 `_fuzzy_match` 仍按 OCR 专题
+  处理。血条占用与维修损伤的共享事实边界记录在 findings，待 F8 解决。
+- 验证：目标 pre-commit、compileall、识别包 import smoke、快照属性和等级纯解析 smoke、
+  `git diff --check` 通过；无 pytest，未执行实机验证。
+- F2 任务书已重读；下一阶段为 F3 编队选船节点。
+
+## 2026-09-12 Fleet F3 Ship Selection Complete
+
+- 已建立 `formation/ship_selection/`，按页面动作、船卡识别和单舰流程拆分为
+  `page.py`、`recognition.py`、`workflow.py` 和 `constants.py`。
+- 已删除旧 `shipyard_page/` 与 `fleet_change/_selection.py`；不保留 `ChooseShipPage`
+  兼容入口，现有 OCR 私有 API 只按原逻辑保留并交由 OCR 专题处理。
+- 页面文件不含 OCR，识别文件不含设备点击/滚动，流程文件只通过页面公开动作调用设备。
+- 验证：目标 pre-commit、compileall、船池入口 import smoke、等级/约束纯逻辑 smoke 和
+  `git diff --check` 通过；未运行旧路径测试，未执行实机验证。
+- F3 任务书已重读；下一阶段为 F4 编队调整节点。
+
+## 2026-09-12 Fleet F4 Adjustment Complete
+
+- 已将规则、规划、成员对齐、通用调整、战役固定槽位和决战无搜索框分支迁入
+  `formation/fleet_adjustment/`。
+- `FleetRules`、`FleetPlanner`、`FleetAlignment` 和 `FleetAdjustment` 均为显式组合，
+  删除所有 Mixin、动态代理、页面私有调用、`last_changed_fleet` 和旧 FleetChangeController。
+- 通用、战役和决战调整统一返回 `FleetSnapshot`，失败抛出明确异常；参数、有限重试和
+  页面同步等待集中在调整节点配置中。
+- 验证：目标 pre-commit、compileall、规则/规划组合 smoke、战役/决战短路 smoke、结构
+  禁止项扫描和 `git diff --check` 通过；未运行旧路径测试，未执行实机验证。
+- F4 任务书已重读；下一阶段为 F5 编队核心总流程入口。
+
+## 2026-09-12 Fleet F5 Formation Workflow Complete
+
+- 已建立 `formation/workflow.py` 和 `formation/__init__.py`，统一编队识别、调整、单舰
+  选船和最终复查的入口；无规则时只读取当前编队事实。
+- `main_page` 主流程已改为显式传入上下文和页面控制器；选船核心不再通过页面参数代理
+  或导入私有实现，旧 `FleetChangeController`、`create_controller` 和旁路状态已删除。
+- 验证：目标 pre-commit、compileall、formation 根入口 import smoke、规则/规划组合 smoke、
+  `git diff --check` 通过；未运行旧路径测试，未执行实机验证。
+- F5 任务书已重读；下一阶段为 F6 补给辅助流程。
+
+## 2026-09-12 Fleet F6 Supply Complete
+
+- 已建立 `support/supply/`，迁移自动补给状态识别、自动补给切换、快速补给面板和指定槽位
+  补给流程；补给坐标和流程等待参数集中在本包配置。
+- 已删除旧 `main_page/supply/`，新流程只通过 `main_page` 的面板/槽位公开动作操作页面；
+  战役支援职责没有混入补给包。
+- 验证：目标 pre-commit、compileall、自动补给开关分支 smoke 和 `git diff --check` 通过；
+  未运行旧路径测试，未执行实机验证。
+- F6 任务书已重读；下一阶段为 F7 战役支援辅助流程。
+
+## 2026-09-12 Fleet F7 Campaign Support Complete
+
+- 已建立 `support/campaign_support/`，将战役支援颜色识别、启用/关闭切换和切换后复查
+  从 supply 中独立出来。
+- 支援状态使用 `ENABLED`、`DISABLED`、`EXHAUSTED` 三态；耗尽时不误触发关闭点击，
+  需要切换时会复查最终状态。
+- 验证：目标 pre-commit、compileall、三态识别 smoke、切换复查 smoke 和
+  `git diff --check` 通过；未运行旧路径测试，未执行实机验证。
+- F7 任务书已重读；下一阶段为 F8 维修辅助流程。
+
+## 2026-09-12 Fleet F8 Repair Complete
+
+- 已建立 `support/repair/`，迁移损伤识别、`RepairStrategy`、快速维修、复查和有限重试；
+  血条探测点由 `main_page.constants` 唯一拥有。
+- 手动维修不再接收跨页面 callback，直接抛出带槽位的 `ManualRepairRequiredError`；澡堂
+  导航继续由业务/导航层负责。
+- 已删除旧 `main_page/repair/`，页面主流程改为显式调用 `apply_repair(ctx, page, strategy)`。
+- 验证：目标 pre-commit、compileall、无损伤/快速维修/手动中断/策略判断 smoke 和
+  `git diff --check` 通过；未运行旧路径测试，未执行实机验证。
+- F8 任务书已重读；下一阶段为 F9 主流程调用方和导航注册。
+
+## 2026-09-13 Fleet F9 Consumer Migration Complete
+
+- 生产普通、演习、战役、决战和决战地图调用已迁移到 `BattlePreparationPage` 新出口；
+  导航 registry/service、主页/出征 checker、示例和 E2E 入口已同步。
+- 删除决战旧准备页/旧算法转发和维修 `sys.modules` 兼容别名；旧深层 Fleet 路径和旧
+  页面方法扫描清零，旧实现测试按任务书删除或重写。
+- focused 验证：Fleet/页面/选船/维修/澡堂导航/普通/演习/战役测试共 `80 passed`，
+  另有普通战斗 `31 passed`、战役 `31 passed`、演习 `6 passed`；生产 import smoke、
+  navigation registry smoke、compileall、目标 pre-commit 和 `git diff --check` 通过。
+- F9 任务书已重读；下一阶段为 F10 残留旧实现和最终边界验收。
+
+## 2026-09-13 Fleet F10 Resume
+
+- 已确认当前写入目标为绑定的 `AutoWSGR/.worktrees/20260830-autowsgr-upgrade`，分支为
+  `codex/20260830-autowsgr-upgrade`；工作区既有未提交修改全部保留。
+- 已重新完整读取 Fleet 任务书、UI Controller 规范、navigation 规范以及当前
+  `task_plan.md`、`findings.md`、`progress.md`；继续执行 F10，不创建新任务书。
+- 下一步执行旧路径/旧符号/依赖边界扫描，复核 `FleetSnapshot` 到运行时 `Ship` 的转换，
+  然后运行最终 scoped 门禁并更新综合报告；不执行 commit、merge、cherry-pick 或清理。
+
+- F10 验证记录：首次残留扫描命令使用了 PowerShell 7 的 `||` 语法，当前环境未启动
+  `rg`；未产生文件变化。后续改用 PowerShell 兼容的 `$LASTEXITCODE` 处理方式。
+
+- F10 focused 行为门禁通过：Fleet 主流程、准备页、选船、维修、澡堂导航、普通战斗、
+  战役和演习测试共 `90 passed`；未执行真实游戏/模拟器 E2E。
+
+- F10 配置/API 门禁首次执行时为 `128 passed, 12 errors`；错误均来自 pytest
+  `--basetemp=.pytest_tmp/fleet-f10-api` 的父目录不存在，未进入断言失败。已准备工作区
+  内临时目录，改用新 basetemp 重跑。
+
+- F10 配置/API 门禁重跑通过：`140 passed`；删除旧决战换船开关后配置加载、请求模型和
+  schema 回归正常。
+
+- F10 状态修正后 focused 回归再次通过：`90 passed`；战役/决战初始快照读取和普通编队
+  调整没有回归，初始快照已由 `FleetAdjustment` 唯一持有并显式传给对齐节点。
+
+- F10 scoped pre-commit 第二轮通过：目标 Fleet 源码、`common/fleet.py`、旧决战开关涉及
+  的配置/API/测试和规划文档的 AST、Ruff、格式、codespell 等钩子全部通过；首轮只由
+  Ruff format 自动整理 1 个文件，未出现业务错误。
+
+- F10 最终 focused 回归通过：`230 passed`，包含 Fleet 页面/识别/调整/选船/辅助流程、
+  普通/战役/演习业务、澡堂导航、决战配置和 server schema。
+- F10 最终静态验证通过：Fleet compileall、根入口/导航 import smoke、准确运行时依赖
+  图、结构门禁和 `tools/check_sortie_api.py` 均通过；尚未执行真实游戏/模拟器 E2E。
+
+- F10 最终交付完成：报告、任务书和计划状态已更新并重读；最终 scoped pre-commit 全部
+  通过，`git diff --check` 通过（仅提示既有 `meta/.gitignore` 的 CRLF/LF 转换）。未执行
+  commit、merge、cherry-pick、push、reset、stash 或 worktree 清理；任务书状态为 `done`。

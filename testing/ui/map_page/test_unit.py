@@ -8,24 +8,25 @@ import numpy as np
 import pytest
 
 from autowsgr.application.runtime.context import GameContext
-from autowsgr.application.ui.controller.operations.sortie_page.battle_page import (
-    MapPage,
-    parse_map_title,
+from autowsgr.application.ui.controller.operations.sortie_page import (
+    battle_page,
+    decisive_page,
+    expedition_page,
+    main_page,
 )
 from autowsgr.application.ui.controller.operations.sortie_page.battle_page import (
-    constants as battle_constants,
-)
-from autowsgr.application.ui.controller.operations.sortie_page.battle_page.data import (
-    CHAPTER_MAP_COUNTS,
-    MAP_DATABASE,
-    ChapterSlot,
-    choose_chapter_slot,
-)
-from autowsgr.application.ui.controller.operations.sortie_page.battle_page.recognition import (
-    parse_chapter_label,
+    BattlePage,
+    constants,
+    recognition,
 )
 from autowsgr.common.device import AndroidController
 from autowsgr.common.vision import OCRResult
+
+
+ChapterSlot = recognition.ChapterSlot
+parse_chapter_label = recognition._parse_chapter_label
+parse_map_title = recognition._parse_map_title
+_calculate_chapter_slot = battle_page.page._calculate_chapter_slot
 
 
 # ─────────────────────────────────────────────
@@ -148,25 +149,25 @@ class TestParseMapTitle:
 class TestMapDatabase:
     def test_all_chapters_present(self):
         """数据库包含 1-10 章。"""
-        chapters = {ch for ch, _ in MAP_DATABASE}
+        chapters = {ch for ch, _ in constants.MAP_DATABASE}
         assert chapters == set(range(1, 11))
 
     def test_chapter_map_counts(self):
         """每章至少 1 张地图（早期章节 4+，新章节可能只有 1 张）。"""
         for ch in range(1, 11):
-            assert ch in CHAPTER_MAP_COUNTS
-            assert CHAPTER_MAP_COUNTS[ch] >= 1
+            assert ch in constants.CHAPTER_MAP_COUNTS
+            assert constants.CHAPTER_MAP_COUNTS[ch] >= 1
 
     def test_known_maps(self):
         """抽检几个已知地图。"""
-        assert MAP_DATABASE[(1, 1)] == '母港附近海域'
-        assert MAP_DATABASE[(9, 5)] == '南大洋群岛'
-        assert MAP_DATABASE[(5, 5)] == '直布罗陀要塞'
-        assert MAP_DATABASE[(8, 5)] == '地峡海湾'
+        assert constants.MAP_DATABASE[(1, 1)] == '母港附近海域'
+        assert constants.MAP_DATABASE[(9, 5)] == '南大洋群岛'
+        assert constants.MAP_DATABASE[(5, 5)] == '直布罗陀要塞'
+        assert constants.MAP_DATABASE[(8, 5)] == '地峡海湾'
 
     def test_total_map_count(self):
         """总地图数量检查 (9章, 共 ~40+ 张)。"""
-        assert len(MAP_DATABASE) >= 40
+        assert len(constants.MAP_DATABASE) >= 40
 
 
 class TestChapterSlots:
@@ -185,45 +186,50 @@ class TestChapterSlots:
 
     def test_prefers_visible_target(self):
         slots = self.slots([8, 9, 10, None, None])
-        assert choose_chapter_slot(10, 9, slots) == 1
+        assert _calculate_chapter_slot(10, 9, slots) == 1
 
     def test_uses_two_slot_jump_when_available(self):
         slots = self.slots([8, 9, 10, None, None])
-        assert choose_chapter_slot(10, 5, slots) == 0
+        assert _calculate_chapter_slot(10, 5, slots) == 0
 
     def test_uses_one_slot_jump_after_overshoot(self):
         slots = self.slots([4, 5, 6, 7, 8])
-        assert choose_chapter_slot(6, 5, slots) == 1
+        assert _calculate_chapter_slot(6, 5, slots) == 1
 
     def test_uses_two_slot_jump_at_lower_boundary(self):
         slots = self.slots([None, None, 1, 2, 3])
-        assert choose_chapter_slot(1, 5, slots) == 4
+        assert _calculate_chapter_slot(1, 5, slots) == 4
 
     def test_refuses_placeholder_slot(self):
         slots = self.slots([None, 9, 10, None, None])
-        assert choose_chapter_slot(10, 8, slots) is None
+        assert _calculate_chapter_slot(10, 8, slots) is None
 
 
 class TestBattlePageCalibration:
     def test_static_coordinates_keep_reference_pixels(self):
         """页面私有四位坐标在基准分辨率下保持旧校准像素。"""
-        from autowsgr.common.calibration import map as legacy
+        from autowsgr.common.calibration import map
 
         def pixels(coord: tuple[float, float]) -> tuple[int, int]:
             return int(coord[0] * 1280), int(coord[1] * 720)
 
-        assert pixels(battle_constants.CLICK_BACK) == pixels(legacy.CLICK_BACK)
+        assert pixels(main_page.constants.CLICK_BACK) == pixels(map.CLICK_BACK)
         assert {
-            name: pixels(coord) for name, coord in battle_constants.PANEL_POSITIONS.items()
-        } == {name: pixels(coord) for name, coord in legacy.PANEL_POSITIONS.items()}
-        for name in (
-            'CLICK_ENTER_SORTIE',
-            'CLICK_ENTER_DECISIVE',
-            'CLICK_MAP_NEXT',
-            'CLICK_MAP_PREV',
-            'CLICK_EXPEDITION_SKIP',
-        ):
-            assert pixels(getattr(battle_constants, name)) == pixels(getattr(legacy, name))
+            name: pixels(coord) for name, coord in main_page.constants.TAB_POSITIONS.items()
+        } == {
+            'sortie': pixels(map.PANEL_POSITIONS['sortie']),
+            'exercise': pixels(map.PANEL_POSITIONS['exercise']),
+            'expedition': pixels(map.PANEL_POSITIONS['expedition']),
+            'campaign': pixels(map.PANEL_POSITIONS['battle']),
+            'decisive': pixels(map.PANEL_POSITIONS['decisive']),
+        }
+        assert pixels(constants.CLICK_ENTER_SORTIE) == pixels(map.CLICK_ENTER_SORTIE)
+        assert pixels(decisive_page.constants.CLICK_ENTER_DECISIVE) == pixels(
+            map.CLICK_ENTER_DECISIVE
+        )
+        assert pixels(constants.CLICK_MAP_NEXT) == pixels(map.CLICK_MAP_NEXT)
+        assert pixels(constants.CLICK_MAP_PREV) == pixels(map.CLICK_MAP_PREV)
+        assert pixels(expedition_page.constants.CLICK_SKIP) == pixels(map.CLICK_EXPEDITION_SKIP)
 
 
 # ─────────────────────────────────────────────
@@ -236,24 +242,24 @@ class TestNavigateToChapter:
         ctrl = MagicMock(spec=AndroidController)
         ocr = MagicMock()
         ctx = GameContext(ctrl=ctrl, config=MagicMock(), ocr=ocr)
-        pg = MapPage(ctx)
+        pg = BattlePage(ctx)
         with pytest.raises(ValueError, match='1-10'):
-            pg.navigate_to_chapter(0)
+            pg.select_chapter(0)
         with pytest.raises(ValueError, match='1-10'):
-            pg.navigate_to_chapter(11)
+            pg.select_chapter(11)
 
     def test_no_ocr_raises(self):
         ctrl = MagicMock(spec=AndroidController)
         ctx = GameContext(ctrl=ctrl, config=MagicMock(), ocr=None)
-        pg = MapPage(ctx)
+        pg = BattlePage(ctx)
         with pytest.raises(RuntimeError, match='OCR'):
-            pg.navigate_to_chapter(5)
+            pg.select_chapter(5)
 
     def test_fixed_slots_navigate_by_two_then_one(self):
         ctrl = MagicMock(spec=AndroidController)
         ocr = MagicMock()
         ctx = GameContext(ctrl=ctrl, config=MagicMock(), ocr=ocr)
-        pg = MapPage(ctx)
+        pg = BattlePage(ctx)
         screen = np.zeros((720, 1280, 3), dtype=np.uint8)
         ctrl.screenshot.return_value = screen
 
@@ -271,8 +277,10 @@ class TestNavigateToChapter:
             OCRResult(text=text, confidence=0.95) for text in ['10-1', '8-1', '6-1', '5-3', '5-3']
         ]
 
-        with patch('autowsgr.application.ui.controller.operations.sortie_page.sortie.time.sleep'):
-            result = pg.navigate_to_chapter(5)
+        with patch(
+            'autowsgr.application.ui.controller.operations.sortie_page.battle_page.page.time.sleep'
+        ):
+            result = pg.select_chapter(5)
 
         assert result == 5
         assert ctrl.click.call_args_list == [

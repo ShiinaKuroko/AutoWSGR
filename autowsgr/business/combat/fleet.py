@@ -10,18 +10,18 @@ from collections.abc import Mapping, Sequence
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
 
-from autowsgr.application.ui.fleet import (
+from autowsgr.business.fleet_policy import FLEET_POLICIES, FleetPolicy
+from autowsgr.common.contracts.vessel_types import (
+    FLEET_VESSEL_TYPE_BY_CODE,
+    FLEET_VESSEL_TYPES,
+)
+from autowsgr.common.fleet import (
     FleetPreset,
     FleetSelectionSource,
     FleetSlotRule,
     ResolvedFleetSelection,
     ShipSelector,
     exact_fleet_rules,
-)
-from autowsgr.business.fleet_policy import FLEET_POLICIES, FleetPolicy
-from autowsgr.common.contracts.vessel_types import (
-    FLEET_VESSEL_TYPE_BY_CODE,
-    FLEET_VESSEL_TYPES,
 )
 from autowsgr.common.types import ShipType
 

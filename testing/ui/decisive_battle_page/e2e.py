@@ -9,7 +9,7 @@
 
 测试内容：
     1. 验证初始状态
-    2. 向前翻一章 (go_prev_chapter)，再向后翻一章还原 (go_next_chapter)
+    2. 向前翻一章 (click_previous_chapter)，再向后翻一章还原 (click_next_chapter)
     3. 决战页面 → ◁ 主页面
 """
 
@@ -34,7 +34,16 @@ from testing.ui._framework import (
 
 
 if TYPE_CHECKING:
+    from autowsgr.application.runtime.context import GameContext
     from autowsgr.common.device import AndroidController
+
+
+def _build_context(ctrl: AndroidController) -> GameContext:
+    """为实机脚本构造只用于页面点击的上下文。"""
+    from autowsgr.application.runtime.context import GameContext
+    from autowsgr.common.system import UserConfig
+
+    return GameContext(ctrl=ctrl, config=UserConfig(), ocr=None)  # type: ignore[arg-type]
 
 
 def run_test(runner: UIControllerTestRunner) -> None:
@@ -43,7 +52,7 @@ def run_test(runner: UIControllerTestRunner) -> None:
         DecisiveBattlePage,
     )
 
-    db_page = DecisiveBattlePage(runner.ctrl)
+    db_page = DecisiveBattlePage(_build_context(runner.ctrl), ocr=None)
 
     runner.verify_current('初始验证: 决战页面', '决战页面', DecisiveBattlePage.check_current_page)
     if runner.aborted:
@@ -53,7 +62,7 @@ def run_test(runner: UIControllerTestRunner) -> None:
         '决战页面 → ◁ 前一章节',
         '决战页面',
         DecisiveBattlePage.check_current_page,
-        db_page.go_prev_chapter,
+        db_page.click_previous_chapter,
     )
     if runner.aborted:
         return
@@ -62,7 +71,7 @@ def run_test(runner: UIControllerTestRunner) -> None:
         '决战页面 → ▷ 后一章节 (还原)',
         '决战页面',
         DecisiveBattlePage.check_current_page,
-        db_page.go_next_chapter,
+        db_page.click_next_chapter,
     )
     if runner.aborted:
         return
@@ -80,24 +89,28 @@ def _navigate_to(ctrl: AndroidController, pause: float) -> None:
     import time
 
     from autowsgr.application.ui.controller.home.main_page import HomePage
-    from autowsgr.application.ui.controller.operations.sortie_page.battle_page import (
-        MapPage,
-        MapPanel,
+    from autowsgr.application.ui.controller.operations.sortie_page.decisive_page import (
+        DecisiveEntryPage,
+    )
+    from autowsgr.application.ui.controller.operations.sortie_page.main_page import (
+        SortiePage,
+        SortieTab,
     )
 
+    ctx = _build_context(ctrl)
     if not reset_to_main_page(ctrl, pause):
         return
     screen = ctrl.screenshot()
     if HomePage.check_current_page(screen):
-        HomePage(ctrl).navigate_to(HomePage.Target.SORTIE)
+        HomePage(ctx).navigate_to(HomePage.Target.SORTIE)
         time.sleep(pause)
         screen = ctrl.screenshot()
-    if MapPage.check_current_page(screen):
-        if MapPage.read_active_panel(screen) != MapPanel.DECISIVE:
-            MapPage(ctrl).switch_panel(MapPanel.DECISIVE)
+    if SortiePage.check_current_page(screen):
+        if SortiePage.read_active_tab(screen) != SortieTab.DECISIVE:
+            SortiePage(ctx).click_tab(SortieTab.DECISIVE)
             time.sleep(pause)
             screen = ctrl.screenshot()
-        MapPage(ctrl).enter_decisive()
+        DecisiveEntryPage(ctx).enter_decisive()
         time.sleep(pause)
 
 

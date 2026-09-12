@@ -44,14 +44,19 @@ def run_test(runner: UIControllerTestRunner) -> None:
     """执行地图页面控制器完整测试序列。"""
     from autowsgr.application.ui.controller.home.main_page import HomePage
     from autowsgr.application.ui.controller.operations.sortie_page.battle_page import (
-        MapPage,
-        MapPanel,
+        BattlePage,
+        recognition,
+    )
+    from autowsgr.application.ui.controller.operations.sortie_page.main_page import (
+        SortiePage,
+        SortieTab,
     )
 
-    map_page = MapPage(runner.ctrl)
+    sortie_page = SortiePage(runner.ctx)
+    battle_page = BattlePage(runner.ctx)
 
     # ───── Step 0: 验证初始状态 ──────────────────────────────────────
-    runner.verify_current('初始验证: 地图页面', '地图页面', MapPage.check_current_page)
+    runner.verify_current('初始验证: sortie_page', '地图页面', SortiePage.check_current_page)
     if runner.aborted:
         return
 
@@ -59,26 +64,26 @@ def run_test(runner: UIControllerTestRunner) -> None:
     runner.read_state(
         '地图页面状态',
         readers={
-            '远征通知': MapPage.check_expedition_notification,
-            '当前面板': MapPage.read_active_panel,
-            '选中章节Y': MapPage.read_selected_chapter_y,
+            '远征通知': SortiePage.check_expedition_notification,
+            '当前顶部标签': SortiePage.read_active_tab,
+            '选中章节Y': recognition._read_selected_chapter_y,
         },
     )
 
     # ───── Step 2-6: 面板切换 ─────────────────────────────────────────
     panel_sequence = [
-        MapPanel.EXERCISE,
-        MapPanel.EXPEDITION,
-        MapPanel.BATTLE,
-        MapPanel.DECISIVE,
-        MapPanel.SORTIE,
+        SortieTab.EXERCISE,
+        SortieTab.EXPEDITION,
+        SortieTab.CAMPAIGN,
+        SortieTab.DECISIVE,
+        SortieTab.SORTIE,
     ]
     for panel in panel_sequence:
         runner.execute_step(
             f'面板切换 → {panel.value}',
             '地图页面',
-            MapPage.check_current_page,
-            lambda p=panel: map_page.switch_panel(p),
+            SortiePage.check_current_page,
+            lambda p=panel: sortie_page.click_tab(p),
         )
         if runner.aborted:
             return
@@ -87,8 +92,8 @@ def run_test(runner: UIControllerTestRunner) -> None:
     runner.execute_step(
         '章节 → 下一章',
         '地图页面',
-        MapPage.check_current_page,
-        map_page.click_next_chapter,
+        SortiePage.check_current_page,
+        battle_page.click_next_chapter,
     )
     if runner.aborted:
         return
@@ -97,8 +102,8 @@ def run_test(runner: UIControllerTestRunner) -> None:
     runner.execute_step(
         '章节 → 上一章 (恢复)',
         '地图页面',
-        MapPage.check_current_page,
-        map_page.click_prev_chapter,
+        SortiePage.check_current_page,
+        battle_page.click_prev_chapter,
     )
     if runner.aborted:
         return
@@ -108,7 +113,7 @@ def run_test(runner: UIControllerTestRunner) -> None:
         '地图页面 → ◁ 主页面',
         '主页面',
         HomePage.check_current_page,
-        map_page.go_back,
+        sortie_page.go_back,
     )
 
 
@@ -128,7 +133,7 @@ def _navigate_to(ctrl: AndroidController, pause: float) -> None:
 
 def main() -> None:
     args = parse_e2e_args(
-        '地图页面 (MapPage) e2e 测试',
+        '地图页面 (SortiePage) e2e 测试',
         precondition='游戏位于地图选择页面 (出征面板)，从主页面→出征进入',
         default_log_dir='logs/e2e/map_page',
     )
@@ -136,11 +141,11 @@ def main() -> None:
     from loguru import logger
 
     logger.info('=== 地图页面 e2e 测试开始 ===')
-    from autowsgr.application.ui.controller.operations.sortie_page.battle_page import MapPage
+    from autowsgr.application.ui.controller.operations.sortie_page.main_page import SortiePage
 
     if not ensure_page(
         ctrl,
-        MapPage.check_current_page,
+        SortiePage.check_current_page,
         lambda: _navigate_to(ctrl, args.pause),
         '地图页面',
         auto_mode=args.auto,

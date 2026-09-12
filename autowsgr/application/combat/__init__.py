@@ -51,9 +51,6 @@ from autowsgr.application.combat.recognizer import (
     CombatRecognizer,
     CombatStopRequestedError,
 )
-from autowsgr.application.combat.support import ensure_battle_support
-
-
 __all__ = [
     'SHIP_DROP_PAGE_SIGNATURE',
     'CombatEngine',
@@ -95,3 +92,12 @@ __all__ = [
     'recognize_ship_drop',
     'resolve_successors',
 ]
+
+
+def __getattr__(name: str) -> object:
+    """Load support operations only when their public export is requested."""
+    if name == 'ensure_battle_support':
+        from autowsgr.application.combat.support import ensure_battle_support
+
+        return ensure_battle_support
+    raise AttributeError(f'module {__name__!r} has no attribute {name!r}')

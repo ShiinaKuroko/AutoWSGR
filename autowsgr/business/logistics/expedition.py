@@ -18,7 +18,11 @@ from typing import TYPE_CHECKING, Any
 
 from autowsgr.application.runtime.executor import BaseExecutor
 from autowsgr.application.ui.controller.home.main_page import HomePage
-from autowsgr.application.ui.controller.operations.sortie_page.battle_page import MapPage, MapPanel
+from autowsgr.application.ui.controller.operations.sortie_page.expedition_page import ExpeditionPage
+from autowsgr.application.ui.controller.operations.sortie_page.main_page import (
+    SortiePage,
+    SortieTab,
+)
 from autowsgr.application.ui.navigation import goto_page
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.types import PageName
@@ -48,15 +52,15 @@ class ExpeditionCheckExecutor(BaseExecutor):
             return False
 
         goto_page(self.ctx, PageName.MAP)
-        page = MapPage(self.ctx)
+        sortie_page = SortiePage(self.ctx)
         screen = self.ctx.ctrl.screenshot()
-        if not MapPage.check_expedition_notification(screen):
+        if not SortiePage.check_expedition_notification(screen):
             goto_page(self.ctx, PageName.HOME)  # 通知消失 (刚被收过), 原路返回
             self._report('checked', collected=0)
             return False
 
-        page.switch_panel(MapPanel.EXPEDITION)
-        collected = page.collect_expedition()
+        sortie_page.select_tab(SortieTab.EXPEDITION)
+        collected = ExpeditionPage(self.ctx).collect_expedition()
 
         goto_page(self.ctx, PageName.HOME)  # 锚点: 终态回主页
         _log.info('[Expedition] 远征检查完成, 收取 {} 个', collected)

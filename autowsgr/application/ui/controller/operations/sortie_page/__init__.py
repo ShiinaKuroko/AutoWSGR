@@ -1,33 +1,13 @@
-"""模块功能：聚合地图顶部标签中的出征、演习、战役、远征和决战面板。
+"""模块功能：组织 sortie_page 的六个垂直页面模块。
 
 上层调用：
-- application.ui.controller.operations.sortie_page.battle_page.page：组合五个面板 Mixin，形成完整地图页面控制器。
-- business.combat、business.logistics：通过 `MapPage` 调用对应面板动作。
+- application.ui.navigation、business 和 testing.ui：直接调用各具体页面包的稳定入口。
 
 下层依赖：
-- application.ui.controller.operations.sortie_page.battle_page.base：提供地图页面共享状态和公共面板动作。
-- application.ui.controller.operations.sortie_page：提供五个面板 Mixin 实现。
+- application.ui.controller.operations.sortie_page.main_page：提供 sortie_page 页面壳和顶部标签。
+- application.ui.controller.operations.sortie_page.*_page：提供各出征模式页面行为。
 
-本包只负责顶部标签模块的目录归属和稳定导出，不保存运行时状态或业务调度规则。
+本包只负责目录边界，不聚合不同出征模式的页面控制器，也不保存运行时状态。
 """
 
-from autowsgr.application.ui.controller.operations.sortie_page.campaign_page import (
-    CampaignPanelMixin,
-)
-from autowsgr.application.ui.controller.operations.sortie_page.decisive import DecisivePanelMixin
-from autowsgr.application.ui.controller.operations.sortie_page.exercise_page import (
-    ExercisePanelMixin,
-)
-from autowsgr.application.ui.controller.operations.sortie_page.expedition_page import (
-    ExpeditionPanelMixin,
-)
-from autowsgr.application.ui.controller.operations.sortie_page.sortie import SortiePanelMixin
-
-
-__all__ = [
-    'CampaignPanelMixin',
-    'DecisivePanelMixin',
-    'ExercisePanelMixin',
-    'ExpeditionPanelMixin',
-    'SortiePanelMixin',
-]
+__all__: list[str] = []

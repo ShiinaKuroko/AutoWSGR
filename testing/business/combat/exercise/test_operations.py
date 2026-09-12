@@ -5,9 +5,14 @@ from __future__ import annotations
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
-from autowsgr.application.ui.controller.battle_preparation import BattlePreparationPage
-from autowsgr.application.ui.controller.battle_preparation.fleet_change import _change
-from autowsgr.application.ui.controller.battle_preparation.fleet_change._detect import FleetSnapshot
+from autowsgr.application.ui.controller.fleet import BattlePreparationPage
+from autowsgr.application.ui.controller.fleet.formation.fleet_adjustment import workflow
+from autowsgr.application.ui.controller.fleet.formation.fleet_adjustment.workflow import (
+    FleetAdjustment,
+)
+from autowsgr.application.ui.controller.fleet.formation.fleet_recognition.models import (
+    FleetSnapshot,
+)
 from autowsgr.business.combat.fleet import FleetSlotRule, ShipSelector
 from autowsgr.common.types import ShipType
 
@@ -22,6 +27,11 @@ def _page() -> BattlePreparationPage:
     )
 
 
+def _adjustment() -> FleetAdjustment:
+    ctx = SimpleNamespace(ctrl=MagicMock(), ocr=None)
+    return FleetAdjustment(ctx, _page())
+
+
 def _snapshot(name: str | None) -> FleetSnapshot:
     return FleetSnapshot(
         names=[name, None, None, None, None, None],
@@ -32,7 +42,6 @@ def _snapshot(name: str | None) -> FleetSnapshot:
 
 
 def test_relaxed_ocr_success_is_logged_as_auto_release() -> None:
-    page = _page()
     rule = FleetSlotRule(
         primary=ShipSelector(
             name='U-177',
@@ -42,8 +51,8 @@ def test_relaxed_ocr_success_is_logged_as_auto_release() -> None:
         ),
     )
 
-    with patch.object(_change, '_log') as log:
-        page._log_snapshot_debug('LEVEL1', _snapshot('U-177'), [rule], 1)
+    with patch.object(workflow, '_log') as log:
+        _adjustment()._log_snapshot_debug('LEVEL1', _snapshot('U-177'), [rule], 1)
 
     messages = [call.args[0] for call in log.info.call_args_list]
     assert '[OCR] 宽泛校验规则生效，自动放行' in messages
@@ -54,11 +63,10 @@ def test_relaxed_ocr_success_is_logged_as_auto_release() -> None:
 
 
 def test_ocr_failure_logs_numeric_attempt() -> None:
-    page = _page()
     rule = FleetSlotRule(primary=ShipSelector(name='U-177'))
 
-    with patch.object(_change, '_log') as log:
-        page._log_snapshot_debug('LEVEL2', _snapshot(None), [rule], 2)
+    with patch.object(workflow, '_log') as log:
+        _adjustment()._log_snapshot_debug('LEVEL2', _snapshot(None), [rule], 2)
 
     warning = next(call for call in log.warning.call_args_list if '当前次数' in call.args[0])
     assert warning.args[-1] == 2

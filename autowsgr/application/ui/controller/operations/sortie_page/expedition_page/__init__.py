@@ -1,7 +1,6 @@
-"""模块功能：提供远征顶部标签的页面控制器。
+"""模块功能：提供远征页面控制器。
 
 上层调用：
-- application.ui.controller.operations.sortie_page.battle_page.page：组合远征面板 Mixin。
 - business.logistics.expedition：驱动远征通知检查和收取。
 
 下层依赖：
@@ -10,8 +9,8 @@
 """
 
 from autowsgr.application.ui.controller.operations.sortie_page.expedition_page.page import (
-    ExpeditionPanelMixin,
+    ExpeditionPage,
 )
 
 
-__all__ = ['ExpeditionPanelMixin']
+__all__ = ['ExpeditionPage']

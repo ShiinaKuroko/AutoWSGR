@@ -80,7 +80,7 @@
 levels: tuple[int | None, ...]
 ```
 
-- [ ] 复用 `DetectionMixin._recognize_fleet_levels()`，不要另写一套等级解析。
+- [ ] 复用 `formation.fleet_recognition.recognition.read_fleet_levels()`，不要另写一套等级解析。
 - [ ] 为 `FleetSnapshot` 增加逐槽舰种；识别失败的槽位必须保存为“未知”，不得猜测。
 - [ ] 保持现有舰名归一化实现不变，不修改或删除 `_change.py` 中的舰名归一化逻辑。
 

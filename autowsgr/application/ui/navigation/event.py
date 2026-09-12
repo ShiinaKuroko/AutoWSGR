@@ -7,7 +7,7 @@
 下层依赖：
 - application.ui.controller.home.main_page.constants：提供活动入口坐标。
 - application.ui.controller.home.event_page：提供活动页面检查器。
-- application.ui.controller.home.main_page.overlays：清除导航过程中的浮层。
+- application.ui.controller.home.main_page.overlay：清除导航过程中的浮层。
 - common.ui.interaction：提供活动页面导航异常类型。
 - common.vision：匹配活动入口图标和主页模板。
 
@@ -23,7 +23,7 @@ from typing import TYPE_CHECKING
 
 from autowsgr.application.ui.controller.home.event_page import BaseEventPage
 from autowsgr.application.ui.controller.home.main_page import constants
-from autowsgr.application.ui.controller.home.main_page.overlays import (
+from autowsgr.application.ui.controller.home.main_page.overlay import (
     dismiss_overlay,
     read_overlay,
 )

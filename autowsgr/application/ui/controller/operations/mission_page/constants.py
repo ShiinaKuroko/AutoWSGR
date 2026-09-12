@@ -25,7 +25,7 @@ PANEL_POSITIONS = {
     'timed': (0.6672, 0.0570),  # 限时面板入口，用于查看限时任务。
 }
 PANEL_SWITCH_DELAY: float = 0.5  # 任务子标签切换等待时间，用于等待列表内容稳定。
-SCROLL = (0.5, 0.7, 0.5, 0.45)  # 任务列表滑动坐标，用于显示后续任务。
+SCROLL = (0.5000, 0.7000, 0.5000, 0.4500)  # 任务列表滑动坐标，用于显示后续任务。
 SCROLL_DURATION: float = 0.75  # 任务列表滑动时长，用于控制滚动动画。
 SCROLL_DELAY: float = 0.5  # 任务列表滑动等待时间，用于等待滚动结果稳定。
 
@@ -41,22 +41,22 @@ CLAIM_B_MAX: int = 80  # “领取”按钮蓝色上限，用于排除非橙色�
 
 # ── 按钮扫描与 OCR 裁剪 ─────────────────────────────────────────────────────
 
-BUTTON_SCAN_ROI = (0.86, 0.17, 0.96, 0.85)  # 任务按钮扫描区域，用于定位右侧操作按钮。
-SCAN_X: float = 0.91  # 按钮扫描横坐标，用于采样按钮颜色。
-SCAN_Y_STEP: float = 0.005  # 按钮扫描纵向步长，用于平衡精度和采样次数。
-CLUSTER_GAP: float = 0.06  # 按钮颜色聚类间隔，用于合并同一任务按钮的采样点。
+BUTTON_SCAN_ROI = (0.8600, 0.1700, 0.9600, 0.8500)  # 任务按钮扫描区域，用于定位右侧操作按钮。
+SCAN_X: float = 0.9100  # 按钮扫描横坐标，用于采样按钮颜色。
+SCAN_Y_STEP: float = 0.0050  # 按钮扫描纵向步长，用于平衡精度和采样次数。
+CLUSTER_GAP: float = 0.0600  # 按钮颜色聚类间隔，用于合并同一任务按钮的采样点。
 MIN_CLUSTER_SIZE: int = 3  # 按钮最小聚类大小，用于过滤颜色噪点。
-WIDE_BTN_CHECK_X: float = 0.80  # 一键领取检测横坐标，用于排除底部宽按钮。
-NAME_CROP_MIN_Y: float = 0.12  # 任务名称裁剪上限，用于过滤被标题栏遮挡的任务行。
+WIDE_BTN_CHECK_X: float = 0.8000  # 一键领取检测横坐标，用于排除底部宽按钮。
+NAME_CROP_MIN_Y: float = 0.1200  # 任务名称裁剪上限，用于过滤被标题栏遮挡的任务行。
 OCR_CONFIDENCE_MIN: float = 0.10  # 任务名称最低置信度，用于拒绝无效 OCR 结果。
-NAME_ROI_X1: float = 0.22  # 任务名称裁剪左边界，用于提取任务名称。
-NAME_ROI_X2: float = 0.60  # 任务名称裁剪右边界，用于提取任务名称。
-NAME_Y_OFFSET: float = -0.145  # 任务名称相对按钮纵向偏移，用于定位名称区域。
-NAME_ROI_Y_PAD: float = 0.035  # 任务名称裁剪半高，用于限定 OCR 区域。
-PROGRESS_ROI_X1: float = 0.75  # 任务进度裁剪左边界，用于提取完成百分比。
-PROGRESS_ROI_X2: float = 0.87  # 任务进度裁剪右边界，用于提取完成百分比。
-PROGRESS_Y_OFFSET: float = 0.105  # 任务进度相对按钮纵向偏移，用于定位进度区域。
-PROGRESS_ROI_Y_PAD: float = 0.035  # 任务进度裁剪半高，用于限定 OCR 区域。
+NAME_ROI_X1: float = 0.2200  # 任务名称裁剪左边界，用于提取任务名称。
+NAME_ROI_X2: float = 0.6000  # 任务名称裁剪右边界，用于提取任务名称。
+NAME_Y_OFFSET: float = -0.1450  # 任务名称相对按钮纵向偏移，用于定位名称区域。
+NAME_ROI_Y_PAD: float = 0.0350  # 任务名称裁剪半高，用于限定 OCR 区域。
+PROGRESS_ROI_X1: float = 0.7500  # 任务进度裁剪左边界，用于提取完成百分比。
+PROGRESS_ROI_X2: float = 0.8700  # 任务进度裁剪右边界，用于提取完成百分比。
+PROGRESS_Y_OFFSET: float = 0.1050  # 任务进度相对按钮纵向偏移，用于定位进度区域。
+PROGRESS_ROI_Y_PAD: float = 0.0350  # 任务进度裁剪半高，用于限定 OCR 区域。
 
 
 __all__ = [

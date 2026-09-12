@@ -81,8 +81,8 @@
   的多套 OCR 优先级。
 - `ChooseShipPage` 另行读取 `ctx.ship_ocr` 并回退 `ctx.ocr`，选船识别与准备页检测
   没有由同一个明确的上下文入口统一说明所有权。
-- `BaseMapPage`、`DecisiveBattlePage` 和 `DecisiveMapController` 也各自保存或接收
-  OCR，地图标题、决战章节和舰队识别的生命周期契约尚未统一。
+- `SortiePage`、`BattlePage`、`DecisiveBattlePage` 和 `DecisiveMapController` 也各自
+  保存或接收 OCR，普通地图标题、决战章节和舰队识别的生命周期契约尚未统一。
 - 本批不重建 `GameContext`、不合并 OCR 实例、不增加兼容 fallback；待上下文专题
   先确认 `GameContext.ocr`/`ship_ocr` 的唯一创建者、注入时机和缺失行为后集中处理。
 
@@ -104,6 +104,18 @@
   上下文专题，不在公共区域整合时增加第二套状态源。
 - `shared/top_tabs.py` 不持有上下文或 OCR 引擎，只执行截图模板/像素匹配；本轮没有
   新的上下文问题。
+
+## 2026-09-09 严格规范返工上下文复核
+
+- `operations/sortie_page/battle_preparation_page/base.py` 仍可接收显式 `ocr` 并回退
+  `ctx.ocr`，同时从上下文读取 `ship_ocr`；这两个 OCR 来源的所有权和优先级没有在
+  本次结构/命名治理中改变。
+- `shared/choose_ship_page/page.py` 仍从注入的上下文读取 `ctx.ocr`/`ctx.ship_ocr`，
+  并继续使用 `common.calibration.choose_ship`；包化没有创建第二个上下文或 OCR 实例。
+- `battle_page`、`decisive_page` 与准备页的 OCR 注入契约仍未统一；后续专题必须以
+  `GameContext` 的唯一创建者、注入时机和缺失行为为先，不能按页面继续增加 fallback。
+- 本批次没有修改 `backyard/bath_page`，也没有改写选船算法；以上路径是后续调试专题
+  的当前代码入口。
 
 ## 2026-09-09 阶段二 OCR/ROI 复核
 

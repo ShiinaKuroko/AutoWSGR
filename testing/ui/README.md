@@ -171,7 +171,7 @@ python testing/ui/map_page/e2e.py --auto --debug --pause 2.0
 | `friend_page` | 主页面 → 侧边栏 → `go_to_friend()` |
 | `bath_page` | 主页面 → 后院 → `go_to_bath()` |
 | `canteen_page` | 主页面 → 后院 → `go_to_canteen()` |
-| `decisive_battle_page` | 主页面 → 地图 → 切换决战面板 → `MapPage.enter_decisive()` |
+| `decisive_battle_page` | 主页面 → sortie_page → `DecisiveEntryPage.enter_decisive()` |
 | `battle_preparation` | 主页面 → 地图（需人工选关卡进入） |
 
 ### 交互模式（默认）

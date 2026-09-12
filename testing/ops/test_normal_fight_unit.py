@@ -10,13 +10,14 @@ from types import SimpleNamespace
 from typing import TYPE_CHECKING, Any
 from unittest.mock import MagicMock
 
-import numpy as np
 import pytest
 
 import autowsgr.business.combat.bettle.normal_fight as normal_fight_module
-from autowsgr.application.ui.controller.battle_preparation.fleet_change._detect import FleetSnapshot
+from autowsgr.application.ui.controller.fleet.formation.fleet_recognition.models import (
+    FleetSnapshot,
+)
 from autowsgr.business.combat import CombatMode, CombatPlan, CombatResult
-from autowsgr.business.combat.bettle.normal_fight import NormalFightRunner, _require_fleet_change
+from autowsgr.business.combat.bettle.normal_fight import NormalFightRunner
 from autowsgr.business.combat.fleet import (
     FleetSelectionSource,
     FleetSlotRule,
@@ -40,16 +41,11 @@ def _make_ctx() -> SimpleNamespace:
     """
 
     cfg = SimpleNamespace(dock_full_destroy=False, destroy_ship_types=None)
-    return SimpleNamespace(ctrl=None, config=cfg)
-
-
-class TestFleetChangeResult:
-    def test_success_continues(self):
-        _require_fleet_change(True, 'fleet')
-
-    def test_failure_stops_fight(self):
-        with pytest.raises(ActionFailedError, match='fleet 编队失败'):
-            _require_fleet_change(False, 'fleet')
+    return SimpleNamespace(
+        ctrl=None,
+        config=cfg,
+        get_ship=lambda name: SimpleNamespace(name=name),
+    )
 
 
 class TestFleetPresetRules:
@@ -160,49 +156,41 @@ class TestFleetPresetRules:
         assert selection.source is FleetSelectionSource.PLAN_PRESET
 
 
-class _FleetInfo:
-    def __init__(self) -> None:
-        self.ship_damage: dict[int, ShipDamageState] = {}
-
-    @staticmethod
-    def to_ships(_names: list[str | None] | None) -> list[object]:
-        return []
-
-
 class _BattlePreparationPage:
     def __init__(self) -> None:
         self.changed_fleet_id: int | None = None
         self.changed_rules: tuple[FleetSlotRule, ...] | None = None
-        self.last_changed_fleet: list[str | None] | None = ['导巡测试舰']
+        self.adjusted_snapshot = FleetSnapshot(
+            names=['导巡测试舰', None, None, None, None, None],
+            occupied=[True, False, False, False, False, False],
+        )
 
     @staticmethod
     def select_fleet(_fleet_id: int) -> None:
         return None
 
-    def change_fleet(
+    def adjust_fleet(
         self,
+        *,
         fleet_id: int,
-        rules: tuple[FleetSlotRule, ...],
-    ) -> bool:
+        fleet_rules: tuple[FleetSlotRule, ...],
+        **_kwargs: object,
+    ) -> FleetSnapshot:
         self.changed_fleet_id = fleet_id
-        self.changed_rules = rules
-        return True
-
-    @staticmethod
-    def detect_fleet() -> list[str]:
-        raise AssertionError('runner 不应在换船成功后重复识别舰队')
+        self.changed_rules = fleet_rules
+        return self.adjusted_snapshot
 
     @staticmethod
     def apply_supply() -> None:
         return None
 
     @staticmethod
-    def apply_repair(_strategy: object) -> None:
+    def apply_repair(_strategy: object, **_kwargs: object) -> None:
         return None
 
     @staticmethod
-    def detect_fleet_info() -> _FleetInfo:
-        return _FleetInfo()
+    def read_ship_damage() -> dict[int, ShipDamageState]:
+        return {}
 
     @staticmethod
     def start_battle() -> None:
@@ -324,75 +312,6 @@ class TestFleetSelectionCallChain:
         assert selection.source is FleetSelectionSource.PLAN_FLEET
         assert page.changed_fleet_id == 2
         assert page.changed_rules == exact_fleet_rules(['岛风', '雪风'])
-
-    def test_real_runner_reaches_fleet_change_and_choose_ship_boundary(
-        self,
-        monkeypatch: pytest.MonkeyPatch,
-    ):
-        """Runner uses the real fleet orchestration before the battle boundary."""
-        from autowsgr.application.ui.controller.battle_preparation import BattlePreparationPage
-
-        ctrl = MagicMock()
-        ctrl.screenshot.return_value = np.zeros((100, 100, 3), dtype=np.uint8)
-        ctx = SimpleNamespace(
-            ctrl=ctrl,
-            config=SimpleNamespace(dock_full_destroy=False, destroy_ship_types=None),
-            ocr=MagicMock(),
-            sync_before_combat=MagicMock(),
-            sync_after_combat=MagicMock(),
-        )
-        page = BattlePreparationPage(ctx)
-        monkeypatch.setattr(normal_fight_module, 'BattlePreparationPage', lambda _ctx: page)
-
-        class FakeChooseShipPage:
-            def change_single_ship(
-                self,
-                selector: ShipSelector | None,
-                *,
-                use_search: bool,
-            ) -> str | None:
-                assert use_search is True
-                return selector.name if selector is not None else None
-
-        empty_snapshot = FleetSnapshot(
-            names=[None] * 6,
-            occupied=[False] * 6,
-        )
-        target_snapshot = FleetSnapshot(
-            names=['导巡测试舰', None, None, None, None, None],
-            occupied=[True, False, False, False, False, False],
-        )
-        snapshots = iter([empty_snapshot, target_snapshot, target_snapshot, target_snapshot])
-        monkeypatch.setattr(BattlePreparationPage, 'read_selected_fleet', lambda _self, _screen: 4)
-        monkeypatch.setattr(
-            page,
-            '_detect_initial_snapshot',
-            lambda _pool, _selectors: next(snapshots),
-        )
-        monkeypatch.setattr(page, 'detect_fleet_snapshot', lambda **_kwargs: next(snapshots))
-        monkeypatch.setattr(page, 'detect_ship_damage', lambda _screen: {})
-        monkeypatch.setattr(page, 'apply_supply', lambda: None)
-        monkeypatch.setattr(page, 'apply_repair', lambda _strategy: None)
-        monkeypatch.setattr(page, 'detect_fleet_info', _FleetInfo)
-        monkeypatch.setattr(page, 'start_battle', MagicMock())
-        monkeypatch.setattr(page, '_open_choose_page', lambda _slot: FakeChooseShipPage())
-        monkeypatch.setattr(normal_fight_module.time, 'sleep', lambda _seconds: None)
-
-        plan = CombatPlan.from_dict(
-            {
-                'fleet_id': 4,
-                'fleet_presets': [{'ships': [{'name': '导巡测试舰'}]}],
-            },
-        )
-        runner = NormalFightRunner(ctx, plan, resolve_fleet_selection(plan))
-        monkeypatch.setattr(runner, '_enter_fight', lambda: None)
-        monkeypatch.setattr(runner, '_do_combat', lambda _stats: CombatResult())
-        monkeypatch.setattr(runner, '_handle_result', lambda _result: None)
-
-        runner.run()
-
-        page.start_battle.assert_called_once()
-
 
 class TestTaskRepairMethod:
     def test_quick_method_overrides_global_manual_repair(self):

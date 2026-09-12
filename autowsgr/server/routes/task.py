@@ -431,7 +431,6 @@ async def _start_decisive(ctx: Any, request: DecisiveRequest) -> ApiResponse:
         task_type='decisive',
         params={
             'chapter': request.chapter,
-            'use_new_fleet_change_algorithm': request.use_new_fleet_change_algorithm,
             'level1': request.level1,
             'level2': request.level2,
             'flagship_priority': request.flagship_priority,

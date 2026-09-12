@@ -1,11 +1,11 @@
-"""模块功能：执行地图战役面板的次数读取、难度切换和出征准备入口。
+"""模块功能：执行战役页面的次数读取、难度切换和出征准备入口。
 
 上层调用：
 - business.combat.campaign：选择战役并进入出征准备。
 - testing.business、testing.ui：验证战役次数、难度和入口流程。
 
 下层依赖：
-- application.ui.controller.operations.sortie_page.battle_page.base：提供面板切换和页面上下文。
+- application.ui.controller.operations.sortie_page.main_page：提供 sortie_page 页面壳和顶部标签。
 - application.ui.controller.operations.sortie_page.campaign_page.constants：提供战役坐标和颜色校准。
 - application.ui.controller.operations.sortie_page.campaign_page.recognition：提供战役 OCR 结果。
 - common.vision：读取难度状态和执行页面动作。
@@ -15,13 +15,15 @@ from __future__ import annotations
 
 import time
 
-from autowsgr.application.ui.controller.operations.sortie_page.battle_page.base import BaseMapPage
-from autowsgr.application.ui.controller.operations.sortie_page.battle_page.data import MapPanel
 from autowsgr.application.ui.controller.operations.sortie_page.campaign_page import constants
 from autowsgr.application.ui.controller.operations.sortie_page.campaign_page.recognition import (
     AcquisitionCounts,
     recognize_acquisition_counts,
     recognize_campaign_remains,
+)
+from autowsgr.application.ui.controller.operations.sortie_page.main_page import (
+    SortiePage,
+    SortieTab,
 )
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.types import PageName
@@ -34,8 +36,8 @@ _DIFFICULTY_EASY_COLOR = Color.from_rgb_tuple(constants.DIFFICULTY_EASY_COLOR)
 _DIFFICULTY_HARD_COLOR = Color.from_rgb_tuple(constants.DIFFICULTY_HARD_COLOR)
 
 
-class CampaignPanelMixin(BaseMapPage):
-    """Mixin: 战役面板操作 — 难度识别 / 切换 / 进入战役。"""
+class CampaignPage(SortiePage):
+    """战役页面控制器，直接管理次数、难度和战役入口。"""
 
     AcquisitionCounts = AcquisitionCounts
 
@@ -47,7 +49,7 @@ class CampaignPanelMixin(BaseMapPage):
         Returns:
             ``(剩余次数, 总次数)``；OCR 无法匹配时返回 ``None``。
         """
-        self.ensure_panel(MapPanel.BATTLE)
+        self.select_tab(SortieTab.CAMPAIGN)
         time.sleep(0.5)
         screen = self._ctrl.screenshot()
         return recognize_campaign_remains(screen, self._ocr)
@@ -81,7 +83,7 @@ class CampaignPanelMixin(BaseMapPage):
         Returns:
             获取数量结果；无法识别的字段为 ``None``。
         """
-        self.ensure_panel(MapPanel.SORTIE)
+        self.select_tab(SortieTab.SORTIE)
         time.sleep(0.5)
         screen = self._ctrl.screenshot()
         return recognize_acquisition_counts(screen, self._ocr)
@@ -105,7 +107,7 @@ class CampaignPanelMixin(BaseMapPage):
             ValueError: 战役编号或难度无效。
             NavigationError: 超时未到达出征准备页面。
         """
-        from autowsgr.application.ui.controller.battle_preparation import BattlePreparationPage
+        from autowsgr.application.ui.controller.fleet import BattlePreparationPage
 
         if map_index not in constants.CAMPAIGN_POSITIONS:
             raise ValueError(f'战役编号必须为 1-5，收到: {map_index}')
@@ -119,7 +121,7 @@ class CampaignPanelMixin(BaseMapPage):
         )
 
         # 1. 切换到战役面板
-        self.ensure_panel(MapPanel.BATTLE)
+        self.select_tab(SortieTab.CAMPAIGN)
 
         # 2. 选择难度
         if self.read_difficulty() != difficulty:

@@ -109,7 +109,7 @@ def _sidebar_to_home(ctx: GameContext) -> None:
     """关闭侧边栏并回到主页。"""
     from autowsgr.application.ui.controller.sidebar.main_page import SidebarPage
 
-    SidebarPage(ctx).close()
+    SidebarPage(ctx).close_sidebar()
 
 
 # ── 后勤导航图 ─────────────────────────────────────────────────

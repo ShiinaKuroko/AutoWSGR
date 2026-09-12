@@ -364,7 +364,7 @@ def run(rt: Any) -> bool:  # noqa: C901, PLR0912, PLR0915 - one E2E case owns it
     if args.with_init:
         from autowsgr.application.runtime.initialize.initialize import initialize
         from autowsgr.application.ui.controller.home.main_page import HomePage
-        from autowsgr.application.ui.controller.home.main_page.overlays import read_overlay
+        from autowsgr.application.ui.controller.home.main_page.overlay import read_overlay
 
         if rt.action('初始化 (任意状态 → 首页 + 清浮层)', initialize, ctx) is rt.FAILED:
             return False

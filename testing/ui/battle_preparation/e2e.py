@@ -40,9 +40,11 @@ if TYPE_CHECKING:
 
 
 def run_test(runner: UIControllerTestRunner) -> None:
-    from autowsgr.application.ui.controller.battle_preparation import BattlePreparationPage, Panel
+    from autowsgr.application.ui.controller.fleet import BattlePreparationPage, Panel
+    from autowsgr.application.ui.controller.fleet.support.supply import recognition
+    from autowsgr.application.ui.controller.fleet.support.supply import switch_auto_supply
 
-    bp_page = BattlePreparationPage(runner.ctrl)
+    bp_page = BattlePreparationPage(runner.ctx)
 
     runner.verify_current(
         '初始验证: 出征准备页面', '出征准备页面', BattlePreparationPage.check_current_page
@@ -55,7 +57,7 @@ def run_test(runner: UIControllerTestRunner) -> None:
         readers={
             '当前舰队': BattlePreparationPage.read_selected_fleet,
             '当前面板': BattlePreparationPage.read_active_panel,
-            '自动补给': BattlePreparationPage.check_auto_supply_enabled,
+            '自动补给': recognition.check_auto_supply_enabled,
         },
     )
 
@@ -87,7 +89,7 @@ def run_test(runner: UIControllerTestRunner) -> None:
             f'拨动自动补给 (第{i}次)',
             '出征准备页面',
             BattlePreparationPage.check_current_page,
-            bp_page.toggle_auto_supply,
+            lambda: switch_auto_supply(runner.ctx),
         )
         if runner.aborted:
             return
@@ -128,14 +130,12 @@ def _navigate_to(
 
     from autowsgr.application.ui.controller.home.main_page import HomePage
     from autowsgr.application.ui.controller.operations.sortie_page.battle_page import (
-        MapPage,
-        MapPanel,
+        BattlePage,
+        constants,
     )
-    from autowsgr.application.ui.controller.operations.sortie_page.battle_page.constants import (
-        MAP_NODE_POSITIONS,
-    )
-    from autowsgr.application.ui.controller.operations.sortie_page.battle_page.data import (
-        TOTAL_CHAPTERS,
+    from autowsgr.application.ui.controller.operations.sortie_page.main_page import (
+        SortiePage,
+        SortieTab,
     )
 
     if not reset_to_main_page(ctrl, pause):
@@ -150,15 +150,15 @@ def _navigate_to(
 
     # 确认在地图并切换到出征面板
     screen = ctrl.screenshot()
-    if not MapPage.check_current_page(screen):
+    if not SortiePage.check_current_page(screen):
         return
-    if MapPage.read_active_panel(screen) != MapPanel.SORTIE:
-        MapPage(ctrl).switch_panel(MapPanel.SORTIE)
+    if SortiePage.read_active_tab(screen) != SortieTab.SORTIE:
+        SortiePage(ctrl).click_tab(SortieTab.SORTIE)
         time.sleep(pause)
 
     # 章节导航 (无 OCR)。先向前滑到第 1 章，再向后到目标章
-    map_page = MapPage(ctrl)
-    for _ in range(TOTAL_CHAPTERS):
+    map_page = BattlePage(ctrl)
+    for _ in range(constants.TOTAL_CHAPTERS):
         if not map_page.click_prev_chapter():
             break
         time.sleep(pause * 0.4)
@@ -168,10 +168,10 @@ def _navigate_to(
     time.sleep(pause * 0.5)
 
     # 点击地图节点（两次：第一次选中，第二次确认进入）
-    if map_node not in MAP_NODE_POSITIONS:
+    if map_node not in constants.MAP_NODE_POSITIONS:
         info(f'[battle_preparation] map_node={map_node} 不在已知坐标表，尝试节点 1')
         map_node = 1
-    pos = MAP_NODE_POSITIONS[map_node]
+    pos = constants.MAP_NODE_POSITIONS[map_node]
     ctrl.click(*pos)
     time.sleep(pause * 0.5)
     ctrl.click(*pos)
@@ -190,7 +190,7 @@ def main() -> None:
 
     logger.info('=== 出征准备页面 e2e 测试开始 === 章节={} 地图节点={}', chapter, map_node)
     info(f'  章节: {chapter}   地图节点: {map_node}  (可用 --chapter N --map-node M 覆盖)')
-    from autowsgr.application.ui.controller.battle_preparation import BattlePreparationPage
+    from autowsgr.application.ui.controller.fleet import BattlePreparationPage
 
     if not ensure_page(
         ctrl,

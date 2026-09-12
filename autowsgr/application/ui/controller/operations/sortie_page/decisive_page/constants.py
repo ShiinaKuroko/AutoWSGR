@@ -19,6 +19,7 @@ from autowsgr.common.vision import Color, MatchStrategy, PixelRule, PixelSignatu
 
 # 总览页点击坐标。
 CLICK_BACK = (0.0219, 0.0584)  # 总览页返回按钮，用于回到母港主页。
+CLICK_ENTER_DECISIVE = (0.1200, 0.2090)  # sortie_page 决战入口，用于进入决战总览页。
 CLICK_PREV_CHAPTER = (0.8209, 0.9389)  # 前一章节按钮，用于查看上一决战章节。
 CLICK_NEXT_CHAPTER = (0.9375, 0.9389)  # 后一章节按钮，用于查看下一决战章节。
 CLICK_ENTER_MAP = (0.5209, 0.9259)  # 进入地图按钮，用于进入当前章节地图。
@@ -162,6 +163,7 @@ __all__ = [
     'CLICK_BUY_RESOURCE',
     'CLICK_BUY_TICKET_OPEN',
     'CLICK_CHOOSE_SHIP_BACK',
+    'CLICK_ENTER_DECISIVE',
     'CLICK_ENTER_MAP',
     'CLICK_FLEET_CLOSE',
     'CLICK_FLEET_REFRESH',

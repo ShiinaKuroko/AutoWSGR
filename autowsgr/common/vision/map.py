@@ -1,7 +1,7 @@
 """出征面板计数器识别 — 战利品/舰船数量 OCR 与数据类。
 
 拆分自 sortie.py 中「纯 OCR + 数据结构」部分，独立文件便于
-复用 (campaign.py) 与测试，减少 SortiePanelMixin 体积。
+复用 (campaign.py) 与测试，减少 BattlePage 体积。
 """
 
 from __future__ import annotations

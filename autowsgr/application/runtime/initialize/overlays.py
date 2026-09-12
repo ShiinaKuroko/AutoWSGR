@@ -16,7 +16,7 @@ from dataclasses import dataclass
 from datetime import date
 from typing import TYPE_CHECKING
 
-from autowsgr.application.ui.controller.home.main_page.overlays import (
+from autowsgr.application.ui.controller.home.main_page.overlay import (
     dismiss_overlay,
     read_overlay,
 )

@@ -61,7 +61,7 @@ For each target operation, we will define a dedicated method (if not already pre
         # Verification raises NavigationError if it fails
         wait_leave_page(
             self._ctrl,
-            checker=BaseBattlePreparation.is_current_page,
+            checker=BattlePreparationPage.check_current_page,
             timeout=2.0,
             source=PageName.BATTLE_PREP,
             target="combat"
