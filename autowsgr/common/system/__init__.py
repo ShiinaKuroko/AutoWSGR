@@ -1,78 +1,11 @@
-"""System-wide configuration, errors, file helpers, and logging."""
+"""系统基础能力命名空间。
 
-from .config import (
-    AccountConfig,
-    BattleConfig,
-    ConfigManager,
-    DailyAutomationConfig,
-    DecisiveConfig,
-    EmulatorConfig,
-    ExerciseConfig,
-    FightConfig,
-    LogConfig,
-    NodeConfig,
-    OCRConfig,
-    UserConfig,
-)
-from .exceptions import (
-    ActionFailedError,
-    AutoWSGRError,
-    ConfigError,
-    CriticalError,
-    DockFullError,
-    EmulatorConnectionError,
-    EmulatorError,
-    EmulatorNotFoundError,
-    GameError,
-    ImageNotFoundError,
-    ManualRepairRequiredError,
-    NavigationError,
-    OCRError,
-    PageNotFoundError,
-    ResourceError,
-    UIError,
-    VisionError,
-)
-from .file_utils import load_yaml, merge_dicts, resolve_plan_path, save_yaml
-from .logger import caller_info, get_logger, save_image, setup_logger
+能力范围：通用枚举、错误基类、文件边界和日志基础设施。
+下层依赖：Python 标准库及已批准的第三方库。
+边界：不持有业务配置、页面状态、设备对象或具体领域错误。
+"""
+
+from autowsgr.common.system import enums, errors, files, logger
 
 
-__all__ = [
-    'AccountConfig',
-    'ActionFailedError',
-    'AutoWSGRError',
-    'BattleConfig',
-    'ConfigError',
-    'ConfigManager',
-    'CriticalError',
-    'DailyAutomationConfig',
-    'DecisiveConfig',
-    'DockFullError',
-    'EmulatorConfig',
-    'EmulatorConnectionError',
-    'EmulatorError',
-    'EmulatorNotFoundError',
-    'ExerciseConfig',
-    'FightConfig',
-    'GameError',
-    'ImageNotFoundError',
-    'LogConfig',
-    'ManualRepairRequiredError',
-    'NavigationError',
-    'NodeConfig',
-    'OCRConfig',
-    'OCRError',
-    'PageNotFoundError',
-    'ResourceError',
-    'UIError',
-    'UserConfig',
-    'VisionError',
-    'caller_info',
-    'get_logger',
-    'load_yaml',
-    'merge_dicts',
-    'resolve_plan_path',
-    'save_image',
-    'save_yaml',
-    'setup_logger',
-]
+__all__ = ['enums', 'errors', 'files', 'logger']
