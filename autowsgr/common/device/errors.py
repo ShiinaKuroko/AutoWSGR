@@ -1,13 +1,8 @@
-"""设备域错误契约。
+"""定义设备基础能力的错误类型。
 
-上层调用：
-- common.device.controller：报告设备连接和通道错误。
-- common.device.discovery、common.device.lifecycle：报告发现和生命周期错误。
-
-下层依赖：
-- common.system.errors：提供跨领域错误基类。
-
-本模块只定义设备错误类型，不负责记录日志或恢复设备状态。
+直接调用方：device 内各执行器、设备流程和设备能力使用方。
+下层依赖：system.errors 提供公共错误基类。
+边界：只定义错误类型，不负责记录日志或恢复设备状态。
 """
 
 from __future__ import annotations
