@@ -1,92 +1,37 @@
-"""视觉层 — 像素特征检测 + 模板图像匹配 + OCR。
+"""模块功能：提供通用视觉能力的稳定入口。
 
-公开 API::
+直接调用方：application、business 和 tools 中需要视觉处理的模块。
 
-    # 像素检测
-    from autowsgr.common.vision import (
-        Color,
-        PixelRule,
-        PixelSignature,
-        MatchStrategy,
-        PixelChecker,
-        PixelMatchResult,
-        PixelDetail,
-    )
+直接依赖：service 入口及其下层视觉操作和基础执行器。
 
-    # 图像模板匹配
-    from autowsgr.common.vision import (
-        ROI,
-        ImageTemplate,
-        ImageRule,
-        ImageSignature,
-        ImageChecker,
-        ImageMatchResult,
-        ImageMatchDetail,
-    )
-
-    # OCR
-    from autowsgr.common.vision import OCREngine, OCRResult
+边界：不承载视觉算法实现、业务识别规则、设备截图或页面流程。
 """
 
-from .api_dll import ApiDll, get_api_dll
-from .image_matcher import TEMPLATE_SOURCE_RESOLUTION, ImageChecker
-from .image_template import (
-    ImageMatchDetail,
-    ImageMatchResult,
-    ImageRule,
-    ImageSignature,
-    ImageTemplate,
+from __future__ import annotations
+
+from autowsgr.common.vision.service import (
+    match_pixels,
+    match_template,
+    match_templates,
+    numpy,
+    ocr,
+    opencv,
+    parse_counter,
+    prepare_text,
+    recognize_prepared_text,
+    recognize_text,
 )
-from .matcher import PixelChecker
-from .ocr import (
-    EasyOCREngine,
-    FastOCREngine,
-    OCREngine,
-    OCRResult,
-    ShipNameMismatchError,
-    apply_ship_patches,
-)
-from .page_match import PageMatch
-from .pixel import (
-    Color,
-    CompositePixelSignature,
-    MatchStrategy,
-    PixelDetail,
-    PixelMatchResult,
-    PixelRule,
-    PixelSignature,
-)
-from .roi import ROI
 
 
 __all__ = [
-    # image_matcher (template)
-    'ROI',
-    'TEMPLATE_SOURCE_RESOLUTION',
-    # api_dll
-    'ApiDll',
-    # matcher (pixel)
-    'Color',
-    'CompositePixelSignature',
-    'EasyOCREngine',
-    'FastOCREngine',
-    'ImageChecker',
-    'ImageMatchDetail',
-    'ImageMatchResult',
-    'ImageRule',
-    'ImageSignature',
-    'ImageTemplate',
-    'MatchStrategy',
-    # ocr
-    'OCREngine',
-    'OCRResult',
-    'PageMatch',
-    'PixelChecker',
-    'PixelDetail',
-    'PixelMatchResult',
-    'PixelRule',
-    'PixelSignature',
-    'ShipNameMismatchError',
-    'apply_ship_patches',
-    'get_api_dll',
+    'match_pixels',
+    'match_template',
+    'match_templates',
+    'numpy',
+    'ocr',
+    'opencv',
+    'parse_counter',
+    'prepare_text',
+    'recognize_prepared_text',
+    'recognize_text',
 ]
