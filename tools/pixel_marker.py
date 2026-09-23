@@ -332,7 +332,7 @@ class PixelMarkerApp:
         if not serial:
             # 自动检测可用模拟器
             try:
-                from autowsgr.common.device import detect_emulators, prompt_user_select
+                from autowsgr.common.device.discovery import detect_emulators, prompt_user_select
 
                 candidates = detect_emulators()
                 if not candidates:

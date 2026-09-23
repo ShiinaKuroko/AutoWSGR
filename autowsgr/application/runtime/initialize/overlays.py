@@ -5,8 +5,9 @@
     处理一次后当天零开销跳过 (日期门控)。
 
 复用清单 (不重写):
-    - ui/home/overlays.read_overlay / dismiss_overlay — 浮层检测与消除
-    - ui/utils.confirm_operation — 确认弹窗兜底
+    - ui/controller/home/main_page/recognition.read_overlay — 浮层识别
+    - ui/controller/home/main_page/operations.dismiss_overlay — 浮层操作
+    - common.device.interaction.confirm_operation — 确认弹窗兜底
 """
 
 from __future__ import annotations
@@ -16,12 +17,9 @@ from dataclasses import dataclass
 from datetime import date
 from typing import TYPE_CHECKING
 
-from autowsgr.application.ui.controller.home.main_page.overlay import (
-    dismiss_overlay,
-    read_overlay,
-)
+from autowsgr.application.ui.controller.home.main_page import operations, recognition
 from autowsgr.common.system.logger import get_logger
-from autowsgr.common.ui.interaction import confirm_operation
+from autowsgr.common.device.interaction import confirm_operation
 
 
 if TYPE_CHECKING:
@@ -82,7 +80,7 @@ def handle_daily_overlays(ctrl: AndroidController, state: OverlayState) -> None:
     for attempt in range(_OVERLAY_DISMISS_MAX):
         # ① 已知浮层直接消除
         screen = ctrl.screenshot()
-        overlay = read_overlay(screen)
+        overlay = recognition.read_overlay(screen)
         if overlay is not None:
             _log.info(
                 '[Overlays] 消除浮层: {} ({}/{})',
@@ -90,7 +88,7 @@ def handle_daily_overlays(ctrl: AndroidController, state: OverlayState) -> None:
                 attempt + 1,
                 _OVERLAY_DISMISS_MAX,
             )
-            dismiss_overlay(ctrl, overlay)
+            operations.dismiss_overlay(ctrl, overlay)
             time.sleep(_OVERLAY_DISMISS_WAIT)
             continue
 

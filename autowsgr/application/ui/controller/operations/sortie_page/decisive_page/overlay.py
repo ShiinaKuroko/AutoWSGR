@@ -23,8 +23,8 @@ from autowsgr.application.ui.controller.operations.sortie_page.decisive_page.con
     SIG_MAP_PAGE,
 )
 from autowsgr.common.system.logger import get_logger
-from autowsgr.common.vision import ImageChecker, ImageTemplate, PixelChecker, PixelSignature
-from autowsgr.common.vision.resources import Templates
+from autowsgr.common.vision import ROI, ImageChecker, ImageTemplate, PixelChecker, PixelSignature
+from autowsgr.application.vision.resources import Templates
 
 
 if TYPE_CHECKING:
@@ -59,6 +59,38 @@ _OVERLAY_TEMPLATE_MAP: dict[DecisiveOverlay, ImageTemplate] = {
     DecisiveOverlay.ADVANCE_CHOICE: Templates.Decisive.ADVANCE_CHOICE,
 }
 
+# Overlay templates are collected at 1280x720. Keep a one-pixel margin so
+# scaled screenshots do not lose a match at the crop boundary.
+USE_LAST_FLEET_ROI = ROI(0.82, 0.30, 1.0, 0.50).expand_pixels(1280, 720)
+FLEET_NAME_ROI = ROI(0.08, 0.11, 0.26, 0.22).expand_pixels(1280, 720)
+FLEET_ACQUISITION_ROI = ROI(
+    494 / 1280,
+    38 / 720,
+    799 / 1280,
+    107 / 720,
+).expand_pixels(1280, 720)
+CONFIRM_EXIT_ROI = ROI(
+    363 / 1280,
+    161 / 720,
+    917 / 1280,
+    465 / 720,
+).expand_pixels(1280, 720)
+ADVANCE_CHOICE_ROI = ROI(
+    324 / 1280,
+    237 / 720,
+    607 / 1280,
+    429 / 720,
+).expand_pixels(1280, 720)
+ADVANCE_CHOICE_THREE_ROI = ROI(
+    142 / 1280,
+    235 / 720,
+    429 / 1280,
+    431 / 720,
+).expand_pixels(1280, 720)
+
+_FLEET_ACQUISITION_CONFIDENCE = 0.70
+_ADVANCE_CHOICE_CONFIDENCE = 0.80
+
 
 def check_decisive_map_page(screen: np.ndarray) -> bool:
     """检查截图是否为没有浮层遮挡的决战地图页。"""
@@ -70,8 +102,58 @@ def check_fleet_acquisition(screen: np.ndarray) -> bool:
     return ImageChecker.template_exists(
         screen,
         Templates.Decisive.FLEET_ACQUISITION,
-        confidence=0.85,
+        roi=FLEET_ACQUISITION_ROI,
+        confidence=_FLEET_ACQUISITION_CONFIDENCE,
     )
+
+
+def detect_decisive_overlay(
+    screen: np.ndarray,
+    *,
+    advance_choice_roi: ROI | None = None,
+    include_fleet_acquisition: bool = True,
+) -> DecisiveOverlay | None:
+    """按优先级检测决战浮层，可按入口阶段屏蔽已消费的浮层。"""
+    for overlay_type, template in _OVERLAY_TEMPLATE_MAP.items():
+        if overlay_type is DecisiveOverlay.FLEET_ACQUISITION and not include_fleet_acquisition:
+            continue
+
+        confidence = (
+            _FLEET_ACQUISITION_CONFIDENCE
+            if overlay_type is DecisiveOverlay.FLEET_ACQUISITION
+            else _ADVANCE_CHOICE_CONFIDENCE
+            if overlay_type is DecisiveOverlay.ADVANCE_CHOICE
+            else 0.85
+        )
+        if overlay_type is DecisiveOverlay.ADVANCE_CHOICE:
+            rois = (
+                (advance_choice_roi, ADVANCE_CHOICE_ROI, ADVANCE_CHOICE_THREE_ROI)
+                if advance_choice_roi is not None
+                else (ADVANCE_CHOICE_ROI, ADVANCE_CHOICE_THREE_ROI)
+            )
+            matched = any(
+                ImageChecker.template_exists(screen, template, roi=roi, confidence=confidence)
+                for roi in rois
+            )
+        else:
+            roi = (
+                FLEET_ACQUISITION_ROI
+                if overlay_type is DecisiveOverlay.FLEET_ACQUISITION
+                else CONFIRM_EXIT_ROI
+                if overlay_type is DecisiveOverlay.CONFIRM_EXIT
+                else None
+            )
+            matched = ImageChecker.template_exists(
+                screen,
+                template,
+                roi=roi,
+                confidence=confidence,
+            )
+
+        if matched:
+            _log.debug('[决战] 检测到浮层: {}', overlay_type.value)
+            return overlay_type
+    return None
 
 
 def read_overlay_type(screen: np.ndarray) -> DecisiveOverlay | None:
@@ -83,11 +165,7 @@ def read_overlay_type(screen: np.ndarray) -> DecisiveOverlay | None:
     Returns:
         首个匹配的浮层类型；没有浮层时返回 ``None``。
     """
-    for overlay_type, template in _OVERLAY_TEMPLATE_MAP.items():
-        if ImageChecker.template_exists(screen, template, confidence=0.85):
-            _log.debug('[决战] 检测到浮层: {}', overlay_type.value)
-            return overlay_type
-    return None
+    return detect_decisive_overlay(screen)
 
 
 def read_overlay_template(overlay: DecisiveOverlay) -> ImageTemplate:
@@ -101,9 +179,16 @@ def read_overlay_signature(overlay: DecisiveOverlay) -> PixelSignature:
 
 
 __all__ = [
+    'ADVANCE_CHOICE_ROI',
+    'ADVANCE_CHOICE_THREE_ROI',
+    'CONFIRM_EXIT_ROI',
+    'FLEET_ACQUISITION_ROI',
+    'FLEET_NAME_ROI',
+    'USE_LAST_FLEET_ROI',
     'DecisiveOverlay',
     'check_decisive_map_page',
     'check_fleet_acquisition',
+    'detect_decisive_overlay',
     'read_overlay_signature',
     'read_overlay_template',
     'read_overlay_type',

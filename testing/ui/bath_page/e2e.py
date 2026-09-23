@@ -1,16 +1,25 @@
-"""浴室页面 UI 控制器端到端测试。
+"""模块功能：执行浴室页面 UI Controller 的端到端验证。
 
-运行方式::
+上层调用：
+- testing.ui._framework：提供实机测试运行器、页面保障和报告输出。
 
+下层依赖：
+- backyard.bath_page：提供浴室页面检查和页面级返回入口。
+- backyard.main_page、home.main_page：提供实机测试前置导航。
+
+边界：
+本模块只连接真实设备验证页面行为，不承载生产业务流程或运行时状态。
+
+运行方式：
     python testing/ui/bath_page/e2e.py [serial] [--auto] [--debug]
 
 前置条件：
-    游戏位于 **浴室页面** (后院 → 浴室)
+    游戏位于浴室页面（后院 → 浴室）。
 
 测试内容：
-    1. 验证初始状态
-    2. 读取页面状态（当前修理槽信息）
-    3. 浴室页面 → ◁ 后院
+    1. 验证初始状态。
+    2. 读取页面状态（当前修理槽信息）。
+    3. 浴室页面 → 后院。
 """
 
 from __future__ import annotations

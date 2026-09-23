@@ -5,7 +5,7 @@
 """
 
 from autowsgr.business.combat.decisive import DecisiveController
-from autowsgr.common.system import DecisiveConfig
+from autowsgr.config import DecisiveConfig
 from autowsgr.dispatch.legacy_scheduler import launch
 
 

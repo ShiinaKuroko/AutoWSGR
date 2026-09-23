@@ -31,10 +31,10 @@ from autowsgr.business.combat.fleet import (
     validate_fleet_selection_arguments,
 )
 from autowsgr.business.logistics.repair.bath_repair import repair_manual_targets_in_bath
-from autowsgr.common.system import ActionFailedError
+from autowsgr.common.system import ActionFailedError, ManualRepairRequiredError
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.types import ConditionFlag, PageName, RepairMode, ShipDamageState
-from autowsgr.common.ui.interaction import NavigationError
+from autowsgr.common.device.interaction import NavigationError
 
 
 if TYPE_CHECKING:
@@ -450,7 +450,27 @@ class NormalFightRunner:
         elif self._plan.repair_method == 'quick':
             page.apply_repair(strategy, repair_manually=False)
         elif getattr(self._ctx.config, 'repair_manually', False):
-            self._repair_in_bath(page, strategy, fleet_names)
+            positions = page.check_repair(strategy)
+            if not positions:
+                return
+            targets = [
+                fleet_names[position]
+                for position in positions
+                if 0 <= position < len(fleet_names) and fleet_names[position]
+            ]
+            if not targets:
+                raise ManualRepairRequiredError('无法解析手动维修目标')
+            try:
+                self._goto_bath_for_repair()
+                dispatched = repair_manual_targets_in_bath(self._ctx, targets)
+            except ManualRepairRequiredError:
+                raise
+            except Exception as exc:
+                raise ManualRepairRequiredError('手动维修处理失败') from exc
+            missing = [name for name in targets if name not in set(dispatched)]
+            if missing:
+                _log.warning('[Bettle] 手动维修未能派出: {}', missing)
+            raise ManualRepairRequiredError('需要手动修理')
         else:
             page.apply_repair(strategy)
 
@@ -484,7 +504,10 @@ class NormalFightRunner:
             self._repair_status_callback(True)
         try:
             self._goto_bath_for_repair()
-            repair_manual_targets_in_bath(self._ctx, targets)
+            dispatched = repair_manual_targets_in_bath(self._ctx, targets)
+            missing = [name for name in targets if name not in set(dispatched)]
+            if missing:
+                raise ActionFailedError(f'澡堂维修未能派出: {", ".join(missing)}')
 
             ships = [self._ctx.get_ship(name) for name in targets]
             failed = [

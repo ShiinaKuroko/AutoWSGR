@@ -162,8 +162,8 @@ plan = CombatPlan(
 ### 基本用法
 
 ```python
-from autowsgr.infra.combat import CombatPlan
-from autowsgr.ops import run_normal_fight, run_normal_fight_from_yaml
+from autowsgr.business.combat import CombatPlan
+from autowsgr.business.combat.bettle import run_normal_fight, run_normal_fight_from_yaml
 
 # 方式一: 从 YAML 加载
 results = run_normal_fight_from_yaml(
@@ -180,7 +180,7 @@ results = run_normal_fight(ctrl, plan, times=5)
 ### 使用 Runner 类（更多控制）
 
 ```python
-from autowsgr.ops.normal_fight import NormalFightRunner
+from autowsgr.business.combat.bettle.normal_fight import NormalFightRunner
 
 runner = NormalFightRunner(
     ctrl,
@@ -401,7 +401,7 @@ v1 使用 `eval()` 直接执行条件字符串，存在代码注入风险。
 v2 使用 `RuleEngine` 安全解析，只允许预定义的变量和运算符:
 
 ```python
-from autowsgr.infra.combat import RuleEngine
+from autowsgr.business.combat import RuleEngine
 
 engine = RuleEngine.from_legacy_rules([
     ["CV > 0", "retreat"],
@@ -464,7 +464,7 @@ for i, r in enumerate(results):
 战斗引擎通过明确的低层能力运行，不再接受一组会改变战斗语义的识别回调：
 
 ```python
-from autowsgr.infra.combat import CombatEngine
+from autowsgr.business.combat import CombatEngine
 
 engine = CombatEngine(
     device=ctrl,

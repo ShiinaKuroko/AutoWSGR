@@ -187,17 +187,17 @@ python test_pkg/run_all.py blood loot_rec decisive_ocr
 
 ### 截图采集
 
-使用 `tools/debug_screenshot.py` 进行截图和 OCR 调试：
+使用 `tools/debug_toolkit` 的 `inspect` 命令进行截图和 OCR 调试：
 
 ```bash
 # 截图并检查页面签名
-python tools/debug_screenshot.py
+python -m tools.debug_toolkit inspect
 
 # 对指定 ROI 区域做 OCR (相对坐标 x1,y1,x2,y2)
-python tools/debug_screenshot.py --roi 0.818,0.81,0.875,0.867 --allowlist "0123456789Ex-"
+python -m tools.debug_toolkit inspect --roi 0.818,0.81,0.875,0.867 --allowlist "0123456789Ex-"
 
 # 从已有图片分析
-python tools/debug_screenshot.py -i screenshot.png --roi 0.5,0.5,0.8,0.8
+python -m tools.debug_toolkit inspect -i screenshot.png --roi 0.5,0.5,0.8,0.8
 ```
 
 截图命名建议语义化（如 `decisive_page_ex6.png`），或使用 `pixel_marker_YYYYMMDD_HHMMSS.png` 工具默认格式。

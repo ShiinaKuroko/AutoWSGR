@@ -31,17 +31,17 @@ from autowsgr.application.ui.controller.operations.sortie_page.decisive_page.con
     SKILL_SHIP_AREA,
 )
 from autowsgr.common.system.logger import get_logger
-from autowsgr.common.types import FleetSelection
+from autowsgr.business.combat.types import FleetSelection
 from autowsgr.common.vision import ROI, OCREngine, PixelChecker
-from autowsgr.common.vision.combat import recognize_ship_drop
-from autowsgr.common.vision.ship_list import recognize_ships_in_list
+from autowsgr.application.vision.combat_recognition import recognize_ship_drop
+from autowsgr.application.vision.ship_list import recognize_ships_in_list
 
 
 if TYPE_CHECKING:
     import numpy as np
 
-    from autowsgr.common.vision.api_dll import ApiDll
-    from autowsgr.common.vision.combat import ShipDropResult
+    from autowsgr.application.vision.native import ApiDll
+    from autowsgr.application.vision.combat_recognition import ShipDropResult
 
 
 _log = get_logger('ui.decisive')

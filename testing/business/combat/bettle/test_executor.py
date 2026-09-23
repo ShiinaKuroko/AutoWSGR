@@ -39,6 +39,7 @@ def test_bettle_executor_passes_task_type_to_shared_runner(
     initialized: list[object] = []
     navigated: list[object] = []
     runner_args: dict[str, object] = {}
+    events: list[tuple[str, dict[str, object]]] = []
     initialize_module = importlib.import_module(
         'autowsgr.application.runtime.initialize.initialize',
     )
@@ -61,6 +62,7 @@ def test_bettle_executor_passes_task_type_to_shared_runner(
         SimpleNamespace(),
         {'chapter': 'H', 'map': '1a', 'event': '20260730'},
         task_type='event_fight',
+        on_event=lambda event, **data: events.append((event, data)),
     )
     result = executor.run()
 
@@ -68,4 +70,12 @@ def test_bettle_executor_passes_task_type_to_shared_runner(
     assert initialized == [executor.ctx]
     assert runner_args['task_type'] == 'event_fight'
     assert callable(runner_args['wait'])
+    repair_status_callback = runner_args['repair_status_callback']
+    assert callable(repair_status_callback)
+    repair_status_callback(True)
+    repair_status_callback(False)
+    assert events[-2:] == [
+        ('repairing', {'repairing': True}),
+        ('repairing', {'repairing': False}),
+    ]
     assert navigated

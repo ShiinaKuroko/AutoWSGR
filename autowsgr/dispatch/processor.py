@@ -26,10 +26,10 @@ from typing import TYPE_CHECKING, Any
 
 import yaml
 
-from autowsgr.common.contracts.task import TaskPaused, TaskStopped
-from autowsgr.common.system import ManualRepairRequiredError
+from autowsgr.common.system import ManualRepairRequiredError, TaskPaused, TaskStopped
 from autowsgr.common.system.file_utils import load_yaml
 from autowsgr.common.system.logger import get_logger
+from autowsgr.dispatch.image_context import image_context
 from autowsgr.dispatch.registry import build_executor
 
 
@@ -91,7 +91,7 @@ def _validate_campaign_params(params: Mapping[str, Any]) -> None:
 
 def _validate_decisive_params(params: Mapping[str, Any]) -> None:
     """校验决战配置字段。"""
-    from autowsgr.common.system import DecisiveConfig
+    from autowsgr.config import DecisiveConfig
 
     DecisiveConfig(**dict(params))
 
@@ -474,7 +474,7 @@ class Processor:
             try:
                 from autowsgr.common.vision.ocr_rules import ship_name_aliases_scope
 
-                with ship_name_aliases_scope(request.ship_name_aliases):
+                with image_context(), ship_name_aliases_scope(request.ship_name_aliases):
                     executor = build_executor(
                         request.task_type,
                         self._ctx,

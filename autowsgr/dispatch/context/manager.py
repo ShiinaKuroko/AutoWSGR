@@ -1,0 +1,160 @@
+"""Lifecycle and semantic access for the dispatch task context."""
+
+from __future__ import annotations
+
+from contextlib import contextmanager
+from contextvars import ContextVar
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Any
+
+from .errors import ContextClosedError, ContextFieldError, ContextNotBoundError, ContextScopeError
+from .state import TaskContextState
+
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator
+
+    import numpy as np
+
+    from .template import ContextTemplate
+
+
+@dataclass(frozen=True, slots=True)
+class _Binding:
+    manager: ContextManager
+    task_id: str
+    template: ContextTemplate
+
+
+_ACTIVE_BINDING: ContextVar[_Binding | None] = ContextVar('_ACTIVE_BINDING', default=None)
+
+
+class ContextHandle:
+    """Semantic access handle for one active task context."""
+
+    def __init__(self, manager: ContextManager, task_id: str) -> None:
+        self._manager = manager
+        self._task_id = task_id
+
+    @property
+    def task_id(self) -> str:
+        """Return the bound task identifier."""
+        return self._task_id
+
+    @property
+    def task_type(self) -> str:
+        """Return the task type from the initialization template."""
+        return self._state().template.task_type
+
+    def record_screenshot(self, screen: np.ndarray) -> None:
+        """Store a private copy of the latest RGB screenshot."""
+        if not hasattr(screen, 'copy'):
+            raise ContextFieldError('截图必须提供 copy() 方法')
+        self._state().latest_screenshot = screen.copy()
+
+    def read_latest_screenshot(self) -> np.ndarray:
+        """Return a copy of the latest screenshot."""
+        screen = self._state().latest_screenshot
+        if screen is None:
+            raise ContextFieldError('当前任务尚未记录截图')
+        return screen.copy()
+
+    def set_current_page(self, page: str) -> None:
+        """Record a page fact confirmed by the navigator."""
+        self._state().current_page = _require_text(page, 'current_page')
+
+    def read_current_page(self) -> str | None:
+        """Return the last confirmed page fact, if any."""
+        return self._state().current_page
+
+    def set_target_page(self, page: str) -> None:
+        """Record the requested destination page."""
+        self._state().target_page = _require_text(page, 'target_page')
+
+    def read_target_page(self) -> str | None:
+        """Return the requested destination page, if any."""
+        return self._state().target_page
+
+    def record_route_step(self, step: int) -> None:
+        """Record the current zero-based route step."""
+        if isinstance(step, bool) or not isinstance(step, int) or step < 0:
+            raise ContextFieldError('route_step 必须是非负整数')
+        self._state().route_step = step
+
+    def record_result(self, result: Any) -> None:
+        """Record the latest transition or recognition result."""
+        self._state().last_result = result
+
+    def read_result(self) -> Any:
+        """Return the latest transition or recognition result."""
+        return self._state().last_result
+
+    def record_error(self, error: BaseException | str) -> None:
+        """Record an error fact without retaining a traceback or exception object."""
+        self._state().last_error = str(error)
+
+    def _state(self) -> TaskContextState:
+        return self._manager._require_state(self._task_id)
+
+
+class ContextManager:
+    """Own task contexts and expose lazy, scope-bound access."""
+
+    def __init__(self) -> None:
+        self._states: dict[str, TaskContextState] = {}
+
+    @contextmanager
+    def bind(self, task_id: str, *, template: ContextTemplate) -> Iterator[None]:
+        """Bind a task scope without creating its state yet."""
+        task_id = _require_text(task_id, 'task_id')
+        active = _ACTIVE_BINDING.get()
+        if active is not None:
+            raise ContextScopeError(f'已有活动任务作用域: {active.task_id}')
+
+        token = _ACTIVE_BINDING.set(_Binding(self, task_id, template))
+        try:
+            yield
+        finally:
+            state = self._states.pop(task_id, None)
+            if state is not None:
+                state.closed = True
+            _ACTIVE_BINDING.reset(token)
+
+    def request(self) -> ContextHandle:
+        """Return the active context, creating it on the first request."""
+        binding = _ACTIVE_BINDING.get()
+        if binding is None or binding.manager is not self:
+            raise ContextNotBoundError('当前执行流没有绑定 dispatch Context')
+
+        state = self._states.get(binding.task_id)
+        if state is None:
+            state = TaskContextState(task_id=binding.task_id, template=binding.template)
+            self._states[binding.task_id] = state
+        if state.closed:
+            raise ContextClosedError(f'任务上下文已关闭: {binding.task_id}')
+        return ContextHandle(self, binding.task_id)
+
+    def close(self) -> None:
+        """Close the active task context before its binding scope exits."""
+        binding = _ACTIVE_BINDING.get()
+        if binding is None or binding.manager is not self:
+            raise ContextNotBoundError('当前执行流没有绑定 dispatch Context')
+        state = self._states.get(binding.task_id)
+        if state is None:
+            raise ContextClosedError(f'任务上下文尚未创建: {binding.task_id}')
+        state.closed = True
+
+    def _require_state(self, task_id: str) -> TaskContextState:
+        state = self._states.get(task_id)
+        if state is None or state.closed:
+            raise ContextClosedError(f'任务上下文不可用: {task_id}')
+        return state
+
+
+def _require_text(value: str, field_name: str) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise ContextFieldError(f'{field_name} 必须是非空字符串')
+    return value.strip()
+
+
+__all__ = ['ContextHandle', 'ContextManager']

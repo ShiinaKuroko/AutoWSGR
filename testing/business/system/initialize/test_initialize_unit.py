@@ -10,7 +10,7 @@
 from __future__ import annotations
 
 from datetime import date
-from types import SimpleNamespace
+from types import ModuleType, SimpleNamespace
 from unittest.mock import MagicMock
 
 import pytest
@@ -35,7 +35,7 @@ class TestDailyOverlays:
         return MagicMock()
 
     @staticmethod
-    def _freeze_today(monkeypatch: pytest.MonkeyPatch, overlays_mod) -> None:
+    def _freeze_today(monkeypatch: pytest.MonkeyPatch, overlays_mod: ModuleType) -> None:
         date_type = MagicMock()
         date_type.today.return_value = _TODAY
         monkeypatch.setattr(overlays_mod, 'date', date_type)
@@ -55,12 +55,13 @@ class TestDailyOverlays:
     def test_processes_once_on_date_change(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """日期变更后第一次调用触发清除流程；第二次零开销跳过。"""
         from autowsgr.application.runtime.initialize import overlays
+        from autowsgr.application.ui.controller.home.main_page import recognition
 
         self._freeze_today(monkeypatch, overlays)
         ctrl = self._make_ctrl()
         read = MagicMock(return_value=None)  # 没有浮层
         confirm = MagicMock(return_value=False)  # 没有确认弹窗
-        monkeypatch.setattr(overlays, 'read_overlay', read)
+        monkeypatch.setattr(recognition, 'read_overlay', read)
         monkeypatch.setattr(overlays, 'confirm_operation', confirm)
 
         state = SimpleNamespace(last_handled=_YESTERDAY)
@@ -177,7 +178,7 @@ class TestInitialize:
     def test_restart_limit_prevents_infinite_loop(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """页面识别不出 + 导航失败 → SL 重启一次；仍失败 → 抛异常。"""
         from autowsgr.application.runtime.initialize import initialize
-        from autowsgr.common.ui.interaction import NavigationError
+        from autowsgr.common.device.interaction import NavigationError
 
         ctx = _make_ctx()
 
@@ -220,7 +221,7 @@ class TestInitialize:
 
         # 让 _start_game_flow 跑最小路径: 启动画面命中 → 点进入 → 完成
         monkeypatch.setattr(initialize, '_wait_for_start_screen', lambda _c: True)
-        monkeypatch.setattr(initialize, '_click_enter', lambda _c: None)
+        monkeypatch.setattr(initialize, '_enter_game', lambda _c: None)
         monkeypatch.setattr(initialize, '_is_on_home_page', lambda _c: True)
         monkeypatch.setattr(initialize, 'identify_current_page', lambda _c, **_k: PageName.HOME)
         monkeypatch.setattr(overlays, 'handle_daily_overlays', MagicMock())

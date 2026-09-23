@@ -25,7 +25,7 @@ import time
 from typing import TYPE_CHECKING, Any
 
 from autowsgr.application.ui.navigation import goto_page
-from autowsgr.common.contracts.task import TaskPaused, TaskStopped
+from autowsgr.common.system import TaskPaused, TaskStopped
 from autowsgr.common.types import PageName
 
 

@@ -29,7 +29,7 @@ from testing.ops._framework import launch_for_test
 
 _STEPS = [
     '1. 连接设备',
-    '2. 调用 cook(ctrl, position=recipe, force_cook=False)',
+    '2. 调用 cook(ctx, position=recipe, force_cook=False)',
     '3. 打印做菜结果',
 ]
 
@@ -61,7 +61,7 @@ def main() -> None:
 
         from autowsgr.business.logistics.cook import cook
 
-        result = cook(ctrl, position=recipe, force_cook=False)
+        result = cook(ctx, position=recipe, force_cook=False)
         logger.info(f'cook() 返回: {result}')
         print(f'  [OK] cook() = {result}')
     except Exception as exc:

@@ -228,7 +228,6 @@ class FleetSelection:
 
 - `shipnames.yaml`: 舰船中文名 ↔ 内部 ID 映射
 - `shipnames.py`: 加载 YAML 并提供查询函数
-- `tools/update_shipnames.py`: 从游戏数据源更新 YAML
 
 ### 任务数据
 

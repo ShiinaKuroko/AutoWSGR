@@ -1,32 +1,35 @@
-"""统一调度模块 — 所有请求的必经大脑。
+"""调度模块及其运行时上下文命名空间。"""
 
-模块组成:
-    processor.py  处理器: 请求模型 + 优先级队列 + 打断决策
-    registry.py   执行器注册表: task_type → 执行器类 (显式映射)
+from __future__ import annotations
 
-配合 application.runtime.executor.BaseExecutor (执行器基类: _wait 断点 + 暂停协议)。
-"""
-
-from autowsgr.dispatch.processor import (
-    MAX_PRIORITY,
-    TASK_PRIORITIES,
-    Processor,
-    Request,
-    TaskPaused,
-    TaskStopped,
-    priority_for,
-)
-from autowsgr.dispatch.registry import build_executor, registered_names
+from importlib import import_module
 
 
-__all__ = [
-    'MAX_PRIORITY',
-    'TASK_PRIORITIES',
-    'Processor',
-    'Request',
-    'TaskPaused',
-    'TaskStopped',
-    'build_executor',
-    'priority_for',
-    'registered_names',
-]
+_EXPORTS = {
+    'MAX_PRIORITY': ('autowsgr.dispatch.processor', 'MAX_PRIORITY'),
+    'TASK_PRIORITIES': ('autowsgr.dispatch.processor', 'TASK_PRIORITIES'),
+    'Processor': ('autowsgr.dispatch.processor', 'Processor'),
+    'Request': ('autowsgr.dispatch.processor', 'Request'),
+    'TaskPaused': ('autowsgr.dispatch.processor', 'TaskPaused'),
+    'TaskStopped': ('autowsgr.dispatch.processor', 'TaskStopped'),
+    'priority_for': ('autowsgr.dispatch.processor', 'priority_for'),
+    'build_executor': ('autowsgr.dispatch.registry', 'build_executor'),
+    'registered_names': ('autowsgr.dispatch.registry', 'registered_names'),
+    'LazyTemplate': ('autowsgr.dispatch.image_context', 'LazyTemplate'),
+    'image_context': ('autowsgr.dispatch.image_context', 'image_context'),
+    'load_cached_template': ('autowsgr.dispatch.image_context', 'load_cached_template'),
+}
+
+
+def __getattr__(name: str) -> object:
+    """按需加载调度能力，避免子模块导入触发无关执行器依赖。"""
+    target = _EXPORTS.get(name)
+    if target is None:
+        raise AttributeError(f'module {__name__!r} has no attribute {name!r}')
+    module_name, attribute_name = target
+    value = getattr(import_module(module_name), attribute_name)
+    globals()[name] = value
+    return value
+
+
+__all__ = list(_EXPORTS)

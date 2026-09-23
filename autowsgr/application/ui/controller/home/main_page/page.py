@@ -1,17 +1,7 @@
-"""模块功能：负责母港主页的页面检查、浮层处理和一级页面导航。
+"""编排主页导航和浮窗处理流程。
 
-上层调用：
-- application.ui.navigation：执行母港到地图、任务、后院、侧边栏和活动页面的导航。
-- application.runtime：识别母港并处理每日浮层。
-- business.logistics：读取任务和远征通知状态。
-- testing.ui：执行母港页面的导航验证。
-
-下层依赖：
-- application.ui.controller.home.main_page.constants：提供母港页面专用校准。
-- application.ui.navigation.event：执行活动入口的专用导航。
-- application.ui.controller.home.main_page.overlay：检测和消除母港浮层。
-- common.ui.interaction：等待目标页面到达。
-- common.vision：执行模板和像素签名检查。
+页面控制器持有完整的主页流程和导航契约；识别事实由 recognition.py 提供，
+原子设备操作由 operations.py 提供，多阶段浮窗流程由 workflow.py 提供。
 """
 
 from __future__ import annotations
@@ -20,33 +10,38 @@ import enum
 import time
 from typing import TYPE_CHECKING
 
-from autowsgr.application.ui.controller.home.main_page import constants
-from autowsgr.application.ui.controller.home.main_page.overlay import (
-    OverlayKind,
-    dismiss_overlay,
-    read_overlay,
+from autowsgr.application.ui import recognition_flow
+from autowsgr.application.ui.controller.home.main_page import (
+    constants,
+    recognition,
+    workflow,
 )
+from autowsgr.application.ui.navigation.types import PageName
+from autowsgr.common.system.errors import ApplicationError
 from autowsgr.common.system.logger import get_logger
-from autowsgr.common.types import PageName
-from autowsgr.common.vision import ImageChecker, PageMatch, PixelChecker
-from autowsgr.common.vision.resources import Templates
+from autowsgr.dispatch.context import HomeCheckObservation
 
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
-
-    import numpy as np
-
-    from autowsgr.application.ui.context import UIContext as GameContext
-
-_log = get_logger('ui')
+    from autowsgr.application.ui.controller.context import UIContext
+    from autowsgr.dispatch.context import ContextHandle
 
 
-# ── 页面导航目标 ──────────────────────────────────────────────────────────────
+_log = get_logger('ui.home.main_page')
+
+
+# -- 主页流程参数 ------------------------------------------------------------
+
+_OVERLAY_CLEAN_DELAY_SECONDS = 0.5
+_EVENT_NAVIGATION_MAX_RETRIES = 3
+_OVERLAY_FLOW_STEPS = 3
+
+
+# -- 主页导航目标 ------------------------------------------------------------
 
 
 class Target(enum.Enum):
-    """母港主页可导航的目标页面。"""
+    """主页导航契约支持的目标页面。"""
 
     SORTIE = '出征'
     TASK = '任务'
@@ -55,12 +50,12 @@ class Target(enum.Enum):
     EVENT = '活动'
 
     @property
-    def page_name(self) -> str:
-        """返回导航图使用的目标页面名称。"""
+    def page_name(self) -> PageName:
+        """返回导航器使用的页面名称。"""
         return _TARGET_PAGES[self]
 
 
-_TARGET_PAGES: dict[Target, str] = {
+_TARGET_PAGES: dict[Target, PageName] = {
     Target.SORTIE: PageName.MAP,
     Target.TASK: PageName.MISSION,
     Target.SIDEBAR: PageName.SIDEBAR,
@@ -69,264 +64,164 @@ _TARGET_PAGES: dict[Target, str] = {
 }
 
 
-# ── 目标页面检查器 ───────────────────────────────────────────────────────────
-
-
-def _get_target_checker(target: Target) -> Callable[[np.ndarray], bool]:
-    """延迟导入并返回目标页面的页面检查器。
-
-    Args:
-        target: 母港主页支持的导航目标。
-
-    Returns:
-        用于确认目标页面到达的检查器。
-
-    Raises:
-        ValueError: target 不属于已支持的页面目标。
-    """
-    if target is Target.SORTIE:
-        from autowsgr.application.ui.controller.operations.sortie_page.main_page import SortiePage
-
-        return SortiePage.check_current_page
-    if target is Target.TASK:
-        from autowsgr.application.ui.controller.operations.mission_page import MissionPage
-
-        return MissionPage.check_current_page
-    if target is Target.SIDEBAR:
-        from autowsgr.application.ui.controller.sidebar.main_page import SidebarPage
-
-        return SidebarPage.check_current_page
-    if target is Target.BACKYARD:
-        from autowsgr.application.ui.controller.backyard.main_page import BackyardPage
-
-        return BackyardPage.check_current_page
-    if target is Target.EVENT:
-        from autowsgr.application.ui.controller.home.event_page.page import BaseEventPage
-
-        return BaseEventPage.check_current_page
-    raise ValueError(f'未知的导航目标: {target}')
-
-
-# ── 母港页面控制器 ───────────────────────────────────────────────────────────
-
-
 class HomePage:
-    """母港主页的 UI 操作控制器。
+    """负责主页浮窗流程和页面导航的控制器。"""
 
-    集成页面识别、浮层处理与导航:
-
-    - **页面识别** — :meth:`check_current_page` 同时检测基础页面与浮层
-    - **浮层处理** — :meth:`read_overlay` / :meth:`dismiss_current_overlay`
-    - **常规导航** — 走「点击 + 等待目标页面签名」流程
-    - **活动导航** — 专用流程，处理侧边栏图标识别与预约页误入
-
-    使用方式::
-
-        page = HomePage(ctx)
-        page.navigate_to(HomePage.Target.SORTIE)
-    """
-
-    Target = Target
-
-    def __init__(self, ctx: GameContext) -> None:
+    def __init__(self, ctx: UIContext) -> None:
         self._ctx = ctx
         self._ctrl = ctx.ctrl
 
-    # ── 页面识别 ──────────────────────────────────────────────────────────
+    # -- 完整浮窗流程 --------------------------------------------------------
 
-    @staticmethod
-    def check_current_page(screen: np.ndarray) -> PageMatch:
-        """检查截图是否属于母港主页或其覆盖浮层。
-
-        参考 :class:`~autowsgr.application.ui.controller.home.event_page.page.BaseEventPage` 模式，
-        将浮层 (新闻公告 / 每日签到 / 活动预约 / 提督信息) 也识别为主页面。
-        基础模板用更高阈值 (0.95) 抑制动态背景误命中, 浮层模板 0.85。
-
-        返回带置信度的 PageMatch 供候选集排序，保留旧式真值调用。
+    def dismiss_current_overlay(
+        self,
+        *,
+        attempt: int | None = None,
+        navigation_context: ContextHandle | None = None,
+    ) -> bool:
+        """按优先级处理主页浮窗并确认页面回到稳定状态。
 
         Args:
-            screen: RGB 截图，形状为 (H, W, 3)。
+            attempt: 当前外层主页检查的尝试次数。
+            navigation_context: 负责保存导航截图和结果的 Context。
 
         Returns:
-            母港主页匹配结果；基础页、已知浮层或像素签名命中时视为匹配。
-        """
-        page = Templates.MainPage
-        name = PageName.HOME.value
-        result = ImageChecker.find_template(screen, page.MAIN, confidence=0.95)
-        if result is not None:
-            return PageMatch(name=name, matched=True, score=result.confidence)
-        overlay = ImageChecker.find_any(
-            screen, [page.NEWS, page.SIGN, page.BOOKING, page.USER_INFO], confidence=0.85
-        )
-        if overlay is not None:
-            return PageMatch(name=name, matched=True, score=overlay.confidence)
-        # 像素签名兜底: 部分环境渲染差异会使模板得分略低于阈值 (实测远端 0.945 < 0.95),
-        # 底部栏 4 锚点像素签名可补充识别 (非主页面实测 ratio=0, 无误报风险)
-        pixel_result = PixelChecker.check_signature(screen, constants.PAGE_SIGNATURE)
-        if pixel_result.matched:
-            return PageMatch(name=name, matched=True, score=pixel_result.ratio)
-        return PageMatch(name=name, matched=False, score=0.0)
-
-    @staticmethod
-    def check_base_page(screen: np.ndarray) -> bool:
-        """检查截图是否为母港主页基础状态，不含浮层覆盖。
-
-        Args:
-            screen: RGB 截图，形状为 (H, W, 3)。
-
-        Returns:
-            截图命中母港基础模板时返回 True。
-        """
-        return ImageChecker.template_exists(screen, Templates.MainPage.MAIN, confidence=0.85)
-
-    # ── 通知状态 ──────────────────────────────────────────────────────────────
-
-    @staticmethod
-    def check_expedition_ready(screen: np.ndarray) -> bool:
-        """检查母港是否有远征奖励可收取。
-
-        Args:
-            screen: RGB 截图，形状为 (H, W, 3)。
-
-        Returns:
-            远征通知红点命中时返回 True。
-        """
-        return PixelChecker.get_pixel(
-            screen,
-            *constants.PROBE_POSITIONS['expedition_ready'],
-        ).near(constants.NOTIFICATION_RED, constants.NOTIFICATION_RED_TOLERANCE)
-
-    @staticmethod
-    def check_task_ready(screen: np.ndarray) -> bool:
-        """检查母港是否有任务奖励可领取。
-
-        Args:
-            screen: RGB 截图，形状为 (H, W, 3)。
-
-        Returns:
-            任务通知红点命中时返回 True。
-        """
-        return PixelChecker.get_pixel(
-            screen,
-            *constants.PROBE_POSITIONS['task_ready'],
-        ).near(constants.NOTIFICATION_RED, constants.NOTIFICATION_RED_TOLERANCE)
-
-    # ── 浮层读取 ───────────────────────────────────────────────────────────────
-
-    @staticmethod
-    def read_overlay(screen: np.ndarray) -> OverlayKind | None:
-        """读取当前截图中的母港浮层类型；没有浮层时返回 None。
-
-        Args:
-            screen: RGB 截图，形状为 (H, W, 3)。
-
-        Returns:
-            当前浮层类型；没有已知浮层时返回 None。
-        """
-        return read_overlay(screen)
-
-    # ── 浮层处理 ──────────────────────────────────────────────────────────
-
-    def dismiss_current_overlay(self) -> bool:
-        """检测并消除当前浮层。
-
-        Returns:
-            已知浮层被处理时返回 True；当前没有已知浮层时返回 False。
-        """
-        screen = self._ctrl.screenshot()
-        overlay = read_overlay(screen)
-        if overlay is None:
-            return False
-        dismiss_overlay(self._ctrl, overlay)
-        return True
-
-    # ── 导航入口 ──────────────────────────────────────────────────────────
-
-    def navigate_to(self, target: Target) -> None:
-        """导航到指定子页面。
-
-        自动处理浮层后再执行导航。活动目标走专用流程。
-
-        Args:
-            target: 母港主页支持的导航目标。
+            至少处理一个浮窗时返回 ``True``，没有浮窗时返回 ``False``。
 
         Raises:
-            NavigationError: 超时未到达目标页面。
+            workflow.HomeOverlayError: 浮窗无法到达终态时抛出。
         """
-        if target is Target.EVENT:
-            self._navigate_to_event()
-            return
-        self._ensure_clean_page()
-        self._navigate_standard(target)
-
-    def _ensure_clean_page(self, *, max_attempts: int = 3) -> None:
-        """确保当前在干净的母港主页，不带已知浮层覆盖。
-
-        Args:
-            max_attempts: 最多连续消除浮层的次数。
-        """
-        for i in range(max_attempts):
-            screen = self._ctrl.screenshot()
-            overlay = read_overlay(screen)
-            if overlay is None:
-                return
-            _log.info(
-                '[UI] 主页面: 导航前消除浮层 {} ({}/{})',
-                overlay.value,
-                i + 1,
-                max_attempts,
-            )
-            dismiss_overlay(self._ctrl, overlay)
-            time.sleep(0.5)
-
-    def _navigate_standard(self, target: Target) -> None:
-        """执行通用单步导航，点击入口并等待目标页面。
-
-        Args:
-            target: 母港主页支持的非活动导航目标。
-        """
-        from autowsgr.common.ui.interaction import click_and_wait_for_page
-
-        coord = constants.NAV_POSITIONS[target.name.lower()]
-        _log.info('[UI] 主页面 → {}', target.value)
-        click_and_wait_for_page(
-            self._ctrl,
-            click_coord=coord,
-            checker=_get_target_checker(target),
-            source=PageName.HOME,
-            target=target.page_name,
+        _log.info(
+            '[UI] 主页 → 处理浮窗：尝试次数={}，状态=开始',
+            attempt if attempt is not None else 1,
         )
+        handled = False
+        record_screenshot = (
+            navigation_context.record_screenshot
+            if navigation_context is not None
+            else getattr(self._ctx, 'record_screenshot', None)
+        )
+        if record_screenshot is None:
+            raise RuntimeError('主页识别流程必须绑定 Context 截图记录回调')
 
-    # ── 活动导航 (委托导航层) ────────────────────────────────────────────
+        try:
+            # 1. 按浮窗优先级识别当前页面状态。
+            for step in range(1, _OVERLAY_FLOW_STEPS + 1):
+                overlay = recognition_flow.recognize_with_retry(
+                    self._ctrl,
+                    recognition.read_overlay_match,
+                    record_screenshot=record_screenshot,
+                )
+                if not overlay.satisfied:
+                    _log.info(
+                        '[UI] 主页 → 处理浮窗：步骤={}，结果=无浮窗，已处理={}',
+                        step,
+                        handled,
+                    )
+                    if navigation_context is not None and attempt is not None:
+                        navigation_context.record_result(
+                            HomeCheckObservation(
+                                matched=True,
+                                overlay_handled=handled,
+                                attempt=attempt,
+                            ),
+                        )
+                    return handled
 
-    def _navigate_to_event(self, *, max_retries: int = 3) -> None:
-        """导航到活动地图，处理活动图标和预约浮层。
+                handled = True
+                _log.debug(
+                    '[UI] 主页 → 浮窗识别：步骤={}，类型={}，结果=已识别',
+                    step,
+                    overlay.value.kind.value if overlay.value is not None else 'unknown',
+                )
+                workflow.handle_overlay(
+                    self._ctrl,
+                    overlay,
+                    record_screenshot=record_screenshot,
+                )
+        except ApplicationError as error:
+            _log.error(
+                '[UI] 主页 → 处理浮窗：结果=失败，错误类型={!r}，原因={!r}',
+                type(error).__name__,
+                str(error),
+            )
+            if navigation_context is not None:
+                navigation_context.record_error(error)
+            raise
+
+        _log.error('[UI] 主页 → 处理浮窗：结果=失败，原因=流程步骤耗尽')
+        raise workflow.HomeOverlayError('主页浮窗流程未在限定步骤内完成')
+
+    # -- 导航契约 ------------------------------------------------------------
+
+    def navigate_to(self, target: Target) -> None:
+        """从主页进入一个受支持的目标页面。
 
         Args:
-            max_retries: 活动入口导航的最大尝试次数。
+            target: 要进入的目标页面。
+
+        Raises:
+            ValueError: 目标页面不在主页导航契约中。
         """
-        from autowsgr.application.ui.navigation.event import navigate_to_event
+        # 局部导入用于延迟加载依赖页面控制器的导航适配器。
+        from autowsgr.application.ui.navigation.interaction import click_and_wait_for_page
 
-        navigate_to_event(self._ctx, max_retries=max_retries)
+        if target is Target.EVENT:
+            # 活动页面拥有独立流程，延迟导入以保持页面依赖方向清晰。
+            from autowsgr.application.ui.navigation.event import navigate_to_event
 
-    # ── 便捷方法 ──────────────────────────────────────────────────────────
+            _log.info('[UI] 主页 → 进入活动页面：状态=开始')
+            navigate_to_event(self._ctx, max_retries=_EVENT_NAVIGATION_MAX_RETRIES)
+            _log.info('[UI] 主页 → 进入活动页面：结果=成功')
+            return
 
-    def go_to_sortie(self) -> None:
-        """进入地图选择页面。"""
-        self.navigate_to(Target.SORTIE)
+        # 1. 进入其他页面前先清理已知浮窗。
+        if self.dismiss_current_overlay():
+            time.sleep(_OVERLAY_CLEAN_DELAY_SECONDS)
 
-    def go_to_task(self) -> None:
-        """进入任务页面。"""
-        self.navigate_to(Target.TASK)
+        # 2. 根据目标选择页面终态检查器。
+        if target is Target.SORTIE:
+            # 延迟导入避免初始化主页时加载全部同层页面控制器。
+            from autowsgr.application.ui.controller.operations.sortie_page.main_page import (
+                SortiePage,
+            )
 
-    def go_to_sidebar(self) -> None:
-        """打开侧边栏。"""
-        self.navigate_to(Target.SIDEBAR)
+            checker = SortiePage.check_current_page
+        elif target is Target.TASK:
+            from autowsgr.application.ui.controller.operations.mission_page import MissionPage
 
-    def go_to_backyard(self) -> None:
-        """进入后院页面。"""
-        self.navigate_to(Target.BACKYARD)
+            checker = MissionPage.check_current_page
+        elif target is Target.SIDEBAR:
+            from autowsgr.application.ui.controller.sidebar.main_page import SidebarPage
 
-    def go_to_event(self) -> None:
-        """进入活动页面。"""
-        self.navigate_to(Target.EVENT)
+            checker = SidebarPage.check_current_page
+        elif target is Target.BACKYARD:
+            from autowsgr.application.ui.controller.backyard.main_page import BackyardPage
+
+            checker = BackyardPage.check_current_page
+        else:
+            raise ValueError(f'未知的导航目标: {target}')
+
+        coordinate = constants.NAV_POSITIONS[target.name.lower()]
+        _log.info('[UI] 主页 → 进入页面：目标={}，状态=开始', target.value)
+        try:
+            # 3. 执行点击并确认目标页面终态。
+            click_and_wait_for_page(
+                self._ctrl,
+                click_coord=coordinate,
+                checker=checker,
+                source=PageName.HOME.value,
+                target=target.page_name.value,
+            )
+        except Exception as error:
+            _log.error(
+                '[UI] 主页 → 进入页面：目标={}，结果=失败，错误类型={!r}，原因={!r}',
+                target.value,
+                type(error).__name__,
+                str(error),
+            )
+            raise
+        _log.info('[UI] 主页 → 进入页面：目标={}，结果=成功', target.value)
+
+
+__all__ = ['HomePage', 'Target']

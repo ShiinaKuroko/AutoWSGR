@@ -14,7 +14,7 @@ from autowsgr.application.ui.navigation.registry import (
     register_page,
 )
 from autowsgr.common.device import AndroidController
-from autowsgr.common.ui.interaction import (
+from autowsgr.common.device.interaction import (
     NavigationError,
     wait_for_page,
 )
@@ -165,7 +165,7 @@ class TestWaitForPage:
         screens = [_blank(), _blank(), _white()]
         ctrl.screenshot.side_effect = screens
 
-        with patch('autowsgr.common.ui.interaction.time') as mock_time:
+        with patch('autowsgr.common.device.interaction.time') as mock_time:
             mock_time.monotonic.return_value = 0.0
             mock_time.sleep = MagicMock()
 
@@ -188,7 +188,7 @@ class TestWaitForPage:
         ctrl.screenshot.return_value = _blank()
 
         # 模拟时间: 第一次 monotonic=0, deadline=0, 立即超时
-        with patch('autowsgr.common.ui.interaction.time') as mock_time:
+        with patch('autowsgr.common.device.interaction.time') as mock_time:
             call_count = 0
 
             def advancing_time() -> float:

@@ -22,7 +22,7 @@ import numpy as np
 import pytest
 
 from autowsgr.common.device import ScrcpyController
-from autowsgr.common.system import EmulatorConnectionError
+from autowsgr.common.device.errors import DeviceConnectionError
 
 
 # ═══════════════════════════════════════════════
@@ -159,8 +159,8 @@ class TestScrcpyControllerControlFlow:
         """控制通道未连接时 _send_control 抛异常。"""
         ctrl._control_socket = None
         ctrl._alive = False
-        ctrl._ensure_stream_alive = MagicMock(side_effect=EmulatorConnectionError('mock'))
-        with pytest.raises(EmulatorConnectionError):
+        ctrl._ensure_stream_alive = MagicMock(side_effect=DeviceConnectionError('mock'))
+        with pytest.raises(DeviceConnectionError):
             ctrl._send_control(b'\x00')
 
 
@@ -198,7 +198,7 @@ class TestScrcpyControllerScreenshot:
         ctrl._alive = True
         ctrl._last_frame = None  # 始终无帧
 
-        with pytest.raises(EmulatorConnectionError, match='截图超时'):
+        with pytest.raises(DeviceConnectionError, match='截图超时'):
             ctrl.screenshot()
 
     def test_screenshot_retry_on_initial_none(self):

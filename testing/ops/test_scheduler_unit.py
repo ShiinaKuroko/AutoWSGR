@@ -318,7 +318,7 @@ def test_bath_repair_queues_behind_normal_fight():
 
 def test_starvation_warned_when_infinite_normal_fight_no_limits():
     """无限常规战 (times=None) + 停止上限全关 + 启用浴室修理 → 应告警。"""
-    from autowsgr.common.system.config import DailyAutomationConfig
+    from autowsgr.config import DailyAutomationConfig
     from autowsgr.dispatch.legacy_scheduler.daily_plan import _bath_repair_starved_by_normal_fight
 
     cfg = DailyAutomationConfig(
@@ -331,7 +331,7 @@ def test_starvation_warned_when_infinite_normal_fight_no_limits():
 
 def test_starvation_not_warned_when_times_set():
     """常规战设了 times (有限) → 不会饿死浴室修理, 不告警。"""
-    from autowsgr.common.system.config import DailyAutomationConfig
+    from autowsgr.config import DailyAutomationConfig
     from autowsgr.dispatch.legacy_scheduler.daily_plan import _bath_repair_starved_by_normal_fight
 
     cfg = DailyAutomationConfig(
@@ -344,7 +344,7 @@ def test_starvation_not_warned_when_times_set():
 
 def test_starvation_not_warned_when_stop_limit_enabled():
     """开启任一停止上限 → 常规战终会耗尽让位, 不告警。"""
-    from autowsgr.common.system.config import DailyAutomationConfig
+    from autowsgr.config import DailyAutomationConfig
     from autowsgr.dispatch.legacy_scheduler.daily_plan import _bath_repair_starved_by_normal_fight
 
     cfg = DailyAutomationConfig(
@@ -358,7 +358,7 @@ def test_starvation_not_warned_when_stop_limit_enabled():
 
 def test_starvation_not_warned_when_bath_repair_off():
     """未启用浴室修理 → 无所谓饿死, 不告警。"""
-    from autowsgr.common.system.config import DailyAutomationConfig
+    from autowsgr.config import DailyAutomationConfig
     from autowsgr.dispatch.legacy_scheduler.daily_plan import _bath_repair_starved_by_normal_fight
 
     cfg = DailyAutomationConfig(
@@ -700,7 +700,7 @@ def test_register_normal_fight_passes_condition(monkeypatch: pytest.MonkeyPatch)
     """daily_plan: CombatPlan.condition 镜像到 NormalFightPlan (触发器按条件计数)。"""
     from autowsgr.business.combat import CombatPlan, GradeCondition
     from autowsgr.business.combat.bettle import normal_fight as nf_mod
-    from autowsgr.common.system.config import DailyAutomationConfig
+    from autowsgr.config import DailyAutomationConfig
     from autowsgr.dispatch.legacy_scheduler.daily_plan import _register_normal_fight
 
     plan = CombatPlan.from_dict({'node_args': {'F': {'grade': 'S'}}})

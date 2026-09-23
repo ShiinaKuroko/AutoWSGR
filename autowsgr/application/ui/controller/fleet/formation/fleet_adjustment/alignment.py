@@ -26,20 +26,20 @@ from autowsgr.application.ui.controller.fleet.formation.fleet_adjustment import 
 )
 from autowsgr.application.ui.controller.fleet.formation.ship_selection import workflow
 from autowsgr.application.ui.controller.fleet.main_page.constants import CLICK_SHIP_SLOT
-from autowsgr.common.constants import ship_name_identity
-from autowsgr.common.fleet import ShipSelector
+from autowsgr.application.vision.shipnames import ship_name_identity
+from autowsgr.business.combat.fleet_models import ShipSelector
 from autowsgr.common.system.logger import get_logger
 
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from autowsgr.application.ui.context import UIContext
+    from autowsgr.application.ui.controller.context import UIContext
     from autowsgr.application.ui.controller.fleet.formation.fleet_recognition import (
         FleetSnapshot,
     )
     from autowsgr.application.ui.controller.fleet.main_page import BattlePreparationPage
-    from autowsgr.common.fleet import FleetSlotRule
+    from autowsgr.business.combat.fleet_models import FleetSlotRule
 
 
 _log = get_logger('ui.fleet.formation.fleet_adjustment')

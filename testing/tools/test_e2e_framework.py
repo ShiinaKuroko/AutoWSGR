@@ -5,7 +5,7 @@ from __future__ import annotations
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
-from tools.e2e.framework import E2ERunner
+from tools.debug_toolkit.function.e2e_runner.framework import E2ERunner
 
 
 def _runner() -> E2ERunner:

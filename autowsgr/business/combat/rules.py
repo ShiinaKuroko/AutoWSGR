@@ -32,7 +32,7 @@ from dataclasses import dataclass, field
 from enum import Enum, auto
 from typing import Any
 
-from autowsgr.common.contracts.vessel_types import FLEET_VESSEL_TYPES
+from autowsgr.common.fleet_types import FLEET_VESSEL_TYPES
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.types import Formation, RepairMode, ShipDamageState
 

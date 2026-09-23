@@ -253,7 +253,7 @@ class UIControllerTestRunner:
         """懒加载 GameContext (测试用)。"""
         if self._ctx is None:
             from autowsgr.application.runtime.context import GameContext
-            from autowsgr.common.system import UserConfig
+            from autowsgr.config import UserConfig
 
             self._ctx = GameContext(ctrl=self.ctrl, config=UserConfig())
         return self._ctx
@@ -493,7 +493,7 @@ def reset_to_main_page(ctrl: ADBController, pause: float = 1.5) -> bool:  # noqa
     from autowsgr.application.ui.controller.backyard.canteen_page import CanteenPage
     from autowsgr.application.ui.controller.backyard.main_page import BackyardPage
     from autowsgr.application.ui.controller.fleet import BattlePreparationPage
-    from autowsgr.application.ui.controller.home.event_page.page import BaseEventPage
+    from autowsgr.application.ui.controller.home.event_page import BaseEventPage
     from autowsgr.application.ui.controller.home.main_page import HomePage
     from autowsgr.application.ui.controller.operations.mission_page import MissionPage
     from autowsgr.application.ui.controller.operations.sortie_page.decisive_page.page import (
@@ -504,7 +504,7 @@ def reset_to_main_page(ctrl: ADBController, pause: float = 1.5) -> bool:  # noqa
     from autowsgr.application.ui.controller.sidebar.friend_page import FriendPage
     from autowsgr.application.ui.controller.sidebar.intensify_page import IntensifyPage
     from autowsgr.application.ui.controller.sidebar.main_page import SidebarPage
-    from autowsgr.common.system import UserConfig
+    from autowsgr.config import UserConfig
 
     ctx = GameContext(ctrl=ctrl, config=UserConfig())
 
@@ -735,8 +735,8 @@ def connect_via_launcher(
         已建立连接的设备控制器。
     """
     from autowsgr.common.device import ADBController
-    from autowsgr.common.system import ConfigManager
     from autowsgr.common.system.logger import setup_logger
+    from autowsgr.config import ConfigManager
 
     # 加载配置（自动检测当前目录下的 usersettings.yaml，不存在则用默认值）
     cfg = ConfigManager.load()

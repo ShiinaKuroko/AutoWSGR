@@ -16,7 +16,8 @@ from autowsgr.application.ui.controller.operations.sortie_page.decisive_page imp
 from autowsgr.business.combat.decisive.logic import DecisiveLogic
 from autowsgr.business.combat.decisive.state import DecisiveState
 from autowsgr.common.constants import DECISIVE_SKILL_NAMES, update_shipnames
-from autowsgr.common.system import DecisiveConfig, get_logger
+from autowsgr.common.system.logger import get_logger
+from autowsgr.config import DecisiveConfig
 
 
 if TYPE_CHECKING:
@@ -39,8 +40,13 @@ class DecisiveBase:
         _map               决战地图页 UI
         _resume_mode       是否恢复进度模式
         _has_chosen_fleet  是否已经历过战备舰队获取
+        _fleet_overlay_enabled 是否允许检测战备舰队弹窗
+        _force_fleet_scan  无购买项时强制扫描当前编队
+        _full_recovery_check 完整恢复检查是否启用
         _wait_deadline     等待超时截止时间
         _use_last_fleet_attempts  使用上次舰队尝试次数
+        _skip_advance_choice 是否跳过已处理的前进点弹窗
+        _advance_source_node 前进点弹窗对应的源节点
 
     继承体系::
 
@@ -87,8 +93,13 @@ class DecisiveBase:
         )
         self._resume_mode: bool = False
         self._has_chosen_fleet: bool = False
+        self._fleet_overlay_enabled: bool = True
+        self._force_fleet_scan: bool = False
+        self._full_recovery_check: bool = False
         self._wait_deadline: float = 0.0
         self._use_last_fleet_attempts: int = 0
+        self._skip_advance_choice: bool = False
+        self._advance_source_node: str | None = None
 
     @property
     def state(self) -> DecisiveState:

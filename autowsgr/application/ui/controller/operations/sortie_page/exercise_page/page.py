@@ -1,41 +1,41 @@
-"""模块功能：执行演习页面的对手状态读取、选择、刷新和出征准备操作。
+"""模块功能：编排演习对手读取、刷新和挑战流程。
 
 上层调用：
-- business.combat.exercise：选择可挑战对手并进入演习准备。
-- testing.ui、testing.business：验证对手列表和阵容识别。
+- business.combat.exercise：读取可挑战对手并执行演习挑战。
+- testing.ui、testing.business：验证页面入口和对手状态结果。
 
 下层依赖：
-- application.ui.controller.operations.sortie_page.main_page：提供 sortie_page 页面壳和顶部标签。
-- application.ui.controller.operations.sortie_page.exercise_page.constants：提供演习坐标和颜色校准。
-- common.vision：读取对手按钮和阵容状态。
+- application.ui.controller.operations.sortie_page.main_page：提供 sortie_page 页面壳。
+- application.ui.controller.operations.sortie_page.exercise_page.recognition：读取页面视觉事实。
+- application.ui.controller.operations.sortie_page.exercise_page.operations：执行页面原子操作。
+- common.device.interaction、common.types：提供导航等待和页面名称契约。
 
-演习面板共有 5 个对手，屏幕一次显示 4 个；读取和选择时通过上下滑动
-分别访问对手 1-4 和对手 5。
+边界：
+本模块只持有调用方注入的 UI 上下文并编排演习页面流程，不实现像素识别或设备操作细节。
 """
 
 from __future__ import annotations
 
 import time
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
 
-from autowsgr.application.ui.controller.operations.sortie_page.exercise_page import constants
+from autowsgr.application.ui.controller.operations.sortie_page.exercise_page import (
+    operations,
+    recognition,
+)
 from autowsgr.application.ui.controller.operations.sortie_page.main_page import SortiePage
 from autowsgr.common.system.logger import get_logger
-from autowsgr.common.types import PageName
-from autowsgr.common.ui.interaction import click_and_wait_for_page
-from autowsgr.common.vision import Color, PixelChecker
+from autowsgr.application.ui.navigation.types import PageName
+from autowsgr.application.ui.navigation.interaction import NavigationError, wait_for_page
 
 
-if TYPE_CHECKING:
-    import numpy as np
+_log = get_logger('ui.sortie.exercise_page')
 
 
-_log = get_logger('ui')
-_ARROW_GRAY = Color.from_rgb_tuple(constants.ARROW_GRAY)
-_CHALLENGE_COLOR = Color.from_rgb_tuple(constants.CHALLENGE_COLOR)
+# ── 页面流程参数 ────────────────────────────────────────────────────────────
 
-# ── 对手状态模型 ────────────────────────────────────────────────────────────
+_RIVAL_INFO_SETTLE_DELAY = 1.0  # 选择对手后等待对手信息页稳定的时间（秒）。
+_RIVAL_REFRESH_SETTLE_DELAY = 0.75  # 刷新对手后等待阵容更新的时间（秒）。
 
 
 @dataclass
@@ -46,196 +46,166 @@ class ExerciseRivalStatus:
 
     @property
     def challengeable_count(self) -> int:
-        """可挑战的对手数量。"""
+        """返回可挑战的对手数量。
+
+        Returns:
+            可挑战的对手数量。
+        """
         return sum(self.rivals)
 
     def first_challengeable(self) -> int | None:
-        """返回第一个可挑战对手的序号 (1-based)，无则返回 ``None``。"""
-        for i, ok in enumerate(self.rivals):
-            if ok:
-                return i + 1
+        """返回第一个可挑战对手的序号。
+
+        Returns:
+            第一个可挑战对手的 1-based 序号；没有可挑战对手时返回 None。
+        """
+        for index, challengeable in enumerate(self.rivals, start=1):
+            if challengeable:
+                return index
         return None
 
-    def __repr__(self) -> str:
-        tags = ['Y' if ok else 'N' for ok in self.rivals]
-        return f'ExerciseRivalStatus([{", ".join(tags)}])'
 
-
-# ── 演习面板控制器 ──────────────────────────────────────────────────────────
+# ── 对手状态读取 ───────────────────────────────────────────────────────────
 
 
 class ExercisePage(SortiePage):
-    """演习页面控制器，直接管理对手状态、选择、刷新和出征准备。
-
-    所有方法假设调用前已处于演习顶部标签。
-    """
-
-    # ── 对手状态 ────────────────────────────────────────────────────────────
+    """演习页面控制器，提供对手状态读取、刷新和挑战入口。"""
 
     def read_exercise_rival_status(self) -> ExerciseRivalStatus:
-        """读取 5 个演习对手的可挑战状态。
+        """读取五个演习对手的可挑战状态。
 
         Returns:
-            五个对手的状态，索引 0-4 对应对手 1-5。
+            五个对手的状态，列表索引 0-4 对应对手序号 1-5。
         """
         status = ExerciseRivalStatus()
 
-        # 1. 确保在顶部
+        # 1. 先把列表定位到顶部，保证首屏对应对手 1-4。
         screen = self._ctrl.screenshot()
-        if not self._check_exercise_at_top(screen):
-            self._exercise_swipe_to_top()
+        at_top = recognition.check_rival_list_at_top(screen)
+        _log.debug(
+            '[UI] 演习对手列表 → 定位：期望位置={!r}，匹配={!r}',
+            '顶部',
+            at_top,
+        )
+        if not at_top:
+            operations.swipe_rival_list_to_top(self._ctrl)
             screen = self._ctrl.screenshot()
 
-        # 2. 读取对手 1-4
-        for i in range(4):
-            status.rivals[i] = self._check_challenge_at(screen, i)
-
+        # 2. 读取首屏的四个可见对手。
+        for visible_slot in range(4):
+            status.rivals[visible_slot] = recognition.check_rival_challenge_available(
+                screen,
+                visible_slot,
+            )
         _log.debug(
-            '[UI] 演习对手 1-4 状态: {}',
-            ['Y' if s else 'N' for s in status.rivals[:4]],
+            '[UI] 演习对手 → 读取：对手状态={!r}，可见槽位={!r}',
+            tuple(status.rivals[:4]),
+            (1, 2, 3, 4),
         )
 
-        # 3. 下滑到底部
-        self._exercise_swipe_to_bottom()
+        # 3. 下滑到底部，准备读取最后一个对手。
+        operations.swipe_rival_list_to_bottom(self._ctrl)
         screen = self._ctrl.screenshot()
 
-        # 4. 读取对手 5 (此时在第 4 个可见位置)
-        status.rivals[4] = self._check_challenge_at(screen, 3)
-
-        _log.info('[UI] 演习对手状态: {}', status)
+        # 4. 最后一个对手位于底部首屏的第 4 个可见槽位。
+        status.rivals[4] = recognition.check_rival_challenge_available(screen, 3)
+        _log.debug(
+            '[UI] 演习对手 → 读取：对手状态={!r}，可挑战数量={}，结果=成功',
+            tuple(status.rivals),
+            status.challengeable_count,
+        )
         return status
 
-    # ── 对手选择 ────────────────────────────────────────────────────────────
+    # ── 对手挑战流程 ────────────────────────────────────────────────────────
 
-    def select_exercise_rival(self, rival_index: int) -> None:
-        """选择指定演习对手并进入对手信息页面。
+    def challenge_rival(
+        self,
+        rival_index: int,
+        *,
+        refresh_rival: bool = False,
+    ) -> None:
+        """选择指定演习对手并进入出征准备页。
 
         Args:
             rival_index: 对手序号，范围为 1-5。
+            refresh_rival: 是否在选择对手前刷新当前对手阵容。
 
         Raises:
             ValueError: 对手序号不在 1-5 范围内。
+            NavigationError: 点击开始战斗后未确认进入出征准备页。
         """
-        if not 1 <= rival_index <= 5:
-            raise ValueError(f'对手序号必须为 1-5，收到: {rival_index}')
+        # 1. 校验业务输入，避免使用无效槽位操作设备。
+        if not isinstance(rival_index, int) or not 1 <= rival_index <= 5:
+            raise ValueError(f'对手序号必须为 1-5，收到: {rival_index!r}')
 
-        _log.info('[UI] 演习 → 选择第 {} 个对手', rival_index)
+        _log.info(
+            '[UI] 演习 → 挑战对手：对手序号={}，刷新对手={!r}，状态=开始',
+            rival_index,
+            refresh_rival,
+        )
 
-        if rival_index <= 4:
-            # 对手 1-4: 确保在顶部
-            screen = self._ctrl.screenshot()
-            if not self._check_exercise_at_top(screen):
-                self._exercise_swipe_to_top()
+        # 2. 按参数刷新当前对手阵容，等待信息页稳定。
+        if refresh_rival:
+            _log.info('[UI] 演习 → 刷新对手：状态=开始')
+            operations.click_rival_refresh(self._ctrl)
+            time.sleep(_RIVAL_REFRESH_SETTLE_DELAY)
+            _log.info('[UI] 演习 → 刷新对手：结果=已提交')
 
-            slot = rival_index - 1  # 可见位置 0-3
-            x, y = constants.CHALLENGE_PROBES[slot]
-            self._ctrl.click(x, y)
-        else:
-            # 对手 5: 确保在底部
-            screen = self._ctrl.screenshot()
-            if not self._check_exercise_at_bottom(screen):
-                self._exercise_swipe_to_bottom()
+        # 3. 定位目标对手，必要时先把列表滑到对应位置。
+        expected_at_top = rival_index <= 4
+        screen = self._ctrl.screenshot()
+        matched = (
+            recognition.check_rival_list_at_top(screen)
+            if expected_at_top
+            else recognition.check_rival_list_at_bottom(screen)
+        )
+        expected_position = 'top' if expected_at_top else 'bottom'
+        _log.debug(
+            '[UI] 演习对手列表 → 定位：对手序号={}，期望位置={!r}，匹配={!r}',
+            rival_index,
+            expected_position,
+            matched,
+        )
+        if not matched:
+            if expected_at_top:
+                operations.swipe_rival_list_to_top(self._ctrl)
+            else:
+                operations.swipe_rival_list_to_bottom(self._ctrl)
 
-            x, y = constants.CHALLENGE_PROBES[3]  # 第 4 个可见位置
-            self._ctrl.click(x, y)
+        visible_slot = rival_index - 1 if expected_at_top else 3
+        operations.click_rival(self._ctrl, visible_slot)
+        time.sleep(_RIVAL_INFO_SETTLE_DELAY)
 
-        time.sleep(0.5)
-
-    # ── 出征准备入口 ────────────────────────────────────────────────────────
-
-    def enter_exercise_battle(self) -> None:
-        """在「对手信息」页面点击开始战斗，进入出征准备页。
-
-        Args:
-            None.
-
-        Raises:
-            NavigationError: 超时未到达出征准备页面。
-        """
+        # 4. 点击开始战斗并确认进入出征准备页。
+        # 局部导入避免舰队页面包与 sortie 页面包初始化时形成循环依赖。
         from autowsgr.application.ui.controller.fleet import BattlePreparationPage
 
-        _log.info('[UI] 演习 → 开始战斗 (对手信息页 → 出征准备)')
-        click_and_wait_for_page(
-            self._ctrl,
-            click_coord=constants.CLICK_START_BATTLE,
-            checker=BattlePreparationPage.check_current_page,
-            source='演习-对手信息',
-            target=PageName.BATTLE_PREP,
-        )
+        target = PageName.BATTLE_PREP.value
+        _log.info('[UI] 演习 → 开始战斗：目标={!r}，状态=开始', target)
+        try:
+            operations.click_start_battle(self._ctrl)
+            wait_for_page(
+                self._ctrl,
+                checker=BattlePreparationPage.check_current_page,
+                source='演习对手信息',
+                target=target,
+            )
+        except NavigationError as exc:
+            _log.opt(exception=True).error(
+                '[UI] 演习 → 终止：动作={!r}，目标={!r}，错误类型={!r}，'
+                '错误={!r}，结果=失败，下一步=抛出异常',
+                '进入出征准备',
+                target,
+                type(exc).__name__,
+                str(exc),
+            )
+            raise
+
         self._ctx.ui_stack.push(PageName.BATTLE_PREP)
+        _log.info('[UI] 演习 → 开始战斗：目标={!r}，结果=成功', target)
 
-    # ── 对手信息刷新 ────────────────────────────────────────────────────────
-
-    def refresh_rival_in_info_page(self) -> None:
-        """在对手信息页面点击刷新按钮，更换当前对手阵容。"""
-        _log.info('[UI] 演习 → 刷新对手阵容 (对手信息页)')
-        self._ctrl.click(*constants.CLICK_RIVAL_INFO)
-        time.sleep(0.75)
-
-    # ── 对手阵容读取 ────────────────────────────────────────────────────────
-
-    def read_rival_formation(self) -> list[str] | None:
-        """读取对手阵容接口；当前未实现 OCR，始终返回 ``None``。
-
-        Returns:
-            对手舰船类型列表；当前实现固定返回 ``None``。
-        """
-        screen = self._ctrl.screenshot()
-        _log.debug('[UI] 演习 → 识别对手阵容 (预留接口, 尚未实现)')
-        # TODO: 实现 OCR 识别对手阵容
-        # 参考 legacy get_enemy_condition() — 裁切 TYPE_SCAN_AREA[0] 区域进行文字识别
-        _ = screen
-        return None
-
-    # ── 组合操作 ────────────────────────────────────────────────────────────
-
-    def challenge_rival(self, rival_index: int) -> None:
-        """选择指定对手并直接进入出征准备页。
-
-        Args:
-            rival_index: 对手序号，范围为 1-5。
-        """
-        self.select_exercise_rival(rival_index)
-        time.sleep(0.5)
-        self.enter_exercise_battle()
-
-    # ── 私有辅助：列表位置和按钮状态 ────────────────────────────────────────
-
-    def _check_exercise_at_top(self, screen: np.ndarray) -> bool:
-        """检查演习列表是否位于顶部。"""
-        return PixelChecker.check_pixel(
-            screen,
-            *constants.ARROW_UP_PROBE,
-            _ARROW_GRAY,
-            constants.ARROW_TOLERANCE,
-        )
-
-    def _check_exercise_at_bottom(self, screen: np.ndarray) -> bool:
-        """检查演习列表是否位于底部。"""
-        return PixelChecker.check_pixel(
-            screen,
-            *constants.ARROW_DOWN_PROBE,
-            _ARROW_GRAY,
-            constants.ARROW_TOLERANCE,
-        )
-
-    def _exercise_swipe_to_top(self) -> None:
-        """将演习列表滑动到顶部并等待列表稳定。"""
-        self._ctrl.swipe(*constants.SWIPE_TO_TOP)
-        time.sleep(constants.SWIPE_DELAY)
-
-    def _exercise_swipe_to_bottom(self) -> None:
-        """将演习列表滑动到底部并等待列表稳定。"""
-        self._ctrl.swipe(*constants.SWIPE_TO_BOTTOM)
-        time.sleep(constants.SWIPE_DELAY)
-
-    def _check_challenge_at(self, screen: np.ndarray, slot: int) -> bool:
-        """检查可见位置上的演习挑战按钮状态。"""
-        x, y = constants.CHALLENGE_PROBES[slot]
-        return PixelChecker.check_pixel(
-            screen,
-            x,
-            y,
-            _CHALLENGE_COLOR,
-            constants.CHALLENGE_TOLERANCE,
+        # 5. 报告完整挑战流程已确认完成。
+        _log.info(
+            '[UI] 演习 → 挑战对手：对手序号={}，结果=成功',
+            rival_index,
         )

@@ -7,7 +7,7 @@
 下层依赖：
 - formation：完成当前编队识别、规则调整和单舰选船。
 - support.supply、support.campaign_support、support.repair：完成准备页辅助流程。
-- common.ui.interaction、common.vision：提供页面状态识别和终态等待。
+- common.device.interaction、common.vision：提供页面状态识别和终态等待。
 
 本文件只拥有准备页本身的 UI 原子动作和主流程顺序；OCR、规则规划、船池搜索、
 补给和维修实现由对应子模块负责。
@@ -19,14 +19,14 @@ from typing import TYPE_CHECKING
 
 from autowsgr.application.ui.controller.fleet.main_page import constants
 from autowsgr.common.system.logger import get_logger
-from autowsgr.common.types import PageName
-from autowsgr.common.ui.interaction import (
+from autowsgr.application.ui.navigation.types import PageName
+from autowsgr.application.ui.navigation.interaction import (
     NavigationError,
     click_and_wait_for_page,
     wait_leave_page,
 )
 from autowsgr.common.vision import ImageChecker, PageMatch, PixelChecker
-from autowsgr.common.vision.resources import Templates
+from autowsgr.application.vision.resources import Templates
 
 
 if TYPE_CHECKING:
@@ -34,14 +34,15 @@ if TYPE_CHECKING:
 
     import numpy
 
-    from autowsgr.application.ui.context import UIContext
+    from autowsgr.application.ui.controller.context import UIContext
     from autowsgr.application.ui.controller.fleet.formation.fleet_recognition import (
         FleetSnapshot,
     )
     from autowsgr.application.ui.controller.fleet.support.repair import RepairStrategy
-    from autowsgr.common.device import AndroidController
-    from autowsgr.common.fleet import FleetSlotRule
-    from autowsgr.common.types import ShipDamageState, ShipType
+    from autowsgr.common.device.service import DeviceService
+    from autowsgr.business.combat.fleet_models import FleetSlotRule
+    from autowsgr.business.combat.types import ShipType
+    from autowsgr.business.logistics.types import ShipDamageState
 
 
 _log = get_logger('ui.fleet.main_page')
@@ -120,7 +121,7 @@ class BattlePreparationPage:
     def __init__(self, ctx: UIContext) -> None:
         """保存调用方注入的运行上下文和设备控制器。"""
         self._ctx = ctx
-        self._ctrl: AndroidController = ctx.ctrl
+        self._ctrl: DeviceService = ctx.ctrl
 
     # ── Fleet 子流程出口 ────────────────────────────────────────────────────
 

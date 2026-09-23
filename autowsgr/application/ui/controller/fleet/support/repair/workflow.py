@@ -21,13 +21,13 @@ from autowsgr.application.ui.controller.fleet.main_page.constants import BLOOD_B
 from autowsgr.application.ui.controller.fleet.support.repair import constants, recognition
 from autowsgr.common.system import ActionFailedError, ManualRepairRequiredError
 from autowsgr.common.system.logger import get_logger
-from autowsgr.common.types import ShipDamageState
+from autowsgr.business.logistics.types import ShipDamageState
 
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from autowsgr.application.ui.context import UIContext
+    from autowsgr.application.ui.controller.context import UIContext
     from autowsgr.application.ui.controller.fleet.main_page import BattlePreparationPage
 
 

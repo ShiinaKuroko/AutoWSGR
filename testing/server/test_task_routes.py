@@ -6,6 +6,7 @@ import asyncio
 from dataclasses import dataclass, field
 from types import SimpleNamespace
 from typing import TYPE_CHECKING, Any
+from unittest.mock import MagicMock
 
 import pytest
 from fastapi import HTTPException
@@ -149,6 +150,39 @@ def test_yaml_extre_is_forwarded_to_running_processor(
     assert response.success is True
     assert response.data['status'] == 'queued'
     assert response.data['task_id'] == manager.received[0].request_id
+
+
+def test_processor_repair_events_update_task_status(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    manager = SimpleNamespace(
+        stop_event=object(),
+        set_repairing=MagicMock(),
+        update_progress=MagicMock(),
+        add_result=MagicMock(),
+    )
+
+    class ProcessorStub:
+        def __init__(self, _ctx: object, **kwargs: object) -> None:
+            self.on_event = kwargs['on_event']
+
+        def submit(self, _request: Request) -> None:
+            return None
+
+        def run_pending(self) -> list[tuple[str, Request, object]]:
+            self.on_event('repairing', task_type='normal_fight', repairing=True)
+            self.on_event('repairing', task_type='normal_fight', repairing=False)
+            return []
+
+    monkeypatch.setattr(task, 'task_manager', manager)
+    monkeypatch.setattr(task, 'Processor', ProcessorStub)
+
+    task._run_processor_request(SimpleNamespace(), Request(task_type='normal_fight'))
+
+    assert manager.set_repairing.call_args_list == [
+        ((True,), {}),
+        ((False,), {}),
+    ]
 
 
 def test_task_start_requires_system_context(monkeypatch: pytest.MonkeyPatch) -> None:

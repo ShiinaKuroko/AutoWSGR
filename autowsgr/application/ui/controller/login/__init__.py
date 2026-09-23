@@ -6,7 +6,12 @@
 
 下层依赖：
 - application.ui.controller.login.page：提供启动画面检查和点击进入行为。
+
+边界：
+只导出登录前启动画面控制器，不执行游戏启动、登录后导航或浮层处理。
 """
+
+from __future__ import annotations
 
 from autowsgr.application.ui.controller.login.page import LoginPage
 

@@ -11,10 +11,13 @@ from typing import TYPE_CHECKING
 
 from autowsgr.common.calibration.coordinates import point
 from autowsgr.common.system import get_logger
-from autowsgr.common.ui.combat import click_image, dismiss_resource_confirm
+from autowsgr.common.vision._resources import TemplateKey, Templates
+from autowsgr.common.vision._template_matcher import ImageChecker
 
 
 if TYPE_CHECKING:
+    import numpy as np
+
     from autowsgr.common.device import AndroidController
     from autowsgr.common.types import FightCondition, Formation
 
@@ -137,6 +140,46 @@ def click_skip_missile_animation(device: AndroidController) -> None:
 
     # 快速点击不需要增加操作后的 delay
     device.click(*_combat_point('speed_up_battle'), delay=False)
+
+
+def click_image(
+    device: AndroidController,
+    template_key: TemplateKey | str,
+    timeout: float,
+) -> bool:
+    """等待模板出现并点击其中心。"""
+    if isinstance(template_key, str):
+        template_key = TemplateKey(template_key)
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        detail = ImageChecker.find_any(
+            device.screenshot(),
+            template_key.templates,
+            confidence=0.8,
+        )
+        if detail is not None:
+            device.click(*detail.center)
+            return True
+        time.sleep(0.3)
+    return False
+
+
+def dismiss_resource_confirm(device: AndroidController, screen: np.ndarray) -> None:
+    """在当前截图中发现资源确认弹窗时点击确认。"""
+    detail = ImageChecker.find_any(
+        screen,
+        [Templates.Confirm.CONFIRM_1],
+        confidence=0.75,
+    )
+    if detail is None:
+        return
+    time.sleep(0.25)
+    device.click(*detail.center, delay=False)
+    _log.info(
+        "[Combat] 点掉资源确认弹窗: '{}' ({:.4f}, {:.4f})",
+        detail.template_name,
+        *detail.center,
+    )
     time.sleep(1)
     device.click(*_combat_point('speed_up_battle'), delay=False)
 

@@ -13,7 +13,7 @@
 from __future__ import annotations
 
 from autowsgr.application.ui.controller.fleet.main_page.constants import CLICK_BACK
-from autowsgr.common.calibration import choose_ship
+from autowsgr.application.vision.calibration import choose_ship
 
 
 # ── 船池页面校准 ─────────────────────────────────────────────────────────────

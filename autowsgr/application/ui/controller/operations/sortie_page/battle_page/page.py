@@ -26,15 +26,15 @@ from autowsgr.application.ui.controller.operations.sortie_page.main_page import 
     SortieTab,
 )
 from autowsgr.common.system.logger import get_logger
-from autowsgr.common.types import PageName
-from autowsgr.common.ui.interaction import click_and_wait_for_page
+from autowsgr.application.ui.navigation.types import PageName
+from autowsgr.application.ui.navigation.interaction import click_and_wait_for_page
 
 
 if TYPE_CHECKING:
     from autowsgr.application.ui.controller.operations.sortie_page.battle_page.recognition import (
         ChapterSlot,
     )
-    from autowsgr.common.device import AndroidController
+    from autowsgr.common.device.service import DeviceService
     from autowsgr.common.vision import OCREngine
 
 
@@ -92,7 +92,7 @@ class BattlePage(SortiePage):
                 raise ValueError(f'章节 {chapter} 的地图编号必须为 1-{max_maps}，收到: {map_num}')
             result = self.select_chapter(chapter)
             if result is None:
-                from autowsgr.common.ui.interaction import NavigationError
+                from autowsgr.application.ui.navigation.interaction import NavigationError
 
                 raise NavigationError(
                     f'无法导航到第 {chapter} 章',
@@ -387,7 +387,7 @@ class BattlePage(SortiePage):
 
 
 def _read_chapter_state(
-    ctrl: AndroidController,
+    ctrl: DeviceService,
     ocr: OCREngine,
 ) -> tuple[tuple[ChapterSlot, ...], int | None]:
     """从一次截图中读取章节槽位，并计算当前章节。

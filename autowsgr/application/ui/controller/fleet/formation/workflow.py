@@ -22,13 +22,13 @@ from autowsgr.application.ui.controller.fleet.formation.fleet_recognition import
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from autowsgr.application.ui.context import UIContext
+    from autowsgr.application.ui.controller.context import UIContext
     from autowsgr.application.ui.controller.fleet.formation.fleet_recognition import (
         FleetSnapshot,
     )
     from autowsgr.application.ui.controller.fleet.main_page import BattlePreparationPage
-    from autowsgr.common.fleet import FleetSlotRule
-    from autowsgr.common.types import ShipType
+    from autowsgr.business.combat.fleet_models import FleetSlotRule
+    from autowsgr.business.combat.types import ShipType
 
 
 def adjust_fleet(

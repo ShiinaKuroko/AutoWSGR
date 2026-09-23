@@ -31,7 +31,7 @@
         8. 主页面 → 活动地图 → ◁ 返回主页面
 
     D. 便捷方法
-        9. go_to_sortie() → ◁ 返回主页面
+        9. navigate_to(SORTIE) → ◁ 返回主页面
        10. 最终主页面验证
 """
 
@@ -69,7 +69,12 @@ if TYPE_CHECKING:
 def run_test(runner: UIControllerTestRunner) -> None:  # noqa: PLR0911, C901, PLR0912, PLR0915
     """执行主页面控制器完整测试序列。"""
     from autowsgr.application.ui.controller.backyard.main_page import BackyardPage
-    from autowsgr.application.ui.controller.home.main_page import HomePage
+    from autowsgr.application.ui.controller.home.main_page import (
+        HomePage,
+        Target,
+        check_expedition_ready,
+        check_task_ready,
+    )
     from autowsgr.application.ui.controller.operations.mission_page import MissionPage
     from autowsgr.application.ui.controller.operations.sortie_page.main_page import SortiePage
     from autowsgr.application.ui.controller.sidebar.main_page import SidebarPage
@@ -117,8 +122,8 @@ def run_test(runner: UIControllerTestRunner) -> None:  # noqa: PLR0911, C901, PL
     runner.read_state(
         '主页面状态',
         readers={
-            '远征完成通知': HomePage.check_expedition_ready,
-            '任务可领取通知': HomePage.check_task_ready,
+            '远征完成通知': check_expedition_ready,
+            '任务可领取通知': check_task_ready,
         },
     )
 
@@ -131,7 +136,7 @@ def run_test(runner: UIControllerTestRunner) -> None:  # noqa: PLR0911, C901, PL
         '主页面 → 地图页面 (navigate_to SORTIE)',
         '地图页面',
         SortiePage.check_current_page,
-        lambda: main_page.navigate_to(HomePage.Target.SORTIE),
+        lambda: main_page.navigate_to(Target.SORTIE),
     )
     if runner.aborted:
         return
@@ -150,7 +155,7 @@ def run_test(runner: UIControllerTestRunner) -> None:  # noqa: PLR0911, C901, PL
         '主页面 → 任务页面 (navigate_to TASK)',
         '任务页面',
         MissionPage.check_current_page,
-        lambda: main_page.navigate_to(HomePage.Target.TASK),
+        lambda: main_page.navigate_to(Target.TASK),
     )
     if runner.aborted:
         return
@@ -169,7 +174,7 @@ def run_test(runner: UIControllerTestRunner) -> None:  # noqa: PLR0911, C901, PL
         '主页面 → 侧边栏 (navigate_to SIDEBAR)',
         '侧边栏',
         SidebarPage.check_current_page,
-        main_page.go_to_sidebar,
+        lambda: main_page.navigate_to(Target.SIDEBAR),
     )
     if runner.aborted:
         return
@@ -188,7 +193,7 @@ def run_test(runner: UIControllerTestRunner) -> None:  # noqa: PLR0911, C901, PL
         '主页面 → 后院页面 (navigate_to HOME)',
         '后院页面',
         BackyardPage.check_current_page,
-        main_page.go_to_backyard,
+        lambda: main_page.navigate_to(Target.BACKYARD),
     )
     if runner.aborted:
         return
@@ -208,13 +213,13 @@ def run_test(runner: UIControllerTestRunner) -> None:  # noqa: PLR0911, C901, PL
 
     # ───── Step 8: 主页面 → 活动地图 ────────────────────────────────
     try:
-        from autowsgr.application.ui.controller.home.event_page.page import BaseEventPage
+        from autowsgr.application.ui.controller.home.event_page import BaseEventPage
 
         runner.execute_step(
             '主页面 → 活动地图 (navigate_to EVENT, 模板匹配)',
             '活动地图页面',
             BaseEventPage.check_current_page,
-            lambda: main_page.navigate_to(HomePage.Target.EVENT),
+            lambda: main_page.navigate_to(Target.EVENT),
         )
     except Exception as exc:
         warn(f'活动导航测试跳过 (可能当前无活动入口): {exc}')
@@ -225,7 +230,7 @@ def run_test(runner: UIControllerTestRunner) -> None:  # noqa: PLR0911, C901, PL
     # ───── Step 8b: 活动地图 → ◁ 主页面 ─────────────────────────────
     screen = runner.ctrl.screenshot()
     try:
-        from autowsgr.application.ui.controller.home.event_page.page import BaseEventPage
+        from autowsgr.application.ui.controller.home.event_page import BaseEventPage
 
         if BaseEventPage.check_current_page(screen):
             event_page = BaseEventPage(runner.ctrl)
@@ -246,12 +251,12 @@ def run_test(runner: UIControllerTestRunner) -> None:  # noqa: PLR0911, C901, PL
     # D. 便捷方法验证
     # ═══════════════════════════════════════════════════════════════════════
 
-    # ───── Step 9: go_to_sortie() ────────────────────────────────────
+    # ───── Step 9: navigate_to(SORTIE) ───────────────────────────────
     runner.execute_step(
-        '便捷方法 go_to_sortie()',
+        '主页面 → 地图页面',
         '地图页面',
         SortiePage.check_current_page,
-        main_page.go_to_sortie,
+        lambda: main_page.navigate_to(Target.SORTIE),
     )
     if runner.aborted:
         return

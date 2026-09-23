@@ -18,7 +18,6 @@ dependencies = [
     "opencv-python-headless",
     "loguru",
     "keyboard",
-    "easyocr>=1.7.1",
     "maafw>=5.12.3,<6.0",
     "adbutils>=2.0,<3.0",
     "autowsgr_native==0.3.0",
@@ -178,12 +177,6 @@ extend-safe-fixes = [
 "tools/**" = [
     "T201",    # print
 ]
-"tools/ocr_change_fleet_e2e/**" = [
-    "I001",    # import block (黑盒 E2E 框架保持原样)
-    "INP001",  # implicit-namespace-package
-    "RUF100",  # unused-noqa
-    "TC003",   # typing-only-standard-library-import
-]
 "examples/**" = [
     "T201",    # print
 ]
@@ -222,3 +215,33 @@ inline-quotes = "single"
 
 [tool.ruff.lint.flake8-tidy-imports]
 ban-relative-imports = "all"
+
+[tool.autowsgr-code-graph]
+repository = "autowsgr"
+roots = ["autowsgr", "testing", "tools", "examples"]
+exclude = [".git", ".venv", "build", "dist", "__pycache__", ".pytest_tmp", ".tmp"]
+
+[[tool.autowsgr-code-graph.layers]]
+name = "server"
+path = "autowsgr/server"
+allows = ["dispatch", "business", "application", "common"]
+
+[[tool.autowsgr-code-graph.layers]]
+name = "dispatch"
+path = "autowsgr/dispatch"
+allows = ["business", "application", "common"]
+
+[[tool.autowsgr-code-graph.layers]]
+name = "business"
+path = "autowsgr/business"
+allows = ["application", "common"]
+
+[[tool.autowsgr-code-graph.layers]]
+name = "application"
+path = "autowsgr/application"
+allows = ["common"]
+
+[[tool.autowsgr-code-graph.layers]]
+name = "common"
+path = "autowsgr/common"
+allows = []

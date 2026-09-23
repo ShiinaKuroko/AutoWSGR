@@ -15,7 +15,7 @@ from autowsgr.application.ui.controller.operations.sortie_page.main_page import 
 )
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.types import RepairMode, ShipDamageState
-from autowsgr.common.ui.interaction import NavigationError
+from autowsgr.common.device.interaction import NavigationError
 
 
 if TYPE_CHECKING:

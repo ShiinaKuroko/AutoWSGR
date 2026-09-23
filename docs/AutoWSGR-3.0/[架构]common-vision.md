@@ -447,7 +447,7 @@ current = vision.parse_counter('3/10', 10)
 | `NUMPY_DEFAULT_PIXEL_TOLERANCE` | `30.0` | `float`，颜色距离 | 默认像素颜色容差 | 否 | 模块导入 |
 | `NUMPY_COORDINATE_MIN` | `0.0` | `float`，相对坐标 | 相对坐标下界 | 否 | 模块导入 |
 | `NUMPY_COORDINATE_MAX` | `1.0` | `float`，相对坐标 | 相对坐标上界 | 否 | 模块导入 |
-| `OPENCV_TEMPLATE_ROOT` | `resources/image/image` | `Path` | 模板文件根目录 | 否 | 模块导入 |
+| `OPENCV_TEMPLATE_ROOT` | `resources/image` | `Path` | 模板文件根目录 | 否 | 模块导入 |
 | `OPENCV_TEMPLATE_SOURCE_RESOLUTION` | `(1280, 720)` | `tuple[int, int]`，像素 | 模板默认来源分辨率 | 否 | 模块导入 |
 | `OPENCV_TEMPLATE_CONFIDENCE` | `0.85` | `float`，`[0, 1]` | 模板匹配默认阈值 | 否 | 调用入口取默认值 |
 | `OPENCV_TEXT_SCALE` | `4` | `int`，倍数 | OCR 文本默认放大倍数 | 否 | 调用入口取默认值 |

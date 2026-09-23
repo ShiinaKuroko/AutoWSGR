@@ -40,7 +40,7 @@ def run_test(runner: UIControllerTestRunner) -> None:
     from autowsgr.application.ui.controller.backyard.canteen_page import CanteenPage
     from autowsgr.application.ui.controller.backyard.main_page import BackyardPage
 
-    canteen_page = CanteenPage(runner.ctrl)
+    canteen_page = CanteenPage(runner.ctx)
 
     runner.verify_current('初始验证: 食堂页面', '食堂页面', CanteenPage.check_current_page)
     if runner.aborted:
@@ -58,18 +58,21 @@ def _navigate_to(ctrl: AndroidController, pause: float) -> None:
     """从任意已知页面导航到食堂页面。"""
     import time
 
+    from autowsgr.application.runtime.context import GameContext
     from autowsgr.application.ui.controller.backyard.main_page import BackyardPage
     from autowsgr.application.ui.controller.home.main_page import HomePage
+    from autowsgr.config import UserConfig
 
     if not reset_to_main_page(ctrl, pause):
         return
+    ctx = GameContext(ctrl=ctrl, config=UserConfig())
     screen = ctrl.screenshot()
     if HomePage.check_current_page(screen):
-        HomePage(ctrl).go_to_backyard()
+        HomePage(ctx).go_to_backyard()
         time.sleep(pause)
         screen = ctrl.screenshot()
     if BackyardPage.check_current_page(screen):
-        BackyardPage(ctrl).go_to_canteen()
+        BackyardPage(ctx).go_to_canteen()
         time.sleep(pause)
 
 

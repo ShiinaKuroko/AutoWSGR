@@ -13,7 +13,7 @@ from unittest.mock import MagicMock
 import numpy as np
 import pytest
 
-from autowsgr.common.ui.interaction import wait_leave_page
+from autowsgr.common.device.interaction import wait_leave_page
 
 
 def _ctrl(stays: bool) -> MagicMock:
@@ -27,7 +27,7 @@ def _ctrl(stays: bool) -> MagicMock:
 
 @pytest.fixture(autouse=True)
 def _no_sleep(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr('autowsgr.common.ui.interaction.time.sleep', lambda *_: None)
+    monkeypatch.setattr('autowsgr.common.device.interaction.time.sleep', lambda *_: None)
 
 
 class TestProbeMode:
@@ -50,7 +50,7 @@ class TestProbeMode:
 
     def test_default_mode_still_raises(self):
         """probe=False (默认) 超时 → 照旧抛 NavigationError。"""
-        from autowsgr.common.ui.interaction import NavigationError
+        from autowsgr.common.device.interaction import NavigationError
 
         with pytest.raises(NavigationError):
             wait_leave_page(ctrl=_ctrl(stays=True), checker=lambda _: True, timeout=0)

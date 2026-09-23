@@ -11,7 +11,7 @@
 
 from __future__ import annotations
 
-from autowsgr.common.calibration import choose_ship
+from autowsgr.application.vision.calibration import choose_ship
 
 
 # ── 舰名识别校准 ─────────────────────────────────────────────────────────────

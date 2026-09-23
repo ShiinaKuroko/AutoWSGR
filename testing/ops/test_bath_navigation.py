@@ -89,7 +89,7 @@ def test_decisive_sortie_leaves_saved_map_before_bath(monkeypatch: pytest.Monkey
     goto_page = MagicMock()
     monkeypatch.setattr(service, 'goto_page', goto_page)
     wait_for_page = MagicMock()
-    monkeypatch.setattr('autowsgr.common.ui.interaction.wait_for_page', wait_for_page)
+    monkeypatch.setattr('autowsgr.common.device.interaction.wait_for_page', wait_for_page)
 
     service.goto_bath_from_decisive_sortie(ctx)
 
@@ -122,7 +122,8 @@ def test_manual_bath_repair_dispatches_targets_and_returns_home(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     page = MagicMock()
-    page.repair_ship.side_effect = [120, -1]
+    page.repair.side_effect = [120, -1]
+    page.repair.side_effect = [120, -1]
     ship = MagicMock()
     ctx = SimpleNamespace(
         bathroom=MagicMock(),
@@ -134,12 +135,12 @@ def test_manual_bath_repair_dispatches_targets_and_returns_home(
     monkeypatch.setattr(bath_repair, 'BathPage', lambda _ctx: page)
     monkeypatch.setattr(bath_repair, 'goto_page', goto_page)
 
-    bath_repair.repair_manual_targets_in_bath(ctx, ['ship-1', 'ship-2'])
+    dispatched = bath_repair.repair_manual_targets_in_bath(ctx, ['ship-1', 'ship-2'])
 
-    assert page.open_choose_repair_overlay.call_count == 2
-    page.repair_ship.assert_any_call('ship-1')
-    page.repair_ship.assert_any_call('ship-2')
+    page.repair.assert_any_call(repair_all=False, ship_name='ship-1')
+    page.repair.assert_any_call(repair_all=False, ship_name='ship-2')
     ship.set_repair.assert_called_once_with(120)
     ctx.update_ship_damage.assert_called_once_with('ship-1', ShipDamageState.NORMAL)
     ctx.bathroom.occupy.assert_called_once_with(120)
     goto_page.assert_called_once_with(ctx, PageName.HOME)
+    assert dispatched == ['ship-1']

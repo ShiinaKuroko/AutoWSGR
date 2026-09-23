@@ -14,7 +14,7 @@ from pathlib import Path
 
 # ── 模板资源 ───────────────────────────────────────────────────────
 
-OPENCV_TEMPLATE_ROOT = Path(__file__).resolve().parents[3] / 'resources' / 'image' / 'image'
+OPENCV_TEMPLATE_ROOT = Path(__file__).resolve().parents[3] / 'resources' / 'image'
 """OpenCV 模板图片根目录。"""
 
 OPENCV_TEMPLATE_SOURCE_RESOLUTION = (1280, 720)

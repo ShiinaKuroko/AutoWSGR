@@ -5,9 +5,8 @@ from unittest.mock import MagicMock
 import numpy as np
 import pytest
 
-from autowsgr.common.vision import OCREngine, OCRResult
-from autowsgr.common.vision.ocr import EasyOCREngine
-from autowsgr.common.vision.ocr_rules import EasyOCRProfile, set_user_ship_name_aliases
+from autowsgr.common.vision.ocr_engine.executor import OCREngine, TextDetection as OCRResult
+from autowsgr.common.vision.ocr_rules import LEVEL_OCR_ALLOWLIST, set_user_ship_name_aliases
 from autowsgr.common.vision.ship_list import (
     _parse_level_with_status,
     _probe_level_near_name,
@@ -44,7 +43,7 @@ def test_level_parser_retries_when_more_than_two_digits_are_ambiguous():
 
 
 def _probe_with_binary_results(results: list[OCRResult]) -> int | None:
-    ocr = MagicMock(spec=EasyOCREngine)
+    ocr = MagicMock(spec=OCREngine)
     ocr.recognize_line.return_value = results
     screen = np.zeros((720, 1280, 3), dtype=np.uint8)
     return _probe_level_near_name(
@@ -95,7 +94,7 @@ def test_level_probe_rejects_split_level_above_maximum():
 
 
 def test_level_probe_uses_x2_x3_x4_ordered_fallback():
-    ocr = MagicMock(spec=EasyOCREngine)
+    ocr = MagicMock(spec=OCREngine)
     ocr.recognize_line.side_effect = [
         [],
         [],
@@ -120,13 +119,13 @@ def test_level_probe_uses_x2_x3_x4_ordered_fallback():
         (72, 240, 3),
     ]
     assert all(
-        call.kwargs['easyocr_profile'] is EasyOCRProfile.SHIP_POOL_LEVEL
+        call.kwargs['allowlist'] == LEVEL_OCR_ALLOWLIST
         for call in ocr.recognize_line.call_args_list
     )
 
 
 def test_level_probe_stops_after_first_valid_scale():
-    ocr = MagicMock(spec=EasyOCREngine)
+    ocr = MagicMock(spec=OCREngine)
     ocr.recognize_line.side_effect = [
         [OCRResult(text='LV.1', confidence=0.99)],
         [OCRResult(text='LV.110', confidence=0.99)],
@@ -145,53 +144,6 @@ def test_level_probe_stops_after_first_valid_scale():
     assert level == 1
     assert ocr.recognize_line.call_count == 1
     assert ocr.recognize_line.call_args.args[0].shape == (36, 120, 3)
-
-
-def test_level_probe_binarizes_easyocr_input():
-    ocr = MagicMock(spec=EasyOCREngine)
-    ocr.recognize_line.return_value = [OCRResult(text='LV.110', confidence=0.99)]
-    screen = np.zeros((720, 1280, 3), dtype=np.uint8)
-    screen[:, :, 0] = np.arange(1280, dtype=np.uint16) % 256
-    screen[:, :, 1] = 40
-    screen[:, :, 2] = 180
-
-    level = _probe_level_near_name(
-        ocr,
-        screen,
-        y_start=335,
-        y_end=373,
-        name_x=262,
-        max_x=1048,
-    )
-
-    prepared = ocr.recognize_line.call_args.args[0]
-    assert level == 110
-    assert set(np.unique(prepared)).issubset({0, 255})
-    assert np.array_equal(prepared[:, :, 0], prepared[:, :, 1])
-    assert np.array_equal(prepared[:, :, 1], prepared[:, :, 2])
-
-
-def test_level_probe_keeps_non_easyocr_input_unbinarized():
-    ocr = MagicMock(spec=OCREngine)
-    ocr.recognize_line.return_value = [OCRResult(text='LV.110', confidence=0.99)]
-    screen = np.zeros((720, 1280, 3), dtype=np.uint8)
-    screen[:, :, 0] = np.arange(1280, dtype=np.uint16) % 256
-    screen[:, :, 1] = 40
-    screen[:, :, 2] = 180
-
-    level = _probe_level_near_name(
-        ocr,
-        screen,
-        y_start=335,
-        y_end=373,
-        name_x=262,
-        max_x=1048,
-    )
-
-    prepared = ocr.recognize_line.call_args.args[0]
-    assert level == 110
-    assert not set(np.unique(prepared)).issubset({0, 255})
-    assert not np.array_equal(prepared[:, :, 0], prepared[:, :, 1])
 
 
 def test_level_parser_rejects_value_above_game_maximum():

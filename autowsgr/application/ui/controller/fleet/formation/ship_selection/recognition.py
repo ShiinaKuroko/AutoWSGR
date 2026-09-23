@@ -15,10 +15,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from autowsgr.common.constants import SHIPNAMES, normalize_ship_name
+from autowsgr.application.vision.shipnames import SHIPNAMES, normalize_ship_name
 from autowsgr.common.vision import ocr
-from autowsgr.common.vision.ocr_rules import get_user_ship_name_alias
-from autowsgr.common.vision.ship_list import (
+from autowsgr.application.vision.ocr_rules import get_user_ship_name_alias
+from autowsgr.application.vision.ship_list import (
     LevelOCRRetryNeededError,
     extract_ship_type_from_text,
     locate_ship_rows,
@@ -30,7 +30,7 @@ from autowsgr.common.vision.ship_list import (
 if TYPE_CHECKING:
     import numpy
 
-    from autowsgr.common.types import ShipType
+    from autowsgr.business.combat.types import ShipType
     from autowsgr.common.vision import OCREngine
 
 

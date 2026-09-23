@@ -18,6 +18,11 @@ class RuntimeContext(Protocol):
     ship_ocr: Any
     ui_stack: Any
     current_page: Any
+    daily_overlay_checked: bool
+    latest_screenshot: Any
+
+    def record_screenshot(self, screen: Any) -> None:
+        """保存识别链路最近一次截图。"""
 
     def get_ship(self, name: str) -> Any:
         """Return a mutable ship record owned by the runtime session."""

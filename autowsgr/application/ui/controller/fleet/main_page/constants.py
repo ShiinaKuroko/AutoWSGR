@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import enum
 
-from autowsgr.common.vision import Color, PixelSignature
+from autowsgr.common.vision.operations.pixel_matching import Color, PixelSignature
 
 
 class Panel(enum.Enum):

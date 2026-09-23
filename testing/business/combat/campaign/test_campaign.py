@@ -27,6 +27,7 @@ from autowsgr.business.combat.campaign.spec import (
     parse_campaign_name,
 )
 from autowsgr.business.combat.fleet import exact_fleet_rules
+from autowsgr.common.system import ManualRepairRequiredError
 from autowsgr.common.types import ConditionFlag, RepairMode, ShipDamageState, ShipType
 from autowsgr.dispatch import Processor, Request, TaskPaused
 
@@ -369,6 +370,7 @@ def test_campaign_manual_repair_triggers_campaign_bath_route(
     page.check_repair.return_value = [0]
     route = MagicMock()
     repair_targets = MagicMock()
+    repair_targets.return_value = ['target-ship']
 
     monkeypatch.setattr(operations_module, 'BattlePreparationPage', lambda _ctx: page)
     monkeypatch.setattr(operations_module, 'goto_bath_from_campaign_sortie', route)
@@ -389,11 +391,13 @@ def test_campaign_manual_repair_triggers_campaign_bath_route(
         report=lambda *_args, **_kwargs: None,
     )
 
-    operations.prepare_battle(spec)
+    with pytest.raises(ManualRepairRequiredError, match='需要手动修理'):
+        operations.prepare_battle(spec)
 
     page.check_repair.assert_called_once_with(RepairStrategy.MODERATE)
     route.assert_called_once_with(ctx)
     repair_targets.assert_called_once_with(ctx, ['target-ship'])
+    page.read_ship_damage.assert_not_called()
 
 
 def test_destroyer_campaign_disables_ship_type_ocr(

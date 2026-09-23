@@ -181,6 +181,8 @@ def _run_processor_request(ctx: Any, request: Request) -> TaskOutcome:  # noqa: 
     """执行一份 Processor 请求并转换成现有 HTTP 结果封装。"""
 
     def on_event(event: str, **data: Any) -> None:
+        if event == 'repairing' and data.get('task_type', request.task_type) == request.task_type:
+            task_manager.set_repairing(bool(data.get('repairing', False)))
         if event == 'completed' and data.get('task_type', request.task_type) == request.task_type:
             task_manager.update_progress(
                 current_round=int(data.get('count', 0)),

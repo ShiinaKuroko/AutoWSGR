@@ -1,28 +1,18 @@
-"""模块功能：维护强化页面专用的返回和标签点击坐标。
+"""模块功能：维护强化页面返回导航的校准坐标。
 
 上层调用：
-- application.ui.controller.sidebar.intensify_page.page：执行强化页面检查、标签切换和返回。
+- application.ui.controller.sidebar.intensify_page.page：执行返回侧边栏。
 
 下层依赖：
 - 无。坐标来自强化页面 1280x720 校准结果，并以归一化相对值保存。
 
+边界：
 本模块不保存页面状态、设备对象、运行时上下文或强化业务规则。
 """
 
-# ── 页面返回坐标 ─────────────────────────────────────────────────────────────
+from __future__ import annotations
+
 
 CLICK_BACK = (0.0219, 0.0583)  # 强化页面左上角返回按钮，用于回到侧边栏。
 
-# ── 标签点击坐标 ─────────────────────────────────────────────────────────────
-
-CLICK_INTENSIFY_TAB = (0.1875, 0.0458)  # 强化标签入口，用于查看强化舰船。
-CLICK_REMAKE_TAB = (0.3125, 0.0458)  # 改修标签入口，用于查看舰船改修功能。
-CLICK_SKILL_TAB = (0.4375, 0.0458)  # 技能标签入口，用于查看舰船技能功能。
-
-
-__all__ = [
-    'CLICK_BACK',
-    'CLICK_INTENSIFY_TAB',
-    'CLICK_REMAKE_TAB',
-    'CLICK_SKILL_TAB',
-]
+__all__ = ['CLICK_BACK']

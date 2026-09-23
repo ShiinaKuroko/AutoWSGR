@@ -8,9 +8,8 @@
     游戏位于 **强化页面** (侧边栏 → 强化)
 
 测试内容：
-    1. 验证初始状态及当前标签
-    2. 标签切换: 强化 → 改修 → 技能 → 强化
-    3. 强化页面 → ◁ 侧边栏
+    1. 验证初始强化页面
+    2. 强化页面 → ◁ 侧边栏
 """
 
 from __future__ import annotations
@@ -38,10 +37,7 @@ if TYPE_CHECKING:
 
 
 def run_test(runner: UIControllerTestRunner) -> None:
-    from autowsgr.application.ui.controller.sidebar.intensify_page import (
-        IntensifyPage,
-        IntensifyTab,
-    )
+    from autowsgr.application.ui.controller.sidebar.intensify_page import IntensifyPage
     from autowsgr.application.ui.controller.sidebar.main_page import SidebarPage
 
     intensify_page = IntensifyPage(runner.ctrl)
@@ -49,21 +45,6 @@ def run_test(runner: UIControllerTestRunner) -> None:
     runner.verify_current('初始验证: 强化页面', '强化页面', IntensifyPage.check_current_page)
     if runner.aborted:
         return
-
-    runner.read_state(
-        '强化页面',
-        readers={'当前标签': IntensifyPage.read_active_tab},
-    )
-
-    for tab in [IntensifyTab.REMAKE, IntensifyTab.SKILL, IntensifyTab.INTENSIFY]:
-        runner.execute_step(
-            f'切换标签 → {tab.value}',
-            '强化页面',
-            IntensifyPage.check_current_page,
-            lambda t=tab: intensify_page.select_tab(t),
-        )
-        if runner.aborted:
-            return
 
     runner.execute_step(
         '强化页面 → ◁ 侧边栏',

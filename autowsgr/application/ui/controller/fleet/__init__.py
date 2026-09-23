@@ -16,7 +16,7 @@ from autowsgr.application.ui.controller.fleet.formation.fleet_recognition import
 )
 from autowsgr.application.ui.controller.fleet.main_page import BattlePreparationPage, Panel
 from autowsgr.application.ui.controller.fleet.support.repair import RepairStrategy
-from autowsgr.common.vision import PageMatch
+from autowsgr.application.ui.navigation.types import PageMatch
 
 
 def check_ship_selection_page(screen: numpy.ndarray) -> PageMatch:

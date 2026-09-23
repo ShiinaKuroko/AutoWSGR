@@ -13,9 +13,10 @@ from autowsgr.application.ui.controller.operations.sortie_page.main_page import 
 from autowsgr.application.ui.navigation import goto_bath_from_campaign_sortie
 from autowsgr.business.combat.fleet import exact_fleet_rules
 from autowsgr.business.logistics.repair.bath_repair import repair_manual_targets_in_bath
+from autowsgr.common.system import ManualRepairRequiredError
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.types import RepairMode, ShipDamageState
-from autowsgr.common.ui.interaction import NavigationError
+from autowsgr.common.device.interaction import NavigationError
 
 
 if TYPE_CHECKING:
@@ -57,7 +58,7 @@ class CampaignOperations:
             campaign_name=spec.campaign_name,
         )
 
-    def prepare_battle(
+    def prepare_battle(  # noqa: PLR0912 - one campaign preparation flow owns these branches
         self,
         spec: CampaignSpec,
         *,
@@ -113,8 +114,19 @@ class CampaignOperations:
                         for position in positions
                         if 0 <= position < len(fleet_names) and fleet_names[position]
                     ]
-                    goto_bath_from_campaign_sortie(self.ctx)
-                    repair_manual_targets_in_bath(self.ctx, targets)
+                    if not targets:
+                        raise ManualRepairRequiredError('无法解析手动维修目标')
+                    try:
+                        goto_bath_from_campaign_sortie(self.ctx)
+                        dispatched = repair_manual_targets_in_bath(self.ctx, targets)
+                    except ManualRepairRequiredError:
+                        raise
+                    except Exception as exc:
+                        raise ManualRepairRequiredError('手动维修处理失败') from exc
+                    missing = [name for name in targets if name not in set(dispatched)]
+                    if missing:
+                        _log.warning('[Campaign] 手动维修未能派出: {}', missing)
+                    raise ManualRepairRequiredError('需要手动修理')
             else:
                 page.apply_repair(strategy)
 

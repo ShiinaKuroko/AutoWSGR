@@ -1,156 +1,199 @@
-"""模块功能：读取远征槽位状态、跳过结算动画并收取已完成的远征。
+"""模块功能：编排远征页面的通知检查、槽位收取和结算返回。
 
 上层调用：
-- business.logistics.expedition：检查通知并执行远征收取。
-- testing.ui：验证远征槽位和结算操作。
+- business.logistics.expedition：调用远征收取完整流程。
 
 下层依赖：
-- application.ui.controller.operations.sortie_page.main_page：提供 sortie_page 页面壳。
-- application.ui.controller.operations.sortie_page.expedition_page.constants：提供远征状态颜色和槽位坐标。
-- common.ui.interaction、common.vision：确认结算和页面返回。
+- application.ui.controller.operations.sortie_page.main_page：提供出征页页面检查和通知事实。
+- application.ui.controller.operations.sortie_page.expedition_page.constants：提供槽位校准。
+- application.ui.controller.operations.sortie_page.expedition_page.recognition：识别可收取槽位。
+- application.ui.controller.operations.sortie_page.expedition_page.operations：执行槽位和结算点击。
+- common.device.interaction：确认结算弹窗并等待地图终态。
+- common.vision.resources：提供结算页模板。
+
+本模块只持有远征收取的页面级流程，不决定跨任务调度或业务配置。
 """
 
 from __future__ import annotations
 
 import time
-from typing import TYPE_CHECKING
 
-from autowsgr.application.ui.controller.operations.sortie_page.expedition_page import constants
+from autowsgr.application.ui.controller.operations.sortie_page.expedition_page import (
+    constants,
+    operations,
+    recognition,
+)
 from autowsgr.application.ui.controller.operations.sortie_page.main_page import SortiePage
 from autowsgr.common.system.logger import get_logger
-from autowsgr.common.types import PageName
-from autowsgr.common.ui.interaction import confirm_operation, wait_for_page
-from autowsgr.common.vision import Color, ImageChecker, PixelChecker
-from autowsgr.common.vision.resources import Templates
+from autowsgr.application.ui.navigation.types import PageName
+from autowsgr.application.ui.navigation.interaction import NavigationError, confirm_operation, wait_for_page
+from autowsgr.common.vision import ImageChecker
+from autowsgr.application.vision.resources import Templates
 
 
-if TYPE_CHECKING:
-    import numpy as np
+_log = get_logger('ui.sortie.expedition_page')
 
 
-_log = get_logger('ui')
-_READY_COLOR = Color.from_rgb_tuple(constants.READY_COLOR)
+# ── 收取流程参数 ─────────────────────────────────────────────────────────────
+
+_MAX_COLLECTIONS = 8
+_SLOT_REFRESH_TIMEOUT = 10.0
+_SLOT_REFRESH_INTERVAL = 0.1
+_SLOT_CLICK_SETTLE_DELAY = 1.0
+_RESULT_PAGE_TIMEOUT = 5.0
+_RESULT_PAGE_POLL_INTERVAL = 0.1
+_RESULT_PAGE_SETTLE_DELAY = 0.25
+_SKIP_SETTLE_DELAY = 1.0
 
 
 class ExpeditionPage(SortiePage):
-    """远征页面控制器，直接管理槽位读取、结算动画和收取。"""
+    """远征页面控制器，提供远征收取入口。"""
 
-    # ── 查询 ─────────────────────────────────────────────────────────────
-
-    @staticmethod
-    def read_ready_expedition_slot(screen: np.ndarray) -> int | None:
-        """读取 4 个远征槽位，返回第一个已完成槽位。
-
-        Args:
-            screen: 当前地图页面截图。
-
-        Returns:
-            已完成槽位索引（0-3）；没有可收取远征时返回 ``None``。
-        """
-        for i, (px, py) in enumerate(constants.SLOT_PROBES):
-            actual = PixelChecker.get_pixel(screen, px, py)
-            if actual.near(_READY_COLOR, constants.SLOT_TOLERANCE):
-                _log.debug(
-                    '[UI] 远征槽位 {} 就绪: 实际颜色 {} ≈ 黄色',
-                    i + 1,
-                    actual.as_rgb_tuple(),
-                )
-                return i
-        return None
-
-    # ── 结算动画 ──────────────────────────────────────────────────────────
-
-    def click_expedition_skip(self) -> None:
-        """点击远征结算页面的跳过区域，结束奖励动画。"""
-        self._ctrl.click(*constants.CLICK_SKIP)
-
-    # ── 远征收取 ──────────────────────────────────────────────────────────
-
-    def collect_expedition(self) -> int:
-        """在远征面板收取已完成的远征。
+    def collect_expedition(self) -> int:  # noqa: PLR0912 - 页面总流程必须保留这些状态分支。
+        """执行远征收取完整流程。
 
         Returns:
             本次收取的远征数量。
 
         Raises:
-            NavigationError: 远征通知仍在但 10 秒内无法检测到就绪槽位。
+            NavigationError: 页面事实或结算终态无法确认。
         """
         collected = 0
-        for _ in range(8):
-            # ── 检测就绪槽位 (含等待逻辑) ──
+        _log.info('[UI] 远征页 → 收取：状态=开始')
+
+        for _ in range(_MAX_COLLECTIONS):
+            # 1. 读取可收取槽位；通知仍在时等待槽位状态刷新。
             screen = self._ctrl.screenshot()
-            slot_idx = self.read_ready_expedition_slot(screen)
-            if slot_idx is None:
-                # 无黄色槽位 — 检查上方探测点是否仍报告有远征
-                if not self.check_expedition_notification(screen):
-                    _log.debug('[UI] 远征收取: 无就绪槽位且无通知，结束')
+            slot_index = recognition.read_ready_expedition_slot(screen)
+            if slot_index is None:
+                notification = self.check_expedition_notification(screen)
+                _log.debug(
+                    '[UI] 远征页 → 判断收取：槽位索引={!r}，通知存在={!r}',
+                    slot_index,
+                    notification,
+                )
+                if not notification:
                     break
 
-                # 上方探测点仍亮 — 等待槽位刷新 (最多 10s)
-                _log.debug('[UI] 远征收取: 通知仍在，等待槽位刷新…')
-                deadline = time.monotonic() + 10.0
-                while time.monotonic() < deadline:
-                    time.sleep(0.1)
+                deadline = time.monotonic() + _SLOT_REFRESH_TIMEOUT
+                while True:
+                    if time.monotonic() >= deadline:
+                        _log.error(
+                            '[UI] 远征页 → 超时：动作={!r}，期望={!r}，实际={!r}，'
+                            '原因={!r}，错误类型={!r}，错误={!r}，结果=失败，下一步=抛出异常',
+                            '等待就绪槽位',
+                            '就绪槽位',
+                            '未找到',
+                            '通知仍然显示',
+                            'NavigationError',
+                            '就绪槽位等待超时',
+                        )
+                        raise NavigationError(
+                            '远征收取超时：通知仍在但未检测到就绪槽位',
+                            screen=screen,
+                        )
+
+                    time.sleep(_SLOT_REFRESH_INTERVAL)
                     screen = self._ctrl.screenshot()
-                    slot_idx = self.read_ready_expedition_slot(screen)
-                    if slot_idx is not None:
+                    slot_index = recognition.read_ready_expedition_slot(screen)
+                    if slot_index is not None:
                         break
                     if not self.check_expedition_notification(screen):
-                        _log.debug('[UI] 远征收取: 通知消失，结束')
+                        _log.debug(
+                            '[UI] 远征页 → 判断收取：槽位索引={!r}，通知存在={!r}',
+                            slot_index,
+                            False,
+                        )
                         break
-                else:
-                    from autowsgr.common.ui.interaction import NavigationError
 
-                    raise NavigationError(
-                        '远征收取超时: 通知仍在但 10s 内未检测到就绪槽位',
-                        screen=screen,
-                    )
-
-                if slot_idx is None:
+                if slot_index is None:
                     break
 
-            slot_pos = constants.SLOT_PROBES[slot_idx]
-            _log.info(
-                '[UI] 远征收取: 点击槽位 {} ({:.4f}, {:.4f})',
-                slot_idx + 1,
-                *slot_pos,
-            )
+            slot_position = constants.SLOT_PROBES[slot_index]
+            _log.info('[UI] 远征页 → 收取：槽位={}，状态=开始', slot_index + 1)
+            operations.click_expedition_slot(self._ctrl, slot_position)
+            time.sleep(_SLOT_CLICK_SETTLE_DELAY)
 
-            # 1. 点击就绪槽位
-            self._ctrl.click(*slot_pos)
-            time.sleep(1.0)
-
-            # 2. 等待远征结果画面
-            _result_templates = [Templates.Symbol.CLICK_TO_CONTINUE]
-            _wait_deadline = time.monotonic() + 5.0
-            while time.monotonic() < _wait_deadline:
+            # 2. 等待结算页确认后再跳过动画，避免误点击其他页面。
+            result_found = False
+            result_deadline = time.monotonic() + _RESULT_PAGE_TIMEOUT
+            while True:
                 screen = self._ctrl.screenshot()
-                if ImageChecker.template_exists(screen, _result_templates):
+                result_found = ImageChecker.template_exists(
+                    screen,
+                    Templates.Symbol.CLICK_TO_CONTINUE,
+                )
+                if result_found:
                     break
-            time.sleep(0.25)
+                if time.monotonic() >= result_deadline:
+                    _log.error(
+                        '[UI] 远征页 → 超时：动作={!r}，期望={!r}，实际={!r}，'
+                        '原因={!r}，错误类型={!r}，错误={!r}，结果=失败，下一步=抛出异常',
+                        '等待结算页',
+                        '结算页',
+                        '未找到',
+                        '结算页等待超时',
+                        'NavigationError',
+                        '结算页未找到',
+                    )
+                    raise NavigationError('远征结算页未出现', screen=screen)
+                time.sleep(_RESULT_PAGE_POLL_INTERVAL)
 
-            # 3. 点击屏幕右侧跳过动画
-            self.click_expedition_skip()
-            time.sleep(1.0)
+            time.sleep(_RESULT_PAGE_SETTLE_DELAY)
+            operations.click_expedition_skip(self._ctrl)
+            time.sleep(_SKIP_SETTLE_DELAY)
 
-            # 4. 确认弹窗
-            confirm_operation(
-                self._ctrl,
-                must_confirm=True,
-                delay=0.5,
-                confidence=0.9,
-                timeout=5.0,
-            )
+            # 3. 确认收取弹窗和地图页面终态。
+            try:
+                confirm_operation(
+                    self._ctrl,
+                    must_confirm=True,
+                    delay=0.5,
+                    confidence=0.9,
+                    timeout=5.0,
+                )
+            except NavigationError as error:
+                _log.opt(exception=True).error(
+                    '[UI] 远征页 → 失败：动作={!r}，期望={!r}，实际={!r}，'
+                    '原因={!r}，错误类型={!r}，错误={!r}，结果=失败，下一步=抛出异常',
+                    '确认收取结果',
+                    '确认弹窗',
+                    '未找到',
+                    '确认操作失败',
+                    type(error).__name__,
+                    str(error),
+                )
+                raise
 
-            # 5. 等待回到地图页面
-            wait_for_page(
-                self._ctrl,
-                checker=self.check_current_page,
-                source='远征收取',
-                target=PageName.MAP,
-            )
+            try:
+                wait_for_page(
+                    self._ctrl,
+                    checker=self.check_current_page,
+                    source='远征页',
+                    target=PageName.MAP.value,
+                )
+            except NavigationError as error:
+                _log.opt(exception=True).error(
+                    '[UI] 远征页 → 失败：动作={!r}，期望={!r}，实际={!r}，'
+                    '原因={!r}，错误类型={!r}，错误={!r}，结果=失败，下一步=抛出异常',
+                    '返回地图',
+                    '地图页面',
+                    '未到达',
+                    '页面未到达',
+                    type(error).__name__,
+                    str(error),
+                )
+                raise
 
             collected += 1
+            _log.info(
+                '[UI] 远征页 → 收取：槽位={}，结果=成功，数量={}',
+                slot_index + 1,
+                collected,
+            )
 
-        _log.info('[UI] 远征收取: {} 支', collected)
+        _log.info('[UI] 远征页 → 收取：结果=成功，数量={}', collected)
         return collected
+
+
+__all__ = ['ExpeditionPage']

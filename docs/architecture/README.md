@@ -231,3 +231,4 @@ autowsgr/
 | [ops.md](ops.md)                                    | 战斗 Runner、非战斗操作、启动与导航                   |
 | [scheduler-and-server.md](scheduler-and-server.md)  | Launcher 启动链、TaskScheduler、FastAPI HTTP 服务     |
 | [infra.md](infra.md)                                | 通道日志、异常层级、文件工具、枚举类型、数据文件        |
+| [code-graph.md](code-graph.md)                      | 静态架构图谱、层级检查、动态关系和重构差异             |

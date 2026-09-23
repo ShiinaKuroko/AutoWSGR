@@ -42,17 +42,17 @@ from autowsgr.application.ui.controller.fleet.formation.fleet_recognition import
 from autowsgr.application.ui.controller.fleet.formation.fleet_recognition.models import (
     FleetSnapshot,
 )
-from autowsgr.common.constants import ship_name_identity
-from autowsgr.common.fleet import FleetSlotRule, ShipSelector
+from autowsgr.application.vision.shipnames import ship_name_identity
+from autowsgr.business.combat.fleet_models import FleetSlotRule, ShipSelector
 from autowsgr.common.system.logger import get_logger
 
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from autowsgr.application.ui.context import UIContext
+    from autowsgr.application.ui.controller.context import UIContext
     from autowsgr.application.ui.controller.fleet.main_page import BattlePreparationPage
-    from autowsgr.common.types import ShipType
+    from autowsgr.business.combat.types import ShipType
 
 
 # 记录编队调整过程中的关键步骤和失败原因。

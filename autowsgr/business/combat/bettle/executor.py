@@ -50,6 +50,10 @@ class BettleExecutor(BaseExecutor):
                 self.plan,
                 task_type=self.task_type,
                 wait=self._wait,
+                repair_status_callback=lambda repairing: self._report(
+                    'repairing',
+                    repairing=repairing,
+                ),
             ).run()
             self._report('battle_done', task_type=self.task_type, result=result.flag.value)
             return result

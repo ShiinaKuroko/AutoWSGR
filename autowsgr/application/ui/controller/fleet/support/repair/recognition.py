@@ -14,13 +14,13 @@ from typing import TYPE_CHECKING
 
 from autowsgr.application.ui.controller.fleet.main_page.constants import BLOOD_BAR_PROBE
 from autowsgr.common.vision import PixelChecker
-from autowsgr.common.vision.blood import classify_blood
+from autowsgr.application.vision.damage_recognition import classify_blood
 
 
 if TYPE_CHECKING:
     import numpy
 
-    from autowsgr.common.types import ShipDamageState
+    from autowsgr.business.logistics.types import ShipDamageState
 
 
 def detect_ship_damage(screen: numpy.ndarray) -> dict[int, ShipDamageState]:

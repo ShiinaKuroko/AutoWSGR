@@ -64,7 +64,15 @@ results = run_normal_fight(ctrl, plan, times=5)
 | 命令 | 用途 |
 |---|---|
 | `python tools/migrate_config.py --old <classic.yaml> --out <new.yaml> [--dry-run]` | v1 classic 配置迁移到 v2 |
-| `python tools/debug_screenshot.py [--roi x,y,w,h] [--allowlist "0-9"] [-i img.png]` | OCR 调试（开发者） |
+| `python tools/debug_toolkit/main.py e2e --list` | 统一 E2E case 列表 |
+| `python tools/debug_toolkit/main.py screenshot --serial <SERIAL>` | 设备截图采集 |
+| `python tools/debug_toolkit/main.py roi --image <PNG> --roi x1,y1,x2,y2` | 截图 ROI 多倍率裁切 |
+| `python tools/debug_toolkit/main.py ocr --image <PNG>` | 对截图执行 OCR 并输出 JSON |
+| `python tools/debug_toolkit/main.py collect adb <SERIAL>` | 连接并记录采集设备 |
+| `python tools/debug_toolkit/main.py collect team [--mode A|B]` | 采集编队页 OCR 样本 |
+| `python tools/debug_toolkit/main.py collect pool [--mode A|B]` | 采集船池页 OCR 样本 |
+| `python tools/debug_toolkit/main.py inspect [--roi x,y,w,h] [--allowlist "0-9"] [-i img.png]` | 截图、OCR、像素和页面签名调试 |
+| `python tools/debug_toolkit/main.py e2e --with-ocr change_fleet [--fleet N] [--ships A,B]` | 出征准备页换船 E2E |
 | `python tools/pixel_marker.py --serial 127.0.0.1:5555` | 像素标记调试（开发者） |
 
 ---

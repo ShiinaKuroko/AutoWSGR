@@ -16,8 +16,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from autowsgr.common.constants import normalize_ship_name, ship_name_identity
-from autowsgr.common.fleet import FleetSlotRule, ShipSelector
+from autowsgr.application.vision.shipnames import normalize_ship_name, ship_name_identity
+from autowsgr.business.combat.fleet_models import FleetSlotRule, ShipSelector
 
 
 if TYPE_CHECKING:

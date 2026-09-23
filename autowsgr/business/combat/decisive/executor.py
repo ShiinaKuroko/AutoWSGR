@@ -29,12 +29,31 @@ from typing import Any
 from autowsgr.application.runtime.executor import BaseExecutor
 from autowsgr.business.combat.decisive.chapter import DecisiveChapterOps
 from autowsgr.business.combat.decisive.handlers import DecisivePhaseHandlers
-from autowsgr.common.system import DecisiveConfig, ManualRepairRequiredError
+from autowsgr.common.system import ManualRepairRequiredError
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.types import DecisivePhase
+from autowsgr.config import DecisiveConfig
 
 
 _log = get_logger('business.combat.decisive')
+
+_MAX_RECOVERY_ATTEMPTS = 3
+
+
+def _recover_decisive_after_error(ctx: Any, attempt: int) -> None:
+    """重启游戏并恢复可识别入口，供下一次决战尝试使用。"""
+    from autowsgr.application.runtime.startup import ensure_game_ready, restart_game
+
+    app = ctx.config.account.game_app
+    package = app.package_name if hasattr(app, 'package_name') else app
+    _log.warning(
+        '[决战] 错误恢复 {}/{}: 重启游戏并恢复入口',
+        attempt,
+        _MAX_RECOVERY_ATTEMPTS,
+    )
+    restart_game(ctx.ctrl, package)
+    ensure_game_ready(ctx, app)
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 结果枚举
@@ -75,16 +94,21 @@ class DecisiveController(DecisivePhaseHandlers, DecisiveChapterOps):
 
     # ── 主入口 ────────────────────────────────────────────────────────────
 
-    def run(self) -> DecisiveResult:
+    def run(self, *, full_recovery_check: bool = False) -> DecisiveResult:
         """执行一轮完整决战（3 个小关）。"""
         _log.info('[决战] 开始第 {} 章决战', self._config.chapter)
         self._state.reset()
         # 默认进入恢复模式，扫描舰船进度
         self._resume_mode = True
         self._has_chosen_fleet = False
-        self._prepare_entry_state()
-        self._state.phase = DecisivePhase.ENTER_MAP
+        self._fleet_overlay_enabled = True
+        self._force_fleet_scan = full_recovery_check
+        self._full_recovery_check = full_recovery_check
+        self._skip_advance_choice = False
+        self._advance_source_node = None
         try:
+            self._prepare_entry_state()
+            self._state.phase = DecisivePhase.ENTER_MAP
             return self._main_loop()
         except ManualRepairRequiredError:
             self._state.phase = DecisivePhase.FINISHED
@@ -144,6 +168,15 @@ class DecisiveController(DecisivePhaseHandlers, DecisiveChapterOps):
                 self._execute_retreat()
                 self._state.reset()
                 self._state.phase = DecisivePhase.ENTER_MAP
+                self._resume_mode = True
+                self._has_chosen_fleet = False
+                self._fleet_overlay_enabled = True
+                self._force_fleet_scan = False
+                self._full_recovery_check = False
+                self._wait_deadline = 0.0
+                self._use_last_fleet_attempts = 0
+                self._skip_advance_choice = False
+                self._advance_source_node = None
                 continue
 
             if phase == DecisivePhase.LEAVE:
@@ -174,5 +207,13 @@ class DecisiveExecutor(BaseExecutor):
     # ── 主流程 ─────────────────────────────────────────────────────────────
 
     def _execute(self) -> DecisiveResult:
-        # 旧决战状态机先作为业务实现接入新执行器入口。
-        return DecisiveController(self.ctx, self._config).run()
+        controller = DecisiveController(self.ctx, self._config)
+        result = DecisiveResult.ERROR
+        for attempt in range(1, _MAX_RECOVERY_ATTEMPTS + 1):
+            if self._stop.is_set():
+                return result
+            result = controller.run(full_recovery_check=attempt > 1)
+            if result is not DecisiveResult.ERROR or attempt == _MAX_RECOVERY_ATTEMPTS:
+                return result
+            _recover_decisive_after_error(self.ctx, attempt)
+        return result

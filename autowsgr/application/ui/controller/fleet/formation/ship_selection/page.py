@@ -6,7 +6,7 @@
 
 下层依赖：
 - ship_selection.constants：提供船池页面和滚动坐标。
-- common.ui.interaction、common.vision：提供页面终态等待和页面模板匹配。
+- common.device.interaction、common.vision：提供页面终态等待和页面模板匹配。
 
 本文件只执行船池页面 UI 动作，不读取船卡 OCR，不解析选择规则。
 """
@@ -17,9 +17,10 @@ from typing import TYPE_CHECKING
 
 from autowsgr.application.ui.controller.fleet.formation.ship_selection import constants
 from autowsgr.common.system.logger import get_logger
-from autowsgr.common.types import PageName
-from autowsgr.common.ui.interaction import click_and_wait_for_page, wait_for_page, wait_leave_page
-from autowsgr.common.vision import PageMatch, PixelChecker
+from autowsgr.application.ui.navigation.types import PageName
+from autowsgr.application.ui.navigation.interaction import click_and_wait_for_page, wait_for_page, wait_leave_page
+from autowsgr.application.ui.navigation.types import PageMatch
+from autowsgr.common.vision import PixelChecker
 
 
 if TYPE_CHECKING:
@@ -27,8 +28,8 @@ if TYPE_CHECKING:
 
     import numpy
 
-    from autowsgr.application.ui.context import UIContext
-    from autowsgr.common.device import AndroidController
+    from autowsgr.application.ui.controller.context import UIContext
+    from autowsgr.common.device.service import DeviceService
 
 
 _log = get_logger('ui.fleet.formation.ship_selection')
@@ -40,7 +41,7 @@ class ShipSelectionPage:
     def __init__(self, ctx: UIContext) -> None:
         """保存调用方注入的上下文和设备控制器。"""
         self._ctx = ctx
-        self._ctrl: AndroidController = ctx.ctrl
+        self._ctrl: DeviceService = ctx.ctrl
 
     @staticmethod
     def check_current_page(screen: numpy.ndarray) -> PageMatch:

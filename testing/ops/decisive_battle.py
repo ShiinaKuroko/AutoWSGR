@@ -37,7 +37,7 @@ except Exception:  # noqa: S110
 from loguru import logger
 
 from autowsgr.business.combat.decisive import DecisiveController, DecisiveResult
-from autowsgr.common.system import DecisiveConfig
+from autowsgr.config import DecisiveConfig
 from testing.ops._framework import launch_for_test
 
 

@@ -1,23 +1,23 @@
-"""模块功能：导出浴室页面 Controller 和修理卡片识别契约。
+"""模块功能：导出浴室页面控制器和修理卡片结果契约。
 
 上层调用：
-- application.ui.navigation.registry：注册浴室页面识别器。
-- business.logistics.repair.bath_repair：取得浴室页面操作入口。
+- application.ui.navigation：注册浴室页面检查器并执行页面导航。
+- business.logistics.repair：调用浴室修理页面入口。
 
 下层依赖：
-- application.ui.controller.backyard.bath_page.page：提供页面识别、浮层操作和页面返回。
-- application.ui.controller.backyard.bath_page.recognition：提供卡片数据模型、识别和时长转换。
+- application.ui.controller.backyard.bath_page.page：提供页面流程和导航控制器。
+- application.ui.controller.backyard.bath_page.recognition：提供页面事实实现。
 
-本模块只负责公开导出，不执行页面注册或其他导入副作用。
+边界：
+本包只提供稳定导出，不执行页面注册、设备操作或 OCR 初始化。
 """
 
-from .page import BathPage
-from .recognition import RepairShipInfo, convert_repair_time_to_seconds, recognize_repair_cards
+from __future__ import annotations
+
+from autowsgr.application.ui.controller.backyard.bath_page.page import (
+    BathPage,
+    RepairResult,
+)
 
 
-__all__ = [
-    'BathPage',
-    'RepairShipInfo',
-    'convert_repair_time_to_seconds',
-    'recognize_repair_cards',
-]
+__all__ = ['BathPage', 'RepairResult']

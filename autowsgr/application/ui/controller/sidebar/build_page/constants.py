@@ -1,7 +1,9 @@
 """模块功能：维护建造页面及解体标签专用的物理校准常量。
 
 上层调用：
-- application.ui.controller.sidebar.build_page.page：读取页面点击、滑动和舰种筛选坐标。
+- application.ui.controller.sidebar.build_page.page：读取页面和标签切换坐标。
+- application.ui.controller.sidebar.build_page.operations：读取原子点击坐标。
+- application.ui.controller.sidebar.build_page.workflow：读取建造和解装流程坐标。
 
 下层依赖：
 - 无。常量值来自建造页面的 1280x720 校准结果，并以相对坐标保存。
@@ -9,39 +11,66 @@
 本模块不保存页面状态、设备对象、运行时上下文或建造业务规则。
 """
 
+from __future__ import annotations
+
+
 # ── 页面与标签坐标 ───────────────────────────────────────────────────────────
 
-CLICK_BACK = (0.0219, 0.0583)  # 建造页面左上角返回按钮，用于回到侧边栏或主页面。
-TAB_POSITIONS = {
+CLICK_BACK: tuple[float, float] = (
+    0.0219,
+    0.0583,
+)  # 建造页面左上角返回按钮，用于回到侧边栏或主页面。
+TAB_POSITIONS: dict[str, tuple[float, float]] = {
     'build': (0.1875, 0.0458),  # 顶部建造标签，用于进入舰船建造内容。
     'destroy': (0.3125, 0.0458),  # 顶部解体标签，用于进入舰船解装内容。
     'develop': (0.4375, 0.0458),  # 顶部开发标签，用于进入装备开发内容。
     'discard': (0.5625, 0.0458),  # 顶部废弃标签，用于进入废弃内容。
 }
 
-# ── 建造槽位与提交 ───────────────────────────────────────────────────────────
+# ── 建造流程 ─────────────────────────────────────────────────────────────────
 
-SLOT_POSITIONS = (
-    (0.8234, 0.3125),  # 第 1 建造槽位，用于查看、收取或快速建造。
-    (0.8234, 0.5083),  # 第 2 建造槽位，用于查看、收取或快速建造。
-    (0.8234, 0.7014),  # 第 3 建造槽位，用于查看、收取或快速建造。
-    (0.8234, 0.8986),  # 第 4 建造槽位，用于查看、收取或快速建造。
-)
-CLICK_CONFIRM = (0.8898, 0.8903)  # 资源选择页面确认按钮，用于提交当前建造配方。
-CLICK_DISMISS_ANIMATION = (0.9531, 0.9542)  # 建造结果动画跳过区域，用于继续处理结果。
+CLICK_CONFIRM: tuple[float, float] = (
+    0.8898,
+    0.8903,
+)  # 资源选择页面确认按钮，用于提交当前建造配方。
+CLICK_DISMISS_ANIMATION: tuple[float, float] = (
+    0.9531,
+    0.9542,
+)  # 建造结果动画跳过区域，用于继续处理结果。
 
 # ── 解体标签操作 ─────────────────────────────────────────────────────────────
 
-CLICK_DESTROY_ADD = (0.0938, 0.3819)  # 解体列表添加按钮，用于打开待解装舰船选择。
-CLICK_DESTROY_QUICK_SELECT = (0.9102, 0.3000)  # 解体快速选择按钮，用于批量选择舰船。
-CLICK_DESTROY_CONFIRM_SELECT = (0.9148, 0.9056)  # 解体选择确认按钮，用于提交舰船选择。
-CLICK_DESTROY_REMOVE_EQUIP = (0.8367, 0.6458)  # 卸下装备选项，用于先移除舰船装备。
-CLICK_DESTROY_CONFIRM = (0.9000, 0.9000)  # 解体确认按钮，用于提交解装操作。
-CLICK_DESTROY_FOUR_STAR_CONFIRM = (0.3797, 0.5667)  # 四星确认按钮，用于确认高星舰船解装。
-CLICK_DESTROY_TYPE_FILTER = (0.9117, 0.6806)  # 舰种过滤入口，用于展开筛选面板。
-CLICK_DESTROY_CONFIRM_FILTER = (0.9000, 0.8500)  # 舰种过滤确认按钮，用于应用筛选条件。
+CLICK_DESTROY_ADD: tuple[float, float] = (
+    0.0938,
+    0.3819,
+)  # 解体列表添加按钮，用于打开待解装舰船选择。
+CLICK_DESTROY_QUICK_SELECT: tuple[float, float] = (
+    0.9102,
+    0.3000,
+)  # 解体快速选择按钮，用于批量选择舰船。
+CLICK_DESTROY_CONFIRM_SELECT: tuple[float, float] = (
+    0.9148,
+    0.9056,
+)  # 解体选择确认按钮，用于提交舰船选择。
+CLICK_DESTROY_REMOVE_EQUIP: tuple[float, float] = (
+    0.8367,
+    0.6458,
+)  # 卸下装备选项，用于先移除舰船装备。
+CLICK_DESTROY_CONFIRM: tuple[float, float] = (0.9000, 0.9000)  # 解体确认按钮，用于提交解装操作。
+CLICK_DESTROY_FOUR_STAR_CONFIRM: tuple[float, float] = (
+    0.3797,
+    0.5667,
+)  # 四星确认按钮，用于确认高星舰船解装。
+CLICK_DESTROY_TYPE_FILTER: tuple[float, float] = (
+    0.9117,
+    0.6806,
+)  # 舰种过滤入口，用于展开筛选面板。
+CLICK_DESTROY_CONFIRM_FILTER: tuple[float, float] = (
+    0.9000,
+    0.8500,
+)  # 舰种过滤确认按钮，用于应用筛选条件。
 
-DESTROY_TYPE_POSITIONS = {
+DESTROY_TYPE_POSITIONS: dict[str, tuple[float, float]] = {
     'CV': (0.5550, 0.1970),  # 航母筛选按钮，用于选择航母舰种。
     'CVL': (0.6460, 0.1970),  # 轻母筛选按钮，用于选择轻型航母舰种。
     'AV': (0.7380, 0.1970),  # 装母筛选按钮，用于选择装甲航母舰种。
@@ -68,19 +97,18 @@ DESTROY_TYPE_POSITIONS = {
 }
 
 
-__all__ = [
+__all__ = [  # noqa: RUF022 - exports follow the page coordinate definition order
     'CLICK_BACK',
-    'CLICK_CONFIRM',
-    'CLICK_DESTROY_ADD',
-    'CLICK_DESTROY_CONFIRM',
-    'CLICK_DESTROY_CONFIRM_FILTER',
-    'CLICK_DESTROY_CONFIRM_SELECT',
-    'CLICK_DESTROY_FOUR_STAR_CONFIRM',
-    'CLICK_DESTROY_QUICK_SELECT',
-    'CLICK_DESTROY_REMOVE_EQUIP',
-    'CLICK_DESTROY_TYPE_FILTER',
-    'CLICK_DISMISS_ANIMATION',
-    'DESTROY_TYPE_POSITIONS',
-    'SLOT_POSITIONS',
     'TAB_POSITIONS',
+    'CLICK_CONFIRM',
+    'CLICK_DISMISS_ANIMATION',
+    'CLICK_DESTROY_ADD',
+    'CLICK_DESTROY_QUICK_SELECT',
+    'CLICK_DESTROY_CONFIRM_SELECT',
+    'CLICK_DESTROY_REMOVE_EQUIP',
+    'CLICK_DESTROY_CONFIRM',
+    'CLICK_DESTROY_FOUR_STAR_CONFIRM',
+    'CLICK_DESTROY_TYPE_FILTER',
+    'CLICK_DESTROY_CONFIRM_FILTER',
+    'DESTROY_TYPE_POSITIONS',
 ]

@@ -30,12 +30,6 @@ account:
 # OCR 引擎
 # ═══════════════════════════════════════════
 ocr:
-  gpu: false                       # 是否使用 GPU 加速
-  mirror: modelscope               # Easyocr 模型镜像, 用于下载模型, 可选值如下
-  # origin: 使用Easyocr原生下载
-  # github: 使用Github地址下载, 由官方提供
-  # tencent: 使用kuai提供的镜像下载, 由腾讯云托管
-  # modelscope: 使用Ceceliachenen提供的镜像下载, 由ModelScope托管
   ship_name_match_confidence: 0.65 # 舰名匹配置信度, 越大越严格, 建议勿改
   ship_name_corrections: {}        # OCR误识别文字 -> SHIPNAMES标准舰名
   ship_name_aliases:               # 用户自定义名 -> SHIPNAMES标准舰名

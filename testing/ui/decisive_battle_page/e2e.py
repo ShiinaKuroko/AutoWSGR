@@ -41,7 +41,7 @@ if TYPE_CHECKING:
 def _build_context(ctrl: AndroidController) -> GameContext:
     """为实机脚本构造只用于页面点击的上下文。"""
     from autowsgr.application.runtime.context import GameContext
-    from autowsgr.common.system import UserConfig
+    from autowsgr.config import UserConfig
 
     return GameContext(ctrl=ctrl, config=UserConfig(), ocr=None)  # type: ignore[arg-type]
 

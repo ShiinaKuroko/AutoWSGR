@@ -23,9 +23,11 @@ from autowsgr.application.combat import (
 )
 from autowsgr.business.combat.fleet import FleetPreset, fleet_presets_from_yaml
 from autowsgr.business.combat.rules import RuleEngine
-from autowsgr.common.system import NodeConfig, load_yaml
+from autowsgr.common.system import load_yaml
 from autowsgr.common.system.logger import get_logger
-from autowsgr.common.types import FightCondition, Formation, RepairMode
+from autowsgr.business.combat.types import FightCondition, Formation
+from autowsgr.business.logistics.types import RepairMode
+from autowsgr.config_method import NodeConfig
 
 
 _log = get_logger('combat')
@@ -397,10 +399,8 @@ class CombatPlan:
 
     @classmethod
     def from_yaml(cls, path: str | Path) -> CombatPlan:
-        from autowsgr.common.system.config_compat import (
-            LegacyConfigError,
-            detect_legacy_plan,
-        )
+        from autowsgr.config_compat import LegacyConfigError
+        from autowsgr.config_method_compat import detect_legacy_plan
 
         data = load_yaml(path)
         legacy = detect_legacy_plan(data)

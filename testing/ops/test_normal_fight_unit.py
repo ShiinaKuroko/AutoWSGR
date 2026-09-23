@@ -25,7 +25,7 @@ from autowsgr.business.combat.fleet import (
     exact_fleet_rules,
     resolve_fleet_selection,
 )
-from autowsgr.common.system import ActionFailedError
+from autowsgr.common.system import ActionFailedError, ManualRepairRequiredError
 from autowsgr.common.types import ConditionFlag, PageName, ShipDamageState, ShipType
 
 
@@ -313,6 +313,7 @@ class TestFleetSelectionCallChain:
         assert page.changed_fleet_id == 2
         assert page.changed_rules == exact_fleet_rules(['岛风', '雪风'])
 
+
 class TestTaskRepairMethod:
     def test_quick_method_overrides_global_manual_repair(self):
         ctx = SimpleNamespace(
@@ -356,6 +357,7 @@ class TestTaskRepairMethod:
         page.check_repair.return_value = [0]
         route = MagicMock()
         repair_targets = MagicMock()
+        repair_targets.return_value = ['target']
         states: list[bool] = []
         monkeypatch.setattr(normal_fight_module, 'goto_bath_from_normal_sortie', route)
         monkeypatch.setattr(normal_fight_module, 'repair_manual_targets_in_bath', repair_targets)
@@ -370,6 +372,61 @@ class TestTaskRepairMethod:
         runner._enter_fight.assert_called_once_with()
         page.select_fleet.assert_called_once_with(runner._fleet_id)
         assert states == [True, False]
+
+    def test_global_manual_repair_dispatches_then_terminates(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        ctx = SimpleNamespace(
+            ctrl=None,
+            config=SimpleNamespace(dock_full_destroy=False, repair_manually=True),
+        )
+        plan = CombatPlan.from_dict({'fleet': ['target']})
+        runner = NormalFightRunner(ctx, plan, resolve_fleet_selection(plan))
+        page = MagicMock()
+        page.check_repair.return_value = [0]
+        route = MagicMock()
+        repair_targets = MagicMock(return_value=['target'])
+        monkeypatch.setattr(runner, '_goto_bath_for_repair', route)
+        monkeypatch.setattr(normal_fight_module, 'repair_manual_targets_in_bath', repair_targets)
+
+        with pytest.raises(ManualRepairRequiredError, match='需要手动修理'):
+            runner._apply_repair(page, normal_fight_module.RepairStrategy.SEVERE, ['target'])
+
+        route.assert_called_once_with()
+        repair_targets.assert_called_once_with(ctx, ['target'])
+        page.select_fleet.assert_not_called()
+
+    def test_bath_method_rejects_failed_dispatch_before_reentry(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        ship = SimpleNamespace(
+            name='target',
+            damage_state=ShipDamageState.NORMAL,
+            is_repairing=False,
+            repair_end_time=0.0,
+        )
+        ctx = SimpleNamespace(
+            ctrl=None,
+            config=SimpleNamespace(dock_full_destroy=False, repair_manually=False),
+            get_ship=lambda _name: ship,
+        )
+        plan = CombatPlan.from_dict({'repair_method': 'bath', 'fleet': ['target']})
+        runner = NormalFightRunner(ctx, plan, resolve_fleet_selection(plan))
+        page = MagicMock()
+        page.check_repair.return_value = [0]
+        monkeypatch.setattr(runner, '_goto_bath_for_repair', MagicMock())
+        monkeypatch.setattr(
+            normal_fight_module, 'repair_manual_targets_in_bath', MagicMock(return_value=[])
+        )
+        reentered = MagicMock()
+        monkeypatch.setattr(runner, '_enter_fight', reentered)
+
+        with pytest.raises(ActionFailedError, match='未能派出'):
+            runner._apply_repair(page, normal_fight_module.RepairStrategy.SEVERE, ['target'])
+
+        reentered.assert_not_called()
 
 
 class TestEventNormalMerge:
@@ -482,7 +539,7 @@ class TestDockFullDialogRoute:
     def test_nav_error_falls_back_to_main(self, monkeypatch: pytest.MonkeyPatch):
         """直达解装导航失败 → 回退主页面恢复已知态, 保持 DOCK_FULL。"""
         import autowsgr.business.logistics.destroy as destroy_module
-        from autowsgr.common.ui.interaction import NavigationError
+        from autowsgr.common.device.interaction import NavigationError
 
         def _raise(_ctx: object, **_k: object) -> None:
             raise NavigationError('弹窗直达解装失败')
@@ -581,7 +638,7 @@ class TestSkipCheckLifecycle:
 
     def test_mid_fight_error_resets_skip_check(self, monkeypatch: pytest.MonkeyPatch):
         """中途异常 (导航超时等) → 下一轮恢复完整检查 (实机 log 场景回归)。"""
-        from autowsgr.common.ui.interaction import NavigationError
+        from autowsgr.common.device.interaction import NavigationError
 
         runner = self._make_runner()
         runner._skip_check = True  # 模拟上一轮成功

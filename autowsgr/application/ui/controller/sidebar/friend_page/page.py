@@ -7,43 +7,49 @@
 
 下层依赖：
 - application.ui.controller.sidebar.friend_page.constants：提供好友页面返回坐标。
+- application.ui.controller.sidebar.friend_page.recognition：提供好友页面识别结果。
 - application.ui.controller.sidebar.main_page：提供侧边栏页面检查器。
-- application.ui.controller.operations.sortie_page.main_page：识别好友标签页页面。
-- common.ui.interaction：等待侧边栏页面到达。
+- common.device.interaction：等待侧边栏页面到达。
 - common.types：提供页面名称和匹配结果类型。
+
+边界：
+只编排好友页面检查和返回侧边栏，不负责好友业务操作或跨页面导航调度。
 """
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from autowsgr.application.ui.controller.sidebar.friend_page import constants
+from autowsgr.application.ui.controller.sidebar.friend_page import constants, recognition
 from autowsgr.common.system.logger import get_logger
-from autowsgr.common.types import PageName
-from autowsgr.common.ui.interaction import click_and_wait_for_page
+from autowsgr.application.ui.navigation.types import PageName
+from autowsgr.application.ui.navigation.interaction import click_and_wait_for_page
 
 
 if TYPE_CHECKING:
-    import numpy as np
+    import numpy
 
-    from autowsgr.application.ui.context import UIContext as GameContext
-    from autowsgr.common.vision import PageMatch
+    from autowsgr.application.ui.controller.context import UIContext
+    from autowsgr.application.ui.navigation.types import PageMatch
 
 
-_log = get_logger('ui')
+_log = get_logger('ui.sidebar.friend_page')
+
+
+# TODO(friend_page): 当前仅保留页面框架；好友功能开发后补充业务流程、页面操作和专项测试。
 
 
 class FriendPage:
     """好友页面内的 UI 操作控制器。"""
 
-    def __init__(self, ctx: GameContext) -> None:
+    def __init__(self, ctx: UIContext) -> None:
         self._ctx = ctx
         self._ctrl = ctx.ctrl
 
     # ── 页面检查 ──────────────────────────────────────────────────────────────
 
     @staticmethod
-    def check_current_page(screen: np.ndarray) -> PageMatch:
+    def check_current_page(screen: numpy.ndarray) -> PageMatch:
         """检查截图是否属于好友页面。
 
         Args:
@@ -52,12 +58,7 @@ class FriendPage:
         Returns:
             好友页面匹配结果。
         """
-        from autowsgr.application.ui.controller.operations.sortie_page.main_page import (
-            TabbedPageType,
-            check_tabbed_page,
-        )
-
-        return check_tabbed_page(screen, TabbedPageType.FRIEND)
+        return recognition.check_current_page(screen)
 
     # ── 页面返回 ──────────────────────────────────────────────────────────────
 
@@ -67,13 +68,14 @@ class FriendPage:
         Raises:
             NavigationError: 点击后未在限定时间内回到侧边栏。
         """
+        # 侧边栏页面会反向引用好友页面，局部导入用于避免页面包初始化循环。
         from autowsgr.application.ui.controller.sidebar.main_page import SidebarPage
 
-        _log.info('[UI] 好友 → 返回侧边栏')
         click_and_wait_for_page(
             self._ctrl,
             click_coord=constants.CLICK_BACK,
             checker=SidebarPage.check_current_page,
             source='好友',
-            target=PageName.SIDEBAR,
+            target=PageName.SIDEBAR.value,
         )
+        _log.info('[UI] 好友 → 返回：目标={!r}，结果=成功', PageName.SIDEBAR.value)

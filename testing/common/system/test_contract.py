@@ -17,17 +17,6 @@ from autowsgr.common.system.errors import (
     DispatchError,
     SystemError,
 )
-from autowsgr.common.TEMP.exceptions import (
-    CombatDecisionError,
-    CombatRecognitionTimeoutError,
-    CriticalError,
-    DockFullError,
-    ImageNotFoundError,
-    ManualRepairRequiredError,
-    NavigationError,
-    OCRError,
-    PageNotFoundError,
-)
 
 
 def test_system_exposes_only_capability_namespaces() -> None:
@@ -64,23 +53,6 @@ def test_system_errors_expose_only_program_layer_bases() -> None:
         for error in (CommonError, ApplicationError, BusinessError, DispatchError)
     )
     assert not hasattr(system.errors, 'AutoWSGRError')
-
-
-def test_temporary_concrete_errors_use_program_layer_bases() -> None:
-    assert all(issubclass(error, CommonError) for error in (OCRError, ImageNotFoundError))
-    assert all(
-        issubclass(error, ApplicationError) for error in (PageNotFoundError, NavigationError)
-    )
-    assert all(
-        issubclass(error, BusinessError)
-        for error in (
-            ManualRepairRequiredError,
-            DockFullError,
-            CombatRecognitionTimeoutError,
-            CombatDecisionError,
-        )
-    )
-    assert issubclass(CriticalError, SystemError)
 
 
 def test_device_owns_game_error_categories() -> None:

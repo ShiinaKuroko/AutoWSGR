@@ -21,13 +21,14 @@ from autowsgr.application.ui.controller.fleet.formation.fleet_recognition.models
     FleetSnapshot,
 )
 from autowsgr.application.ui.controller.fleet.main_page.constants import BLOOD_BAR_PROBE
-from autowsgr.common.constants import SHIPNAMES, normalize_ship_name, ship_name_identity
+from autowsgr.application.vision.shipnames import SHIPNAMES, normalize_ship_name, ship_name_identity
 from autowsgr.common.system.logger import get_logger
-from autowsgr.common.types import ShipDamageState, ShipType
+from autowsgr.business.combat.types import ShipType
+from autowsgr.business.logistics.types import ShipDamageState
 from autowsgr.common.vision import PixelChecker, ocr
-from autowsgr.common.vision.blood import classify_blood
-from autowsgr.common.vision.ocr_rules import EasyOCRProfile
-from autowsgr.common.vision.ship_list import (
+from autowsgr.application.vision.damage_recognition import classify_blood
+from autowsgr.application.vision.ocr_rules import LEVEL_OCR_ALLOWLIST
+from autowsgr.application.vision.ship_list import (
     best_fleet_level,
     extract_ship_type_from_text,
     parse_fleet_level,
@@ -240,7 +241,7 @@ def read_fleet_levels(
         prepared = prepare_level_crop(PixelChecker.crop(screen, *crop_region))
         results = ocr_engine.recognize_line(
             prepared,
-            easyocr_profile=EasyOCRProfile.FLEET_SHIP_LEVEL,
+            allowlist=LEVEL_OCR_ALLOWLIST,
         )
         levels[slot] = _best_level_from_results(results)
     return levels

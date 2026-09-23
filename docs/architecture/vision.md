@@ -294,15 +294,15 @@ tkinter GUI 工具，用于在真实截图上标注 `PixelSignature`：
 python tools/pixel_marker.py --serial 127.0.0.1:5555
 ```
 
-### debug_screenshot.py
+### debug_toolkit inspect
 
-**文件**: `tools/debug_screenshot.py`
+**入口**: `python -m tools.debug_toolkit inspect`
 
 截图调试工具，支持 ROI 裁剪 + OCR 测试：
 
 ```bash
 # 截图并在指定 ROI 区域执行 OCR
-python tools/debug_screenshot.py --roi 0.8,0.8,0.9,0.9 --allowlist "0-9"
+python -m tools.debug_toolkit inspect --roi 0.8,0.8,0.9,0.9 --allowlist "0-9"
 ```
 
 ---

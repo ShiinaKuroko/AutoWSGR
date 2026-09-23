@@ -41,51 +41,79 @@ _log = get_logger('business.logistics.repair')
 def repair_manual_targets_in_bath(
     ctx: GameContext,
     ship_names: Sequence[str],
-) -> None:
+) -> list[str]:
     """按目标舰船名派发手动维修，并在结束后返回主页。"""
-    from autowsgr.common.ui.interaction import NavigationError
+    from autowsgr.common.device.interaction import NavigationError
 
     bath = ctx.bathroom
     bath.slot_count = ctx.config.bathroom_count
     page = BathPage(ctx)
     targets = [name for name in ship_names if name]
+    dispatched: list[str] = []
 
     try:
         if not targets:
-            _log.warning('[BathRepair] 手动维修: 未能解析需要修理的舰船')
-            return
+            _log.debug(
+                '[REPAIR] 手动维修 → 跳过：reason={!r}，result={!r}',
+                'empty_targets',
+                'not_started',
+            )
+            return dispatched
 
         for ship_name in targets:
             try:
-                page.open_choose_repair_overlay()
+                repair_seconds = page.repair(repair_all=False, ship_name=ship_name)
+            except LookupError:
+                _log.warning(
+                    '[REPAIR] 手动维修 → 跳过舰船：ship_name={!r}，reason={!r}，result={!r}',
+                    ship_name,
+                    'not_in_repair_list',
+                    'next_target',
+                )
+                continue
             except NavigationError as exc:
-                _log.error('[BathRepair] 手动维修: 无法打开选择修理列表: {}', exc)
+                _log.error(
+                    '[REPAIR] 手动维修 → 终止：operation={!r}，error={!r}，result={!r}，next_action={!r}',
+                    'repair_ship',
+                    exc,
+                    'failed',
+                    'return_home',
+                )
                 break
 
-            try:
-                repair_seconds = page.repair_ship(ship_name)
-            except NavigationError:
-                _log.warning('[BathRepair] 手动维修: 舰船 {} 不在修理列表中', ship_name)
-                continue
-
             if repair_seconds < 0:
-                _log.warning('[BathRepair] 手动维修: 浴室槽位已满，无法修理 {}', ship_name)
+                _log.warning(
+                    '[REPAIR] 手动维修 → 暂停：ship_name={!r}，reason={!r}，result={!r}',
+                    ship_name,
+                    'bath_full',
+                    'not_repaired',
+                )
                 break
 
             ship = ctx.get_ship(ship_name)
             ship.set_repair(repair_seconds)
             ctx.update_ship_damage(ship_name, ShipDamageState.NORMAL)
             bath.occupy(repair_seconds)
+            dispatched.append(ship_name)
             _log.info(
-                '[BathRepair] 手动维修: 舰船 {} 正在澡堂修理 ({}s)',
+                '[REPAIR] 手动维修 → 派单成功：ship_name={!r}，repair_seconds={}，result={!r}',
                 ship_name,
                 repair_seconds,
+                'success',
             )
     finally:
         try:
             goto_page(ctx, PageName.HOME)
         except Exception as exc:
-            _log.warning('[BathRepair] 手动维修后返回主页失败: {}', exc)
+            _log.warning(
+                '[REPAIR] 手动维修 → 返回主页降级：reason={!r}，error={!r}，result={!r}，next_action={!r}',
+                'navigation_failed',
+                exc,
+                'repair_state_preserved',
+                'retry',
+            )
+
+    return dispatched
 
 
 def repair_in_bath(ctx: GameContext) -> None:
@@ -99,16 +127,21 @@ def repair_in_bath(ctx: GameContext) -> None:
     goto_page(ctx, PageName.BATH)
 
     page = BathPage(ctx)
-    page.open_choose_repair_overlay()
-    page.click_repair_all()
+    page.repair(repair_all=True)
 
     # 点击全部修理后 overlay 已关闭，先回到浴室页面，再返回主界面
     time.sleep(1.0)
     try:
         goto_page(ctx, PageName.HOME)
-    except Exception:
-        _log.warning('[BathRepair] 浴室修理后返回主界面失败，可能仍在过渡动画中')
-    _log.info('[BathRepair] 浴室修理操作完成')
+    except Exception as exc:
+        _log.warning(
+            '[REPAIR] 全部修理 → 返回主页降级：reason={!r}，error={!r}，result={!r}，next_action={!r}',
+            'navigation_failed',
+            exc,
+            'repair_finished',
+            'retry',
+        )
+    _log.info('[REPAIR] 全部修理 → 完成：result={!r}', 'success')
 
 
 def repair_ship_by_name(ctx: GameContext, ship_name: str) -> int:
@@ -129,16 +162,25 @@ def repair_ship_by_name(ctx: GameContext, ship_name: str) -> int:
     goto_page(ctx, PageName.BATH)
 
     page = BathPage(ctx)
-    page.open_choose_repair_overlay()
-    repair_secs = page.repair_ship(ship_name)
+    repair_secs = page.repair(repair_all=False, ship_name=ship_name)
 
     if repair_secs >= 0:
         ship = ctx.get_ship(ship_name)
         ship.set_repair(repair_secs)
         ctx.update_ship_damage(ship_name, ShipDamageState.NORMAL)
-        _log.info('[BathRepair] 浴室修理操作完成: {} ({}s)', ship_name, repair_secs)
+        _log.info(
+            '[REPAIR] 指定修理 → 成功：ship_name={!r}，repair_seconds={}，result={!r}',
+            ship_name,
+            repair_secs,
+            'success',
+        )
     else:
-        _log.warning('[BathRepair] 浴场已满, 无法修理 {}', ship_name)
+        _log.warning(
+            '[REPAIR] 指定修理 → 失败：ship_name={!r}，reason={!r}，result={!r}',
+            ship_name,
+            'bath_full',
+            'not_repaired',
+        )
 
     return repair_secs
 
@@ -175,7 +217,11 @@ def repair_one_available(
     bath = ctx.bathroom
     bath.slot_count = ctx.config.bathroom_count
     if not bath.is_available():
-        _log.debug('[BathRepair] 浴室无空闲槽, 跳过修理')
+        _log.debug(
+            '[REPAIR] 浴室修理 → 跳过：reason={!r}，result={!r}',
+            'no_available_slot',
+            'not_started',
+        )
         return False
 
     blocked = set(blacklist or [])
@@ -187,8 +233,7 @@ def repair_one_available(
     # 终止条件: 无空闲槽 (is_available False) / 无可修候选 (secs==-1) /
     # 浴场满 (secs==-2)。空闲槽数 = slot_count, 故循环上限即槽位数, 不会死循环。
     while bath.is_available():
-        page.open_choose_repair_overlay()
-        ship_name, secs = page.repair_longest(blacklist=blocked)
+        ship_name, secs = page.repair(repair_all=False, blacklist=blocked)
 
         if secs > 0:
             ship = ctx.get_ship(ship_name)
@@ -196,20 +241,41 @@ def repair_one_available(
             ctx.update_ship_damage(ship_name, ShipDamageState.NORMAL)
             bath.occupy(secs)
             repaired += 1
-            _log.info('[BathRepair] 浴室修理派单成功 ({}s, 本轮已派 {} 艘)', secs, repaired)
+            _log.info(
+                '[REPAIR] 浴室修理 → 派单成功：repair_seconds={}，dispatched={}，result={!r}',
+                secs,
+                repaired,
+                'success',
+            )
             continue
         if secs == -2:
             # 浴场满: 状态不可靠, 标记未知下次重试
             bath.mark_unknown()
-            _log.warning('[BathRepair] 浴场已满, 稍后重试 (本轮已派 {} 艘)', repaired)
+            _log.warning(
+                '[REPAIR] 浴室修理 → 暂停：reason={!r}，dispatched={}，next_action={!r}',
+                'bath_full',
+                repaired,
+                'retry',
+            )
             break
         # secs == -1 (无可修候选) 或 == 0 (修理时间解析失败): 状态不变, 结束派单
-        _log.debug('[BathRepair] 无可修理舰船, 结束派单 (本轮已派 {} 艘)', repaired)
+        _log.debug(
+            '[REPAIR] 浴室修理 → 结束：reason={!r}，dispatched={}，result={!r}',
+            'no_candidate',
+            repaired,
+            'not_repaired',
+        )
         break
 
     time.sleep(1.0)
     try:
         goto_page(ctx, PageName.HOME)
-    except Exception:
-        _log.warning('[BathRepair] 浴室修理后返回主界面失败')
+    except Exception as exc:
+        _log.warning(
+            '[REPAIR] 浴室修理 → 返回主页降级：reason={!r}，error={!r}，result={!r}，next_action={!r}',
+            'navigation_failed',
+            exc,
+            'repair_state_preserved',
+            'retry',
+        )
     return repaired > 0

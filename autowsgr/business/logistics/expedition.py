@@ -17,7 +17,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from autowsgr.application.runtime.executor import BaseExecutor
-from autowsgr.application.ui.controller.home.main_page import HomePage
+from autowsgr.application.ui.controller.home.main_page import check_expedition_ready
 from autowsgr.application.ui.controller.operations.sortie_page.expedition_page import ExpeditionPage
 from autowsgr.application.ui.controller.operations.sortie_page.main_page import (
     SortiePage,
@@ -46,7 +46,7 @@ class ExpeditionCheckExecutor(BaseExecutor):
         goto_page(self.ctx, PageName.HOME)  # 锚点: 从主页出发
 
         screen = self.ctx.ctrl.screenshot()
-        if not HomePage.check_expedition_ready(screen):
+        if not check_expedition_ready(screen):
             _log.debug('[Expedition] 主页无远征通知, 跳过')
             self._report('checked', collected=0)
             return False

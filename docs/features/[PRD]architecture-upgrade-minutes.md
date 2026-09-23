@@ -145,7 +145,7 @@ Executor 可以报告领域进度事件，例如 `rival_done`、`node_changed` �
 
 - Sakuya 先统一后端内部的 `TaskStatus`、`ControlIntent`、`Command`、`TaskEvent` 和 `TaskResult`，不为当前 GUI/后端旧契约保留中间兼容形态。
 - GUI 与后端的最终契约适配放在新架构功能完成、准备替换 Kuroko 的集成阶段统一处理。
-- 架构开发和功能调试以 `tools/e2e` 的真实业务链路为主；不要求每次迭代运行完整 pytest 或 GUI 测试套件。
+- 架构开发和功能调试以 `tools/debug_toolkit` 的真实业务链路为主；不要求每次迭代运行完整 pytest 或 GUI 测试套件。
 - 每个垂直功能验收后，再补充核心状态、调度、错误和序列化单测，作为后续回归基础。
 - E2E 验证必须覆盖任务终态、暂停/恢复、取消、异常清理和主页/交接锚点，不能只验证主路径成功。
 

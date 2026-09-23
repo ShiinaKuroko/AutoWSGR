@@ -39,7 +39,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from autowsgr.application.runtime import RuntimeContext as GameContext
-    from autowsgr.common.system.config import DailyAutomationConfig
+    from autowsgr.config import DailyAutomationConfig
     from autowsgr.dispatch.legacy_scheduler.scheduler import TaskScheduler
 
 _log = get_logger('scheduler')

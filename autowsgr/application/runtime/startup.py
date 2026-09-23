@@ -37,7 +37,7 @@ from autowsgr.application.ui.controller.login import LoginPage
 from autowsgr.application.ui.navigation import goto_page
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.types import GameAPP, PageName
-from autowsgr.common.ui.interaction import NavigationError
+from autowsgr.common.device.interaction import NavigationError
 
 
 if TYPE_CHECKING:
@@ -143,7 +143,7 @@ def wait_for_game_ui(
         超时前成功检测到返回 ``True``，超时返回 ``False``。
     """
     # 延迟导入避免循环依赖 (ui 层反向引用 ops 的模块)
-    from autowsgr.application.ui.controller.home.main_page.overlay import read_overlay
+    from autowsgr.application.ui.controller.home.main_page.recognition import read_overlay
     from autowsgr.application.ui.navigation.recognition import get_current_page
 
     _log.info('[Startup] 等待游戏 UI 就绪 (超时 {:.0f}s)…', timeout)
@@ -216,7 +216,7 @@ def start_game(
 
     # 若在启动画面，点击进入，然后等待进入主流程（检测登录浮层）
     if LoginPage.check_current_page(ctrl.screenshot()):
-        LoginPage(ctrl).click_enter()
+        LoginPage(ctrl).enter_game()
         if not wait_for_game_ui(ctrl, timeout=30.0):
             raise TimeoutError('点击启动画面后超时，未进入游戏')
 
@@ -280,7 +280,7 @@ def handle_daily_overlays(ctx: GameContext) -> None:
 
         # ② 确认弹窗兜底: 检测不到浮层签名, 但可能有「确认」按钮
         #    (如签到奖励确认、二次确认) — 用确认模板轮子点掉
-        from autowsgr.common.ui.interaction import confirm_operation
+        from autowsgr.common.device.interaction import confirm_operation
 
         if confirm_operation(
             ctx.ctrl,

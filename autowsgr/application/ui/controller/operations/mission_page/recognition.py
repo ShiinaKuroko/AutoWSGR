@@ -5,12 +5,12 @@
 - testing.ui：通过任务页面控制器验证按钮扫描和任务识别。
 
 下层依赖：
-- application.ui.controller.operations.mission_page.constants：提供按钮颜色和 OCR 裁剪参数。
 - common.vision：提供像素读取、ROI 裁剪和 OCR 引擎。
 - common.vision.ocr：提供任务名称编辑距离匹配。
 - common.data.missions.yaml：提供任务名称候选数据。
 
-本模块不执行设备点击、页面导航或运行时上下文创建；OCR 引擎由页面控制器传入。
+边界：
+只读取任务页面事实并构造任务结果；不执行设备点击、页面导航或运行时上下文创建。
 """
 
 from __future__ import annotations
@@ -20,53 +20,69 @@ import re
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, NamedTuple
 
 import yaml
 
-import autowsgr.common.vision.ocr as _ocr
-from autowsgr.application.ui.controller.operations.mission_page.constants import (
-    BUTTON_SCAN_ROI as BUTTON_SCAN_ROI_COORDS,
-)
-from autowsgr.application.ui.controller.operations.mission_page.constants import (
-    CLAIM_B_MAX,
-    CLAIM_G_MIN,
-    CLAIM_R_MIN,
-    CLUSTER_GAP,
-    GOTO_TOLERANCE,
-    MIN_CLUSTER_SIZE,
-    NAME_CROP_MIN_Y,
-    NAME_ROI_X1,
-    NAME_ROI_X2,
-    NAME_ROI_Y_PAD,
-    NAME_Y_OFFSET,
-    OCR_CONFIDENCE_MIN,
-    PROGRESS_ROI_X1,
-    PROGRESS_ROI_X2,
-    PROGRESS_ROI_Y_PAD,
-    PROGRESS_Y_OFFSET,
-    SCAN_X,
-    SCAN_Y_STEP,
-    WIDE_BTN_CHECK_X,
-)
-from autowsgr.application.ui.controller.operations.mission_page.constants import (
-    GOTO_COLOR as GOTO_COLOR_RGB,
-)
-from autowsgr.common.vision import Color, PixelChecker
-from autowsgr.common.vision.roi import ROI
+from autowsgr.common import vision
+from autowsgr.common.vision import ocr
+from autowsgr.application.vision.resources import Templates
+from autowsgr.common.vision.operations.template_matching import ROI
 
 
 if TYPE_CHECKING:
-    import numpy as np
+    import numpy
 
     from autowsgr.common.vision import OCREngine
 
 
-_BUTTON_SCAN_ROI = ROI.from_tuple(BUTTON_SCAN_ROI_COORDS)
-_GOTO_COLOR = Color.from_rgb_tuple(GOTO_COLOR_RGB)
+# ── 页面识别校准 ────────────────────────────────────────────────────────────────────
 
 
-# ── 识别结果与任务数据库 ────────────────────────────────────────────────────
+class _MissionCoordinates(NamedTuple):
+    """任务按钮、名称和进度区域的归一化坐标。"""
+
+    button_scan_roi: ROI
+    scan_x: float
+    wide_button_check_x: float
+    name_region: tuple[float, float, float, float]
+    progress_region: tuple[float, float, float, float]
+
+
+_MISSION_COORDINATES = _MissionCoordinates(
+    button_scan_roi=ROI.from_tuple((0.8600, 0.1700, 0.9600, 0.8500)),
+    scan_x=0.9100,
+    wide_button_check_x=0.8000,
+    name_region=(0.2200, 0.6000, -0.1450, 0.0350),
+    progress_region=(0.7500, 0.8700, 0.1050, 0.0350),
+)
+"""任务按钮、名称和进度识别区域，按页面业务对象聚合。"""
+
+_CLAIM_COLOR_BOUNDS: tuple[int, int, int] = (180, 120, 80)
+"""领取按钮颜色阈值，依次为 R 最小值、G 最小值和 B 最大值。"""
+
+_GOTO_COLOR = vision.Color.from_rgb_tuple((15, 132, 228))
+_GOTO_TOLERANCE: float = 40.0
+_MISSION_NAME_DISTANCE_THRESHOLD: int = 5
+"""任务名称编辑距离的最大允许阈值。"""
+
+_SCAN_Y_STEP: float = 0.0050
+"""按钮扫描纵向步长，用于平衡精度和采样次数。"""
+
+_CLUSTER_GAP: float = 0.0600
+"""按钮颜色聚类间隔，用于合并同一任务按钮的采样点。"""
+
+_MIN_CLUSTER_SIZE: int = 3
+"""按钮最小聚类大小，用于过滤颜色噪点。"""
+
+_NAME_CROP_MIN_Y: float = 0.1200
+"""任务名称裁剪上限，用于过滤被标题栏遮挡的任务行。"""
+
+_OCR_CONFIDENCE_MIN: float = 0.10
+"""任务名称最低置信度，用于拒绝无效 OCR 结果。"""
+
+
+# ── 识别结果与任务数据库 ────────────────────────────────────────────────────────────────
 
 
 class ButtonType(enum.Enum):
@@ -95,7 +111,7 @@ class MissionInfo:
     """任务名称 OCR 置信度。"""
 
 
-_MISSIONS_YAML = Path(__file__).resolve().parents[5] / 'common' / 'data' / 'missions.yaml'
+_MISSIONS_YAML: Path = Path(__file__).resolve().parents[5] / 'common' / 'data' / 'missions.yaml'
 """任务名称数据库路径，用于将 OCR 文本匹配为标准任务名。"""
 
 
@@ -107,7 +123,11 @@ def _load_mission_db() -> dict:
 
 
 def read_all_mission_names() -> list[str]:
-    """读取日常和周常任务名称，供 OCR 模糊匹配使用。"""
+    """读取日常和周常任务名称。
+
+    Returns:
+        去重后的任务名称列表，供 OCR 模糊匹配使用。
+    """
     db = _load_mission_db()
     names: list[str] = []
     for category in ('daily', 'weekly'):
@@ -118,130 +138,147 @@ def read_all_mission_names() -> list[str]:
     return names
 
 
-PROGRESS_RE = re.compile(r'(\d{1,3})\s*%')
+_PROGRESS_PATTERN = re.compile(r'(\d{1,3})\s*%')
 """任务进度 OCR 正则，用于提取完成百分比。"""
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# 像素扫描
-# ═══════════════════════════════════════════════════════════════════════════════
+# ── 任务按钮扫描 ────────────────────────────────────────────────────────────────────
 
 
-def _is_goto_color(c: Color) -> bool:
-    return c.near(_GOTO_COLOR, GOTO_TOLERANCE)
+def _is_goto_color(color: vision.Color) -> bool:
+    return color.near(_GOTO_COLOR, _GOTO_TOLERANCE)
 
 
-def _is_claim_color(c: Color) -> bool:
-    return c.r >= CLAIM_R_MIN and c.g >= CLAIM_G_MIN and c.b <= CLAIM_B_MAX
+def _is_claim_color(color: vision.Color) -> bool:
+    claim_r_min, claim_g_min, claim_b_max = _CLAIM_COLOR_BOUNDS
+    return color.r >= claim_r_min and color.g >= claim_g_min and color.b <= claim_b_max
 
 
-def find_button_rows(screen: np.ndarray) -> list[tuple[float, ButtonType]]:
-    """扫描截图右侧, 定位所有 "前往"/"领取" 按钮行。
+def find_button_rows(screen: numpy.ndarray) -> list[tuple[float, ButtonType]]:
+    """扫描任务页面右侧，定位所有“前往”和“领取”按钮行。
+
+    Args:
+        screen: 任务页面 RGB 截图，形状为 ``(H, W, 3)``。
 
     Returns:
-    list[tuple[float, ButtonType]]
-        每个元素为 (y_center_relative, button_type), 按 y 从上到下排列。
+        按页面顺序排列的按钮行中心坐标和按钮类型。
     """
-    y_start = _BUTTON_SCAN_ROI.y1
-    y_end = _BUTTON_SCAN_ROI.y2
+    y_start = _MISSION_COORDINATES.button_scan_roi.y1
+    y_end = _MISSION_COORDINATES.button_scan_roi.y2
 
-    # 收集所有匹配像素的 (y, type)
+    # 1. 收集按钮颜色命中的纵向采样点。
     hits: list[tuple[float, ButtonType]] = []
     y = y_start
     while y <= y_end:
-        c = PixelChecker.get_pixel(screen, SCAN_X, y)
+        c = vision.PixelChecker.get_pixel(screen, _MISSION_COORDINATES.scan_x, y)
         if _is_goto_color(c):
             hits.append((y, ButtonType.GOTO))
         elif _is_claim_color(c):
             hits.append((y, ButtonType.CLAIM))
-        y += SCAN_Y_STEP
+        y += _SCAN_Y_STEP
 
     if not hits:
         return []
 
-    # 聚类: 连续同类型像素归为一组
+    # 2. 将连续且同类型的采样点合并为按钮行。
     clusters: list[list[tuple[float, ButtonType]]] = [[hits[0]]]
     for h in hits[1:]:
         prev = clusters[-1][-1]
-        if h[0] - prev[0] < CLUSTER_GAP and h[1] == prev[1]:
+        if h[0] - prev[0] < _CLUSTER_GAP and h[1] == prev[1]:
             clusters[-1].append(h)
         else:
             clusters.append([h])
 
-    # 取每个簇的中心 y 和类型, 过滤过小的簇 (噪点)
+    # 3. 计算按钮行中心并过滤采样噪点。
     result: list[tuple[float, ButtonType]] = []
     for cluster in clusters:
-        if len(cluster) < MIN_CLUSTER_SIZE:
+        if len(cluster) < _MIN_CLUSTER_SIZE:
             continue
         ys = [p[0] for p in cluster]
         y_center = (min(ys) + max(ys)) / 2
         btn_type = cluster[0][1]
         result.append((y_center, btn_type))
 
-    # 过滤底部 "一键领取" 按钮: 它的金色区域横向延伸到 x=0.80,
-    # 而任务行按钮仅在 x=0.86-0.96 范围内
+    # 4. 排除底部宽按钮和被标题栏遮挡的任务行。
     filtered: list[tuple[float, ButtonType]] = []
     for y_center, btn_type in result:
-        c_wide = PixelChecker.get_pixel(screen, WIDE_BTN_CHECK_X, y_center)
+        c_wide = vision.PixelChecker.get_pixel(
+            screen,
+            _MISSION_COORDINATES.wide_button_check_x,
+            y_center,
+        )
         if _is_goto_color(c_wide) or _is_claim_color(c_wide):
-            continue  # 宽按钮 (UI 元素), 跳过
-        # 过滤部分可见行: 名称裁切区域被页面标题栏遮挡
-        name_top = y_center + NAME_Y_OFFSET - NAME_ROI_Y_PAD
-        if name_top < NAME_CROP_MIN_Y:
+            continue
+        _, _, name_y_offset, name_y_pad = _MISSION_COORDINATES.name_region
+        name_top = y_center + name_y_offset - name_y_pad
+        if name_top < _NAME_CROP_MIN_Y:
             continue
         filtered.append((y_center, btn_type))
 
     return filtered
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# OCR + 匹配
-# ═══════════════════════════════════════════════════════════════════════════════
+# ── 任务 OCR 识别 ─────────────────────────────────────────────────────────────────
 
 
 def recognize_row(
-    screen: np.ndarray,
+    screen: numpy.ndarray,
     anchor_y: float,
     btn_type: ButtonType,
-    ocr: OCREngine,
+    ocr_engine: OCREngine,
     candidates: list[str],
 ) -> MissionInfo | None:
-    """识别单行任务。返回 None 表示无效行 (部分可见/垃圾 OCR)。"""
-    name_y = anchor_y + NAME_Y_OFFSET
-    prog_y = anchor_y + PROGRESS_Y_OFFSET
+    """识别单行任务，无法确认时返回 None。
 
-    # -- 裁切名称区域并 OCR --
+    Args:
+        screen: 任务页面 RGB 截图。
+        anchor_y: 任务按钮行中心的相对纵坐标。
+        btn_type: 当前任务行右侧按钮类型。
+        ocr_engine: 用于识别任务名称和进度的 OCR 引擎。
+        candidates: 任务名称标准候选列表。
+
+    Returns:
+        识别出的任务信息；名称区域不可确认时返回 None。
+    """
+    name_x1, name_x2, name_y_offset, name_y_pad = _MISSION_COORDINATES.name_region
+    progress_x1, progress_x2, progress_y_offset, progress_y_pad = (
+        _MISSION_COORDINATES.progress_region
+    )
+    name_y = anchor_y + name_y_offset
+    prog_y = anchor_y + progress_y_offset
+
+    # 1. 裁剪任务名称区域并执行 OCR。
     name_roi = ROI(
-        NAME_ROI_X1,
-        max(0.0, name_y - NAME_ROI_Y_PAD),
-        NAME_ROI_X2,
-        min(1.0, name_y + NAME_ROI_Y_PAD),
+        name_x1,
+        max(0.0, name_y - name_y_pad),
+        name_x2,
+        min(1.0, name_y + name_y_pad),
     )
     name_img = name_roi.crop(screen)
-    name_result = ocr.recognize_single(name_img)
+    name_result = ocr_engine.recognize_single(name_img)
     raw_text = name_result.text.strip()
     confidence = name_result.confidence
 
-    # -- OCR 置信度过滤: 拒绝垃圾识别 (部分可见任务行) --
-    if confidence < OCR_CONFIDENCE_MIN:
+    # 2. 低置信度结果无法支撑业务匹配，直接忽略该任务行。
+    if confidence < _OCR_CONFIDENCE_MIN:
         return None
 
-    # -- 模糊匹配数据库 --
+    # 3. 将 OCR 原文匹配为任务数据库中的标准名称。
     matched_name = match_mission_name(raw_text, candidates)
     final_name = matched_name or raw_text
 
-    # -- 裁切进度区域并 OCR --
+    # 4. 裁剪进度区域并提取完成百分比。
     prog_roi = ROI(
-        PROGRESS_ROI_X1,
-        max(0.0, prog_y - PROGRESS_ROI_Y_PAD),
-        PROGRESS_ROI_X2,
-        min(1.0, prog_y + PROGRESS_ROI_Y_PAD),
+        progress_x1,
+        max(0.0, prog_y - progress_y_pad),
+        progress_x2,
+        min(1.0, prog_y + progress_y_pad),
     )
     prog_img = prog_roi.crop(screen)
-    prog_result = ocr.recognize_single(prog_img, allowlist='0123456789%:')
+    prog_result = ocr_engine.recognize_single(prog_img, allowlist='0123456789%:')
     prog_text = prog_result.text.strip()
-    m = PROGRESS_RE.search(prog_text)
-    progress = int(m.group(1)) if m else -1
+    progress_match = _PROGRESS_PATTERN.search(prog_text)
+    progress = int(progress_match.group(1)) if progress_match else -1
 
     claimable = btn_type == ButtonType.CLAIM
 
@@ -254,27 +291,56 @@ def recognize_row(
     )
 
 
+def recognize_missions(
+    screen: numpy.ndarray,
+    ocr_engine: OCREngine,
+) -> list[MissionInfo]:
+    """识别单帧截图中的可见任务。
+
+    Args:
+        screen: 任务页面 RGB 截图。
+        ocr_engine: 用于识别任务名称和进度的 OCR 引擎。
+
+    Returns:
+        按页面从上到下排列的可见任务列表。
+    """
+    rows = find_button_rows(screen)
+    if not rows:
+        return []
+
+    candidates = read_all_mission_names()
+    missions: list[MissionInfo] = []
+    for anchor_y, btn_type in rows:
+        mission = recognize_row(screen, anchor_y, btn_type, ocr_engine, candidates)
+        if mission is not None:
+            missions.append(mission)
+    return missions
+
+
 def match_mission_name(
     ocr_text: str,
     candidates: list[str],
-    threshold: int = 5,
+    threshold: int = _MISSION_NAME_DISTANCE_THRESHOLD,
 ) -> str | None:
     """在任务数据库中模糊匹配任务名。
 
-    策略:
-    1. 精确匹配
-    2. 子串包含
-    3. Levenshtein 距离 <= threshold
+    Args:
+        ocr_text: 任务名称的 OCR 原文。
+        candidates: 任务名称标准候选列表。
+        threshold: 允许的最大编辑距离。
+
+    Returns:
+        匹配到的标准任务名；无法确认时返回 None。
     """
     if not ocr_text:
         return None
 
-    # 精确匹配
+    # 1. 精确匹配优先，避免对可靠文本执行模糊推断。
     for name in candidates:
         if ocr_text == name:
             return name
 
-    # 子串包含: 仅当长度比 >= 70% 时视为有效匹配, 优先最长候选
+    # 2. 仅当长度比例足够接近时接受子串匹配，并优先最长候选。
     substring_hits = [
         name
         for name in candidates
@@ -284,22 +350,69 @@ def match_mission_name(
     if substring_hits:
         return max(substring_hits, key=len)
 
-    # Levenshtein 模糊匹配
+    # 3. 最后使用编辑距离处理 OCR 的少量字符误差。
     best_name: str | None = None
     best_dist = threshold + 1
     for name in candidates:
-        dist = _ocr._edit_distance(ocr_text, name)
+        # common.vision.ocr 未公开编辑距离；通过模块限定名保留实现归属。
+        dist = ocr._edit_distance(ocr_text, name)
         if dist < best_dist:
             best_dist = dist
             best_name = name
     return best_name if best_dist <= threshold else None
 
 
-__all__ = [
+# ── 奖励按钮识别 ────────────────────────────────────────────────────────────────────
+
+
+def find_reward_collect_all_button(
+    screen: numpy.ndarray,
+) -> vision.ImageMatchDetail | None:
+    """读取任务页面的一键领取按钮命中结果。
+
+    Args:
+        screen: 任务页面 RGB 截图。
+
+    Returns:
+        一键领取按钮的模板匹配结果；未命中时返回 None。
+    """
+    return vision.ImageChecker.find_template(screen, Templates.GameUI.REWARD_COLLECT_ALL)
+
+
+def find_reward_collect_button(screen: numpy.ndarray) -> vision.ImageMatchDetail | None:
+    """读取任务页面的单个领取按钮命中结果。
+
+    Args:
+        screen: 任务页面 RGB 截图。
+
+    Returns:
+        单个领取按钮的模板匹配结果；未命中时返回 None。
+    """
+    return vision.ImageChecker.find_template(screen, Templates.GameUI.REWARD_COLLECT)
+
+
+def find_confirm_button(screen: numpy.ndarray) -> vision.ImageMatchDetail | None:
+    """读取奖励确认按钮命中结果。
+
+    Args:
+        screen: 奖励确认弹窗 RGB 截图。
+
+    Returns:
+        确认按钮的模板匹配结果；未命中时返回 None。
+    """
+    return vision.ImageChecker.find_any(screen, Templates.Confirm.all())
+
+
+# 按上方识别流程的定义顺序导出公开对象。
+__all__ = [  # noqa: RUF022
     'ButtonType',
     'MissionInfo',
-    'find_button_rows',
-    'match_mission_name',
     'read_all_mission_names',
+    'find_button_rows',
     'recognize_row',
+    'recognize_missions',
+    'match_mission_name',
+    'find_reward_collect_all_button',
+    'find_reward_collect_button',
+    'find_confirm_button',
 ]

@@ -156,7 +156,7 @@ def _navigate_to(ctrl: AndroidController, pause: float) -> None:
 
     from autowsgr.application.runtime.context import GameContext
     from autowsgr.application.ui.controller.home.main_page import HomePage
-    from autowsgr.common.system import UserConfig
+    from autowsgr.config import UserConfig
 
     if not reset_to_main_page(ctrl, pause):
         return

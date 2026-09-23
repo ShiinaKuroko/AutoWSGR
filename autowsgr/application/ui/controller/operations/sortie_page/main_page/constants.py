@@ -12,7 +12,7 @@
 
 from __future__ import annotations
 
-from autowsgr.common.vision import Color
+from autowsgr.common.vision.operations.pixel_matching import Color
 
 
 # ── 页面壳和顶部标签 ────────────────────────────────────────────────────────
@@ -29,15 +29,6 @@ TAB_POSITIONS = {
 
 # ── 出征区域远征通知 ────────────────────────────────────────────────────────
 
-EXPEDITION_NOTIF_COLOR = Color.of(245, 88, 47)  # sortie_page 顶部远征通知的目标颜色。
+EXPEDITION_NOTIF_COLOR = Color(245, 88, 47)  # sortie_page 顶部远征通知的目标颜色。
 EXPEDITION_NOTIF_TOLERANCE = 40.0  # 顶部远征通知颜色容差，用于覆盖截图渲染误差。
 EXPEDITION_NOTIF_PROBE = (0.4953, 0.0213)  # sortie_page 顶部远征通知探针位置。
-
-
-__all__ = [
-    'CLICK_BACK',
-    'EXPEDITION_NOTIF_COLOR',
-    'EXPEDITION_NOTIF_PROBE',
-    'EXPEDITION_NOTIF_TOLERANCE',
-    'TAB_POSITIONS',
-]

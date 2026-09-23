@@ -26,12 +26,15 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING
 
-from autowsgr.application.runtime.initialize import overlays, updater
+from autowsgr.application.runtime.initialize import updater
+from autowsgr.application.runtime.types import GameAPP
+from autowsgr.application.ui import recognition_flow
+from autowsgr.application.ui.controller.home.main_page import HomePage
 from autowsgr.application.ui.navigation import goto_page
-from autowsgr.application.ui.navigation.recognition import identify_current_page
+from autowsgr.application.ui.navigation.page_checker.home import check_home_page
+from autowsgr.application.ui.navigation.service import NavigationError
+from autowsgr.application.ui.navigation.types import PageName
 from autowsgr.common.system.logger import get_logger
-from autowsgr.common.types import GameAPP, PageName
-from autowsgr.common.ui.interaction import NavigationError
 
 
 if TYPE_CHECKING:
@@ -88,7 +91,6 @@ def initialize(ctx: GameContext) -> None:
 
     # 分支 1/2: 已在首页, 或导航回首页
     if _try_reach_main(ctx):
-        _dismiss_overlays(ctx)
         _log.info('[Initialize] 初始化完成, 首页待机')
         return
 
@@ -96,7 +98,6 @@ def initialize(ctx: GameContext) -> None:
     _log.warning('[Initialize] 无法回到首页, 执行 SL 强制重启')
     _restart_game(ctx, package)
     if _try_reach_main(ctx):
-        _dismiss_overlays(ctx)
         _log.info('[Initialize] SL 重启后初始化完成, 首页待机')
         return
 
@@ -117,10 +118,14 @@ def _package_of(ctx: GameContext) -> str:
 
 
 def _is_on_home_page(ctx: GameContext) -> bool:
-    """截图检测当前是否在主页面 (浮层命中也算, 与旧逻辑一致)。"""
-    from autowsgr.application.ui.controller.home.main_page import HomePage
-
-    return bool(HomePage.check_current_page(ctx.ctrl.screenshot()))
+    """处理主页浮层后，用最新截图确认主页状态。"""
+    HomePage(ctx).dismiss_current_overlay()
+    ctx.daily_overlay_checked = True
+    screen = recognition_flow.capture_frame(
+        ctx.ctrl,
+        record_screenshot=ctx.record_screenshot,
+    )
+    return check_home_page(screen)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -129,18 +134,15 @@ def _is_on_home_page(ctx: GameContext) -> bool:
 
 
 def _try_reach_main(ctx: GameContext) -> bool:
-    """尝试到达主页面: 已在 → True; 否则 goto_page (失败重试到超时)。"""
-    if identify_current_page(ctx) == PageName.HOME:
-        return True
-
+    """调用统一导航入口到达主页，已在主页时由导航器直接短路确认。"""
     deadline = time.monotonic() + _RECOVERY_TIMEOUT
     while time.monotonic() < deadline:
         try:
-            goto_page(ctx, PageName.HOME)
+            result = goto_page(ctx, PageName.HOME)
         except NavigationError:
             time.sleep(_RECOVERY_RETRY_INTERVAL)
         else:
-            return True
+            return result.confirmed
 
     _log.warning('[Initialize] 恢复主页面超时 ({:.0f}s)', _RECOVERY_TIMEOUT)
     return False
@@ -167,7 +169,7 @@ def _start_game_flow(ctx: GameContext, package: str) -> None:
         return
 
     # ③ 点击「进入游戏」(页面控制器内部读 login.yaml 坐标 + 等待稳定)
-    _click_enter(ctx)
+    _enter_game(ctx)
 
     # ④ 验证真的到达主页面 (旧代码缺这一步)
     if not _wait_for_home_page(ctx):
@@ -187,15 +189,15 @@ def _wait_for_start_screen(ctx: GameContext, *, timeout: float = _STARTUP_TIMEOU
     return False
 
 
-def _click_enter(ctx: GameContext) -> None:
-    """点击「进入游戏」按钮 — 复用页面控制器 (坐标读 login.yaml)。"""
+def _enter_game(ctx: GameContext) -> None:
+    """点击「进入游戏」按钮并复用登录启动画面控制器。"""
     from autowsgr.application.ui.controller.login import LoginPage
 
-    LoginPage(ctx.ctrl).click_enter()
+    LoginPage(ctx.ctrl).enter_game()
 
 
 def _wait_for_home_page(ctx: GameContext, *, timeout: float = _ENTER_MAIN_TIMEOUT) -> bool:
-    """轮询等待到达主页面 (点击进入后的验证)。"""
+    """登录后轮询主页完整检查，首次调用会先处理每日浮层。"""
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         if _is_on_home_page(ctx):
@@ -216,17 +218,3 @@ def _restart_game(ctx: GameContext, package: str) -> None:
     ctx.ctrl.stop_app(package)
     time.sleep(_RESTART_SETTLE)
     _start_game_flow(ctx, package)
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# 浮层清理
-# ═══════════════════════════════════════════════════════════════════════════════
-
-
-def _dismiss_overlays(ctx: GameContext) -> None:
-    """清每日弹窗 (状态挂任务上下文, 日期门控当天零开销)。"""
-    state = getattr(ctx, 'overlay_state', None)
-    if state is None:
-        state = overlays.OverlayState()
-        ctx.overlay_state = state
-    overlays.handle_daily_overlays(ctx.ctrl, state)

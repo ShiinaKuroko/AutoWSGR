@@ -1,94 +1,60 @@
-"""模块功能：执行战役页面的次数读取、难度切换和出征准备入口。
+"""模块功能：编排战役页面的难度选择和出征准备入口。
 
 上层调用：
-- business.combat.campaign：选择战役并进入出征准备。
-- testing.business、testing.ui：验证战役次数、难度和入口流程。
+- business.combat.campaign：选择战役并进入出征准备页面。
 
 下层依赖：
 - application.ui.controller.operations.sortie_page.main_page：提供 sortie_page 页面壳和顶部标签。
-- application.ui.controller.operations.sortie_page.campaign_page.constants：提供战役坐标和颜色校准。
-- application.ui.controller.operations.sortie_page.campaign_page.recognition：提供战役 OCR 结果。
-- common.vision：读取难度状态和执行页面动作。
+- application.ui.controller.operations.sortie_page.campaign_page.constants：提供页面动作坐标。
+- application.ui.controller.operations.sortie_page.campaign_page.recognition：提供难度事实识别。
+- common.device.interaction：确认目标页面到达和导航失败。
+
+边界：
+只编排战役出征入口，不实现 OCR、像素识别、跨页面调度或运行时状态管理。
 """
 
 from __future__ import annotations
 
 import time
 
-from autowsgr.application.ui.controller.operations.sortie_page.campaign_page import constants
-from autowsgr.application.ui.controller.operations.sortie_page.campaign_page.recognition import (
-    AcquisitionCounts,
-    recognize_acquisition_counts,
-    recognize_campaign_remains,
+from autowsgr.application.ui.controller.operations.sortie_page.campaign_page import (
+    constants,
+    recognition,
 )
 from autowsgr.application.ui.controller.operations.sortie_page.main_page import (
     SortiePage,
     SortieTab,
 )
 from autowsgr.common.system.logger import get_logger
-from autowsgr.common.types import PageName
-from autowsgr.common.ui.interaction import wait_for_page
-from autowsgr.common.vision import Color, PixelChecker
+from autowsgr.application.ui.navigation.types import PageName
+from autowsgr.application.ui.navigation.interaction import NavigationError, wait_for_page
 
 
-_log = get_logger('ui')
-_DIFFICULTY_EASY_COLOR = Color.from_rgb_tuple(constants.DIFFICULTY_EASY_COLOR)
-_DIFFICULTY_HARD_COLOR = Color.from_rgb_tuple(constants.DIFFICULTY_HARD_COLOR)
+_log = get_logger('ui.campaign_page')
+
+
+# ── 页面流程参数 ────────────────────────────────────────────────────────────────────
+
+_CAMPAIGN_TAB_SETTLE_SECONDS: float = 0.5
+"""切换 sortie 顶部标签后等待页面稳定的时间。"""
+
+_DIFFICULTY_POLL_SECONDS: float = 0.25
+"""难度切换后轮询页面状态的间隔。"""
+
+_DIFFICULTY_MAX_ATTEMPTS: int = 10
+"""难度切换后确认目标状态的最大次数。"""
+
+_DIFFICULTY_SETTLE_SECONDS: float = 0.75
+"""难度状态确认后等待战役入口稳定的时间。"""
+
+_CAMPAIGN_ENTRY_SETTLE_SECONDS: float = 0.5
+"""点击战役入口后等待出征准备页加载的时间。"""
 
 
 class CampaignPage(SortiePage):
-    """战役页面控制器，直接管理次数、难度和战役入口。"""
+    """战役页面控制器。"""
 
-    AcquisitionCounts = AcquisitionCounts
-
-    # ── 查询 ─────────────────────────────────────────────────────────────
-
-    def read_campaign_remains(self) -> tuple[int, int] | None:
-        """读取战役剩余次数和总次数。
-
-        Returns:
-            ``(剩余次数, 总次数)``；OCR 无法匹配时返回 ``None``。
-        """
-        self.select_tab(SortieTab.CAMPAIGN)
-        time.sleep(0.5)
-        screen = self._ctrl.screenshot()
-        return recognize_campaign_remains(screen, self._ocr)
-
-    def read_difficulty(self) -> str | None:
-        """通过难度按钮颜色读取当前难度。
-
-        Returns:
-            ``"easy"`` 或 ``"hard"``。
-
-        Raises:
-            RuntimeError: 重试后仍无法识别难度。
-        """
-        retry = 0
-        while retry < 10:
-            screen = self._ctrl.screenshot()
-            px = PixelChecker.get_pixel(screen, *constants.CLICK_DIFFICULTY)
-            if px.near(_DIFFICULTY_EASY_COLOR, tolerance=constants.DIFFICULTY_EASY_TOLERANCE):
-                return 'hard'
-            elif px.near(_DIFFICULTY_HARD_COLOR, tolerance=constants.DIFFICULTY_HARD_TOLERANCE):
-                return 'easy'
-            time.sleep(0.25)
-            retry += 1
-
-        _log.warning('[UI] 无法识别难度: 检测点颜色不匹配简单或困难')
-        raise RuntimeError('无法识别战役难度')
-
-    def read_acquisition_counts(self) -> AcquisitionCounts:
-        """读取今日舰船和战利品获取数量。
-
-        Returns:
-            获取数量结果；无法识别的字段为 ``None``。
-        """
-        self.select_tab(SortieTab.SORTIE)
-        time.sleep(0.5)
-        screen = self._ctrl.screenshot()
-        return recognize_acquisition_counts(screen, self._ocr)
-
-    # ── 操作 ─────────────────────────────────────────────────────────────
+    # ── 战役出征流程 ────────────────────────────────────────────────────────────────
 
     def enter_campaign(
         self,
@@ -101,44 +67,74 @@ class CampaignPage(SortiePage):
         Args:
             map_index: 战役编号，范围为 1-5。
             difficulty: 目标难度，只能是 ``"easy"`` 或 ``"hard"``。
-            campaign_name: 仅用于日志的战役名称。
+            campaign_name: 用于日志的战役名称。
 
         Raises:
             ValueError: 战役编号或难度无效。
             NavigationError: 超时未到达出征准备页面。
+            RuntimeError: 难度切换后仍无法确认目标状态。
         """
-        from autowsgr.application.ui.controller.fleet import BattlePreparationPage
-
         if map_index not in constants.CAMPAIGN_POSITIONS:
             raise ValueError(f'战役编号必须为 1-5，收到: {map_index}')
         if difficulty not in ('easy', 'hard'):
             raise ValueError(f'难度必须为 easy 或 hard，收到: {difficulty}')
 
+        # 战役流程会反向依赖出征准备页，局部导入用于避免页面包初始化循环。
+        from autowsgr.application.ui.controller.fleet import BattlePreparationPage
+
         _log.info(
-            '[UI] 地图页面 → 进入战役 {} ({})',
+            '[UI] 战役页面 → 进入：战役={!r}，难度={!r}，状态=开始',
             campaign_name,
             difficulty,
         )
 
-        # 1. 切换到战役面板
+        # 1. 切换到战役面板并等待入口稳定。
         self.select_tab(SortieTab.CAMPAIGN)
+        time.sleep(_CAMPAIGN_TAB_SETTLE_SECONDS)
 
-        # 2. 选择难度
-        if self.read_difficulty() != difficulty:
+        # 2. 读取当前难度，必要时切换并确认目标状态。
+        current = recognition.recognize_difficulty(self._ctrl.screenshot())
+        if current != difficulty:
+            _log.info(
+                '[UI] 战役页面 → 切换难度：当前难度={!r}，目标难度={!r}，状态=开始',
+                current,
+                difficulty,
+            )
             self._ctrl.click(*constants.CLICK_DIFFICULTY)
-        while self.read_difficulty() != difficulty:
-            _log.debug('[UI] 等待难度切换到 {}…', difficulty)
-            time.sleep(0.25)
-        time.sleep(0.75)
+            for attempt in range(1, _DIFFICULTY_MAX_ATTEMPTS + 1):
+                time.sleep(_DIFFICULTY_POLL_SECONDS)
+                current = recognition.recognize_difficulty(self._ctrl.screenshot())
+                if current == difficulty:
+                    _log.info(
+                        '[UI] 战役页面 → 切换难度：结果=成功，尝试次数={}',
+                        attempt,
+                    )
+                    break
+            else:
+                _log.error(
+                    '[UI] 战役页面 → 切换难度：目标难度={!r}，结果=失败，原因=未确认',
+                    difficulty,
+                )
+                raise RuntimeError('无法确认战役难度')
+            time.sleep(_DIFFICULTY_SETTLE_SECONDS)
 
-        # 3. 选择战役
+        # 3. 选择战役并确认进入出征准备页面。
         self._ctrl.click(*constants.CAMPAIGN_POSITIONS[map_index])
-        time.sleep(0.5)
-
-        # 等待到达出征准备
-        wait_for_page(
-            self._ctrl,
-            checker=BattlePreparationPage.check_current_page,
-            source=f'地图-战役 {campaign_name}',
-            target=PageName.BATTLE_PREP,
+        time.sleep(_CAMPAIGN_ENTRY_SETTLE_SECONDS)
+        try:
+            wait_for_page(
+                self._ctrl,
+                checker=BattlePreparationPage.check_current_page,
+                source=f'战役页面-{campaign_name}',
+                target=PageName.BATTLE_PREP.value,
+            )
+        except NavigationError:
+            _log.error(
+                '[UI] 战役页面 → 进入：战役={!r}，结果=失败',
+                campaign_name,
+            )
+            raise
+        _log.info(
+            '[UI] 战役页面 → 进入：战役={!r}，结果=成功',
+            campaign_name,
         )

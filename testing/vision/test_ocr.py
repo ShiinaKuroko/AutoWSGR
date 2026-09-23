@@ -18,7 +18,6 @@ from autowsgr.common.constants import (
 )
 from autowsgr.common.vision import OCREngine, OCRResult, ShipNameMismatchError
 from autowsgr.common.vision.ocr import (
-    EasyOCREngine,
     FastOCREngine,
     _fuzzy_match,
     apply_ship_patches,
@@ -26,9 +25,7 @@ from autowsgr.common.vision.ocr import (
 )
 from autowsgr.common.vision.ocr_rules import (
     LEVEL_OCR_ALLOWLIST,
-    EasyOCRProfile,
     FastOCRProfile,
-    get_easyocr_params,
     get_fastocr_params,
     normalize_level_digits,
     set_user_ship_name_aliases,
@@ -42,7 +39,7 @@ from autowsgr.common.vision.ocr_rules import (
 
 
 class MockOCREngine(OCREngine):
-    """Minimal OCR engine for unit testing without EasyOCR / PaddleOCR."""
+    """Minimal OCR engine for unit testing without a real backend."""
 
     def __init__(self, results: list[OCRResult]) -> None:
         self._results = results
@@ -65,68 +62,6 @@ def _dummy_image() -> np.ndarray:
 
 
 class TestLevelOCREngines:
-    def test_easyocr_disables_cpu_quantization(self):
-        with (
-            patch('autowsgr.common.vision.easyocr_models_checker.ensure_models'),
-            patch('autowsgr.common.vision.ocr.easyocr.Reader') as reader,
-        ):
-            EasyOCREngine(gpu=False)
-
-        reader.assert_called_once_with(
-            ['ch_sim', 'en'],
-            gpu=False,
-            quantize=False,
-        )
-
-    def test_easyocr_line_uses_calibrated_parameters(self):
-        reader = MagicMock()
-        reader.recognize.return_value = [
-            (
-                [[0, 0], [9, 0], [9, 9], [0, 9]],
-                'LV.110',
-                0.99,
-            ),
-        ]
-        engine = EasyOCREngine.__new__(EasyOCREngine)
-        engine._reader = reader
-
-        results = engine.recognize_line(
-            _dummy_image(),
-            easyocr_profile=EasyOCRProfile.FLEET_SHIP_LEVEL,
-        )
-
-        assert results == [
-            OCRResult(
-                text='LV.110',
-                confidence=pytest.approx(0.99),
-                bbox=(0, 0, 9, 9),
-            ),
-        ]
-        assert reader.recognize.call_args.kwargs == {
-            'decoder': 'greedy',
-            'allowlist': LEVEL_OCR_ALLOWLIST,
-            'detail': 1,
-            'contrast_ths': 1.0,
-            'adjust_contrast': 1.0,
-        }
-
-    @pytest.mark.parametrize('profile', list(EasyOCRProfile))
-    def test_easyocr_parameter_profiles_are_registered(self, profile: EasyOCRProfile):
-        params = get_easyocr_params(profile)
-
-        if profile in {
-            EasyOCRProfile.FLEET_SHIP_LEVEL,
-            EasyOCRProfile.SHIP_POOL_LEVEL,
-        }:
-            assert params.allowlist == LEVEL_OCR_ALLOWLIST
-        assert params.decoder == 'greedy'
-        assert params.contrast_ths == 1.0
-        assert params.adjust_contrast == 1.0
-
-    def test_easyocr_unknown_parameter_profile_is_rejected(self):
-        with pytest.raises(ValueError, match='未知的 EasyOCR 参数配置档案'):
-            get_easyocr_params('unknown')
-
     @pytest.mark.parametrize('profile', list(FastOCRProfile))
     def test_fastocr_parameter_profiles_are_registered(self, profile: FastOCRProfile):
         params = get_fastocr_params(profile)
@@ -181,7 +116,7 @@ class TestLevelOCREngines:
 
         results = engine.recognize_line(
             _dummy_image(),
-            easyocr_profile=EasyOCRProfile.FLEET_SHIP_LEVEL,
+            allowlist=LEVEL_OCR_ALLOWLIST,
         )
 
         assert results == [
@@ -456,33 +391,6 @@ class TestRecognizeShipNames:
         assert err.max_threshold == 5
         assert 'foo' in str(err)
         assert 'bar' in str(err)
-
-
-# ─────────────────────────────────────────────
-# OCREngine.create
-# ─────────────────────────────────────────────
-
-
-class TestOCREngineCreate:
-    def test_invalid_engine_raises(self):
-        with pytest.raises(ValueError, match='不支持的 OCR 引擎'):
-            OCREngine.create('not_a_real_engine')
-
-    def test_easyocr_import_error_propagates(self):
-        """EasyOCR/PaddleOCR 未安装时抛出 ImportError（由真实引擎初始化触发）。"""
-        import importlib.util
-
-        if importlib.util.find_spec('easyocr') is None:
-            with pytest.raises(ImportError):
-                OCREngine.create('easyocr')
-
-    def test_paddleocr_not_supported(self):
-        with pytest.raises(ValueError, match='不支持的 OCR 引擎'):
-            OCREngine.create('paddleocr')
-
-    def test_rapidocr_not_supported(self):
-        with pytest.raises(ValueError, match='不支持的 OCR 引擎'):
-            OCREngine.create('rapidocr')
 
 
 class TestPoolAwareMatch:

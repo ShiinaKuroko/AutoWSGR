@@ -21,7 +21,7 @@ from autowsgr.common.system.logger import get_logger
 
 
 if TYPE_CHECKING:
-    from autowsgr.application.ui.context import UIContext
+    from autowsgr.application.ui.controller.context import UIContext
 
 
 _log = get_logger('ui.fleet.support.campaign_support')

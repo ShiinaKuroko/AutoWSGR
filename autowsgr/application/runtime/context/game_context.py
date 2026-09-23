@@ -23,9 +23,9 @@ if TYPE_CHECKING:
     from datetime import date
 
     from autowsgr.common.device import AndroidController
-    from autowsgr.common.system import UserConfig
     from autowsgr.common.types import PageName
     from autowsgr.common.vision import OCREngine
+    from autowsgr.config import UserConfig
 
 
 _log = get_logger('context')
@@ -73,11 +73,7 @@ class GameContext:
     ocr: OCREngine
     """OCR 引擎实例 (章节/阵型识别等)。"""
     ship_ocr: OCREngine | None = None
-    """增强船只识别 OCR 引擎 (FastOCR + PP-OCRv6-small, 可选)。
-
-    仅在 ``config.ocr.enhanced_ship_ocr`` 开启时由启动器注入；
-    船只名称 / 等级 / 舰种识别节点优先使用它，其余节点仍走 ``ocr``。
-    """
+    """兼容专用 OCR 引用；当前所有识别统一复用 ``ocr``。"""
 
     # ── 游戏运行时状态 ──
 
@@ -120,6 +116,12 @@ class GameContext:
     daily_overlay_date: date | None = None
     """最近一次完成主页面浮层处理的日期 (时间戳 gate: 每日 0 点后首次处理, 跨日失效)。"""
 
+    daily_overlay_checked: bool = False
+    """当前运行上下文是否已经完成每日主页浮层检查。"""
+
+    latest_screenshot: Any = None
+    """链路最近一次识别前保存的截图。"""
+
     active_fight_tasks: int = 0
     """当前正在执行的战斗任务数。由 TaskScheduler 维护，用于判断是否可以安全执行浴室维修等会占用舰队的操作。"""
 
@@ -127,6 +129,12 @@ class GameContext:
     """任务停止信号 (由 TaskManager 设置)。"""
 
     # ── 便捷访问 ──
+
+    def record_screenshot(self, screen: Any) -> None:
+        """保存一份最新截图，供同一运行上下文中的识别链路读取。"""
+        if not hasattr(screen, 'copy'):
+            raise ValueError('截图必须提供 copy() 方法')
+        self.latest_screenshot = screen.copy()
 
     def fleet(self, fleet_id: int) -> Fleet:
         """按编号 (1-4) 获取舰队。"""

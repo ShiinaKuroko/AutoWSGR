@@ -17,7 +17,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from autowsgr.application.runtime.executor import BaseExecutor
-from autowsgr.application.ui.controller.home.main_page import HomePage
+from autowsgr.application.ui.controller.home.main_page import check_task_ready
 from autowsgr.application.ui.controller.operations.mission_page import MissionPage
 from autowsgr.application.ui.navigation import goto_page
 from autowsgr.common.system.logger import get_logger
@@ -42,7 +42,7 @@ class RewardCheckExecutor(BaseExecutor):
         goto_page(self.ctx, PageName.HOME)  # 锚点: 从主页出发
 
         screen = self.ctx.ctrl.screenshot()
-        if not HomePage.check_task_ready(screen):
+        if not check_task_ready(screen):
             _log.debug('[Reward] 主页无任务通知, 跳过')
             self._report('checked', collected=0)
             return False

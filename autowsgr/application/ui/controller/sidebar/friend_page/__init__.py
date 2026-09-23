@@ -6,7 +6,12 @@
 
 下层依赖：
 - application.ui.controller.sidebar.friend_page.page：提供好友页面操作实现。
+
+边界：
+只导出好友页面控制器，不执行页面识别、设备操作或导航注册。
 """
+
+from __future__ import annotations
 
 from autowsgr.application.ui.controller.sidebar.friend_page.page import FriendPage
 

@@ -9,9 +9,12 @@
 本模块只保存启动画面的静态页面校准，不保存设备对象、上下文或运行状态。
 """
 
-from autowsgr.common.vision import PixelRule, PixelSignature
+from __future__ import annotations
+
+from autowsgr.common.vision.operations.pixel_matching import PixelRule, PixelSignature
 
 
+# 坐标按 1280x720 设计分辨率校准，并以相对坐标保存。
 CLICK_ENTER = (0.8915, 0.8584)  # 启动画面右下角进入按钮，用于进入游戏主流程。
 
 PAGE_SIGNATURE = PixelSignature(

@@ -15,7 +15,7 @@ import time
 from typing import TYPE_CHECKING
 
 from autowsgr.application.ui.controller.fleet.formation.fleet_adjustment import constants
-from autowsgr.common.fleet import FleetSlotRule, ShipSelector
+from autowsgr.business.combat.fleet_models import FleetSlotRule, ShipSelector
 from autowsgr.common.system.logger import get_logger
 
 

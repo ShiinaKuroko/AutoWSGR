@@ -14,7 +14,7 @@
 
 from __future__ import annotations
 
-from autowsgr.common.vision import Color, MatchStrategy, PixelRule, PixelSignature
+from autowsgr.common.vision import ROI, Color, MatchStrategy, PixelRule, PixelSignature
 
 
 # 总览页点击坐标。
@@ -67,6 +67,12 @@ STAGE_CHECK_POINTS = {
 }  # 章节到小关通过像素点的映射，用于读取当前小关进度。
 STAGE_CHECK_COLOR = Color.of(250, 244, 253)  # 小关已通过颜色，用于识别章节进度。
 STAGE_CHECK_TOLERANCE = 30.0  # 小关颜色容差，用于兼容截图渲染差异。
+RESET_BUTTON_ROI = ROI(0.64, 0.84, 0.73, 1.0).expand_pixels(1280, 720)
+RESET_ENTRY_ROI = ROI(0.35, 0.80, 0.70, 1.0).expand_pixels(1280, 720)
+ENTRY_STATUS_ROI = ROI(547 / 1280, 635 / 720, 814 / 1280, 705 / 720).expand_pixels(
+    1280,
+    720,
+)
 
 
 # 战备舰队 OCR 区域和点击坐标。
@@ -180,9 +186,12 @@ __all__ = [
     'CLICK_SORTIE',
     'CLICK_USE_LAST_FLEET_CONFIRM',
     'COST_AREA',
+    'ENTRY_STATUS_ROI',
     'FLEET_CARD_CLICK_Y',
     'FLEET_CARD_X_POSITIONS',
     'NODE_CROP_OFFSET',
+    'RESET_BUTTON_ROI',
+    'RESET_ENTRY_ROI',
     'RESOURCE_AREA',
     'SHIP_HSV_HI',
     'SHIP_HSV_LO',

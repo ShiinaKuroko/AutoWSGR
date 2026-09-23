@@ -7,7 +7,7 @@
 - ship_selection.page：执行船池页面原子 UI 动作。
 - ship_selection.recognition：识别可见船卡和约束结果。
 - ship_selection.constants：提供等待、滚动和重试参数。
-- common.ui.interaction：确认船池页面已经离开。
+- common.device.interaction：确认船池页面已经离开。
 """
 
 from __future__ import annotations
@@ -20,15 +20,15 @@ from autowsgr.application.ui.controller.fleet.formation.ship_selection.page impo
     ShipSelectionPage,
 )
 from autowsgr.common.system.logger import get_logger
-from autowsgr.common.ui.interaction import wait_for_page, wait_leave_page
+from autowsgr.application.ui.navigation.interaction import wait_for_page, wait_leave_page
 
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from autowsgr.application.ui.context import UIContext
+    from autowsgr.application.ui.controller.context import UIContext
     from autowsgr.application.ui.controller.fleet.main_page import BattlePreparationPage
-    from autowsgr.common.fleet import ShipSelector
+    from autowsgr.business.combat.fleet_models import ShipSelector
 
 
 _log = get_logger('ui.fleet.formation.ship_selection')

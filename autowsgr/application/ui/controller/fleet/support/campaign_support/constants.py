@@ -10,7 +10,7 @@
 
 from __future__ import annotations
 
-from autowsgr.common.vision import Color
+from autowsgr.common.vision.operations.pixel_matching import Color
 
 
 # ── 战役支援状态校准 ─────────────────────────────────────────────────────────

@@ -15,7 +15,7 @@ from autowsgr.application.combat.recognizer import (
 )
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.types import ConditionFlag, Formation, ShipDamageState
-from autowsgr.common.ui.combat import dismiss_resource_confirm
+from autowsgr.application.combat.actions import dismiss_resource_confirm
 
 
 if TYPE_CHECKING:

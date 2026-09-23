@@ -29,20 +29,20 @@ class _FakeBathPage:
     def __init__(self, results: list[tuple[str, int]]) -> None:
         self._results = list(results)
         self.repair_longest_calls = 0
-        self.open_choose_repair_overlay_calls = 0
+        self.repair_all_calls = 0
 
-    def open_choose_repair_overlay(self) -> None:
-        self.open_choose_repair_overlay_calls += 1
-
-    def repair_longest(
+    def repair(
         self,
-        blacklist: set[str] | None = None,  # noqa: ARG002  # 签名匹配真实接口 (调用方按关键字传 blacklist=)
-    ) -> tuple[str, int]:
+        *,
+        repair_all: bool,
+        ship_name: str | None = None,  # noqa: ARG002
+        blacklist: set[str] | None = None,  # noqa: ARG002
+    ) -> None | tuple[str, int]:
+        if repair_all:
+            self.repair_all_calls += 1
+            return None
         self.repair_longest_calls += 1
         return self._results.pop(0) if self._results else ('', -1)
-
-    def click_repair_all(self) -> None:
-        return None
 
 
 class _FakeCtx:
@@ -91,10 +91,8 @@ def test_named_repair_syncs_fleet_damage_snapshot(monkeypatch: pytest.MonkeyPatc
     import autowsgr.business.logistics.repair.bath_repair as mod
 
     class _NamedRepairPage:
-        def open_choose_repair_overlay(self) -> None:
-            return None
-
-        def repair_ship(self, ship_name: str) -> int:
+        def repair(self, *, repair_all: bool, ship_name: str | None = None) -> int | None:
+            assert repair_all is False
             assert ship_name == '测试舰'
             return 120
 
@@ -184,7 +182,6 @@ def test_fills_all_free_slots_then_stops(monkeypatch: pytest.MonkeyPatch):
     assert mod.repair_one_available(ctx) is True
 
     assert fake.repair_longest_calls == 2  # 恰好修 2 艘, 不是 1 也不是死循环
-    assert fake.open_choose_repair_overlay_calls == 2  # 每艘都重开 overlay
     assert ctx.bathroom.is_available() is False  # 两槽全满
 
 
@@ -241,4 +238,4 @@ def test_skip_when_no_free_slot(monkeypatch: pytest.MonkeyPatch):
     assert ctx.bathroom.is_available() is False
 
     assert mod.repair_one_available(ctx) is False
-    assert fake.open_choose_repair_overlay_calls == 0  # 没开 overlay
+    assert fake.repair_longest_calls == 0  # 页面流程未被调用

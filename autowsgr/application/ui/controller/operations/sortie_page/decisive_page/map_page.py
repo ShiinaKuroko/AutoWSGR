@@ -58,9 +58,16 @@ from autowsgr.application.ui.controller.operations.sortie_page.decisive_page.con
     SHIP_MIN_AREA as _SHIP_MIN_AREA,
 )
 from autowsgr.application.ui.controller.operations.sortie_page.decisive_page.overlay import (
+    ADVANCE_CHOICE_ROI,
+    ADVANCE_CHOICE_THREE_ROI,
+    CONFIRM_EXIT_ROI,
+    FLEET_ACQUISITION_ROI,
+    FLEET_NAME_ROI,
+    USE_LAST_FLEET_ROI,
     DecisiveOverlay,
     check_decisive_map_page,
     check_fleet_acquisition,
+    detect_decisive_overlay,
     read_overlay_template,
     read_overlay_type,
 )
@@ -73,21 +80,24 @@ from autowsgr.application.ui.controller.operations.sortie_page.decisive_page.rec
     recognize_map_node,
 )
 from autowsgr.common.system.logger import get_logger
-from autowsgr.common.types import DecisivePhase, FleetSelection, ShipDamageState
-from autowsgr.common.ui.interaction import NavConfig, click_and_wait_for_page, confirm_operation
+from autowsgr.business.combat.decisive.types import DecisivePhase
+from autowsgr.business.combat.types import FleetSelection
+from autowsgr.business.logistics.types import ShipDamageState
+from autowsgr.application.ui.navigation.interaction import NavConfig, click_and_wait_for_page, confirm_operation
 from autowsgr.common.vision import (
+    ROI,
     ImageChecker,
     PixelChecker,
     get_api_dll,
 )
-from autowsgr.common.vision.resources import Templates
+from autowsgr.application.vision.resources import Templates
 
 
 if TYPE_CHECKING:
     import numpy as np
 
-    from autowsgr.application.ui.context import UIContext as GameContext
-    from autowsgr.common.system import DecisiveConfig
+    from autowsgr.application.ui.controller.context import UIContext as GameContext
+    from autowsgr.config import DecisiveConfig
 
 
 _log = get_logger('ui.decisive')
@@ -149,9 +159,12 @@ class DecisiveMapController:
             screen = self._ctrl.screenshot()
         return read_overlay_type(screen)
 
-    def read_decisive_phase(  # noqa: PLR0911
+    def read_decisive_phase(  # noqa: PLR0911, PLR0912
         self,
         screen: np.ndarray | None = None,
+        *,
+        advance_choice_roi: ROI | None = None,
+        allow_fleet_overlay: bool = True,
     ) -> DecisivePhase | None:
         """单次截图检测当前决战页面状态。
 
@@ -180,17 +193,32 @@ class DecisiveMapController:
         if ImageChecker.template_exists(
             screen,
             Templates.Decisive.USE_LAST_FLEET,
+            roi=USE_LAST_FLEET_ROI,
             confidence=0.8,
         ):
             _log.info('[地图控制器] 检测到「使用上次舰队」按钮')
             return DecisivePhase.USE_LAST_FLEET
 
-        overlay = read_overlay_type(screen)
+        overlay = detect_decisive_overlay(
+            screen,
+            advance_choice_roi=advance_choice_roi,
+            include_fleet_acquisition=allow_fleet_overlay,
+        )
         if overlay is not None:
             if overlay == DecisiveOverlay.ADVANCE_CHOICE:
                 return DecisivePhase.ADVANCE_CHOICE
             if overlay == DecisiveOverlay.FLEET_ACQUISITION:
-                return DecisivePhase.CHOOSE_FLEET
+                # A stale scrcpy frame can keep matching the acquisition title
+                # after the overlay has already closed; confirm before OCR.
+                time.sleep(0.2)
+                fresh_screen = self._ctrl.screenshot()
+                if check_fleet_acquisition(fresh_screen):
+                    return DecisivePhase.CHOOSE_FLEET
+                _log.debug('[地图控制器] 丢弃过期的战备舰队弹窗匹配')
+            # Any other recognized overlay blocks map interaction. Let the
+            # caller retry after it disappears instead of falling through to a
+            # possibly stale map-page signature.
+            return None
 
         if check_decisive_map_page(screen):
             # 进图后的首个稳定帧有时会短暂满足“地图页”特征，但战备舰队
@@ -199,19 +227,104 @@ class DecisiveMapController:
             time.sleep(0.2)
             confirm_screen = self._ctrl.screenshot()
 
-            overlay = read_overlay_type(confirm_screen)
+            overlay = detect_decisive_overlay(
+                confirm_screen,
+                advance_choice_roi=advance_choice_roi,
+                include_fleet_acquisition=allow_fleet_overlay,
+            )
             if overlay is not None:
                 if overlay == DecisiveOverlay.ADVANCE_CHOICE:
                     _log.debug('[地图控制器] 地图页复检修正为 overlay: advance_choice')
                     return DecisivePhase.ADVANCE_CHOICE
                 if overlay == DecisiveOverlay.FLEET_ACQUISITION:
-                    _log.debug('[地图控制器] 地图页复检修正为 overlay: fleet_acquisition')
-                    return DecisivePhase.CHOOSE_FLEET
+                    if check_fleet_acquisition(confirm_screen):
+                        _log.debug('[地图控制器] 地图页复检修正为 overlay: fleet_acquisition')
+                        return DecisivePhase.CHOOSE_FLEET
+                    _log.debug('[地图控制器] 地图页复检丢弃过期的战备舰队匹配')
+                return None
 
             if check_decisive_map_page(confirm_screen):
                 return DecisivePhase.PREPARE_COMBAT
 
         return None
+
+    def _wait_for_use_last_fleet(self) -> bool:
+        """等待总览稳定后，在固定按钮区域快速识别三次。"""
+        time.sleep(3.0)
+        for _ in range(3):
+            if ImageChecker.template_exists(
+                self._ctrl.screenshot(),
+                Templates.Decisive.USE_LAST_FLEET,
+                roi=USE_LAST_FLEET_ROI,
+                confidence=0.8,
+            ):
+                return True
+            time.sleep(0.2)
+        return False
+
+    def wait_for_entry_phase(
+        self,
+        *,
+        wait_for_use_last: bool,
+        wait_for_advance: bool,
+        wait_for_fleet: bool = True,
+        advance_choice_roi: ROI | None = None,
+        timeout: float = 3.0,
+        interval: float = 0.2,
+    ) -> DecisivePhase:
+        """通过分阶段正向识别解析进图后的下一个 UI 阶段。"""
+        if wait_for_use_last and self._wait_for_use_last_fleet():
+            return DecisivePhase.USE_LAST_FLEET
+
+        if wait_for_advance and self._wait_for_advance_choice(
+            advance_choice_roi,
+            timeout=timeout,
+            interval=interval,
+        ):
+            return DecisivePhase.ADVANCE_CHOICE
+
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            phase = self.read_decisive_phase(
+                advance_choice_roi=advance_choice_roi,
+                allow_fleet_overlay=wait_for_fleet,
+            )
+            if phase is not None:
+                return phase
+            time.sleep(interval)
+        raise TimeoutError(f'决战进图阶段识别超时 ({timeout}s)')
+
+    @staticmethod
+    def _advance_choice_rois(advance_choice_roi: ROI | None) -> tuple[ROI, ...]:
+        """返回地图分支和实机弹窗布局的候选 ROI。"""
+        if advance_choice_roi is not None:
+            return (advance_choice_roi, ADVANCE_CHOICE_ROI, ADVANCE_CHOICE_THREE_ROI)
+        return (ADVANCE_CHOICE_ROI, ADVANCE_CHOICE_THREE_ROI)
+
+    def _wait_for_advance_choice(
+        self,
+        advance_choice_roi: ROI | None,
+        *,
+        timeout: float,
+        interval: float,
+    ) -> bool:
+        """在一个短窗口内确认前进点弹窗。"""
+        deadline = time.monotonic() + timeout
+        rois = self._advance_choice_rois(advance_choice_roi)
+        while time.monotonic() < deadline:
+            screen = self._ctrl.screenshot()
+            if any(
+                ImageChecker.template_exists(
+                    screen,
+                    Templates.Decisive.ADVANCE_CHOICE,
+                    roi=roi,
+                    confidence=0.80,
+                )
+                for roi in rois
+            ):
+                return True
+            time.sleep(interval)
+        return False
 
     # ── 舰船图标颜色检测参数 (HSV, BGR 输入) ──────────────────────
 
@@ -272,10 +385,10 @@ class DecisiveMapController:
                 if icon_rel_x_now == -1:
                     return 'CHOOSE_FLEET'
                 if icon_rel_x_now == icon_rel_x:
-                    _log.debug('[地图控制器] 舰船指示器位置: X={:.5f}', icon_rel_x)
+                    _log.debug('[地图控制器] 舰船指示器位置: X={}', icon_rel_x)
                     break
                 _log.debug(
-                    '[地图控制器] 舰船指示器位置偏移, 重试{:d}: X1={:.5f}, X2={:.5f}',
+                    '[地图控制器] 舰船指示器位置偏移, 重试{:d}: X1={}, X2={}',
                     retry_icon,
                     icon_rel_x,
                     icon_rel_x_now,
@@ -383,6 +496,9 @@ class DecisiveMapController:
 
     def close_fleet_overlay(self) -> bool:
         """关闭战备舰队获取 overlay，并确认已离开该弹窗。"""
+        if not self.check_fleet_overlay_open():
+            _log.warning('[地图控制器] 关闭战备舰队前未确认弹窗仍存在')
+            return False
         self._ctrl.click(*CLICK_FLEET_CLOSE)
         deadline = time.monotonic() + 5.0
         while time.monotonic() < deadline:
@@ -399,16 +515,23 @@ class DecisiveMapController:
         对应 Legacy ``decisive_battle_image[7]`` + ``click(873, 500)``。
         由状态机多次调度实现重试。
         """
-        screen = self._ctrl.screenshot()
-        match = ImageChecker.find_template(
-            screen,
-            Templates.Decisive.USE_LAST_FLEET,
-            confidence=0.8,
-        )
-        if match is not None:
-            self._ctrl.click(*match.center)
-            time.sleep(0.5)
+        deadline = time.monotonic() + 5.0
+        match = None
+        while time.monotonic() < deadline:
+            match = ImageChecker.find_template(
+                self._ctrl.screenshot(),
+                Templates.Decisive.USE_LAST_FLEET,
+                roi=USE_LAST_FLEET_ROI,
+                confidence=0.8,
+            )
+            if match is not None:
+                break
+            time.sleep(0.2)
+        if match is None:
+            raise TimeoutError('未识别到「使用上次舰队」按钮，拒绝点击')
 
+        self._ctrl.click(*match.center)
+        time.sleep(0.5)
         self._ctrl.click(*_USE_LAST_FLEET_CONFIRM)
         time.sleep(1.0)
 
@@ -422,6 +545,8 @@ class DecisiveMapController:
 
     def read_fleet(
         self,
+        *,
+        scan_ship_pool: bool = False,
     ) -> tuple[list[str | None], dict[int, ShipDamageState], set[str]]:
         """恢复进度时在编队页面扫描当前编队及所有可用舰船。
 
@@ -429,8 +554,8 @@ class DecisiveMapController:
 
         1. 进入编队页 (preparation page)
         2. OCR 识别当前编队成员 + 像素检测血量
-        3. 进入选船列表扫描所有可用舰船
-        4. 返回地图页
+        3. 可选：进入选船列表扫描所有可用舰船
+        4. 扫描完成后停留在准备页，供调用方继续调整或出征
 
         对齐 legacy ``_check_fleet``: 同时收集编队成员与列表中的舰船。
 
@@ -453,6 +578,11 @@ class DecisiveMapController:
         fleet = fleet_snapshot.names
         damage = page.read_ship_damage(screen)
 
+        current_ships = {name for name in fleet if name}
+        if current_ships and not scan_ship_pool:
+            _log.info('[地图控制器] 当前编队非空，跳过选船池扫描')
+            return fleet, damage, current_ships
+
         # 进入选船列表：先确认已离开出征准备页，再进行一次识别
         page.click_ship_slot(0)
         deadline = time.monotonic() + 5.0
@@ -465,8 +595,7 @@ class DecisiveMapController:
                 break
 
         if ship_list_screen is None:
-            _log.warning('[地图控制器] 点击舰船位后未确认进入选船列表，按当前截图继续识别')
-            ship_list_screen = self._ctrl.screenshot()
+            raise TimeoutError('点击舰船位后未确认进入选船列表，拒绝继续扫描')
         else:
             time.sleep(0.3)  # 等待选船列表内容稳定
             ship_list_screen = self._ctrl.screenshot()
@@ -484,10 +613,6 @@ class DecisiveMapController:
         self._ctrl.click(*_CLICK_CHOOSE_SHIP_BACK)
         time.sleep(1.0)
 
-        # 返回地图页
-        page.go_back()
-        time.sleep(1.0)
-
         _log.info(
             '[地图控制器] 编队={}, 可用舰船={}',
             fleet,
@@ -497,15 +622,27 @@ class DecisiveMapController:
 
     # 选择前进点 overlay
 
-    def select_advance_card(self, index: int) -> None:
+    def select_advance_card(
+        self,
+        index: int,
+        *,
+        advance_choice_roi: ROI | None = None,
+    ) -> None:
         """选择前进点卡片并确认路线。
 
         Args:
             index: 前进卡片在当前浮层中的索引。
         """
-        if index < len(ADVANCE_CARD_POSITIONS):
-            self._ctrl.click(*ADVANCE_CARD_POSITIONS[index])
-            time.sleep(0.5)
+        if not 0 <= index < len(ADVANCE_CARD_POSITIONS):
+            raise ValueError(f'前进卡片索引无效: {index}')
+        self.wait_for_overlay(
+            DecisiveOverlay.ADVANCE_CHOICE,
+            timeout=5.0,
+            interval=0.2,
+            advance_choice_roi=advance_choice_roi,
+        )
+        self._ctrl.click(*ADVANCE_CARD_POSITIONS[index])
+        time.sleep(0.5)
         self._ctrl.click(*CLICK_ADVANCE_CONFIRM)
         time.sleep(1.5)
 
@@ -513,10 +650,12 @@ class DecisiveMapController:
 
     def enter_formation(self) -> None:
         """点击右下角「编队」按钮。"""
-        # TODO: 改进鲁棒性
         time.sleep(1)
-        # 调试：检测当前页面状态
         screen = self._ctrl.screenshot()
+        if not check_decisive_map_page(screen):
+            _log.warning('[地图控制器] 点击编队前未识别到决战地图页，拒绝点击')
+            raise TimeoutError('点击编队前未识别到决战地图页')
+
         map_check = ImageChecker.template_exists(
             screen, Templates.Decisive.MAP_PAGE, confidence=0.85
         )
@@ -530,14 +669,36 @@ class DecisiveMapController:
         )
 
         config = NavConfig(timeout=10.0, interval=0.5, max_retries=3)
-        click_and_wait_for_page(
-            self._ctrl,
-            CLICK_FORMATION,
-            BattlePreparationPage.check_current_page,
-            config=config,
-            source='决战地图',
-            target='出征准备',
-        )
+        for attempt in range(2):
+            click_and_wait_for_page(
+                self._ctrl,
+                CLICK_FORMATION,
+                BattlePreparationPage.check_current_page,
+                config=config,
+                source='决战地图',
+                target='出征准备',
+            )
+            if self._wait_for_fleet_name():
+                return
+            if attempt == 0:
+                _log.warning('[地图控制器] 出征准备页未识别到决战舰队标题，返回地图后重试')
+                self.navigate_to_map_page()
+                time.sleep(0.5)
+
+        raise TimeoutError('进入决战出征准备页后未识别到「主力决战舰队」标题')
+
+    def _wait_for_fleet_name(self) -> bool:
+        """在固定 ROI 内确认决战编队标题。"""
+        for _ in range(3):
+            if ImageChecker.template_exists(
+                self._ctrl.screenshot(),
+                Templates.Decisive.FLEET_NAME,
+                roi=FLEET_NAME_ROI,
+                confidence=0.8,
+            ):
+                return True
+            time.sleep(0.2)
+        return False
 
     def click_sortie(self) -> None:
         """点击右下角「出征」按钮。"""
@@ -706,6 +867,8 @@ class DecisiveMapController:
         target: DecisiveOverlay,
         timeout: float = 5.0,
         interval: float = 0.3,
+        *,
+        advance_choice_roi: ROI | None = None,
     ) -> np.ndarray:
         """等待指定决战浮层出现并返回稳定截图。
 
@@ -721,10 +884,42 @@ class DecisiveMapController:
             TimeoutError: 超时仍未匹配到目标浮层。
         """
         tmpl = read_overlay_template(target)
+        confidence = (
+            0.70
+            if target is DecisiveOverlay.FLEET_ACQUISITION
+            else 0.80
+            if target is DecisiveOverlay.ADVANCE_CHOICE
+            else 0.85
+        )
         deadline = time.monotonic() + timeout
         while True:
             screen = self._ctrl.screenshot()
-            if ImageChecker.template_exists(screen, tmpl, confidence=0.85):
+            if target is DecisiveOverlay.ADVANCE_CHOICE:
+                rois = self._advance_choice_rois(advance_choice_roi)
+                matched = any(
+                    ImageChecker.template_exists(
+                        screen,
+                        tmpl,
+                        roi=roi,
+                        confidence=confidence,
+                    )
+                    for roi in rois
+                )
+            else:
+                roi = (
+                    FLEET_ACQUISITION_ROI
+                    if target is DecisiveOverlay.FLEET_ACQUISITION
+                    else CONFIRM_EXIT_ROI
+                    if target is DecisiveOverlay.CONFIRM_EXIT
+                    else None
+                )
+                matched = ImageChecker.template_exists(
+                    screen,
+                    tmpl,
+                    roi=roi,
+                    confidence=confidence,
+                )
+            if matched:
                 return screen
             if time.monotonic() >= deadline:
                 raise TimeoutError(f'等待 overlay {target.value} 超时 ({timeout}s)')

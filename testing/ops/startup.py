@@ -48,8 +48,9 @@ from loguru import logger
 
 from autowsgr.application.runtime.startup import restart_game
 from autowsgr.common.device import ADBController
-from autowsgr.common.system import ConfigManager, setup_logger
+from autowsgr.common.system import setup_logger
 from autowsgr.common.types import GameAPP
+from autowsgr.config import ConfigManager
 
 
 def _parse_args() -> argparse.Namespace:
