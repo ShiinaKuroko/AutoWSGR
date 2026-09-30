@@ -1,15 +1,14 @@
-"""模块功能：提供 common.vision 的唯一公共入口，完成截图、前识别和后识别。
+"""模块功能：实现截图原语和三种识别的重试执行。
 
 上层调用：
-- application、business、dispatch 和 server：确认当前状态或操作结果。
-- 调用方只提供识别数据和识别规则，不直接调用底层视觉算法。
+- service：公共识别入口委托这里的执行函数完成取图和重试。
 
 下层依赖：
 - operations 的模板匹配、OCR 和像素匹配组合能力。
 - dispatch.context.ContextHandle：提供设备服务和截图事实写入（仅类型注解使用）。
 
-本模块只编排「截图 → 识别 → 比对预期 → 重试」，不决定识别什么、不执行点击、
-不解析页面语义；识别数据、识别规则和预期全部由调用方提供。
+本模块只负责取图、执行识别和比对调用方给的预期，不定义公开入口、不决定识别什么、
+不执行点击、不解析页面语义。
 """
 
 from __future__ import annotations
@@ -62,64 +61,51 @@ class RecognitionResult[T]:
     frame: numpy.ndarray
 
 
-# -- 截图 ----------------------------------------------------------------------
+# -- 取图原语 ------------------------------------------------------------------
 
 
-def shot(ctx: ContextHandle) -> numpy.ndarray:
-    """截取当前画面并把这一帧写入任务上下文。
-
-    参数：
-        ctx: 提供设备服务和截图事实写入的统一 ContextHandle。
-
-    返回：
-        当前设备截图。
-    """
+def capture(ctx: ContextHandle) -> numpy.ndarray:
+    """截取当前画面并把这一帧写入任务上下文。"""
     frame = ctx.runtime.ctrl.screenshot()
     ctx.record_screenshot(frame)
     return frame
 
 
-# -- 前识别 --------------------------------------------------------------------
+# -- 三种识别的重试执行 --------------------------------------------------------
 
 
-def before_template(
+def run_template(
     ctx: ContextHandle,
     *,
     template: Template | Sequence[Template],
     roi: ROI | Sequence[ROI | None] | None = None,
     confidence: float = OPENCV_TEMPLATE_CONFIDENCE,
     min_matches: int = 1,
+    expect_present: bool = True,
     attempts: int = DEFAULT_RECOGNITION_ATTEMPTS,
     interval_seconds: float = DEFAULT_RECOGNITION_INTERVAL_SECONDS,
 ) -> RecognitionResult[TemplateMatchResult | tuple[TemplateMatchResult, ...]]:
-    """前识别：重试模板匹配，直到命中数量达到调用方预期。
-
-    参数：
-        ctx: 提供设备服务和截图事实写入的统一 ContextHandle。
-        template: 单个模板，或需要逐个匹配的一组模板。
-        roi: 搜索区域；多模板时可为共享区域或逐模板区域。
-        confidence: 期望的匹配置信度，模板分数达到它才算命中。
-        min_matches: 期望命中的模板数量；单模板只能为 1。
-        attempts: 最大识别次数。
-        interval_seconds: 两次识别之间的等待秒数。
-
-    返回：
-        ok 表示命中数量是否达到预期。
-    """
+    """重试模板匹配，直到命中数量达到（或低于）调用方的预期。"""
     required = _required_matches(template, min_matches)
+
+    def accept(value: TemplateMatchResult | tuple[TemplateMatchResult, ...]) -> bool:
+        """按调用方预期方向判断命中数量是否符合预期。"""
+        return _as_expected(_matched_count(value) >= required, expect_present)
+
     return _repeat(
         ctx,
         observe=lambda frame: _match_templates(frame, template, roi, confidence),
-        accept=lambda value: _matched_count(value) >= required,
+        accept=accept,
         attempts=attempts,
         interval_seconds=interval_seconds,
     )
 
 
-def before_ocr(
+def run_ocr(
     ctx: ContextHandle,
     *,
     expect: str,
+    expect_present: bool = True,
     roi: ROI | None = None,
     allowlist: str = '',
     recognition_profile: str = 'full',
@@ -127,24 +113,15 @@ def before_ocr(
     attempts: int = DEFAULT_RECOGNITION_ATTEMPTS,
     interval_seconds: float = DEFAULT_RECOGNITION_INTERVAL_SECONDS,
 ) -> RecognitionResult[list[TextDetection]]:
-    """前识别：重试 OCR，直到实际文本与调用方期望结果一致。
+    """重试 OCR，直到期望文本出现（或消失）。
 
-    OCR 实际文本与 expect 做直接相等比对；模糊匹配、去噪和纠错属于调用方的
-    后处理规则，不在本模块内实现。
-
-    参数：
-        ctx: 提供设备服务和截图事实写入的统一 ContextHandle。
-        expect: 调用方期望识别到的完整文本。
-        roi: OCR 搜索区域。
-        allowlist: 允许识别的字符集合。
-        recognition_profile: OCR 识别配置名称。
-        candidates: OCR 完整文本候选集合。
-        attempts: 最大识别次数。
-        interval_seconds: 两次识别之间的等待秒数。
-
-    返回：
-        ok 表示本次实际结果中是否存在与期望一致的文本。
+    实际文本与期望文本直接相等比对；模糊匹配、去噪和纠错属于调用方的后处理规则。
     """
+
+    def accept(value: list[TextDetection]) -> bool:
+        """按调用方预期方向判断期望文本是否出现。"""
+        return _as_expected(_text_found(value, expect), expect_present)
+
     return _repeat(
         ctx,
         observe=lambda frame: recognize_text(
@@ -154,34 +131,28 @@ def before_ocr(
             recognition_profile=recognition_profile,
             candidates=candidates,
         ),
-        accept=lambda value: _text_found(value, expect),
+        accept=accept,
         attempts=attempts,
         interval_seconds=interval_seconds,
     )
 
 
-def before_pixels(
+def run_pixels(
     ctx: ContextHandle,
     *,
     signature: PixelSignature | CompositePixelSignature,
+    expect_present: bool = True,
     roi: ROI | None = None,
     with_details: bool = False,
     attempts: int = DEFAULT_RECOGNITION_ATTEMPTS,
     interval_seconds: float = DEFAULT_RECOGNITION_INTERVAL_SECONDS,
 ) -> RecognitionResult[PixelMatchResult]:
-    """前识别：重试像素匹配，直到调用方给的签名判定命中。
+    """重试像素匹配，直到签名命中（或不再命中）。"""
 
-    参数：
-        ctx: 提供设备服务和截图事实写入的统一 ContextHandle。
-        signature: 调用方定义的像素规则或规则组合。
-        roi: 采样区域。
-        with_details: 是否要求结果包含逐规则详情。
-        attempts: 最大识别次数。
-        interval_seconds: 两次识别之间的等待秒数。
+    def accept(value: PixelMatchResult) -> bool:
+        """按调用方预期方向判断签名是否命中。"""
+        return _as_expected(bool(value.matched), expect_present)
 
-    返回：
-        ok 表示像素规则是否命中。
-    """
     return _repeat(
         ctx,
         observe=lambda frame: match_pixels(
@@ -190,91 +161,7 @@ def before_pixels(
             roi=roi,
             with_details=with_details,
         ),
-        accept=lambda value: bool(value.matched),
-        attempts=attempts,
-        interval_seconds=interval_seconds,
-    )
-
-
-# -- 后识别 --------------------------------------------------------------------
-
-
-def after_template(
-    ctx: ContextHandle,
-    *,
-    template: Template | Sequence[Template],
-    roi: ROI | Sequence[ROI | None] | None = None,
-    confidence: float = OPENCV_TEMPLATE_CONFIDENCE,
-    min_matches: int = 1,
-    attempts: int = DEFAULT_RECOGNITION_ATTEMPTS,
-    interval_seconds: float = DEFAULT_RECOGNITION_INTERVAL_SECONDS,
-) -> RecognitionResult[TemplateMatchResult | tuple[TemplateMatchResult, ...]]:
-    """后识别：重试模板匹配，直到命中数量低于预期，确认目标已经消失。
-
-    参数与 before_template 相同，判定方向相反。
-    """
-    required = _required_matches(template, min_matches)
-    return _repeat(
-        ctx,
-        observe=lambda frame: _match_templates(frame, template, roi, confidence),
-        accept=lambda value: _matched_count(value) < required,
-        attempts=attempts,
-        interval_seconds=interval_seconds,
-    )
-
-
-def after_ocr(
-    ctx: ContextHandle,
-    *,
-    expect: str,
-    roi: ROI | None = None,
-    allowlist: str = '',
-    recognition_profile: str = 'full',
-    candidates: Sequence[str] | None = None,
-    attempts: int = DEFAULT_RECOGNITION_ATTEMPTS,
-    interval_seconds: float = DEFAULT_RECOGNITION_INTERVAL_SECONDS,
-) -> RecognitionResult[list[TextDetection]]:
-    """后识别：重试 OCR，直到期望文本不再出现，确认操作已经生效。
-
-    参数与 before_ocr 相同，判定方向相反；文本比对规则仍为直接相等。
-    """
-    return _repeat(
-        ctx,
-        observe=lambda frame: recognize_text(
-            frame,
-            roi=roi,
-            allowlist=allowlist,
-            recognition_profile=recognition_profile,
-            candidates=candidates,
-        ),
-        accept=lambda value: not _text_found(value, expect),
-        attempts=attempts,
-        interval_seconds=interval_seconds,
-    )
-
-
-def after_pixels(
-    ctx: ContextHandle,
-    *,
-    signature: PixelSignature | CompositePixelSignature,
-    roi: ROI | None = None,
-    with_details: bool = False,
-    attempts: int = DEFAULT_RECOGNITION_ATTEMPTS,
-    interval_seconds: float = DEFAULT_RECOGNITION_INTERVAL_SECONDS,
-) -> RecognitionResult[PixelMatchResult]:
-    """后识别：重试像素匹配，直到签名不再命中，确认操作已经生效。
-
-    参数与 before_pixels 相同，判定方向相反。
-    """
-    return _repeat(
-        ctx,
-        observe=lambda frame: match_pixels(
-            frame,
-            signature,
-            roi=roi,
-            with_details=with_details,
-        ),
-        accept=lambda value: not value.matched,
+        accept=accept,
         attempts=attempts,
         interval_seconds=interval_seconds,
     )
@@ -296,7 +183,7 @@ def _repeat[T](
     value: T | None = None
     frame: numpy.ndarray | None = None
     for attempt in range(1, attempts + 1):
-        frame = shot(ctx)
+        frame = capture(ctx)
         value = observe(frame)
         if accept(value):
             return RecognitionResult(True, value, frame)
@@ -390,6 +277,11 @@ def _required_matches(
     return min_matches
 
 
+def _as_expected(found: bool, expect_present: bool) -> bool:
+    """按调用方的预期方向返回判断结果。"""
+    return found if expect_present else not found
+
+
 def _validate_retry_options(attempts: int, interval_seconds: float) -> None:
     """校验重试次数和等待间隔。"""
     if isinstance(attempts, bool) or not isinstance(attempts, int) or attempts < 1:
@@ -402,11 +294,8 @@ __all__ = [
     'DEFAULT_RECOGNITION_ATTEMPTS',
     'DEFAULT_RECOGNITION_INTERVAL_SECONDS',
     'RecognitionResult',
-    'after_ocr',
-    'after_pixels',
-    'after_template',
-    'before_ocr',
-    'before_pixels',
-    'before_template',
-    'shot',
+    'capture',
+    'run_ocr',
+    'run_pixels',
+    'run_template',
 ]
