@@ -25,11 +25,19 @@ Context 治理必须按同一条业务链路垂直推进：模块先提出实际
 旧文档中关于“暂不建立新的上下文状态源”的提案，在新的 dispatch Context 范围内
 不再适用；旧文档仍然保留作为迁移记录，不作为新实现契约。
 
-以下对象暂时视为旧实现或兼容对象：
+新模块统一接收 `ContextHandle`，不再分别接收 UI、runtime 和 dispatch 三套 Context。
+`ContextHandle` 同时提供只读 runtime 服务绑定和任务状态访问；`ContextTemplate` 仍只初始化
+任务状态，不保存 runtime 服务对象。
 
-- `application.runtime.context.GameContext`；
+以下对象不再作为新模块的兼容上下文入口：
+
+- `application.ui.controller.context.UIContext`；
+- `application.runtime.context.GameContext` / `RuntimeContext` 作为独立模块参数；
 - 旧处理器和旧调度器中的上下文字段；
 - 现有 `dispatch.image_context` 的模板缓存上下文。
+
+迁移期间，runtime composition root 可以把现有 `GameContext` 作为 runtime binding 的来源，
+但不得将它继续作为新模块的第二个上下文参数传入。
 
 `dispatch.image_context` 只负责模板加载缓存，不得直接扩展成任务上下文管理器。
 
@@ -51,15 +59,15 @@ Context 治理必须按同一条业务链路垂直推进：模块先提出实际
 
 ## 1. 模块目标
 
-`dispatch Context` 是跨模块、跨步骤运行状态的唯一持有者。
+`dispatch Context` 是新架构唯一的模块级上下文入口，同时承载运行时服务引用和跨模块任务状态。
 
 它只负责：
 
-1. 绑定当前任务身份；
-2. 按统一模板懒创建任务上下文；
-3. 提供有业务语义的读取和写入入口；
-4. 校验字段类型、生命周期和读写权限；
-5. 在任务结束时关闭并清理上下文。
+1. 绑定当前任务身份和 runtime service references；
+2. 按统一模板懒创建任务状态；
+3. 通过一个 `ContextHandle` 提供 runtime 服务与有业务语义的状态读写入口；
+4. 校验任务字段类型、生命周期和读写权限；
+5. 在任务结束时关闭任务状态并释放本作用域持有的 runtime 引用。
 
 它不负责：
 
@@ -70,9 +78,10 @@ Context 治理必须按同一条业务链路垂直推进：模块先提出实际
 - 重试、恢复或重启；
 - 错误处理决策；
 - 向其他模块发送隐式回调通知；
+- 创建、连接、断开或销毁设备、OCR 等 runtime 服务；
 - 保存无限量截图、OCR 历史或日志历史。
 
-上下文管理器是状态基础设施，不是业务处理器。
+上下文管理器是 runtime 引用和任务状态的访问基础设施，不是 runtime 服务工厂或业务处理器。
 
 ## 1.1 目录结构和文件职责
 
@@ -83,8 +92,9 @@ autowsgr/dispatch/
 ├── __init__.py                 # dispatch 稳定出口，不放上下文实现
 ├── context/
 │   ├── __init__.py             # ContextManager 和 context 门面出口
-│   ├── manager.py              # 作用域、懒创建、读取、写入、关闭
+│   ├── manager.py              # 作用域、runtime 引用绑定、懒创建、读取、写入、关闭
 │   ├── template.py             # ContextTemplate、字段规格和默认值
+│   ├── runtime.py              # RuntimeBindings 服务引用协议
 │   ├── state.py                # ContextManager 私有状态模型
 │   ├── errors.py               # dispatch Context 专用错误
 │   └── contracts/              # 按业务链路增量增加的跨模块状态契约
@@ -131,16 +141,14 @@ from autowsgr.dispatch.context import context
 ### 1.1.2 依赖方向
 
 ```text
-common.system
-      ↑
-dispatch.context ──→ 仅依赖标准库、system 错误和中性数据类型
-      ↑
-application / business / navigation / controller
+Runtime composition root ──创建并注入服务引用──→ dispatch Context scope
+dispatch.context ──标准库、system 错误、中性任务契约──→ ContextHandle
+application / business / navigation / controller ──只接收──→ ContextHandle
 ```
 
-`dispatch.context` 不得反向依赖 UI Controller、战斗模块、后勤模块、设备对象或 GUI。
-领域契约优先使用标准库数据类和中性类型，避免把上层业务类引入 Context 核心造成
-循环依赖。
+`dispatch.context` 可以持有 opaque runtime service references，但不得导入或构造具体的 UI、设备、
+OCR、配置或业务实现。runtime composition root 负责创建、连接和断开服务；dispatch 只绑定、访问和
+释放作用域中的引用。领域任务状态契约仍使用中性数据类型，避免循环依赖。
 
 ### 1.1.3 测试和文档位置
 
@@ -161,43 +169,50 @@ testing/dispatch/context/
 
 ### 2.1 ContextManager
 
-由 `dispatch` 层持有的唯一上下文管理器。它内部持有上下文状态，其他模块不得
-自行维护同一份跨模块状态副本。
+由 `dispatch` 层持有的唯一上下文管理器。它绑定 runtime service references，并内部持有任务状态；
+其他模块不得自行维护重复的 runtime Context 或跨模块状态副本。
 
 ### 2.2 ContextScope
 
 一次任务链路的作用域标识。生产代码使用 `Request.request_id` 作为任务身份，
 不得由页面模块重新生成任务 ID。
 
-绑定作用域只记录“当前正在执行哪个任务”，不代表已经创建了完整上下文。
+绑定作用域记录“当前正在执行哪个任务”以及该执行需要的 RuntimeBindings，不代表已经创建了完整任务状态。
 
 ### 2.3 TaskContext
 
-按需创建的任务状态。它的生命周期从第一次请求创建开始，到任务关闭为止。
+按需创建的任务状态。它的生命周期从第一次请求创建开始，到任务关闭为止；它不保存 runtime service
+references，这些引用由 ContextScope 单独持有。
 
 ### 2.4 ContextHandle
 
-模块取得的上下文访问句柄。句柄只能通过 `ContextManager` 取得，不暴露内部字典、
-内部状态对象或可替换的状态引用。
+新模块唯一接收的上下文访问句柄。句柄通过 `ContextManager` 取得，提供只读的 `.runtime` service bundle
+和任务状态的语义化读写入口；不得暴露内部字典、内部状态对象或可替换的引用。
 
 ### 2.5 ContextTemplate
 
 由 dispatch 统一维护的不可变初始化模板，定义字段、类型、默认值、生命周期和
 所有者。模块不得临时注册字段或传入自己的上下文结构。
 
+### 2.6 RuntimeBindings
+
+由 runtime composition root 组装的类型化、不可变服务引用集合。`bind()` 将其绑定到
+ContextScope，`ContextHandle.runtime` 在作用域内返回该 bundle。dispatch 按 opaque 类型持有，
+不导入 runtime 所有者中的具体服务类。
+
 ## 3. 持有关系
 
 ```text
 Dispatcher / Processor
-        │ 持有
+        │ 取得 runtime services 并绑定任务
         ▼
 ContextManager
-        │ 绑定当前 ContextScope
+        │ 绑定 ContextScope(runtime references + task identity/template)
         ▼
-TaskContext（第一次 request 时懒创建）
-        │ 返回
+TaskContext（第一次 request 时懒创建，仅任务事实）
+        │ 与 runtime references 共同提供
         ▼
-ContextHandle
+ContextHandle(runtime + task state API)
         ├── Navigator
         ├── UI Controller
         ├── Recognition
@@ -219,6 +234,7 @@ ContextHandle
 with context.bind(
     request.request_id,
     template=ContextTemplate.for_task(request.task_type),
+    runtime=runtime_bindings,
 ):
     run_task()
 ```
@@ -227,6 +243,7 @@ with context.bind(
 
 - 任务 ID 非空且稳定；
 - 只绑定作用域，不提前创建完整上下文；
+- 有 runtime 服务需求的任务必须绑定对应 RuntimeBindings；不在 dispatch 内构造或销毁服务；
 - 同一执行作用域内不得绑定另一个不同任务；
 - 退出作用域时恢复上一级作用域，不遗留当前任务身份。
 
@@ -250,14 +267,15 @@ ctx = context.request()
 
 ### 4.3 关闭上下文
 
-任务结束时由 dispatch 统一关闭：
+任务作用域退出时由 `ContextManager.bind()` 统一关闭和释放引用：
 
 ```python
-try:
+with context.bind(task_id, template=template, runtime=runtime):
     run_task()
-finally:
-    context.close()
 ```
+
+异常、停止和正常返回都会执行 `bind()` 的 finally 清理。`context.close()` 仅用于任务需要在
+作用域内提前关闭状态的情况，不替代退出绑定作用域。
 
 关闭后：
 
@@ -290,7 +308,27 @@ ContextTemplate 至少需要描述：
 
 ## 6. 第一阶段字段边界
 
-第一阶段只允许收集跨模块编排确实需要的状态：
+ContextHandle 统一提供两类内容，但必须分开持有：
+
+| 内容 | 位置 | 约束 |
+| --- | --- | --- |
+| RuntimeBindings | ContextScope，由 runtime composition root 注入 | 只保存运行时服务引用，不复制或管理其生命周期 |
+| TaskContext | 按 `ContextTemplate` 懒创建 | 只保存跨模块、跨步骤的任务事实 |
+
+RuntimeBindings 的字段按当前真实消费者增量定义，例如设备控制器、配置、OCR 引擎或
+其他稳定运行时服务。dispatch core 只持有 opaque bundle，不导入这些服务的具体实现。
+
+旧 UIContext 字段按职责迁移，不整体复制为 TaskContext 字段：
+
+| 旧字段 | 新 Context 归属 |
+| --- | --- |
+| `ctrl`、`config`、`ocr`、`ship_ocr` | `ContextHandle.runtime` 中的 runtime service references |
+| `record_screenshot()`、`latest_screenshot` | `ContextHandle.record_screenshot()` / `read_latest_screenshot()` |
+| `current_page` | `ContextHandle.set_current_page()` / `read_current_page()` |
+| `ui_stack` | 旧 navigation stack 保持旧实现边界；新路由使用显式页面和路由事实 |
+| `daily_overlay_checked` | 仅在真实跨步骤读取者和唯一所有者确认后增加任务字段 |
+
+TaskContext 第一阶段只允许收集跨模块编排确实需要的状态：
 
 | 字段类别 | 典型内容 | 主要写入者 |
 | --- | --- | --- |
@@ -301,9 +339,8 @@ ContextTemplate 至少需要描述：
 | 任务状态 | running、paused、stopped、completed、failed | dispatch |
 | 错误事件 | 错误类型、发生步骤、可供上层处理的事实 | dispatch |
 
-以下内容第一阶段不得放入新的 dispatch Context：
+以下内容不得放入 TaskContext 或 ContextTemplate：
 
-- 设备对象、OCR 引擎、视觉引擎和配置对象；
 - 页面坐标、模板路径和页面私有常量；
 - Controller 的私有缓存；
 - 模块内部中间变量；
@@ -311,12 +348,16 @@ ContextTemplate 至少需要描述：
 - 跨任务业务累计数据；
 - GUI 状态和持久化用户配置。
 
-稳定运行时资源暂时沿用现有注入关系；迁移到新的运行时 Context 必须另立契约，
-不得借机把所有对象塞入 TaskContext。
+设备对象、OCR 引擎和配置对象可以作为 RuntimeBindings 的只读引用通过 ContextHandle 提供，
+但不得复制进 TaskContext，也不得由 ContextManager 构造、连接、断开或销毁。新模块只接收
+ContextHandle，不再把 GameContext、RuntimeContext 或 UIContext 作为第二个上下文参数传入。
 
 ## 7. 字段所有权
 
 上下文只保存事实，不代替事实的产生者做决定。
+
+RuntimeBindings 与任务事实分开：runtime composition root 是服务引用的唯一创建者和绑定者；
+ContextManager 负责作用域内引用访问，不改变服务状态或代替服务执行操作。
 
 | 事实 | 产生者 | Context 的职责 |
 | --- | --- | --- |
@@ -334,14 +375,15 @@ Navigator 只能写入自己确认过的页面状态。
 
 ## 8. 公共接口边界
 
-新模块的正式入口暂定为 `autowsgr.dispatch.context`。第一阶段只允许出现以下
-语义类别的入口：
+新模块的正式入口暂定为 `autowsgr.dispatch.context`。ContextHandle 是唯一模块上下文，
+第一阶段只允许出现以下语义类别的入口：
 
 ```text
-bind(scope_id, template)
+bind(scope_id, template, runtime)
 request()
 close()
 
+ctx.runtime
 record_screenshot(...)
 read_latest_screenshot()
 read_current_page()
@@ -353,7 +395,8 @@ record_result(...)
 record_error(...)
 ```
 
-实际 Python 名称以后以实现为准，但必须保持上述业务语义。
+`ctx.runtime` 返回本作用域绑定的只读 RuntimeBindings；具体字段由 composition root 的
+runtime contract 定义。实际 Python 名称以后以实现为准，但必须保持上述所有权和生命周期语义。
 
 禁止提供以下形式的生产入口：
 
@@ -423,15 +466,16 @@ dispatch Context 的实现与业务模块治理属于同一个交付切片，不
 
 第一条联调链路按以下顺序迁移：
 
-1. dispatch 在任务入口绑定 `Request.request_id`；
-2. Navigator 首次调用 `context.request()`，验证懒创建；
+1. runtime composition root 创建服务，再由 dispatch 在任务入口绑定 `Request.request_id`、模板和 RuntimeBindings；
+2. Navigator 首次调用 `context.request()`，验证统一 ContextHandle 和任务状态懒创建；
 3. page_checker 返回页面识别结果，Navigator 记录确认后的页面；
 4. UI Controller 返回操作结果，dispatch 记录结果；
-5. 任务正常、异常、停止三条路径都执行 `context.close()`；
-6. 其他模块只适配新 Context 入口，不把新字段写入旧 `GameContext`。
+5. 任务正常、异常、停止三条路径都退出 `context.bind()`，由统一 finally 清理状态和 runtime 引用；
+6. 新模块只接收 ContextHandle，不再单独接收 UIContext、RuntimeContext 或 GameContext；
+   旧 GameContext 仅可在 composition root 作为服务引用来源。
 
-现有 `GameContext` 在迁移期可以作为兼容参数存在，但新代码不得继续扩展它来
-承载新的跨模块状态。完成迁移后再单独处理旧对象的删除或兼容层清理。
+ContextManager 关闭任务状态并释放作用域持有的服务引用，但不负责 disconnect、OCR 销毁或配置清理；
+这些资源仍由 runtime composition root 按各自生命周期释放。
 
 ## 12. 每条链路的验收门禁
 
@@ -444,6 +488,9 @@ ContextManager 实现至少必须通过以下检查：
 - 异常退出仍然清理作用域；
 - 不同任务不能覆盖当前作用域；
 - 字段类型和写入权限得到校验；
+- RuntimeBindings 只能在绑定作用域内读取，未绑定或关闭后访问必须失败；
+- ContextManager 关闭时释放服务引用但不调用服务的资源清理方法；
+- RuntimeBindings 与 ContextTemplate/TaskContext 状态存储互相隔离；
 - ContextManager 不调用 Navigator、Controller 或业务层；
 - 新模块没有直接访问内部字典；
 - `dispatch.image_context` 仍只负责模板缓存。

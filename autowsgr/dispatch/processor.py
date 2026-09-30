@@ -29,6 +29,7 @@ import yaml
 from autowsgr.common.system import ManualRepairRequiredError, TaskPaused, TaskStopped
 from autowsgr.common.system.file_utils import load_yaml
 from autowsgr.common.system.logger import get_logger
+from autowsgr.dispatch.context import ContextTemplate, RuntimeBindings, context
 from autowsgr.dispatch.image_context import image_context
 from autowsgr.dispatch.registry import build_executor
 
@@ -272,6 +273,12 @@ class Processor:
         hard_retries: int = 1,
     ) -> None:
         self._ctx = ctx
+        self._runtime = RuntimeBindings(
+            ctrl=ctx.ctrl,
+            config=ctx.config,
+            ocr=ctx.ocr,
+            ship_ocr=ctx.ship_ocr,
+        )
         self._heap: list[tuple[int, int, int, Request]] = []
         self._seq = 0
         self._lock = threading.Lock()
@@ -349,7 +356,12 @@ class Processor:
                     task_type=request.task_type,
                 )
                 try:
-                    outcomes.extend(self._run_request(request))
+                    with context.bind(
+                        request.request_id,
+                        template=ContextTemplate.for_task(request.task_type),
+                        runtime=self._runtime,
+                    ):
+                        outcomes.extend(self._run_request(request))
                 finally:
                     with self._lock:
                         self._current_request = None

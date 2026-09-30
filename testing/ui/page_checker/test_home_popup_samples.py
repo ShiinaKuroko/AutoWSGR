@@ -8,7 +8,9 @@ import cv2
 import numpy as np
 import pytest
 
+from autowsgr.application.ui.controller.home.main_page import constants
 from autowsgr.application.ui.controller.home.main_page import recognition
+from autowsgr.common import vision
 
 
 _SAMPLE_ROOT = Path(__file__).parent / 'data' / 'home'
@@ -31,7 +33,20 @@ def _load_sample(name: str) -> np.ndarray:
     ],
 )
 def test_home_popup_sample_recognition(name: str, expected: recognition.OverlayKind) -> None:
-    """Static debug samples must identify the expected homepage overlay."""
-    result = recognition.read_overlay(_load_sample(name))
+    """Static samples produce template results that identify the expected overlay."""
+    screen = _load_sample(name)
+    matches = [
+        vision.match_template(
+            screen,
+            recognition.load_template(template),
+            roi=roi,
+        )
+        for template, roi in (
+            (recognition.NEWS_TEMPLATE, constants.NEWS_TEXT_ROI),
+            (recognition.REWARD_TEMPLATE, constants.REWARD_TEXT_ROI),
+            (recognition.CONFIRM_TEMPLATE, constants.REWARD_CONFIRM_BUTTON_ROI),
+        )
+    ]
+    result = recognition.read_overlay(matches)
 
     assert result is expected

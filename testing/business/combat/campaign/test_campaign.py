@@ -548,7 +548,9 @@ def test_campaign_executor_keeps_page_for_next_count(monkeypatch: pytest.MonkeyP
 
 
 def test_processor_marks_continuous_campaign_page_reuse() -> None:
-    processor = Processor(SimpleNamespace())
+    processor = Processor(
+        SimpleNamespace(ctrl=object(), config=object(), ocr=None, ship_ocr=None),
+    )
     request = Request(
         task_type='campaign',
         params={'campaign_name': '简单驱逐'},
@@ -563,7 +565,9 @@ def test_processor_marks_continuous_campaign_page_reuse() -> None:
 
 
 def test_processor_marks_next_campaign_request_for_page_reuse() -> None:
-    processor = Processor(SimpleNamespace())
+    processor = Processor(
+        SimpleNamespace(ctrl=object(), config=object(), ocr=None, ship_ocr=None),
+    )
     current = Request(task_type='campaign', params={'campaign_name': '简单驱逐'})
     following = Request(task_type='campaign', params={'campaign_name': '简单航母'})
     processor._current_request = current

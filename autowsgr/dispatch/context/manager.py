@@ -16,6 +16,7 @@ if TYPE_CHECKING:
 
     import numpy as np
 
+    from .runtime import RuntimeBindings
     from .template import ContextTemplate
 
 
@@ -24,6 +25,7 @@ class _Binding:
     manager: ContextManager
     task_id: str
     template: ContextTemplate
+    runtime: RuntimeBindings | None
 
 
 _ACTIVE_BINDING: ContextVar[_Binding | None] = ContextVar('_ACTIVE_BINDING', default=None)
@@ -45,6 +47,12 @@ class ContextHandle:
     def task_type(self) -> str:
         """Return the task type from the initialization template."""
         return self._state().template.task_type
+
+    @property
+    def runtime(self) -> RuntimeBindings:
+        """Return runtime service references bound to the active task scope."""
+        self._state()
+        return self._manager._require_runtime(self._task_id)
 
     def record_screenshot(self, screen: np.ndarray) -> None:
         """Store a private copy of the latest RGB screenshot."""
@@ -104,14 +112,20 @@ class ContextManager:
         self._states: dict[str, TaskContextState] = {}
 
     @contextmanager
-    def bind(self, task_id: str, *, template: ContextTemplate) -> Iterator[None]:
-        """Bind a task scope without creating its state yet."""
+    def bind(
+        self,
+        task_id: str,
+        *,
+        template: ContextTemplate,
+        runtime: RuntimeBindings | None = None,
+    ) -> Iterator[None]:
+        """Bind task facts and optional runtime service references without creating state."""
         task_id = _require_text(task_id, 'task_id')
         active = _ACTIVE_BINDING.get()
         if active is not None:
             raise ContextScopeError(f'已有活动任务作用域: {active.task_id}')
 
-        token = _ACTIVE_BINDING.set(_Binding(self, task_id, template))
+        token = _ACTIVE_BINDING.set(_Binding(self, task_id, template, runtime))
         try:
             yield
         finally:
@@ -143,6 +157,15 @@ class ContextManager:
         if state is None:
             raise ContextClosedError(f'任务上下文尚未创建: {binding.task_id}')
         state.closed = True
+        _ACTIVE_BINDING.set(_Binding(self, binding.task_id, binding.template, None))
+
+    def _require_runtime(self, task_id: str) -> RuntimeBindings:
+        binding = _ACTIVE_BINDING.get()
+        if binding is None or binding.manager is not self or binding.task_id != task_id:
+            raise ContextNotBoundError('当前执行流没有绑定 runtime service references')
+        if binding.runtime is None:
+            raise ContextFieldError('当前任务作用域未绑定 runtime service references')
+        return binding.runtime
 
     def _require_state(self, task_id: str) -> TaskContextState:
         state = self._states.get(task_id)

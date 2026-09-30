@@ -88,11 +88,12 @@ worktree 项目偏好；只有在超级用户模式已按全局协议被用户�
 
 遵守 `docs/features/[规范]dispatch-context临时规范.md`：
 
-- `dispatch Context` 是跨步骤状态的唯一持有者；
-- 业务模块通过 `autowsgr.dispatch.context` 的公开出口访问；
+- 新模块只接收 `autowsgr.dispatch.context` 的 `ContextHandle`；通过 `ctx.runtime` 访问 runtime 服务引用，通过句柄方法读写任务事实；
+- runtime composition root 创建并清理设备、配置和 OCR 服务，dispatch 只绑定和暴露引用，不构造或断开服务；
+- `ContextTemplate` / `TaskContext` 只保存跨步骤事实，不保存 runtime 服务对象；
 - 字段必须有真实调用方、唯一写入者、读取者和生命周期；
 - 不动态注册字段，不直接访问 `manager.py`、`state.py` 或内部字典；
-- 不创建第二套 Context、进程级任务状态或静默自动重建；
+- 不向新模块单独传入 `UIContext`、`GameContext` 或 `RuntimeContext`，不创建第二套 Context、进程级任务状态或静默自动重建；
 - 新字段与业务切片同步增加，并同步字段表和调用关系。
 
 ## 6. Common 调用边界

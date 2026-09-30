@@ -28,13 +28,12 @@ from typing import TYPE_CHECKING
 
 from autowsgr.application.runtime.initialize import updater
 from autowsgr.application.runtime.types import GameAPP
-from autowsgr.application.ui import recognition_flow
-from autowsgr.application.ui.controller.home.main_page import HomePage
 from autowsgr.application.ui.navigation import goto_page
 from autowsgr.application.ui.navigation.page_checker.home import check_home_page
 from autowsgr.application.ui.navigation.service import NavigationError
 from autowsgr.application.ui.navigation.types import PageName
 from autowsgr.common.system.logger import get_logger
+from autowsgr.dispatch.context import context
 
 
 if TYPE_CHECKING:
@@ -119,13 +118,9 @@ def _package_of(ctx: GameContext) -> str:
 
 def _is_on_home_page(ctx: GameContext) -> bool:
     """处理主页浮层后，用最新截图确认主页状态。"""
-    HomePage(ctx).dismiss_current_overlay()
+    matched = check_home_page(context.request())
     ctx.daily_overlay_checked = True
-    screen = recognition_flow.capture_frame(
-        ctx.ctrl,
-        record_screenshot=ctx.record_screenshot,
-    )
-    return check_home_page(screen)
+    return matched
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

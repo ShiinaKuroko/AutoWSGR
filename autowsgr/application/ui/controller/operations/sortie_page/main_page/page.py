@@ -33,7 +33,6 @@ if TYPE_CHECKING:
     import numpy as np
 
     from autowsgr.application.ui.controller.context import UIContext
-    from autowsgr.application.ui.navigation.types import PageMatch
 
 
 _log = get_logger('ui.sortie.main_page')
@@ -84,20 +83,6 @@ class SortiePage:
         self._ctx = ctx
         self._ctrl = ctx.ctrl
         self._ocr = ctx.ocr
-
-    # ── 页面检查 ─────────────────────────────────────────────────────────────────────
-
-    @staticmethod
-    def check_current_page(screen: np.ndarray) -> PageMatch:
-        """判断截图是否已经进入 sortie_page 页面壳。
-
-        Args:
-            screen: RGB 截图。
-
-        Returns:
-            sortie_page 顶部标签栏的页面匹配结果。
-        """
-        return recognition.check_tabbed_page(screen, TabbedPageType.MAP.value)
 
     @staticmethod
     def check_expedition_notification(screen: np.ndarray) -> bool:

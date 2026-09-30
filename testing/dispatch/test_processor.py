@@ -20,6 +20,7 @@ from autowsgr.dispatch import (
     TaskStopped,
     priority_for,
 )
+from autowsgr.dispatch.context import ContextClosedError, ContextManager
 
 
 if TYPE_CHECKING:
@@ -35,6 +36,10 @@ class _Executor:
         if self.error is not None:
             raise self.error
         return self.result
+
+
+def _runtime_context() -> SimpleNamespace:
+    return SimpleNamespace(ctrl=object(), config=object(), ocr=None, ship_ocr=None)
 
 
 def test_priority_policy_is_bounded_and_ordered() -> None:
@@ -144,7 +149,7 @@ def test_processor_orders_requests_and_expands_count(
         return _Executor(result=task_type)
 
     monkeypatch.setattr(processor_module, 'build_executor', build)
-    processor = Processor(SimpleNamespace())
+    processor = Processor(_runtime_context())
     repeated = Request(task_type='normal_fight', count=2)
     processor.submit(repeated)
     processor.submit(Request(task_type='exercise'))
@@ -179,7 +184,7 @@ def test_processor_stops_count_after_terminal_executor_event(
         'build_executor',
         lambda *_args, **kwargs: TerminalExecutor(on_event=kwargs['on_event']),
     )
-    processor = Processor(SimpleNamespace())
+    processor = Processor(_runtime_context())
     request = Request(
         task_type='campaign',
         params={'campaign_name': '困难航母'},
@@ -211,7 +216,7 @@ def test_processor_scopes_task_ship_name_aliases(monkeypatch: pytest.MonkeyPatch
         return AliasAwareExecutor()
 
     monkeypatch.setattr(processor_module, 'build_executor', build)
-    processor = Processor(SimpleNamespace())
+    processor = Processor(_runtime_context())
     processor.submit(
         Request(
             task_type='exercise',
@@ -245,7 +250,7 @@ def test_interrupt_requeues_paused_request_before_continuing(
         return _Executor(result=task_type)
 
     monkeypatch.setattr(processor_module, 'build_executor', build)
-    processor = Processor(SimpleNamespace(), on_event=on_event)
+    processor = Processor(_runtime_context(), on_event=on_event)
     request = Request(task_type='exercise')
     processor.submit(request)
 
@@ -273,7 +278,7 @@ def test_higher_priority_waiting_request_pauses_at_safe_event(
         return _Executor(result=task_type)
 
     monkeypatch.setattr(processor_module, 'build_executor', build)
-    processor = Processor(SimpleNamespace())
+    processor = Processor(_runtime_context())
     request = Request(task_type='exercise')
     processor.submit(request)
 
@@ -300,7 +305,7 @@ def test_interrupt_at_max_priority_keeps_insertion_precedence(
         return _Executor(result=task_type)
 
     monkeypatch.setattr(processor_module, 'build_executor', build)
-    processor = Processor(SimpleNamespace())
+    processor = Processor(_runtime_context())
     request = Request(task_type='normal_fight', priority=MAX_PRIORITY)
     processor.submit(request)
 
@@ -330,7 +335,7 @@ def test_processor_retries_soft_then_hard_and_reports(
 
     monkeypatch.setattr(processor_module, 'build_executor', build)
     processor = Processor(
-        SimpleNamespace(),
+        _runtime_context(),
         on_event=lambda event, **data: events.append((event, data)),
         recover=lambda: recoveries.append('recovered'),
         soft_retries=1,
@@ -356,7 +361,7 @@ def test_processor_stop_does_not_construct_executor(
     stop.set()
     build = MagicMock()
     monkeypatch.setattr(processor_module, 'build_executor', build)
-    processor = Processor(SimpleNamespace(), stop=stop)
+    processor = Processor(_runtime_context(), stop=stop)
     request = Request(task_type='exercise')
     processor.submit(request)
 
@@ -374,7 +379,7 @@ def test_task_stopped_exception_is_a_terminal_outcome(
         'build_executor',
         lambda *_args, **_kwargs: _Executor(error=TaskStopped()),
     )
-    processor = Processor(SimpleNamespace())
+    processor = Processor(_runtime_context())
     request = Request(task_type='exercise')
     processor.submit(request)
 
@@ -396,7 +401,7 @@ def test_manual_repair_exception_is_terminal_without_retries(
 
     monkeypatch.setattr(processor_module, 'build_executor', build)
     processor = Processor(
-        SimpleNamespace(),
+        _runtime_context(),
         on_event=lambda event, **_data: events.append(event),
         soft_retries=1,
         hard_retries=1,
@@ -410,3 +415,35 @@ def test_manual_repair_exception_is_terminal_without_retries(
     assert attempts == 1
     assert 'retry' not in events
     assert request.progress.get('_completed', 0) == 0
+
+
+def test_processor_binds_runtime_services_to_dispatch_context(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    manager = ContextManager()
+    monkeypatch.setattr(processor_module, 'context', manager)
+    runtime = SimpleNamespace(ctrl=object(), config=object(), ocr=None, ship_ocr=None)
+    handles = []
+
+    class ContextAwareExecutor:
+        def run(self) -> str:
+            handle = manager.request()
+            assert handle.runtime.ctrl is runtime.ctrl
+            assert handle.runtime.config is runtime.config
+            assert handle.runtime.ocr is runtime.ocr
+            assert handle.runtime.ship_ocr is runtime.ship_ocr
+            handles.append(handle)
+            return 'done'
+
+    monkeypatch.setattr(
+        processor_module,
+        'build_executor',
+        lambda *_args, **_kwargs: ContextAwareExecutor(),
+    )
+    processor = Processor(runtime)
+    processor.submit(Request(task_type='reward_check'))
+
+    assert processor.run_pending()[0][0] == 'done'
+    assert len(handles) == 1
+    with pytest.raises(ContextClosedError):
+        _ = handles[0].runtime

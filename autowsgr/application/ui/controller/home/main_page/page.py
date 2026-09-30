@@ -23,8 +23,7 @@ from autowsgr.dispatch.context import HomeCheckObservation
 
 
 if TYPE_CHECKING:
-    from autowsgr.application.ui.controller.context import UIContext
-    from autowsgr.dispatch.context import ContextHandle
+    from autowsgr.dispatch.context import ContextHandle, RuntimeBindings
 
 
 _log = get_logger('ui.home.main_page')
@@ -67,7 +66,7 @@ _TARGET_PAGES: dict[Target, PageName] = {
 class HomePage:
     """负责主页浮窗流程和页面导航的控制器。"""
 
-    def __init__(self, ctx: UIContext) -> None:
+    def __init__(self, ctx: RuntimeBindings) -> None:
         self._ctx = ctx
         self._ctrl = ctx.ctrl
 
@@ -104,15 +103,29 @@ class HomePage:
         if record_screenshot is None:
             raise RuntimeError('主页识别流程必须绑定 Context 截图记录回调')
 
+        overlay_templates = (
+            recognition.load_template(recognition.NEWS_TEMPLATE),
+            recognition.load_template(recognition.REWARD_TEMPLATE),
+            recognition.load_template(recognition.CONFIRM_TEMPLATE),
+        )
+        overlay_rois = (
+            constants.NEWS_TEXT_ROI,
+            constants.REWARD_TEXT_ROI,
+            constants.REWARD_CONFIRM_BUTTON_ROI,
+        )
+
         try:
             # 1. 按浮窗优先级识别当前页面状态。
             for step in range(1, _OVERLAY_FLOW_STEPS + 1):
                 overlay = recognition_flow.recognize_with_retry(
                     self._ctrl,
-                    recognition.read_overlay_match,
+                    mode=recognition_flow.RecognitionMode.OPENCV,
+                    template=overlay_templates,
+                    roi=overlay_rois,
                     record_screenshot=record_screenshot,
                 )
-                if not overlay.satisfied:
+                overlay_match = recognition.read_overlay_match(overlay.value)
+                if not overlay.satisfied or overlay_match is None:
                     _log.info(
                         '[UI] 主页 → 处理浮窗：步骤={}，结果=无浮窗，已处理={}',
                         step,
@@ -132,11 +145,12 @@ class HomePage:
                 _log.debug(
                     '[UI] 主页 → 浮窗识别：步骤={}，类型={}，结果=已识别',
                     step,
-                    overlay.value.kind.value if overlay.value is not None else 'unknown',
+                    overlay_match.kind.value,
                 )
                 workflow.handle_overlay(
                     self._ctrl,
-                    overlay,
+                    overlay_match,
+                    overlay.frame,
                     record_screenshot=record_screenshot,
                 )
         except ApplicationError as error:

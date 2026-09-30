@@ -7,9 +7,11 @@ import pytest
 
 from autowsgr.dispatch.context import (
     ContextClosedError,
+    ContextFieldError,
     ContextManager,
     ContextNotBoundError,
     ContextTemplate,
+    RuntimeBindings,
 )
 
 
@@ -57,3 +59,25 @@ def test_context_state_does_not_cross_task_scopes() -> None:
 
     with manager.bind('task-b', template=template):
         assert manager.request().read_current_page() is None
+
+
+def test_runtime_bindings_are_scope_bound() -> None:
+    manager = ContextManager()
+    template = ContextTemplate.for_task('navigation_checker')
+    runtime = RuntimeBindings(ctrl=object(), config=object(), ocr=None, ship_ocr=None)
+
+    with manager.bind('runtime-task', template=template, runtime=runtime):
+        handle = manager.request()
+        assert handle.runtime is runtime
+        assert handle.runtime.ctrl is runtime.ctrl
+        manager.close()
+        with pytest.raises(ContextClosedError):
+            _ = handle.runtime
+
+    with (
+        manager.bind('task-without-runtime', template=template),
+        pytest.raises(
+            ContextFieldError,
+        ),
+    ):
+        _ = manager.request().runtime

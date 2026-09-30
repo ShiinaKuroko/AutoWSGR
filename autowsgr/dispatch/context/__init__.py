@@ -5,6 +5,7 @@ from __future__ import annotations
 from .contracts.navigation import HomeCheckObservation
 from .errors import ContextClosedError, ContextError, ContextFieldError, ContextNotBoundError
 from .manager import ContextHandle, ContextManager
+from .runtime import RuntimeBindings
 from .template import ContextTemplate
 
 
@@ -20,5 +21,6 @@ __all__ = [
     'ContextNotBoundError',
     'ContextTemplate',
     'HomeCheckObservation',
+    'RuntimeBindings',
     'context',
 ]

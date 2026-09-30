@@ -80,7 +80,7 @@ from autowsgr.application.ui.controller.home_page import constants, recognition
 
 
 if TYPE_CHECKING:
-    from autowsgr.application.ui.context import UIContext
+    from autowsgr.dispatch.context import ContextHandle
 
 
 _log = get_logger('ui.home_page')
@@ -94,9 +94,9 @@ HOME_READY_TIMEOUT = 5.0  # 等待主页稳定的最长秒数。
 class HomePage:
     """母港主页内的页面操作控制器。"""
 
-    def __init__(self, ctx: UIContext) -> None:
+    def __init__(self, ctx: ContextHandle) -> None:
         self._ctx = ctx
-        self._ctrl = ctx.ctrl
+        self._ctrl = ctx.runtime.ctrl
 
     # ── 页面识别 ────────────────────────────────────────────────────────────
 
@@ -186,7 +186,7 @@ Ruff/isort 负责组内排序。不得手工制造与自动排序冲突的分组
 
 - 禁止使用 import ... as ... 或 from ... import ... as ... 把包、模块、类、函数或常量
   改成兼容名、缩写名或语义别名。
-- 禁止把 UIContext 写成 GameContext、把 home 写成 main，或用旧类名包装新类名。
+- 禁止把 ContextHandle 改名为 UIContext、GameContext 或 RuntimeContext 等旧类型，或用旧类名包装新类名。
 - 同名冲突必须通过导入所属模块并使用模块限定名解决，不得再发明对象别名。
 - 兼容旧名称必须建立职责明确、可单独删除的适配模块或兼容入口；不得用导入别名
   或包级转出代替兼容层。
