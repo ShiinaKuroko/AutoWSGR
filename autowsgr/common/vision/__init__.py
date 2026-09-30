@@ -4,12 +4,19 @@
 
 直接依赖：service 入口及其下层视觉操作和基础执行器。
 
-边界：不承载视觉算法实现、业务识别规则、设备截图或页面流程。
+边界：只导出稳定视觉入口和识别结果模型；识别数据、识别规则和预期由调用方提供，不实现业务识别规则或页面流程。
 """
 
 from __future__ import annotations
 
 from autowsgr.common.vision.service import (
+    RecognitionResult,
+    after_ocr,
+    after_pixels,
+    after_template,
+    before_ocr,
+    before_pixels,
+    before_template,
     match_pixels,
     match_template,
     match_templates,
@@ -20,10 +27,18 @@ from autowsgr.common.vision.service import (
     prepare_text,
     recognize_prepared_text,
     recognize_text,
+    shot,
 )
 
 
 __all__ = [
+    'RecognitionResult',
+    'after_ocr',
+    'after_pixels',
+    'after_template',
+    'before_ocr',
+    'before_pixels',
+    'before_template',
     'match_pixels',
     'match_template',
     'match_templates',
@@ -34,4 +49,5 @@ __all__ = [
     'prepare_text',
     'recognize_prepared_text',
     'recognize_text',
+    'shot',
 ]

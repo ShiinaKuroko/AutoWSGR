@@ -143,7 +143,7 @@ from autowsgr.dispatch.context import context
 ```text
 Runtime composition root ──创建并注入服务引用──→ dispatch Context scope
 dispatch.context ──标准库、system 错误、中性任务契约──→ ContextHandle
-application / business / navigation / controller ──只接收──→ ContextHandle
+application / business / navigation / controller / common.vision ──只接收──→ ContextHandle
 ```
 
 `dispatch.context` 可以持有 opaque runtime service references，但不得导入或构造具体的 UI、设备、

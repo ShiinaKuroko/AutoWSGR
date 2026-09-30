@@ -9,9 +9,12 @@
 
 ## 1. 模块定位
 
-`common/vision` 是 common 层的通用视觉基础模块，为上层提供 NumPy 数组处理、OpenCV 图像处理、像素匹配、模板匹配和 OCR 通用流程。
+`common/vision` 是 common 层的通用视觉基础模块，为上层提供 NumPy 数组处理、OpenCV 图像处理、像素匹配、模板匹配和 OCR 通用流程，以及截图、前识别和后识别的唯一公共识别流程。
 
-模块只负责已经获得的图片数据和通用视觉规则，不负责设备截图、模板缓存、页面状态、业务领域识别、导航或任务调度。模板缓存由 dispatch 持有，页面和舰船等业务识别由 application 持有。
+模块自己不做设备通信：需要新画面时，由 `operations/recognition_flow` 通过调用方传入的
+`ContextHandle` 取当前截图并登记截图事实。模块不持有设备对象、不管理模板缓存、不持有页面
+状态，也不实现业务领域识别、导航或任务调度。模板缓存由 dispatch 持有，页面和舰船等业务
+识别由 application 持有。
 
 模块的静态参数和模板根路径由 `autowsgr.common.vision.config` 持有；FastOCR 模型文件由 `ocr_engine/model` 持有；OCR 执行器的运行时资源由 `ocr_engine.executor.OCRExecutor` 持有；组合操作的单例执行器由各自的 operations 文件持有。
 
@@ -44,6 +47,7 @@ autowsgr/common/vision/
 └── operations/
     ├── __init__.py                      # 通用组合操作聚合出口
     ├── pixel_matching.py                # 像素规则、签名和 NumPy 匹配流程
+    ├── recognition_flow.py              # 截图、前识别和后识别的唯一公共入口
     ├── template_matching.py             # ROI、模板模型和 OpenCV 匹配流程
     └── text_recognition.py              # OCR 预处理、识别和计数解析
 ```
@@ -53,7 +57,7 @@ autowsgr/common/vision/
 | 文件/目录 | 负责内容 | 不负责内容 |
 | --- | --- | --- |
 | `__init__.py` | 导出稳定的 `vision.XXX` 服务入口 | 算法实现、隐式初始化和业务规则 |
-| `service.py` | 聚合执行器对象和 operations 入口 | 页面流程、截图和缓存管理 |
+| `service.py` | 聚合执行器对象、operations 入口和公共识别流程 | 页面流程、识别规则和缓存管理 |
 | `config.py` | 视觉静态参数、环境变量名称和模板根路径 | 运行时状态和模型初始化 |
 | `numpy_engine/executor.py` | NumPy 数组原子操作 | 像素签名策略和页面判断 |
 | `opencv_engine/executor.py` | OpenCV 图片读取、变换和原子匹配 | 模板目录业务语义和缓存 |
@@ -63,6 +67,7 @@ autowsgr/common/vision/
 | `operations/template_matching.py` | ROI、模板模型、模板加载和匹配组合 | dispatch 缓存和页面模板目录 |
 | `operations/text_recognition.py` | OCR 预处理、识别模式、候选约束和计数解析 | 领域词典和设备截图 |
 | `operations/__init__.py` | 聚合可复用组合函数 | 复制或重写组合实现 |
+| `operations/recognition_flow.py` | 截图、前识别、后识别和重试编排 | 识别规则、页面语义和业务结果判断 |
 
 唯一的运行时状态由其使用者持有：`service.numpy` 和 `service.opencv` 持有基础执行器实例，`pixel_matching._MATCHER` 和 `template_matching._MATCHER` 持有组合器实例，`text_recognition._ocr_executor` 缓存 OCR 执行器。配置模块不持有这些状态。
 
@@ -82,6 +87,10 @@ application / business / tools
     common.system.files / 第三方库
 ```
 
+`operations.recognition_flow` 是上层使用视觉能力的唯一公共入口：调用方提供识别数据、
+识别规则和预期，它通过 dispatch 的 `ContextHandle` 取当前截图并记录截图事实。它对
+`dispatch.context` 只做类型注解引用，运行时不导入 dispatch 模块。
+
 当前还存在一条共享模型依赖：`pixel_matching` 使用 `template_matching.ROI` 作为通用裁切模型。该依赖只指向模型定义，不反向调用模板匹配流程。
 
 禁止以下方向：
@@ -91,11 +100,17 @@ application / business / tools
 - `config.py` 不持有运行时执行器、缓存或设备对象；
 - OCR 不反向调用导航器、设备截图或领域词典；
 - `__init__.py` 不复制或包装算法实现；
-- dispatch 的模板缓存不回灌到 common/vision 的模块状态。
+- dispatch 的模板缓存不回灌到 common/vision 的模块状态；
+- 只有 `operations/recognition_flow` 可以取图和记录截图事实，且必须经调用方传入的
+  `ContextHandle`；其他模块不得自行截图或持有设备对象。
 
 ### 2.4 公开出口策略
 
 `autowsgr.common.vision` 是稳定门面，`service.py` 是门面背后的聚合实现。根门面只导出 `service.py` 中的服务对象和组合函数，不导出 executor 的实现类、模块缓存或私有辅助函数。
+
+上层使用视觉能力只经 `shot`、`before_template`/`before_ocr`/`before_pixels` 和
+`after_template`/`after_ocr`/`after_pixels` 这七个入口；每个入口只接受对应识别类型的数据、
+规则和预期，不做跨类型分发。
 
 `Template`、`ROI`、`PixelSignature` 等输入模型当前仍定义在 `operations` 的具体文件中，没有被根门面重新导出。它们是当前组合入口所需的支持类型；上层迁移完成前，不新增兼容别名或第二套模型。
 

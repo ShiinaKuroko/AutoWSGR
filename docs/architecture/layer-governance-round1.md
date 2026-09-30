@@ -48,13 +48,14 @@ server -> dispatch -> business -> application -> common
 ```
 
 - `server` 只适配外部请求和结果。
-- `dispatch` 只管理任务生命周期和调度，不实现页面或业务步骤。
+- `dispatch` 只管理任务生命周期和调度，不实现页面或业务步骤；它是独立层，`dispatch.context`
+  作为上下文能力不反向依赖上层，任何层级都可以调用它。
 - `business` 只编排业务用例，可请求 application 能力。
 - `application` 提供页面、导航、战斗和运行时语义能力，不决定任务优先级。
 - `common` 不依赖项目上层，不知道任务类型和业务状态。
 
-业务包不反向导入 `dispatch`。任务暂停和停止异常定义在
-`common/contracts/task.py`，由 `dispatch` 捕获并对外转发；执行器由
+除上下文能力外，业务包不反向导入 `dispatch` 的任务队列或处理器。任务暂停和停止信号定义在
+`application/signals.py`，由 `dispatch` 捕获并对外转发；执行器由
 `dispatch/registry.py` 的显式映射按需加载，业务模块导入不会修改调度状态。
 跨页面导航统一使用 `application/ui/navigation`，不再保留业务层导航转发包。
 
