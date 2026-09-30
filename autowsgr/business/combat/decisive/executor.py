@@ -26,10 +26,10 @@ from __future__ import annotations
 import enum
 from typing import Any
 
+from autowsgr.application.errors import ManualRepairRequiredError
 from autowsgr.application.runtime.executor import BaseExecutor
 from autowsgr.business.combat.decisive.chapter import DecisiveChapterOps
 from autowsgr.business.combat.decisive.handlers import DecisivePhaseHandlers
-from autowsgr.common.system import ManualRepairRequiredError
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.types import DecisivePhase
 from autowsgr.config import DecisiveConfig

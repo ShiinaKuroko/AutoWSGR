@@ -18,14 +18,14 @@ from unittest.mock import MagicMock, call
 import numpy
 import pytest
 
+from autowsgr.application.errors import ActionFailedError
 from autowsgr.application.ui.controller.home.event_page import (
     BaseEventPage,
     constants,
     recognition,
 )
-from autowsgr.common.system.exceptions import ActionFailedError
-from autowsgr.common.types import PageName
 from autowsgr.common.device.interaction import NavigationError
+from autowsgr.common.types import PageName
 from autowsgr.common.vision import ImageMatchDetail
 from autowsgr.common.vision.resources.pages import event
 

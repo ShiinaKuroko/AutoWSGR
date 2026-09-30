@@ -8,7 +8,7 @@
 - main_page.page：提供快速维修面板选择。
 - repair.recognition：读取损伤状态。
 - repair.constants：提供维修等待和重试参数。
-- common.system：提供明确的维修失败异常。
+- application.errors：提供明确的维修失败异常。
 """
 
 from __future__ import annotations
@@ -17,11 +17,11 @@ import enum
 import time
 from typing import TYPE_CHECKING
 
+from autowsgr.application.errors import ActionFailedError, ManualRepairRequiredError
 from autowsgr.application.ui.controller.fleet.main_page.constants import BLOOD_BAR_PROBE
 from autowsgr.application.ui.controller.fleet.support.repair import constants, recognition
-from autowsgr.common.system import ActionFailedError, ManualRepairRequiredError
-from autowsgr.common.system.logger import get_logger
 from autowsgr.business.logistics.types import ShipDamageState
+from autowsgr.common.system.logger import get_logger
 
 
 if TYPE_CHECKING:

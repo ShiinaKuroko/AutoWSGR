@@ -3,8 +3,8 @@
 from threading import Event
 from types import SimpleNamespace
 
+from autowsgr.application.errors import ManualRepairRequiredError
 from autowsgr.business.combat import CombatResult
-from autowsgr.common.system import ManualRepairRequiredError
 from autowsgr.common.types import ConditionFlag
 from autowsgr.dispatch.legacy_scheduler.scheduler import FightTask, TaskScheduler
 

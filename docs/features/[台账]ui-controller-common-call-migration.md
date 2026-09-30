@@ -42,8 +42,8 @@ application vision calibration、business combat/logistics 类型以及舰队规
 | `PixelChecker.get_pixel/check_signature` | 当前 common 只提供 `vision.numpy.sample_pixel` 和 `vision.match_pixels`，规则模型构造方式已变化。 | 不增加 `PixelChecker`；简单采样迁移到 `vision.numpy`，签名构造需页面模块自行适配。 |
 | `OCREngine` / `common.vision.ocr.OCREngine` | 当前入口是 `vision.ocr`/`vision.recognize_text`，返回 `TextDetection` 列表，不再提供旧对象接口。 | 不创建单对象兼容层；依赖运行时 OCR 对象的页面先记录，待上层 OCR 契约统一后迁移。 |
 | `ImageTemplate` | 当前模板模型定义在 `common.vision.operations.template_matching.Template`，没有根门面重导出。 | 不恢复旧类；页面资源由 `application.vision.resources` 和 dispatch cache 统一提供。 |
-| `common.system.exceptions.ActionFailedError` | 当前 system 只提供错误基类，没有该具体错误。 | 不在 system 新增；记录给 application 错误契约治理。 |
-| `common.system.ManualRepairRequiredError` | 当前 system 架构没有该具体错误定义。 | 不在 system 新增；记录给业务/dispatch 错误所有者确认。 |
+| `common.system.exceptions.ActionFailedError` | 当前 system 只提供错误基类，没有该具体错误。 | 已归位：`application.errors.ActionFailedError`（继承 `ApplicationError`），调用方改新路径。 |
+| `common.system.ManualRepairRequiredError` | 当前 system 架构没有该具体错误定义。 | 已归位：`application.errors.ManualRepairRequiredError`，由 application 修理工作流与 business 战斗共用。 |
 | `Color.of/from_rgb_tuple`、`PixelRule.of`、`PixelSignature.from_dict`、`ROI.from_tuple` | 旧模型工厂方法已不存在，当前模型只保证构造器和数据类入口。 | 不在 common 增加兼容工厂；页面常量需由对应页面治理时逐项重写。 |
 
 ## 外部阻塞，不在本轮修改
@@ -61,10 +61,16 @@ application vision calibration、business combat/logistics 类型以及舰队规
 - `ImageChecker`、`PixelChecker`、`OCREngine`、`ImageTemplate`；
 - `common.vision` 中混合导入上述旧对象的页面模块；
 - `common.calibration.tabbed`，当前 application calibration 没有对应模块；
-- `common.system.exceptions.ActionFailedError` 和 system 根包中的 `ManualRepairRequiredError`。
+- `ActionFailedError`、`ManualRepairRequiredError` 与 system 根包中的 `TaskPaused`/`TaskStopped` 均已归位，见下节。
 
 ## 验收记录
 
 本轮已完成明确所有者 import 路径迁移，并运行 UI controller import smoke：92 个模块中 13 个成功、79 个失败。失败均归入本台账的外部阻塞或无一对一入口，不代表 UI Controller 全部迁移完成。
 
 每完成一组真实视觉/OCR/错误契约迁移，继续补充文件、入口和验证命令；所有未完成项在对应所有者治理前保持显式记录。
+
+### 领域错误归属补齐（2026-10-01）
+
+- `ActionFailedError`、`ManualRepairRequiredError` 归位到 `application/errors.py`；`TaskPaused`/`TaskStopped` 归位到 `application/signals.py`（任务控制信号，不属于错误树）；`DockFullError` 就地定义在 `business/combat/decisive/chapter.py`。
+- 全部生产与测试调用方改新路径，异常基类由 `UIError` 改为 `ApplicationError`，构造参数与错误文本保持不变。
+- 验证命令：`pytest testing/dispatch -q`。

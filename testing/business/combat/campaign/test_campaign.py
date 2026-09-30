@@ -12,6 +12,7 @@ import autowsgr.application.runtime.executor as base_module
 import autowsgr.application.runtime.initialize.initialize as initialize_module
 import autowsgr.business.combat.campaign.executor as executor_module
 import autowsgr.business.combat.campaign.operations as operations_module
+from autowsgr.application.errors import ManualRepairRequiredError
 from autowsgr.application.ui.controller.fleet import (
     BattlePreparationPage,
     FleetSnapshot,
@@ -27,7 +28,6 @@ from autowsgr.business.combat.campaign.spec import (
     parse_campaign_name,
 )
 from autowsgr.business.combat.fleet import exact_fleet_rules
-from autowsgr.common.system import ManualRepairRequiredError
 from autowsgr.common.types import ConditionFlag, RepairMode, ShipDamageState, ShipType
 from autowsgr.dispatch import Processor, Request, TaskPaused
 

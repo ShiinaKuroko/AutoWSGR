@@ -13,6 +13,7 @@ from unittest.mock import MagicMock
 import pytest
 
 import autowsgr.business.combat.bettle.normal_fight as normal_fight_module
+from autowsgr.application.errors import ActionFailedError, ManualRepairRequiredError
 from autowsgr.application.ui.controller.fleet.formation.fleet_recognition.models import (
     FleetSnapshot,
 )
@@ -25,7 +26,6 @@ from autowsgr.business.combat.fleet import (
     exact_fleet_rules,
     resolve_fleet_selection,
 )
-from autowsgr.common.system import ActionFailedError, ManualRepairRequiredError
 from autowsgr.common.types import ConditionFlag, PageName, ShipDamageState, ShipType
 
 

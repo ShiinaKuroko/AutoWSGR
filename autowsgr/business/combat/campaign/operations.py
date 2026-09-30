@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from autowsgr.application.errors import ManualRepairRequiredError
 from autowsgr.application.ui.controller.fleet import (
     BattlePreparationPage,
     RepairStrategy,
@@ -13,10 +14,9 @@ from autowsgr.application.ui.controller.operations.sortie_page.main_page import 
 from autowsgr.application.ui.navigation import goto_bath_from_campaign_sortie
 from autowsgr.business.combat.fleet import exact_fleet_rules
 from autowsgr.business.logistics.repair.bath_repair import repair_manual_targets_in_bath
-from autowsgr.common.system import ManualRepairRequiredError
+from autowsgr.common.device.interaction import NavigationError
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.types import RepairMode, ShipDamageState
-from autowsgr.common.device.interaction import NavigationError
 
 
 if TYPE_CHECKING:

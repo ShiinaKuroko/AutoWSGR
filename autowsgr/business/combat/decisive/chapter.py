@@ -7,12 +7,16 @@
 from __future__ import annotations
 
 from autowsgr.business.combat.decisive.base import DecisiveBase
-from autowsgr.common.system import DockFullError
+from autowsgr.common.system.errors import BusinessError
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.types import PageName
 
 
 _log = get_logger('business.combat.decisive')
+
+
+class DockFullError(BusinessError):
+    """决战流程中船坞已满，无法继续。"""
 
 
 class DecisiveChapterOps(DecisiveBase):

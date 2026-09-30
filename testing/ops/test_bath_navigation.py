@@ -5,6 +5,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from autowsgr.application.errors import ManualRepairRequiredError
 from autowsgr.application.ui.controller.fleet import (
     BattlePreparationPage,
     RepairStrategy,
@@ -12,7 +13,6 @@ from autowsgr.application.ui.controller.fleet import (
 from autowsgr.application.ui.controller.fleet.support.repair import workflow as repair_workflow
 from autowsgr.application.ui.navigation import service
 from autowsgr.business.logistics.repair import bath_repair
-from autowsgr.common.system import ManualRepairRequiredError
 from autowsgr.common.types import PageName, ShipDamageState
 
 

@@ -10,7 +10,7 @@ from unittest.mock import MagicMock
 import pytest
 
 import autowsgr.dispatch.processor as processor_module
-from autowsgr.common.system import ManualRepairRequiredError
+from autowsgr.application.errors import ManualRepairRequiredError
 from autowsgr.dispatch import (
     MAX_PRIORITY,
     TASK_PRIORITIES,

@@ -18,6 +18,7 @@ import time
 from typing import TYPE_CHECKING
 
 from autowsgr.application.combat import click_result
+from autowsgr.application.errors import ManualRepairRequiredError
 from autowsgr.application.ui.controller.fleet import (
     BattlePreparationPage,
     RepairStrategy,
@@ -27,7 +28,6 @@ from autowsgr.business.combat import CombatMode, CombatPlan, NodeDecision, run_c
 from autowsgr.business.combat.decisive.base import DecisiveBase
 from autowsgr.business.combat.decisive.config import MapData
 from autowsgr.business.logistics.repair.bath_repair import repair_manual_targets_in_bath
-from autowsgr.common.system import ManualRepairRequiredError
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.types import (
     ConditionFlag,

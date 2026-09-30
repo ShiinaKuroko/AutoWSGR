@@ -26,8 +26,9 @@ from typing import TYPE_CHECKING, Any
 
 import yaml
 
-from autowsgr.common.system import ManualRepairRequiredError, TaskPaused, TaskStopped
-from autowsgr.common.system.file_utils import load_yaml
+from autowsgr.application.errors import ManualRepairRequiredError
+from autowsgr.application.signals import TaskPaused, TaskStopped
+from autowsgr.common.system.files import load_yaml
 from autowsgr.common.system.logger import get_logger
 from autowsgr.dispatch.context import ContextTemplate, RuntimeBindings, context
 from autowsgr.dispatch.image_context import image_context
@@ -225,7 +226,7 @@ class Request:
         if not resolved.is_file():
             raise FileNotFoundError(f'任务文件不存在: {resolved}')
         try:
-            data = load_yaml(resolved)
+            data = load_yaml(resolved, allowed_root=resolved.parent)
         except yaml.YAMLError as exc:
             raise ValueError(f'任务 YAML 解析失败: {resolved}') from exc
         if not isinstance(data, dict):

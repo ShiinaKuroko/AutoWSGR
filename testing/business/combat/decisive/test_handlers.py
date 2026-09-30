@@ -14,9 +14,9 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from autowsgr.application.errors import ManualRepairRequiredError
 from autowsgr.business.combat import CombatResult
 from autowsgr.business.combat.decisive import handlers
-from autowsgr.common.system import ManualRepairRequiredError
 from autowsgr.common.types import (
     ConditionFlag,
     DecisiveEntryStatus,

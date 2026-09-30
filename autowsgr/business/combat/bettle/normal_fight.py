@@ -10,6 +10,7 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING, Literal
 
+from autowsgr.application.errors import ActionFailedError, ManualRepairRequiredError
 from autowsgr.application.ui.controller.fleet import BattlePreparationPage, RepairStrategy
 from autowsgr.application.ui.controller.home.event_page import BaseEventPage
 from autowsgr.application.ui.controller.operations.sortie_page.battle_page import (
@@ -31,10 +32,9 @@ from autowsgr.business.combat.fleet import (
     validate_fleet_selection_arguments,
 )
 from autowsgr.business.logistics.repair.bath_repair import repair_manual_targets_in_bath
-from autowsgr.common.system import ActionFailedError, ManualRepairRequiredError
+from autowsgr.common.device.interaction import NavigationError
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.types import ConditionFlag, PageName, RepairMode, ShipDamageState
-from autowsgr.common.device.interaction import NavigationError
 
 
 if TYPE_CHECKING:

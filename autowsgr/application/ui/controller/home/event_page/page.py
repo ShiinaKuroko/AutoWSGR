@@ -18,12 +18,11 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING, Literal
 
+from autowsgr.application.errors import ActionFailedError
 from autowsgr.application.ui.controller.home.event_page import constants, recognition
-from autowsgr.common.system.exceptions import ActionFailedError
-from autowsgr.common.system.logger import get_logger
-from autowsgr.application.ui.navigation.types import PageName
 from autowsgr.application.ui.navigation.interaction import NavigationError, click_and_wait_for_page
-from autowsgr.application.ui.navigation.types import PageMatch
+from autowsgr.application.ui.navigation.types import PageMatch, PageName
+from autowsgr.common.system.logger import get_logger
 
 
 if TYPE_CHECKING:

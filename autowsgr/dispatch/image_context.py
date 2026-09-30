@@ -7,13 +7,13 @@ from contextvars import ContextVar
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from autowsgr.common.vision.template import load_template as _load_template
+from autowsgr.common.vision.operations.template_matching import load_template as _load_template
 
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
 
-    from autowsgr.common.vision.template import Template
+    from autowsgr.common.vision.operations.template_matching import Template
 
 
 _TemplateKey = tuple[str, str | None, tuple[int, int]]
