@@ -6,6 +6,7 @@ import argparse
 from pathlib import Path
 
 import cv2
+import numpy as np
 
 from tools.debug_toolkit.function.collect import CropToolError, _write_png
 
@@ -35,7 +36,7 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
 
 
 def run(args: argparse.Namespace) -> int:
-    image = cv2.imread(str(args.image))
+    image = cv2.imdecode(np.fromfile(str(args.image), dtype=np.uint8), cv2.IMREAD_COLOR)
     if image is None:
         raise CropToolError(f'cannot read image: {args.image}')
     height, width = image.shape[:2]
