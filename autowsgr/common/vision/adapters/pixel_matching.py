@@ -22,7 +22,7 @@ from autowsgr.common.vision.numpy_engine.executor import NumpyExecutor
 
 
 if TYPE_CHECKING:
-    from autowsgr.common.vision.operations.template_matching import ROI
+    from autowsgr.common.vision.adapters.template_matching import ROI
 
 
 # ── 像素规则模型 ───────────────────────────────────────────────────

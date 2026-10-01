@@ -11,14 +11,14 @@
 
 `common/vision` 是 common 层的通用视觉基础模块，为上层提供 NumPy 数组处理、OpenCV 图像处理、像素匹配、模板匹配和 OCR 通用流程，以及截图、前识别和后识别的唯一公共识别流程。
 
-模块自己不做设备通信：需要新画面时，由 `operations/recognition_flow` 通过调用方传入的
+模块自己不做设备通信：需要新画面时，由 service 的公共识别入口通过调用方传入的
 `ContextHandle` 取当前截图并登记截图事实。模块不持有设备对象、不管理模板缓存、不持有页面
 状态，也不实现业务领域识别、导航或任务调度。模板缓存由 dispatch 持有，页面和舰船等业务
 识别由 application 持有。
 
-模块的静态参数和模板根路径由 `autowsgr.common.vision.config` 持有；FastOCR 模型文件由 `ocr_engine/model` 持有；OCR 执行器的运行时资源由 `ocr_engine.executor.OCRExecutor` 持有；组合操作的单例执行器由各自的 operations 文件持有。
+模块的静态参数和模板根路径由 `autowsgr.common.vision.config` 持有；FastOCR 模型文件由 `ocr_engine/model` 持有；OCR 执行器的运行时资源由 `ocr_engine.executor.OCRExecutor` 持有；组合操作的单例执行器由各自的 adapters 文件持有。
 
-依赖关系是上层调用 `common.vision`，`service.py` 聚合 `operations`，`operations` 再调用 NumPy、OpenCV 和 FastOCR 执行器。common/vision 不依赖 application、business、server 或页面模块。
+依赖关系是上层调用 `common.vision`，`service.py` 聚合 `adapters`，`adapters` 再调用 NumPy、OpenCV 和 FastOCR 执行器。common/vision 不依赖 application、business、server 或页面模块。
 
 ## 2. 模块架构
 
@@ -44,10 +44,9 @@ autowsgr/common/vision/
 │       ├── keys.txt                     # 识别字符表
 │       ├── LICENSE                       # 模型许可文件
 │       └── README.md                     # 模型资源说明
-└── operations/
+└── adapters/
     ├── __init__.py                      # 通用组合操作聚合出口
     ├── pixel_matching.py                # 像素规则、签名和 NumPy 匹配流程
-    ├── recognition_flow.py              # 取图原语和三种识别的重试执行（内部实现）
     ├── template_matching.py             # ROI、模板模型和 OpenCV 匹配流程
     └── text_recognition.py              # OCR 预处理、识别和计数解析
 ```
@@ -57,17 +56,16 @@ autowsgr/common/vision/
 | 文件/目录 | 负责内容 | 不负责内容 |
 | --- | --- | --- |
 | `__init__.py` | 导出稳定的 `vision.XXX` 服务入口 | 算法实现、隐式初始化和业务规则 |
-| `service.py` | 定义公共识别入口（截图、前识别、后识别），聚合执行器对象和 operations 入口 | 视觉算法、识别规则、页面流程和缓存管理 |
+| `service.py` | 七个公共识别功能（截图、前识别、后识别）和唯一一份识别循环 | 视觉算法、识别规则、页面语义和缓存管理 |
 | `config.py` | 视觉静态参数、环境变量名称和模板根路径 | 运行时状态和模型初始化 |
 | `numpy_engine/executor.py` | NumPy 数组原子操作 | 像素签名策略和页面判断 |
 | `opencv_engine/executor.py` | OpenCV 图片读取、变换和原子匹配 | 模板目录业务语义和缓存 |
 | `ocr_engine/executor.py` | FastOCR 模型加载和检测结果标准化 | 文本修正、候选业务规则和页面流程 |
 | `ocr_engine/model/` | FastOCR 只读模型资源 | 用户运行数据和动态缓存 |
-| `operations/pixel_matching.py` | 像素规则模型和完整像素匹配 | 设备截图和页面识别 |
-| `operations/template_matching.py` | ROI、模板模型、模板加载和匹配组合 | dispatch 缓存和页面模板目录 |
-| `operations/text_recognition.py` | OCR 预处理、识别模式、候选约束和计数解析 | 领域词典和设备截图 |
-| `operations/__init__.py` | 聚合可复用组合函数 | 复制或重写组合实现 |
-| `operations/recognition_flow.py` | 取图原语、三种识别的重试执行和预期比对 | 公开签名、识别规则、页面语义和业务结果判断 |
+| `adapters/pixel_matching.py` | 像素规则模型和完整像素匹配 | 设备截图和页面识别 |
+| `adapters/template_matching.py` | ROI、模板模型、模板加载和匹配组合 | dispatch 缓存和页面模板目录 |
+| `adapters/text_recognition.py` | OCR 预处理、识别模式、候选约束和计数解析 | 领域词典和设备截图 |
+| `adapters/__init__.py` | 聚合可复用组合函数 | 复制或重写组合实现 |
 
 唯一的运行时状态由其使用者持有：`service.numpy` 和 `service.opencv` 持有基础执行器实例，`pixel_matching._MATCHER` 和 `template_matching._MATCHER` 持有组合器实例，`text_recognition._ocr_executor` 缓存 OCR 执行器。配置模块不持有这些状态。
 
@@ -80,7 +78,7 @@ application / business / tools
               ↓
            service
               ↓
-          operations
+          adapters
               ↓
    numpy / opencv / ocr executor
               ↓
@@ -88,7 +86,7 @@ application / business / tools
 ```
 
 上层使用视觉能力只经 `service.py` 的公共识别入口（截图、前识别、后识别）：调用方提供
-识别数据、识别规则和预期，入口委托 `operations.recognition_flow` 通过 dispatch 的
+识别数据、识别规则和预期，具体由 service 的公共识别入口通过 dispatch 的
 `ContextHandle` 取当前截图并记录截图事实。视觉层对 `dispatch.context` 只做类型注解引用，
 运行时不导入 dispatch 模块。
 
@@ -97,35 +95,37 @@ application / business / tools
 禁止以下方向：
 
 - `common/vision` 不依赖 application、business、server 或页面控制器；
-- executor 不依赖 operations、页面流程或业务识别；
+- executor 不依赖 adapters、页面流程或业务识别；
 - `config.py` 不持有运行时执行器、缓存或设备对象；
 - OCR 不反向调用导航器、设备截图或领域词典；
 - `__init__.py` 不复制或包装算法实现；
 - dispatch 的模板缓存不回灌到 common/vision 的模块状态；
-- 只有 `operations/recognition_flow` 可以取图和记录截图事实，且必须经调用方传入的
+- 只有 service 的公共识别入口可以取图和记录截图事实，且必须经调用方传入的
   `ContextHandle`；其他模块不得自行截图或持有设备对象。
 
 ### 2.4 公开出口策略
 
 `autowsgr.common.vision` 是稳定门面，`service.py` 是门面背后的聚合实现。根门面只导出 `service.py` 中的服务对象和组合函数，不导出 executor 的实现类、模块缓存或私有辅助函数。
 
-上层使用视觉能力只经 `service.py` 里的 `shot`、`before_template`/`before_ocr`/`before_pixels`
+上层使用视觉能力只经 `service.py` 里的七个入口：`shot`、`before_template`/`before_ocr`/`before_pixels`
 和 `after_template`/`after_ocr`/`after_pixels` 这七个入口；每个入口只接受对应识别类型的数据、
 规则和预期，不做跨类型分发。
 
-`Template`、`ROI`、`PixelSignature` 等输入模型当前仍定义在 `operations` 的具体文件中，没有被根门面重新导出。它们是当前组合入口所需的支持类型；上层迁移完成前，不新增兼容别名或第二套模型。
+门面另外导出调用方表达识别数据和判读结果所需的模型：`ROI`、`Template`、`Color`、`PixelRule`、`MatchStrategy`、`PixelSignature`、`CompositePixelSignature`、`RecognitionProfile`、`TemplateMatchResult`、`PixelMatchResult`、`PixelDetail`、`TextDetection`，以及返回类型 `RecognitionResult`。底层组合能力（模板匹配、OCR、像素匹配、文本预处理、计数解析）和两个基础执行器句柄不再从门面导出；需要它们时经七个识别入口使用。
 
 ## 3. 能力总览
 
+上层使用视觉能力的唯一入口是 `service.py` 的七个识别功能；下表是适配层与基础执行器提供的能力清单，供 service 和本层内部使用。
+
 | 能力 | 对外入口 | 所在文件 | 输入 | 输出/副作用 | 负责内容 | 不负责内容 |
 | --- | --- | --- | --- | --- | --- | --- |
-| NumPy 基础数组 | `vision.numpy` | `service.py`、`numpy_engine/executor.py` | 图片数组、相对坐标 | 数组、坐标或像素值；无外部副作用 | 校验、采样和裁切 | 像素规则和设备截图 |
-| OpenCV 基础图像 | `vision.opencv` | `service.py`、`opencv_engine/executor.py` | 图片数组或模板相对路径 | 图片数组、匹配分数或文件读取 | 图像变换和原子匹配 | 页面模板业务规则和缓存 |
-| OCR 识别 | `vision.ocr`、`vision.recognize_text` | `operations/text_recognition.py` | 图片、ROI、allowlist、识别模式、候选 | `list[TextDetection]`；首次调用可能初始化模型 | 通用 OCR 识别和候选过滤 | 领域文本修正和设备截图 |
-| 像素匹配 | `vision.match_pixels` | `operations/pixel_matching.py` | 图片、像素签名、可选 ROI | `PixelMatchResult` | 采样、颜色距离和策略判定 | 页面状态所有权 |
-| 模板匹配 | `vision.match_template`、`vision.match_templates` | `operations/template_matching.py` | 图片、模板、可选 ROI、置信度 | `TemplateMatchResult` 或结果列表 | 缩放、裁切、匹配和坐标还原 | 模板缓存和页面流程 |
-| OCR 预处理 | `vision.prepare_text` | `operations/text_recognition.py` | 图片和预处理参数 | RGB 图片数组 | 灰度、放大、模糊、归一化和二值化 | OCR 模型调用 |
-| OCR 计数解析 | `vision.parse_counter` | `operations/text_recognition.py` | OCR 文本和分母 | 分子或 `None` | 解析明确或丢失分隔符的计数 | 业务计数状态更新 |
+| NumPy 基础数组 | `numpy_engine.NumpyExecutor` | `service.py`、`numpy_engine/executor.py` | 图片数组、相对坐标 | 数组、坐标或像素值；无外部副作用 | 校验、采样和裁切 | 像素规则和设备截图 |
+| OpenCV 基础图像 | `opencv_engine.OpenCVExecutor` | `service.py`、`opencv_engine/executor.py` | 图片数组或模板相对路径 | 图片数组、匹配分数或文件读取 | 图像变换和原子匹配 | 页面模板业务规则和缓存 |
+| OCR 识别 | `adapters.text_recognition.recognize_text` | `adapters/text_recognition.py` | 图片、ROI、allowlist、识别模式、候选 | `list[TextDetection]`；首次调用可能初始化模型 | 通用 OCR 识别和候选过滤 | 领域文本修正和设备截图 |
+| 像素匹配 | `adapters.pixel_matching.match_pixels` | `adapters/pixel_matching.py` | 图片、像素签名、可选 ROI | `PixelMatchResult` | 采样、颜色距离和策略判定 | 页面状态所有权 |
+| 模板匹配 | `adapters.template_matching.match_template` | `adapters/template_matching.py` | 图片、模板、可选 ROI、置信度 | `TemplateMatchResult` 或结果列表 | 缩放、裁切、匹配和坐标还原 | 模板缓存和页面流程 |
+| OCR 预处理 | `adapters.text_recognition.prepare_text` | `adapters/text_recognition.py` | 图片和预处理参数 | RGB 图片数组 | 灰度、放大、模糊、归一化和二值化 | OCR 模型调用 |
+| OCR 计数解析 | `adapters.text_recognition.parse_counter` | `adapters/text_recognition.py` | OCR 文本和分母 | 分子或 `None` | 解析明确或丢失分隔符的计数 | 业务计数状态更新 |
 
 ## 4. NumPy 基础数组
 
@@ -166,7 +166,7 @@ pixel = vision.numpy.sample_pixel(screen, 0.5, 0.5)
 
 ### 4.5 维护规则
 
-新的数组原子操作放在 `numpy_engine/executor.py`。需要解释像素规则或组合 ROI 流程时，放入 operations，不在 executor 中增加业务判断。
+新的数组原子操作放在 `numpy_engine/executor.py`。需要解释像素规则或组合 ROI 流程时，放入 adapters，不在 executor 中增加业务判断。
 
 ## 5. OpenCV 基础图像
 
@@ -215,7 +215,7 @@ gray = vision.opencv.to_gray(screen)
 
 ### 5.5 维护规则
 
-新的纯图像变换放入 `opencv_engine/executor.py`。需要 ROI、模板来源元数据或命中规则时，放入 `operations/template_matching.py`，不把页面语义放回 executor。
+新的纯图像变换放入 `opencv_engine/executor.py`。需要 ROI、模板来源元数据或命中规则时，放入 `adapters/template_matching.py`，不把页面语义放回 executor。
 
 ## 6. OCR 文字识别
 
@@ -269,13 +269,13 @@ OCR 运行时可能创建用户目录并初始化模型资源；不会写入项�
 
 ### 6.5 维护规则
 
-新增 FastOCR 参数或模型生命周期行为放在 `ocr_engine/executor.py`，新增通用 ROI、预处理或候选组合放在 `operations/text_recognition.py`。舰船名、页面字段和业务模糊匹配必须留在 application/vision。
+新增 FastOCR 参数或模型生命周期行为放在 `ocr_engine/executor.py`，新增通用 ROI、预处理或候选组合放在 `adapters/text_recognition.py`。舰船名、页面字段和业务模糊匹配必须留在 application/vision。
 
 ## 7. 像素匹配
 
 ### 7.1 能力说明
 
-`vision.match_pixels` 将图片采样、颜色距离和像素签名策略组合为一次完整判断。`PixelSignature` 可以使用 `ALL`、`ANY` 或 `COUNT` 策略，也可以通过 `CompositePixelSignature` 按顺序组合多个签名。
+`adapters.pixel_matching.match_pixels` 将图片采样、颜色距离和像素签名策略组合为一次完整判断。`PixelSignature` 可以使用 `ALL`、`ANY` 或 `COUNT` 策略，也可以通过 `CompositePixelSignature` 按顺序组合多个签名。
 
 ### 7.2 稳定入口
 
@@ -289,13 +289,13 @@ vision.match_pixels(
 ) -> PixelMatchResult
 ```
 
-`signature` 是从 `autowsgr.common.vision.operations.pixel_matching` 导入的 `PixelSignature` 或 `CompositePixelSignature`；`roi` 使用 `operations.template_matching.ROI`。结果包含是否命中、签名名、命中数量、规则总数和可选详情。
+`signature` 是从 `autowsgr.common.vision.adapters.pixel_matching` 导入的 `PixelSignature` 或 `CompositePixelSignature`；`roi` 使用 `adapters.template_matching.ROI`。结果包含是否命中、签名名、命中数量、规则总数和可选详情。
 
 ### 7.3 调用示例
 
 ```python
 from autowsgr.common import vision
-from autowsgr.common.vision.operations.pixel_matching import Color, PixelRule, PixelSignature
+from autowsgr.common.vision.adapters.pixel_matching import Color, PixelRule, PixelSignature
 
 signature = PixelSignature(
     name='home_ready',
@@ -316,7 +316,7 @@ result = vision.match_pixels(screen, signature)
 
 ### 7.5 维护规则
 
-通用颜色距离和像素策略属于 operations。页面或状态签名实例必须由 application 持有，不能把页面坐标和业务签名常量搬回 common/vision。
+通用颜色距离和像素策略属于 adapters。页面或状态签名实例必须由 application 持有，不能把页面坐标和业务签名常量搬回 common/vision。
 
 ## 8. 模板匹配
 
@@ -349,7 +349,7 @@ vision.match_templates(
 
 ```python
 from autowsgr.common import vision
-from autowsgr.common.vision.operations.template_matching import Template
+from autowsgr.common.vision.adapters.template_matching import Template
 
 template = Template(
     name='backyard',
@@ -373,13 +373,13 @@ result = vision.match_template(screen, template, confidence=0.85)
 
 ### 8.5 维护规则
 
-新增通用模板匹配组合放在 `operations/template_matching.py`。应用层模板目录、模板名称和页面识别规则必须留在 application/vision；dispatch 只维护跨流程缓存和懒加载上下文。
+新增通用模板匹配组合放在 `adapters/template_matching.py`。应用层模板目录、模板名称和页面识别规则必须留在 application/vision；dispatch 只维护跨流程缓存和懒加载上下文。
 
 ## 9. OCR 文本预处理
 
 ### 9.1 能力说明
 
-`vision.prepare_text` 将输入统一为适合 OCR 的 RGB 图片，顺序固定为灰度转换、放大、模糊、归一化、Otsu 二值化和灰度转 RGB。
+`adapters.text_recognition.prepare_text` 将输入统一为适合 OCR 的 RGB 图片，顺序固定为灰度转换、放大、模糊、归一化、Otsu 二值化和灰度转 RGB。
 
 ### 9.2 稳定入口
 
@@ -421,7 +421,7 @@ results = vision.ocr(prepared)
 
 ### 10.1 能力说明
 
-`vision.parse_counter` 从 OCR 文本中提取计数分子，支持明确的 `/` 或 `|` 分隔符，也尝试根据传入分母拆分丢失分隔符的文本。
+`adapters.text_recognition.parse_counter` 从 OCR 文本中提取计数分子，支持明确的 `/` 或 `|` 分隔符，也尝试根据传入分母拆分丢失分隔符的文本。
 
 ### 10.2 稳定入口
 
@@ -521,7 +521,7 @@ ValueError / FileNotFoundError / RuntimeError
 
 ### 14.2 内部内容
 
-`_MATCHER`、`_ocr_executor`、`TemplateMatcher._relative_path`、`OCRExecutor._recognize`、模型句柄、MaaFramework 绑定、模板根路径拼接和模块缓存均属于实现细节。`numpy_engine`、`opencv_engine` 和 `ocr_engine` 的执行器类用于 operations 组合，不应被上层绕过 service 形成第二套调用契约。
+`_MATCHER`、`_ocr_executor`、`TemplateMatcher._relative_path`、`OCRExecutor._recognize`、模型句柄、MaaFramework 绑定、模板根路径拼接和模块缓存均属于实现细节。`numpy_engine`、`opencv_engine` 和 `ocr_engine` 的执行器类用于 adapters 组合，不应被上层绕过 service 形成第二套调用契约。
 
 当前 `Template`、`ROI`、像素签名模型仍从其定义模块提供输入；根门面没有复制这些类型，也没有为旧接口提供兼容别名。
 
@@ -530,7 +530,7 @@ ValueError / FileNotFoundError / RuntimeError
 ### 15.1 添加能力
 
 1. 先确认能力是通用视觉能力，不是页面、舰船、战斗或设备流程。
-2. 原子数组、OpenCV 或 FastOCR 调用放入对应 executor；多个基础能力的完整组合放入 operations。
+2. 原子数组、OpenCV 或 FastOCR 调用放入对应 executor；多个基础能力的完整组合放入 adapters。
 3. 先复用现有 ROI、结果模型和配置前缀，不新增重复模型或 engine 包装层。
 4. 确认稳定入口、输入输出、异常和日志所有权。
 5. 同步更新本架构文档、`service.py`、根 `__all__` 和 `testing/common/vision` 测试。

@@ -20,13 +20,12 @@ from typing import TYPE_CHECKING
 import cv2
 
 from autowsgr.application.ui.controller.backyard.bath_page import constants
+from autowsgr.application.ui.navigation.types import PageMatch, PageName
+from autowsgr.application.vision.resources import Templates
 from autowsgr.application.vision.shipnames import SHIPNAMES
 from autowsgr.common.system.logger import get_logger
-from autowsgr.application.ui.navigation.types import PageName
-from autowsgr.application.ui.navigation.types import PageMatch
-from autowsgr.common.vision.operations.pixel_matching import Color
 from autowsgr.common.vision import ImageChecker, PixelChecker
-from autowsgr.application.vision.resources import Templates
+from autowsgr.common.vision.adapters.pixel_matching import Color
 
 
 if TYPE_CHECKING:

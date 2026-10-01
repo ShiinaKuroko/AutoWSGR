@@ -15,11 +15,16 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from autowsgr.application.ui import recognition_flow
 from autowsgr.application.ui.controller.home.main_page import HomePage
 from autowsgr.common import vision
-from autowsgr.common.vision.operations.template_matching import ROI, Template
-from autowsgr.dispatch.context import ContextHandle
+from autowsgr.common.vision.adapters.template_matching import ROI, Template
+
+
+if TYPE_CHECKING:
+    from autowsgr.dispatch.context import ContextHandle
 
 
 _HOME_PAGE_ROI = ROI(0.9109, 0.8681, 0.9758, 0.9139)

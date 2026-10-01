@@ -15,10 +15,10 @@ from autowsgr.common.vision import (
     before_ocr,
     before_pixels,
     before_template,
+    service,
     shot,
 )
-from autowsgr.common.vision.operations import recognition_flow as flow
-from autowsgr.common.vision.operations.template_matching import ROI, Template
+from autowsgr.common.vision.adapters.template_matching import ROI, Template
 
 
 def _frame() -> numpy.ndarray:
@@ -45,7 +45,7 @@ def _match(matched: bool) -> SimpleNamespace:
 
 def _patch_sleep(monkeypatch: pytest.MonkeyPatch) -> MagicMock:
     sleep = MagicMock()
-    monkeypatch.setattr(flow.time, 'sleep', sleep)
+    monkeypatch.setattr(service.time, 'sleep', sleep)
     return sleep
 
 
@@ -61,23 +61,25 @@ def test_shot_records_the_frame() -> None:
 
 def test_before_template_hits_on_first_frame(monkeypatch: pytest.MonkeyPatch) -> None:
     ctx, screenshots, _ = _ctx()
-    monkeypatch.setattr(flow, 'match_template', lambda *_a, **_k: _match(True))
+    monkeypatch.setattr(service, 'match_templates', lambda *_a, **_k: [_match(True)])
 
     result = before_template(ctx, template=_template(), roi=ROI(0.0, 0.0, 1.0, 1.0))
 
-    assert result.ok is True
+    assert result.satisfied is True
+    assert result.observation[0].matched is True
+    assert result.screenshot.shape == (4, 4, 3)
     assert screenshots.call_count == 1
 
 
 def test_before_template_retries_until_matched(monkeypatch: pytest.MonkeyPatch) -> None:
     ctx, screenshots, _ = _ctx()
     sleep = _patch_sleep(monkeypatch)
-    outcomes = iter([_match(False), _match(True)])
-    monkeypatch.setattr(flow, 'match_template', lambda *_a, **_k: next(outcomes))
+    outcomes = iter([[_match(False)], [_match(True)]])
+    monkeypatch.setattr(service, 'match_templates', lambda *_a, **_k: next(outcomes))
 
     result = before_template(ctx, template=_template(), attempts=3)
 
-    assert result.ok is True
+    assert result.satisfied is True
     assert screenshots.call_count == 2
     sleep.assert_called_once()
 
@@ -85,11 +87,11 @@ def test_before_template_retries_until_matched(monkeypatch: pytest.MonkeyPatch) 
 def test_before_template_reports_failure_after_attempts(monkeypatch: pytest.MonkeyPatch) -> None:
     ctx, screenshots, _ = _ctx()
     sleep = _patch_sleep(monkeypatch)
-    monkeypatch.setattr(flow, 'match_template', lambda *_a, **_k: _match(False))
+    monkeypatch.setattr(service, 'match_templates', lambda *_a, **_k: [_match(False)])
 
     result = before_template(ctx, template=_template(), attempts=2)
 
-    assert result.ok is False
+    assert result.satisfied is False
     assert screenshots.call_count == 2
     sleep.assert_called_once()
 
@@ -97,55 +99,55 @@ def test_before_template_reports_failure_after_attempts(monkeypatch: pytest.Monk
 def test_before_template_requires_expected_match_count(monkeypatch: pytest.MonkeyPatch) -> None:
     ctx, _, _ = _ctx()
     templates = (_template('a'), _template('b'), _template('c'))
-    outcomes = iter([_match(True), _match(True), _match(False)])
-    monkeypatch.setattr(flow, 'match_template', lambda *_a, **_k: next(outcomes))
+    outcomes = iter([[_match(True), _match(True), _match(False)]])
+    monkeypatch.setattr(service, 'match_templates', lambda *_a, **_k: next(outcomes))
 
     unmet = before_template(ctx, template=templates, attempts=1, min_matches=3)
-    assert unmet.ok is False
+    assert unmet.satisfied is False
 
-    outcomes = iter([_match(True), _match(True), _match(False)])
-    monkeypatch.setattr(flow, 'match_template', lambda *_a, **_k: next(outcomes))
+    outcomes = iter([[_match(True), _match(True), _match(False)]])
+    monkeypatch.setattr(service, 'match_templates', lambda *_a, **_k: next(outcomes))
     met = before_template(ctx, template=templates, attempts=1, min_matches=2)
-    assert met.ok is True
+    assert met.satisfied is True
 
 
-def test_single_template_rejects_other_match_counts() -> None:
+def test_template_rejects_non_positive_match_count() -> None:
     ctx, _, _ = _ctx()
 
     with pytest.raises(ValueError, match='min_matches'):
-        before_template(ctx, template=_template(), min_matches=2)
+        before_template(ctx, template=_template(), min_matches=0)
 
 
 def test_after_template_waits_for_disappearance(monkeypatch: pytest.MonkeyPatch) -> None:
     ctx, _, _ = _ctx()
-    monkeypatch.setattr(flow, 'match_template', lambda *_a, **_k: _match(True))
+    monkeypatch.setattr(service, 'match_templates', lambda *_a, **_k: [_match(True)])
     present = after_template(ctx, template=_template(), attempts=1)
-    assert present.ok is False
+    assert present.satisfied is False
 
-    monkeypatch.setattr(flow, 'match_template', lambda *_a, **_k: _match(False))
+    monkeypatch.setattr(service, 'match_templates', lambda *_a, **_k: [_match(False)])
     gone = after_template(ctx, template=_template(), attempts=1)
-    assert gone.ok is True
+    assert gone.satisfied is True
 
 
 def test_before_ocr_compares_expected_text(monkeypatch: pytest.MonkeyPatch) -> None:
     ctx, _, _ = _ctx()
     detections = [SimpleNamespace(recognized_text='远征', confidence_score=0.99)]
-    monkeypatch.setattr(flow, 'recognize_text', lambda *_a, **_k: detections)
+    monkeypatch.setattr(service, 'recognize_text', lambda *_a, **_k: detections)
 
-    assert before_ocr(ctx, expect='远征', attempts=1).ok is True
-    assert before_ocr(ctx, expect='演习', attempts=1).ok is False
+    assert before_ocr(ctx, expect='远征', attempts=1).satisfied is True
+    assert before_ocr(ctx, expect='演习', attempts=1).satisfied is False
 
 
 def test_after_ocr_confirms_text_is_gone(monkeypatch: pytest.MonkeyPatch) -> None:
     ctx, _, _ = _ctx()
-    monkeypatch.setattr(flow, 'recognize_text', lambda *_a, **_k: [])
+    monkeypatch.setattr(service, 'recognize_text', lambda *_a, **_k: [])
 
-    assert after_ocr(ctx, expect='远征', attempts=1).ok is True
+    assert after_ocr(ctx, expect='远征', attempts=1).satisfied is True
 
 
 def test_before_and_after_pixels_follow_the_match_flag(monkeypatch: pytest.MonkeyPatch) -> None:
     ctx, _, _ = _ctx()
-    monkeypatch.setattr(flow, 'match_pixels', lambda *_a, **_k: SimpleNamespace(matched=True))
+    monkeypatch.setattr(service, 'match_pixels', lambda *_a, **_k: SimpleNamespace(matched=True))
 
-    assert before_pixels(ctx, signature=object(), attempts=1).ok is True
-    assert after_pixels(ctx, signature=object(), attempts=1).ok is False
+    assert before_pixels(ctx, signature=object(), attempts=1).satisfied is True
+    assert after_pixels(ctx, signature=object(), attempts=1).satisfied is False

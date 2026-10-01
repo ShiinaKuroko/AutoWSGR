@@ -16,8 +16,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from autowsgr.application.ui.controller.operations.sortie_page.exercise_page import constants
-from autowsgr.common.vision.operations.pixel_matching import Color
 from autowsgr.common.vision import PixelChecker
+from autowsgr.common.vision.adapters.pixel_matching import Color
 
 
 if TYPE_CHECKING:

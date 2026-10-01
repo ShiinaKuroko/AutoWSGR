@@ -24,10 +24,10 @@ from typing import TYPE_CHECKING, NamedTuple
 
 import yaml
 
+from autowsgr.application.vision.resources import Templates
 from autowsgr.common import vision
 from autowsgr.common.vision import ocr
-from autowsgr.application.vision.resources import Templates
-from autowsgr.common.vision.operations.template_matching import ROI
+from autowsgr.common.vision.adapters.template_matching import ROI
 
 
 if TYPE_CHECKING:

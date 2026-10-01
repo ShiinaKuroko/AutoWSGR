@@ -9,6 +9,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -22,8 +23,6 @@ from autowsgr.common.vision.opencv_engine.executor import OpenCVExecutor
 
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
-
     import numpy as np
 
 
@@ -254,25 +253,57 @@ def match_template(
 
 def match_templates(
     image: np.ndarray,
-    templates: Sequence[Template],
+    templates: Template | Sequence[Template],
     *,
-    roi: ROI | None = None,
+    roi: ROI | Sequence[ROI | None] | None = None,
     confidence: float = OPENCV_TEMPLATE_CONFIDENCE,
 ) -> list[TemplateMatchResult]:
-    """按顺序匹配一组模板。
+    """按顺序匹配单个或多个模板，并支持逐模板区域。
 
     Args:
         image: 待搜索的 RGB 或灰度图片数组。
-        templates: 按业务优先级排列的模板序列。
-        roi: 可选的相对坐标搜索区域。
+        templates: 单个模板，或按业务优先级排列的模板序列。
+        roi: 共享搜索区域，或与模板一一对应的区域序列。
         confidence: 命中阈值，范围为 ``[0, 1]``。
 
     Returns:
-        与输入模板顺序一致的匹配结果列表。
+        与输入模板顺序一致的匹配结果列表；单模板也返回长度为一的列表。
     """
     return [
-        match_template(image, template, roi=roi, confidence=confidence) for template in templates
+        match_template(image, template, roi=item_roi, confidence=confidence)
+        for template, item_roi in _template_roi_pairs(templates, roi)
     ]
+
+
+def _template_roi_pairs(
+    templates: Template | Sequence[Template],
+    roi: ROI | Sequence[ROI | None] | None,
+) -> tuple[tuple[Template, ROI | None], ...]:
+    """规范化单模板、多模板以及共享或逐模板区域。"""
+    if isinstance(templates, Template):
+        if roi is not None and not isinstance(roi, ROI):
+            raise TypeError('单模板的 roi 必须是 ROI 或 None')
+        return ((templates, roi),)
+
+    if isinstance(templates, (str, bytes)) or not isinstance(templates, Sequence):
+        raise TypeError('templates 必须是 Template 或 Template 序列')
+    items = tuple(templates)
+    if not items:
+        raise ValueError('templates 序列不能为空')
+    if not all(isinstance(item, Template) for item in items):
+        raise TypeError('templates 序列中的元素必须是 Template')
+
+    if roi is None or isinstance(roi, ROI):
+        rois = (roi,) * len(items)
+    elif isinstance(roi, Sequence) and not isinstance(roi, (str, bytes)):
+        rois = tuple(roi)
+        if len(rois) != len(items):
+            raise ValueError('roi 序列长度必须与 templates 序列一致')
+        if not all(item is None or isinstance(item, ROI) for item in rois):
+            raise TypeError('roi 序列中的元素必须是 ROI 或 None')
+    else:
+        raise TypeError('roi 必须是 ROI、ROI 序列或 None')
+    return tuple(zip(items, rois, strict=True))
 
 
 _MATCHER = TemplateMatcher()

@@ -13,21 +13,29 @@ import numpy as np
 import pytest
 
 from autowsgr.common import vision
-from autowsgr.common.vision.numpy_engine import NumpyExecutor
+from autowsgr.common.vision import service
+from autowsgr.common.vision.adapters import match_pixels, match_template, text_recognition
+from autowsgr.common.vision.adapters.pixel_matching import Color, PixelRule, PixelSignature
+from autowsgr.common.vision.adapters.template_matching import ROI, Template
 from autowsgr.common.vision.ocr_engine import TextDetection
-from autowsgr.common.vision.opencv_engine import OpenCVExecutor
-from autowsgr.common.vision.operations import text_recognition
-from autowsgr.common.vision.operations.pixel_matching import Color, PixelRule, PixelSignature
-from autowsgr.common.vision.operations.template_matching import ROI, Template
 
 
 def test_public_service_exports_are_stable() -> None:
-    """公共入口暴露三种基础能力和组合操作。"""
-    assert isinstance(vision.numpy, NumpyExecutor)
-    assert isinstance(vision.opencv, OpenCVExecutor)
-    assert vision.ocr is text_recognition.recognize_text
-    assert vision.match_pixels is not None
-    assert vision.match_template is not None
+    """公共入口只暴露七个识别功能和识别数据模型。"""
+    entries = (
+        'shot',
+        'before_template',
+        'before_ocr',
+        'before_pixels',
+        'after_template',
+        'after_ocr',
+        'after_pixels',
+    )
+    for entry in entries:
+        assert callable(getattr(vision, entry))
+    assert vision.ROI is ROI
+    assert vision.Template is Template
+    assert vision.RecognitionResult is service.RecognitionResult
 
 
 def test_pixel_matching_composes_roi_sampling_and_rule_evaluation() -> None:
@@ -39,7 +47,7 @@ def test_pixel_matching_composes_roi_sampling_and_rule_evaluation() -> None:
         rules=(PixelRule(0.5, 0.5, Color(10, 20, 30)),),
     )
 
-    result = vision.match_pixels(image, signature, roi=ROI(0.0, 0.0, 1.0, 1.0))
+    result = match_pixels(image, signature, roi=ROI(0.0, 0.0, 1.0, 1.0))
 
     assert result.matched
     assert result.matched_count == 1
@@ -58,7 +66,7 @@ def test_template_matching_returns_absolute_location_from_roi() -> None:
         source_resolution=(80, 60),
     )
 
-    result = vision.match_template(
+    result = match_template(
         image,
         template,
         roi=ROI(0.25, 0.25, 0.8, 0.9),
@@ -74,17 +82,17 @@ def test_text_preparation_and_counter_parser() -> None:
     """文本预处理保持 RGB 输出，计数解析覆盖分隔符和丢失分隔符。"""
     image = np.zeros((5, 7, 3), dtype=np.uint8)
 
-    prepared = vision.prepare_text(image)
+    prepared = text_recognition.prepare_text(image)
 
     assert prepared.shape == (20, 28, 3)
-    assert vision.parse_counter('3/10', 10) == 3
-    assert vision.parse_counter('310', 10) == 3
+    assert text_recognition.parse_counter('3/10', 10) == 3
+    assert text_recognition.parse_counter('310', 10) == 3
     with pytest.raises(ValueError, match='文本中无数字'):
-        vision.parse_counter('none', 10)
+        text_recognition.parse_counter('none', 10)
 
 
 def test_ocr_entry_uses_profile_and_candidate_constraint(monkeypatch: pytest.MonkeyPatch) -> None:
-    """OCR 公共入口应选择识别模式并应用候选约束。"""
+    """OCR 组合方法应选择识别模式并应用候选约束。"""
 
     class FakeOCRExecutor:
         def recognize_line(
@@ -105,7 +113,7 @@ def test_ocr_entry_uses_profile_and_candidate_constraint(monkeypatch: pytest.Mon
 
     monkeypatch.setattr(text_recognition, '_ocr_executor', FakeOCRExecutor)
 
-    result = vision.ocr(
+    result = text_recognition.recognize_text(
         np.zeros((10, 12, 3), dtype=np.uint8),
         allowlist='0123456789',
         recognition_profile='single_line',

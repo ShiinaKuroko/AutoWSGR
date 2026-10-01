@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 
     import numpy as np
 
-    from autowsgr.common.vision.operations.template_matching import ROI
+    from autowsgr.common.vision.adapters.template_matching import ROI
 
 
 # ── OCR 识别配置 ───────────────────────────────────────────────────

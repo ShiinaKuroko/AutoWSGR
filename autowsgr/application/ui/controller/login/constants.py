@@ -11,7 +11,7 @@
 
 from __future__ import annotations
 
-from autowsgr.common.vision.operations.pixel_matching import PixelRule, PixelSignature
+from autowsgr.common.vision.adapters.pixel_matching import PixelRule, PixelSignature
 
 
 # 坐标按 1280x720 设计分辨率校准，并以相对坐标保存。

@@ -4,7 +4,7 @@
 
 下层依赖：
 - application.ui.recognition_flow：截图、记录 Context 并重试识别。
-- common.vision.operations.template_matching：加载出征页模板并匹配区域。
+- common.vision.adapters.template_matching：加载出征页模板并匹配区域。
 
 边界：返回模板识别事实，不写入 Navigator 确认状态或执行页面动作。
 """
@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING
 
 from autowsgr.application.ui import recognition_flow
 from autowsgr.common import vision
-from autowsgr.common.vision.operations.template_matching import ROI, Template
+from autowsgr.common.vision.adapters.template_matching import ROI, Template
 
 
 if TYPE_CHECKING:

@@ -4,10 +4,9 @@ Coordinates and color thresholds come from the event calibration resources.
 The Controller still owns event names, difficulty behavior, and node policy.
 """
 
-from autowsgr.application.vision.calibration._loader import color, tolerance
-from autowsgr.application.vision.calibration._loader import point
+from autowsgr.application.vision.calibration._loader import color, point, tolerance
 from autowsgr.application.vision.calibration._loader import param as ocr_param
-from autowsgr.common.vision.operations.template_matching import ROI
+from autowsgr.common.vision.adapters.template_matching import ROI
 
 
 NODE_POSITIONS = {index: point('event', f'nodes.{index}') for index in range(1, 7)}

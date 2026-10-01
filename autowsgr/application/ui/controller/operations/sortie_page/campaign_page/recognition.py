@@ -20,15 +20,15 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from autowsgr.application.ui.controller.operations.sortie_page.campaign_page import constants
-from autowsgr.common.system.logger import get_logger
-from autowsgr.common.vision.operations.pixel_matching import Color
-from autowsgr.common.vision import PixelChecker
 from autowsgr.application.vision.sortie_recognition import (
     LOOT_MAX,
     SHIP_MAX,
     recognize_loot_count,
     recognize_ship_count,
 )
+from autowsgr.common.system.logger import get_logger
+from autowsgr.common.vision import PixelChecker
+from autowsgr.common.vision.adapters.pixel_matching import Color
 
 
 if TYPE_CHECKING:

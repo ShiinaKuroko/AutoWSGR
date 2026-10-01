@@ -41,7 +41,7 @@ application vision calibration、business combat/logistics 类型以及舰队规
 | `ImageChecker.find_template/find_any/template_exists` | 旧 API 返回 `ImageMatchDetail`，当前 API 要求 `Template` 并返回 `TemplateMatchResult`。 | 不增加 `ImageChecker` 兼容层；按页面模块逐项改用 `vision.match_template`，无法在本轮明确转换的记录调用位置。 |
 | `PixelChecker.get_pixel/check_signature` | 当前 common 只提供 `vision.numpy.sample_pixel` 和 `vision.match_pixels`，规则模型构造方式已变化。 | 不增加 `PixelChecker`；简单采样迁移到 `vision.numpy`，签名构造需页面模块自行适配。 |
 | `OCREngine` / `common.vision.ocr.OCREngine` | 当前入口是 `vision.ocr`/`vision.recognize_text`，返回 `TextDetection` 列表，不再提供旧对象接口。 | 不创建单对象兼容层；依赖运行时 OCR 对象的页面先记录，待上层 OCR 契约统一后迁移。 |
-| `ImageTemplate` | 当前模板模型定义在 `common.vision.operations.template_matching.Template`，没有根门面重导出。 | 不恢复旧类；页面资源由 `application.vision.resources` 和 dispatch cache 统一提供。 |
+| `ImageTemplate` | 当前模板模型定义在 `common.vision.adapters.template_matching.Template`，没有根门面重导出。 | 不恢复旧类；页面资源由 `application.vision.resources` 和 dispatch cache 统一提供。 |
 | `common.system.exceptions.ActionFailedError` | 当前 system 只提供错误基类，没有该具体错误。 | 已归位：`application.errors.ActionFailedError`（继承 `ApplicationError`），调用方改新路径。 |
 | `common.system.ManualRepairRequiredError` | 当前 system 架构没有该具体错误定义。 | 已归位：`application.errors.ManualRepairRequiredError`，由 application 修理工作流与 business 战斗共用。 |
 | `Color.of/from_rgb_tuple`、`PixelRule.of`、`PixelSignature.from_dict`、`ROI.from_tuple` | 旧模型工厂方法已不存在，当前模型只保证构造器和数据类入口。 | 不在 common 增加兼容工厂；页面常量需由对应页面治理时逐项重写。 |

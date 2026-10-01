@@ -11,7 +11,7 @@ import numpy as np
 from autowsgr.application.ui import recognition_flow
 from autowsgr.application.ui.controller.home.main_page import operations, recognition
 from autowsgr.application.ui.controller.home.main_page import page as page_module
-from autowsgr.common.vision.operations.template_matching import TemplateMatchResult
+from autowsgr.common.vision.adapters.template_matching import TemplateMatchResult
 
 
 if TYPE_CHECKING:

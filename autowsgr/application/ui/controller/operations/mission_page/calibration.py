@@ -1,9 +1,9 @@
 """Mission page calibration used by mission Controllers and OCR helpers."""
 
-from autowsgr.application.vision.calibration._loader import color, param as color_param, tolerance
-from autowsgr.application.vision.calibration._loader import point
+from autowsgr.application.vision.calibration._loader import color, point, tolerance
+from autowsgr.application.vision.calibration._loader import param as color_param
 from autowsgr.application.vision.calibration._loader import param as ocr_param
-from autowsgr.common.vision.operations.template_matching import ROI
+from autowsgr.common.vision.adapters.template_matching import ROI
 
 
 CLICK_BACK = point('mission', 'back')

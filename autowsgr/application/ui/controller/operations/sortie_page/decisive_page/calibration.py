@@ -7,11 +7,15 @@ remain in the decisive Controller.
 
 import numpy as np
 
-from autowsgr.application.vision.calibration._loader import color, tolerance
-from autowsgr.application.vision.calibration._loader import point, points
+from autowsgr.application.vision.calibration._loader import (
+    color,
+    point,
+    points,
+    signature,
+    tolerance,
+)
 from autowsgr.application.vision.calibration._loader import param as ocr_param
-from autowsgr.application.vision.calibration._loader import signature
-from autowsgr.common.vision.operations.template_matching import ROI
+from autowsgr.common.vision.adapters.template_matching import ROI
 
 
 CLICK_BACK = point('decisive', 'back')
@@ -23,8 +27,7 @@ CLICK_ENTER_MAP = point('decisive', 'enter_map')
 CLICK_RESET_CHAPTER = point('decisive', 'reset_chapter')
 CLICK_BUY_TICKET_OPEN = point('decisive', 'buy_ticket_open')
 CLICK_BUY_RESOURCE = {
-    name: point('decisive', f'buy_resource.{name}')
-    for name in ('oil', 'ammo', 'steel', 'aluminum')
+    name: point('decisive', f'buy_resource.{name}') for name in ('oil', 'ammo', 'steel', 'aluminum')
 }
 CLICK_BUY_CONFIRM = point('decisive', 'buy_confirm')
 CLICK_RETREAT_BUTTON = point('decisive', 'retreat_button')
@@ -50,8 +53,7 @@ STAGE_CHECK_TOLERANCE = tolerance('decisive', 'stage_check')
 FLEET_CARD_X_POSITIONS = tuple(float(value) for value in ocr_param('decisive', 'fleet_card_x'))
 FLEET_CARD_CLICK_Y = float(ocr_param('decisive', 'fleet_card_y'))
 SHIP_NAME_X_RANGES = [
-    tuple(float(value) for value in pair)
-    for pair in ocr_param('decisive', 'ship_name_x_ranges')
+    tuple(float(value) for value in pair) for pair in ocr_param('decisive', 'ship_name_x_ranges')
 ]
 SHIP_NAME_Y_RANGE = tuple(float(value) for value in ocr_param('decisive', 'ship_name_y_range'))
 COST_AREA = tuple(
@@ -78,10 +80,10 @@ __all__ = [
     'CHAPTER_NUM_AREA',
     'CLICK_ADVANCE_CONFIRM',
     'CLICK_BACK',
-    'CLICK_CHOOSE_SHIP_BACK',
     'CLICK_BUY_CONFIRM',
     'CLICK_BUY_RESOURCE',
     'CLICK_BUY_TICKET_OPEN',
+    'CLICK_CHOOSE_SHIP_BACK',
     'CLICK_ENTER_MAP',
     'CLICK_FLEET_CLOSE',
     'CLICK_FLEET_REFRESH',
@@ -91,22 +93,22 @@ __all__ = [
     'CLICK_NEXT_CHAPTER',
     'CLICK_PREV_CHAPTER',
     'CLICK_RESET_CHAPTER',
-    'CLICK_REWARD_ACK',
     'CLICK_RETREAT_BUTTON',
     'CLICK_RETREAT_CONFIRM',
+    'CLICK_REWARD_ACK',
     'CLICK_SKILL',
     'CLICK_SORTIE',
     'CLICK_USE_LAST_FLEET_CONFIRM',
     'COST_AREA',
     'FLEET_CARD_CLICK_Y',
     'FLEET_CARD_X_POSITIONS',
+    'NODE_CROP_OFFSET',
     'RESOURCE_AREA',
     'SHIP_HSV_HI',
     'SHIP_HSV_LO',
     'SHIP_MIN_AREA',
     'SHIP_NAME_X_RANGES',
     'SHIP_NAME_Y_RANGE',
-    'NODE_CROP_OFFSET',
     'SIG_ADVANCE_CHOICE',
     'SIG_CONFIRM_EXIT',
     'SIG_FLEET_ACQUISITION',

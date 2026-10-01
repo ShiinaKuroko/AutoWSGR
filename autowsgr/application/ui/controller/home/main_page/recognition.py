@@ -9,12 +9,12 @@ from typing import TYPE_CHECKING
 
 from autowsgr.application.ui.controller.home.main_page import constants
 from autowsgr.common import vision
-from autowsgr.common.vision.config import (
-    OPENCV_TEMPLATE_SOURCE_RESOLUTION,
-)
-from autowsgr.common.vision.operations.template_matching import (
+from autowsgr.common.vision.adapters.template_matching import (
     Template,
     TemplateMatchResult,
+)
+from autowsgr.common.vision.config import (
+    OPENCV_TEMPLATE_SOURCE_RESOLUTION,
 )
 
 
