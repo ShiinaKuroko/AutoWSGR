@@ -105,15 +105,15 @@ application / business / tools
 
 ### 2.4 公开出口策略
 
-`autowsgr.common.vision` 是稳定门面，`service.py` 是门面背后的聚合实现。根门面只导出 `service.py` 中的服务对象和组合函数，不导出 executor 的实现类、模块缓存或私有辅助函数。
-
-图像变换（灰度、缩放等）目前只由 `opencv_engine` 提供，是否对上层开放尚未确定；读图统一走 `system.files`。
+`autowsgr.common.vision` 是稳定门面，`service.py` 是门面背后的识别入口实现。根门面只导出七个识别入口、返回类型 `RecognitionResult` 和识别数据模型；不导出 executor 实现类、适配层组合函数、模块缓存或私有辅助函数。
 
 上层使用视觉能力只经 `service.py` 里的七个入口：`shot`、`before_template`/`before_ocr`/`before_pixels`
-和 `after_template`/`after_ocr`/`after_pixels` 这七个入口；每个入口只接受对应识别类型的数据、
-规则和预期，不做跨类型分发。
+和 `after_template`/`after_ocr`/`after_pixels`；每个入口只接受对应识别类型的数据、规则和预期，
+不做跨类型分发。
 
 门面另外导出调用方表达识别数据和判读结果所需的模型：`ROI`、`Template`、`Color`、`PixelRule`、`MatchStrategy`、`PixelSignature`、`CompositePixelSignature`、`RecognitionProfile`、`TemplateMatchResult`、`PixelMatchResult`、`PixelDetail`、`TextDetection`，以及返回类型 `RecognitionResult`。底层组合能力（模板匹配、OCR、像素匹配、文本预处理、计数解析）和两个基础执行器句柄不再从门面导出；需要它们时经七个识别入口使用。
+
+图像变换（灰度、缩放等）目前只由 `opencv_engine` 提供，是否对上层开放尚未确定；读图统一走 `system.files`。
 
 ## 3. 能力总览
 
