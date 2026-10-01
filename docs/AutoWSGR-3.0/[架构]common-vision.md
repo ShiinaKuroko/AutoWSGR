@@ -3,7 +3,7 @@
 版本：AutoWSGR-3.0 第一版
 状态：草案
 适用范围：`autowsgr/common/vision`
-实现基线：`codex/20260913-shiinaskuya-upgrade-7b3e`，2026-09-20
+实现基线：`codex/20260913-shiinaskuya-upgrade-7b3e`，2026-10-01（识别入口重排：`9e6674a`）
 
 本文描述当前重构后的通用视觉实现。上层旧调用方尚未完成迁移，FastOCR 实机模型链路也未由本轮单元测试覆盖，因此本文暂不作为全仓兼容契约。
 
@@ -28,7 +28,7 @@
 autowsgr/common/vision/
 ├── __init__.py                         # 通用视觉公共门面
 ├── config.py                            # NumPy、OpenCV 和 OCR 静态配置
-├── service.py                           # vision.numpy、vision.opencv、vision.ocr 和组合入口
+├── service.py                           # 七个公共识别功能：截图、前识别和后识别
 ├── numpy_engine/
 │   ├── __init__.py                      # NumPy 执行器出口
 │   └── executor.py                      # 数组校验、坐标、采样和裁切
@@ -55,7 +55,7 @@ autowsgr/common/vision/
 
 | 文件/目录 | 负责内容 | 不负责内容 |
 | --- | --- | --- |
-| `__init__.py` | 导出稳定的 `vision.XXX` 服务入口 | 算法实现、隐式初始化和业务规则 |
+| `__init__.py` | 只导出七个识别入口、结果类型和识别数据模型 | 算法实现、隐式初始化和业务规则 |
 | `service.py` | 七个公共识别功能（截图、前识别、后识别）和唯一一份识别循环 | 视觉算法、识别规则、页面语义和缓存管理 |
 | `config.py` | 视觉静态参数、环境变量名称和模板根路径 | 运行时状态和模型初始化 |
 | `numpy_engine/executor.py` | NumPy 数组原子操作 | 像素签名策略和页面判断 |
@@ -107,6 +107,8 @@ application / business / tools
 
 `autowsgr.common.vision` 是稳定门面，`service.py` 是门面背后的聚合实现。根门面只导出 `service.py` 中的服务对象和组合函数，不导出 executor 的实现类、模块缓存或私有辅助函数。
 
+图像变换（灰度、缩放等）目前只由 `opencv_engine` 提供，是否对上层开放尚未确定；读图统一走 `system.files`。
+
 上层使用视觉能力只经 `service.py` 里的七个入口：`shot`、`before_template`/`before_ocr`/`before_pixels`
 和 `after_template`/`after_ocr`/`after_pixels` 这七个入口；每个入口只接受对应识别类型的数据、
 规则和预期，不做跨类型分发。
@@ -119,8 +121,8 @@ application / business / tools
 
 | 能力 | 对外入口 | 所在文件 | 输入 | 输出/副作用 | 负责内容 | 不负责内容 |
 | --- | --- | --- | --- | --- | --- | --- |
-| NumPy 基础数组 | `numpy_engine.NumpyExecutor` | `service.py`、`numpy_engine/executor.py` | 图片数组、相对坐标 | 数组、坐标或像素值；无外部副作用 | 校验、采样和裁切 | 像素规则和设备截图 |
-| OpenCV 基础图像 | `opencv_engine.OpenCVExecutor` | `service.py`、`opencv_engine/executor.py` | 图片数组或模板相对路径 | 图片数组、匹配分数或文件读取 | 图像变换和原子匹配 | 页面模板业务规则和缓存 |
+| NumPy 基础数组 | `numpy_engine.NumpyExecutor` | `numpy_engine/executor.py` | 图片数组、相对坐标 | 数组、坐标或像素值；无外部副作用 | 校验、采样和裁切 | 像素规则和设备截图 |
+| OpenCV 基础图像 | `opencv_engine.OpenCVExecutor` | `opencv_engine/executor.py` | 图片数组或模板相对路径 | 图片数组、匹配分数或文件读取 | 图像变换和原子匹配 | 页面模板业务规则和缓存 |
 | OCR 识别 | `adapters.text_recognition.recognize_text` | `adapters/text_recognition.py` | 图片、ROI、allowlist、识别模式、候选 | `list[TextDetection]`；首次调用可能初始化模型 | 通用 OCR 识别和候选过滤 | 领域文本修正和设备截图 |
 | 像素匹配 | `adapters.pixel_matching.match_pixels` | `adapters/pixel_matching.py` | 图片、像素签名、可选 ROI | `PixelMatchResult` | 采样、颜色距离和策略判定 | 页面状态所有权 |
 | 模板匹配 | `adapters.template_matching.match_template` | `adapters/template_matching.py` | 图片、模板、可选 ROI、置信度 | `TemplateMatchResult` 或结果列表 | 缩放、裁切、匹配和坐标还原 | 模板缓存和页面流程 |
@@ -131,16 +133,16 @@ application / business / tools
 
 ### 4.1 能力说明
 
-`vision.numpy` 是 `NumpyExecutor` 的单例入口，处理 RGB 数组的尺寸校验、相对坐标转换、单点/多点采样和相对区域裁切。它不解释采样值代表什么业务状态。
+`NumpyExecutor` 是 NumPy 数组操作的实例入口，处理 RGB 数组的尺寸校验、相对坐标转换、单点/多点采样和相对区域裁切。它不解释采样值代表什么业务状态。
 
 ### 4.2 稳定入口
 
 ```text
-vision.numpy.validate_image(image) -> tuple[int, int]
-vision.numpy.coordinate_index(image, x, y) -> tuple[int, int]
-vision.numpy.sample_pixel(image, x, y) -> tuple[int, int, int]
-vision.numpy.sample_pixels(image, positions) -> numpy.ndarray
-vision.numpy.crop(image, x1, y1, x2, y2) -> numpy.ndarray
+NumpyExecutor.validate_image(image) -> tuple[int, int]
+NumpyExecutor.coordinate_index(image, x, y) -> tuple[int, int]
+NumpyExecutor.sample_pixel(image, x, y) -> tuple[int, int, int]
+NumpyExecutor.sample_pixels(image, positions) -> numpy.ndarray
+NumpyExecutor.crop(image, x1, y1, x2, y2) -> numpy.ndarray
 ```
 
 `image` 必须是非空的 `H x W x 3` RGB 数组；相对坐标和裁切边界均使用 `[0, 1]`。坐标单位是图片比例，不是绝对像素。
@@ -148,10 +150,11 @@ vision.numpy.crop(image, x1, y1, x2, y2) -> numpy.ndarray
 ### 4.3 调用示例
 
 ```python
-from autowsgr.common import vision
+from autowsgr.common.vision.numpy_engine import NumpyExecutor
 
-height, width = vision.numpy.validate_image(screen)
-pixel = vision.numpy.sample_pixel(screen, 0.5, 0.5)
+executor = NumpyExecutor()
+height, width = executor.validate_image(screen)
+pixel = executor.sample_pixel(screen, 0.5, 0.5)
 ```
 
 ### 4.4 错误和副作用
@@ -172,20 +175,20 @@ pixel = vision.numpy.sample_pixel(screen, 0.5, 0.5)
 
 ### 5.1 能力说明
 
-`vision.opencv` 是 `OpenCVExecutor` 的单例入口，负责图片读取、灰度转换、缩放、模糊、归一化、阈值化、旋转裁切和一次原子模板匹配。
+`OpenCVExecutor` 是 OpenCV 图像操作的实例入口，负责图片读取、灰度转换、缩放、模糊、归一化、阈值化、旋转裁切和一次原子模板匹配。
 
 ### 5.2 稳定入口
 
 ```text
-vision.opencv.load_image(relative_path) -> numpy.ndarray
-vision.opencv.to_gray(image) -> numpy.ndarray
-vision.opencv.resize(image, width, height, *, interpolation='area') -> numpy.ndarray
-vision.opencv.blur(image, kernel_size) -> numpy.ndarray
-vision.opencv.normalize(image) -> numpy.ndarray
-vision.opencv.threshold(image) -> numpy.ndarray
-vision.opencv.gray_to_rgb(image) -> numpy.ndarray
-vision.opencv.rotate_crop(image, center, size, angle) -> numpy.ndarray
-vision.opencv.match_template(image, template) -> tuple[float, tuple[int, int]]
+OpenCVExecutor.load_image(relative_path) -> numpy.ndarray
+OpenCVExecutor.to_gray(image) -> numpy.ndarray
+OpenCVExecutor.resize(image, width, height, *, interpolation='area') -> numpy.ndarray
+OpenCVExecutor.blur(image, kernel_size) -> numpy.ndarray
+OpenCVExecutor.normalize(image) -> numpy.ndarray
+OpenCVExecutor.threshold(image) -> numpy.ndarray
+OpenCVExecutor.gray_to_rgb(image) -> numpy.ndarray
+OpenCVExecutor.rotate_crop(image, center, size, angle) -> numpy.ndarray
+OpenCVExecutor.match_template(image, template) -> tuple[float, tuple[int, int]]
 ```
 
 `load_image` 的路径会经过 `common.system.files` 的允许根目录校验；`relative_path` 是模板根目录下的相对路径。尺寸单位为像素，旋转角度单位为度。
@@ -195,10 +198,11 @@ vision.opencv.match_template(image, template) -> tuple[float, tuple[int, int]]
 ```python
 from pathlib import Path
 
-from autowsgr.common import vision
+from autowsgr.common.vision.opencv_engine import OpenCVExecutor
 
-template = vision.opencv.load_image(Path('backyard/main_page/backyard.png'))
-gray = vision.opencv.to_gray(screen)
+executor = OpenCVExecutor()
+template = executor.load_image(Path('backyard/main_page/backyard.png'))
+gray = executor.to_gray(screen)
 ```
 
 ### 5.4 错误和副作用
@@ -221,12 +225,12 @@ gray = vision.opencv.to_gray(screen)
 
 ### 6.1 能力说明
 
-`vision.ocr` 是 `vision.recognize_text` 的同一函数别名，负责 ROI 裁切、识别模式选择和候选集合过滤。FastOCR 原子执行器负责模型调用并返回 `TextDetection`，组合操作不修改识别文本的业务含义。
+`recognize_text` 是 OCR 组合入口，负责 ROI 裁切、识别模式选择和候选集合过滤。FastOCR 原子执行器负责模型调用并返回 `TextDetection`，组合操作不修改识别文本的业务含义。
 
 ### 6.2 稳定入口
 
 ```text
-vision.ocr(
+adapters.text_recognition.recognize_text(
     image,
     *,
     roi=None,
@@ -234,8 +238,8 @@ vision.ocr(
     recognition_profile='full',
     candidates=None,
 ) -> list[TextDetection]
-vision.recognize_text(...) -> list[TextDetection]
-vision.recognize_prepared_text(...) -> list[TextDetection]
+adapters.text_recognition.recognize_text(...) -> list[TextDetection]
+adapters.text_recognition.recognize_prepared_text(...) -> list[TextDetection]
 ```
 
 `allowlist` 是允许识别的字符集合，不是期望答案；`recognition_profile` 当前支持 `full` 和 `single_line`；`candidates` 是完整文本候选集合，提供后只保留完全相等的识别文本。`TextDetection` 包含 `recognized_text`、`confidence_score` 和可选的 `text_region`。
@@ -245,9 +249,9 @@ vision.recognize_prepared_text(...) -> list[TextDetection]
 ### 6.3 调用示例
 
 ```python
-from autowsgr.common import vision
+from autowsgr.common.vision import adapters
 
-results = vision.ocr(
+results = adapters.text_recognition.recognize_text(
     screen,
     allowlist='0123456789',
     recognition_profile='single_line',
@@ -280,7 +284,7 @@ OCR 运行时可能创建用户目录并初始化模型资源；不会写入项�
 ### 7.2 稳定入口
 
 ```text
-vision.match_pixels(
+adapters.pixel_matching.match_pixels(
     image,
     signature,
     *,
@@ -289,19 +293,19 @@ vision.match_pixels(
 ) -> PixelMatchResult
 ```
 
-`signature` 是从 `autowsgr.common.vision.adapters.pixel_matching` 导入的 `PixelSignature` 或 `CompositePixelSignature`；`roi` 使用 `adapters.template_matching.ROI`。结果包含是否命中、签名名、命中数量、规则总数和可选详情。
+`signature` 是从门面 `autowsgr.common.vision` 导入的 `PixelSignature` 或 `CompositePixelSignature`；`roi` 使用门面导出的 `ROI`。结果包含是否命中、签名名、命中数量、规则总数和可选详情。
 
 ### 7.3 调用示例
 
 ```python
-from autowsgr.common import vision
-from autowsgr.common.vision.adapters.pixel_matching import Color, PixelRule, PixelSignature
+from autowsgr.common.vision import adapters
+from autowsgr.common.vision import Color, PixelRule, PixelSignature
 
 signature = PixelSignature(
     name='home_ready',
     rules=(PixelRule(0.5, 0.5, Color(10, 20, 30)),),
 )
-result = vision.match_pixels(screen, signature)
+result = adapters.pixel_matching.match_pixels(screen, signature)
 ```
 
 ### 7.4 错误和副作用
@@ -327,14 +331,14 @@ result = vision.match_pixels(screen, signature)
 ### 8.2 稳定入口
 
 ```text
-vision.match_template(
+adapters.template_matching.match_template(
     image,
     template,
     *,
     roi=None,
     confidence=0.85,
 ) -> TemplateMatchResult
-vision.match_templates(
+adapters.template_matching.match_templates(
     image,
     templates,
     *,
@@ -343,13 +347,13 @@ vision.match_templates(
 ) -> list[TemplateMatchResult]
 ```
 
-`Template` 的 `source_resolution` 按 `(width, height)` 表示；`confidence` 范围为 `[0, 1]`；结果位置是原图绝对像素坐标。当前 service 没有重新导出 `load_template`，因此模板对象必须由其定义模块或上层资源模块创建。
+`Template` 的 `source_resolution` 按 `(width, height)` 表示；`confidence` 范围为 `[0, 1]`；结果位置是原图绝对像素坐标。`load_template` 不属于公开出口：模板对象由上层资源模块组装，读图统一走 `system.files.load_image`，再交给门面导出的 `Template`。
 
 ### 8.3 调用示例
 
 ```python
-from autowsgr.common import vision
-from autowsgr.common.vision.adapters.template_matching import Template
+from autowsgr.common.vision import adapters
+from autowsgr.common.vision import Template
 
 template = Template(
     name='backyard',
@@ -357,7 +361,7 @@ template = Template(
     image=template_image,
     source_resolution=(1280, 720),
 )
-result = vision.match_template(screen, template, confidence=0.85)
+result = adapters.template_matching.match_template(screen, template, confidence=0.85)
 ```
 
 ### 8.4 错误和副作用
@@ -384,7 +388,7 @@ result = vision.match_template(screen, template, confidence=0.85)
 ### 9.2 稳定入口
 
 ```text
-vision.prepare_text(
+adapters.text_recognition.prepare_text(
     image,
     *,
     scale=4,
@@ -397,10 +401,10 @@ vision.prepare_text(
 ### 9.3 调用示例
 
 ```python
-from autowsgr.common import vision
+from autowsgr.common.vision import adapters
 
-prepared = vision.prepare_text(screen, scale=4, blur_kernel=3)
-results = vision.ocr(prepared)
+prepared = adapters.text_recognition.prepare_text(screen, scale=4, blur_kernel=3)
+results = adapters.text_recognition.recognize_text(prepared)
 ```
 
 ### 9.4 错误和副作用
@@ -426,7 +430,7 @@ results = vision.ocr(prepared)
 ### 10.2 稳定入口
 
 ```text
-vision.parse_counter(text, max_value) -> int | None
+adapters.text_recognition.parse_counter(text, max_value) -> int | None
 ```
 
 `max_value` 是识别上下文提供的分母，不由通用视觉模块猜测。无法从无分隔符文本确认分母时返回 `None`；没有数字或分隔符前没有数字时抛出 `ValueError`。
@@ -434,9 +438,9 @@ vision.parse_counter(text, max_value) -> int | None
 ### 10.3 调用示例
 
 ```python
-from autowsgr.common import vision
+from autowsgr.common.vision import adapters
 
-current = vision.parse_counter('3/10', 10)
+current = adapters.text_recognition.parse_counter('3/10', 10)
 ```
 
 ### 10.4 错误和副作用
@@ -494,9 +498,9 @@ ValueError / FileNotFoundError / RuntimeError
 
 日志通过 `autowsgr.common.system.logger.get_logger` 获取，当前 channel 为：
 
-- `vision.pixel`：像素匹配结果；
-- `vision.template`：模板路径、分数和命中结果；
-- `vision.ocr`：识别模式、结果数量和候选约束数量。
+- `adapters.pixel_matching.match_pixels`：像素匹配结果；
+- `adapters.template_matching.match_template`：模板路径、分数和命中结果；
+- `adapters.text_recognition.recognize_text`：识别模式、结果数量和候选约束数量。
 
 组合操作只记录有界的 `DEBUG` 诊断事实，使用 `[VISION]` 前缀和占位符，不记录原始截图、完整 OCR 文本、用户配置或绝对资源路径。NumPy、OpenCV 和 FastOCR 原子执行器不重复记录高频底层调用。
 
@@ -508,16 +512,16 @@ ValueError / FileNotFoundError / RuntimeError
 
 | 出口 | 来源 | 调用者可以做什么 | 调用者不能做什么 |
 | --- | --- | --- | --- |
-| `autowsgr.common.vision.numpy` | `service.py` | 执行 NumPy 数组操作 | 读取或修改内部执行器状态 |
-| `autowsgr.common.vision.opencv` | `service.py` | 执行 OpenCV 图片操作 | 绕过 system.files 的路径边界 |
-| `autowsgr.common.vision.ocr` | `service.py` | 执行通用 OCR 识别 | 把候选约束当作领域模糊匹配 |
-| `autowsgr.common.vision.match_pixels` | `service.py` | 执行像素签名匹配 | 在 common 层持有页面签名 |
-| `autowsgr.common.vision.match_template` | `service.py` | 执行单模板匹配 | 让 common 层截图或管理模板缓存 |
-| `autowsgr.common.vision.match_templates` | `service.py` | 按顺序执行多模板匹配 | 解释模板对应的页面业务 |
-| `autowsgr.common.vision.prepare_text` | `service.py` | 执行通用 OCR 预处理 | 写入页面专属校准规则 |
-| `autowsgr.common.vision.recognize_text` | `service.py` | 执行 OCR 识别和候选过滤 | 直接决定业务状态或导航 |
-| `autowsgr.common.vision.recognize_prepared_text` | `service.py` | 预处理后执行 OCR | 重复实现 OCR 预处理链 |
-| `autowsgr.common.vision.parse_counter` | `service.py` | 解析通用计数文本 | 更新任务或资源状态 |
+| `NumpyExecutor`（`numpy_engine`） | 本层实例 | 执行 NumPy 数组操作 | 读取或修改内部执行器状态 |
+| `OpenCVExecutor`（`opencv_engine`） | 本层实例 | 执行 OpenCV 图片操作 | 绕过 system.files 的路径边界 |
+| `adapters.text_recognition.recognize_text` | 适配层 | 执行通用 OCR 识别 | 把候选约束当作领域模糊匹配 |
+| `adapters.pixel_matching.match_pixels` | 适配层 | 执行像素签名匹配 | 在 common 层持有页面签名 |
+| `adapters.template_matching.match_template` | 适配层 | 执行单模板匹配 | 让 common 层截图或管理模板缓存 |
+| `adapters.template_matching.match_templates` | 适配层 | 按顺序执行多模板匹配 | 解释模板对应的页面业务 |
+| `adapters.text_recognition.prepare_text` | 适配层 | 执行通用 OCR 预处理 | 写入页面专属校准规则 |
+| `adapters.text_recognition.recognize_text` | 适配层 | 执行 OCR 识别和候选过滤 | 直接决定业务状态或导航 |
+| `adapters.text_recognition.recognize_prepared_text` | 适配层 | 预处理后执行 OCR | 重复实现 OCR 预处理链 |
+| `adapters.text_recognition.parse_counter` | 适配层 | 解析通用计数文本 | 更新任务或资源状态 |
 
 ### 14.2 内部内容
 
@@ -546,7 +550,7 @@ ValueError / FileNotFoundError / RuntimeError
 
 ### 15.4 修改公开契约
 
-新增或删除 `vision.XXX` 前，必须同步修改 service、根门面、架构文档、专属测试和所有已迁移调用者。旧上层尚未迁移时不得通过别名隐藏契约差异。
+新增或删除门面入口前，必须同步修改 service、适配层、根门面、架构文档、专属测试和所有已迁移调用者。旧上层尚未迁移时不得通过别名隐藏契约差异。
 
 ## 16. 验收门禁
 
