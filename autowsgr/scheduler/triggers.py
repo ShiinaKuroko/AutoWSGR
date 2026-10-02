@@ -156,7 +156,13 @@ class ExhaustibleTrigger(Trigger):
 
 
 class TimerTrigger(Trigger):
-    """定时触发器: 到间隔产出一个任务, 不耗尽 (远征用)。"""
+    """定时触发器: 到间隔产出一个任务, 不耗尽 (远征用)。
+
+    间隔从「上一次任务结束」起算, 而不是「上一次触发」: ``should_fire`` 到点后
+    只把 ``_idle`` 置 False 挂起, ``_last_fire`` 留给 :meth:`_on_done` 在任务真正
+    结束后刷新 —— 否则任务自身耗时 (远征收取可达数分钟) 会被算进下一个间隔,
+    实际节拍变成 ``interval + 任务耗时``。
+    """
 
     def __init__(
         self,
@@ -168,6 +174,7 @@ class TimerTrigger(Trigger):
     ) -> None:
         super().__init__(priority=priority, name=name, task_factory=task_factory)
         self._interval = interval
+        # 0.0 => 启动后立刻触发一次 (monotonic 从开机起算, 必大于 interval)
         self._last_fire = 0.0
 
     def should_fire(self, ctx: GameContext) -> FightTask | None:
@@ -176,11 +183,13 @@ class TimerTrigger(Trigger):
         if time.monotonic() - self._last_fire < self._interval:
             return None
         self._idle = False
-        self._last_fire = time.monotonic()
+        # 注意: 此处 **不** 刷新 _last_fire。真正的重置在 _on_done (任务结束后),
+        # 保证间隔是「两次任务结束之间」而非「触发到触发」。
         return self._build_task(ctx, on_done=self._on_done)
 
     def _on_done(self, _result: CombatResult) -> None:
         self._idle = True
+        self._last_fire = time.monotonic()
 
 
 class ExpeditionTrigger(TimerTrigger):

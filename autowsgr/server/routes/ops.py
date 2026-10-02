@@ -82,9 +82,9 @@ async def expedition_auto_check(request: ExpeditionAutoCheckRequest) -> ApiRespo
 
     # 3. 浴室维修
     if not request.allow_repair:
-        _log.info('[API] 自动远征检查: 前端禁止维修（队列中还有后续任务），跳过浴室维修')
+        _log.info('[API] 自动远征检查: 调用方未允许维修, 跳过浴室维修')
         results['repair_skipped'] = True
-        results['repair_reason'] = '队列中有后续战斗任务'
+        results['repair_reason'] = '调用方未允许维修'
     else:
         try:
             await asyncio.to_thread(repair_in_bath, ctx)
