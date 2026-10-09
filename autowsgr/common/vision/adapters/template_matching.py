@@ -89,13 +89,23 @@ class Template:
 
 @dataclass(frozen=True, slots=True)
 class TemplateMatchResult:
-    """一次模板匹配结果。"""
+    """一次模板匹配结果。
+
+    Attributes:
+        matched: 是否达到命中阈值。
+        score: 匹配得分。
+        location: 命中模板在原图上的左上角像素坐标。
+        template_path: 模板在模板根目录下的相对路径。
+        roi: 本次使用的搜索区域。
+        center: 命中模板的归一化中心，未命中时为空；调用方可直接用作点击落点。
+    """
 
     matched: bool
     score: float
     location: tuple[int, int] | None
     template_path: str
     roi: ROI | None = None
+    center: tuple[float, float] | None = None
 
 
 class TemplateMatcher:
@@ -168,27 +178,38 @@ class TemplateMatcher:
         source_width, source_height = template.source_resolution
 
         # 2. 截图分辨率变化时，按宽高比例缩放模板。
+        template_height, template_width = template_image.shape[:2]
         if (image_width, image_height) != (source_width, source_height):
             scale_x = image_width / source_width
             scale_y = image_height / source_height
-            template_height, template_width = template_image.shape[:2]
             template_image = self._executor.resize(
                 template_image,
                 max(1, round(template_width * scale_x)),
                 max(1, round(template_height * scale_y)),
             )
+            template_height, template_width = template_image.shape[:2]
 
         # 3. 执行 OpenCV 匹配，并把 ROI 内的位置还原到原图坐标。
         score, location = self._executor.match_template(search, template_image)
         if roi is not None:
             roi_x, roi_y, _, _ = roi.to_absolute(image_width, image_height)
             location = (location[0] + roi_x, location[1] + roi_y)
+
+        # 4. 命中时给出模板中心的归一化坐标，供调用方直接点击。
+        matched = score >= confidence
+        center = None
+        if matched:
+            center = (
+                round((location[0] + template_width / 2) / image_width, 4),
+                round((location[1] + template_height / 2) / image_height, 4),
+            )
         return TemplateMatchResult(
-            matched=score >= confidence,
+            matched=matched,
             score=score,
             location=location,
             template_path=template.relative_path,
             roi=roi,
+            center=center,
         )
 
     @staticmethod

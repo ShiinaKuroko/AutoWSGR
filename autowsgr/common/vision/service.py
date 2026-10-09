@@ -85,7 +85,7 @@ def shot(ctx: ContextHandle) -> numpy.ndarray:
     return frame
 
 
-def before_template(
+def expect_template(
     ctx: ContextHandle,
     *,
     template: Template | Sequence[Template],
@@ -120,10 +120,10 @@ def before_template(
     )
 
 
-def before_ocr(
+def expect_ocr(
     ctx: ContextHandle,
     *,
-    expect: str,
+    expect: str | Sequence[str],
     roi: ROI | None = None,
     allowlist: str = '',
     recognition_profile: str = 'full',
@@ -137,7 +137,7 @@ def before_ocr(
 
     Args:
         ctx: 提供设备服务和截图事实写入的统一 ContextHandle。
-        expect: 调用方期望识别到的完整文本。
+        expect: 期望识别到的完整文本，或候选集合；候选集合命中任一即算符合预期。
         roi: OCR 识别区域。
         allowlist: 允许识别的字符集合。
         recognition_profile: OCR 识别配置名称。
@@ -164,7 +164,7 @@ def before_ocr(
     )
 
 
-def before_pixels(
+def expect_pixels(
     ctx: ContextHandle,
     *,
     signature: PixelSignature | CompositePixelSignature,
@@ -201,7 +201,7 @@ def before_pixels(
     )
 
 
-def after_template(
+def expect_template_absent(
     ctx: ContextHandle,
     *,
     template: Template | Sequence[Template],
@@ -237,10 +237,10 @@ def after_template(
     )
 
 
-def after_ocr(
+def expect_ocr_absent(
     ctx: ContextHandle,
     *,
-    expect: str,
+    expect: str | Sequence[str],
     roi: ROI | None = None,
     allowlist: str = '',
     recognition_profile: str = 'full',
@@ -252,7 +252,7 @@ def after_ocr(
 
     Args:
         ctx: 提供设备服务和截图事实写入的统一 ContextHandle。
-        expect: 调用方期望已经消失的完整文本。
+        expect: 期望已经消失的完整文本，或候选集合；候选集合全部不出现才算符合预期。
         roi: OCR 识别区域。
         allowlist: 允许识别的字符集合。
         recognition_profile: OCR 识别配置名称。
@@ -280,7 +280,7 @@ def after_ocr(
     )
 
 
-def after_pixels(
+def expect_pixels_absent(
     ctx: ContextHandle,
     *,
     signature: PixelSignature | CompositePixelSignature,
@@ -382,9 +382,20 @@ def _matched_count(matches: list[TemplateMatchResult]) -> int:
     return sum(1 for match in matches if match.matched)
 
 
-def _text_found(detections: list[TextDetection], expect: str) -> bool:
-    """判断 OCR 结果中是否存在与期望完全一致的文本。"""
-    return any(detection.recognized_text == expect for detection in detections)
+def _expected_texts(expect: str | Sequence[str]) -> tuple[str, ...]:
+    """把期望文本归一化为非空候选元组。"""
+    if isinstance(expect, str):
+        return (expect,)
+    candidates = tuple(expect)
+    if not candidates:
+        raise ValueError('expect 候选集合不能为空')
+    return candidates
+
+
+def _text_found(detections: list[TextDetection], expect: str | Sequence[str]) -> bool:
+    """判断 OCR 结果中是否存在与任一期望候选完全一致的文本。"""
+    expected = _expected_texts(expect)
+    return any(detection.recognized_text in expected for detection in detections)
 
 
 def _required_matches(min_matches: int) -> int:
@@ -404,11 +415,11 @@ def _validate_retry_options(attempts: int, interval_seconds: float) -> None:
 
 __all__ = [
     'RecognitionResult',
-    'after_ocr',
-    'after_pixels',
-    'after_template',
-    'before_ocr',
-    'before_pixels',
-    'before_template',
+    'expect_ocr_absent',
+    'expect_pixels_absent',
+    'expect_template_absent',
+    'expect_ocr',
+    'expect_pixels',
+    'expect_template',
     'shot',
 ]

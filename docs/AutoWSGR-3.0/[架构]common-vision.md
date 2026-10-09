@@ -107,9 +107,10 @@ application / business / tools
 
 `autowsgr.common.vision` 是稳定门面，`service.py` 是门面背后的识别入口实现。根门面只导出七个识别入口、返回类型 `RecognitionResult` 和识别数据模型；不导出 executor 实现类、适配层组合函数、模块缓存或私有辅助函数。
 
-上层使用视觉能力只经 `service.py` 里的七个入口：`shot`、`before_template`/`before_ocr`/`before_pixels`
-和 `after_template`/`after_ocr`/`after_pixels`；每个入口只接受对应识别类型的数据、规则和预期，
-不做跨类型分发。
+上层使用视觉能力只经 `service.py` 里的七个入口：`shot`、`expect_template`/`expect_ocr`/`expect_pixels`（识别存在）
+和 `expect_template_absent`/`expect_ocr_absent`/`expect_pixels_absent`（识别不存在）；每个入口只接受对应识别类型的数据、
+规则和预期，不做跨类型分发。历史上这两组入口叫"前识别/后识别"，现按语义命名。`expect_ocr` / `expect_ocr_absent`
+的 `expect` 接受单条文本或候选集合：识别存在时命中任一条即满足，识别不存在时需要全部候选都不出现才满足。
 
 门面另外导出调用方表达识别数据和判读结果所需的模型：`ROI`、`Template`、`Color`、`PixelRule`、`MatchStrategy`、`PixelSignature`、`CompositePixelSignature`、`RecognitionProfile`、`TemplateMatchResult`、`PixelMatchResult`、`PixelDetail`、`TextDetection`，以及返回类型 `RecognitionResult`。底层组合能力（模板匹配、OCR、像素匹配、文本预处理、计数解析）和两个基础执行器句柄不再从门面导出；需要它们时经七个识别入口使用。
 
@@ -372,6 +373,11 @@ result = adapters.template_matching.match_template(screen, template, confidence=
 | 置信度不在 `[0, 1]` | 拒绝匹配 | `ValueError` | 调用方 |
 | 模板尺寸大于搜索区域 | 返回未命中 | `matched=False` | 业务识别层 |
 | ROI 存在 | 裁切后匹配并还原位置 | `TemplateMatchResult` | 调用方 |
+| 模板命中 | 附带模板中心的归一化坐标 | `TemplateMatchResult.center` | 调用方（可直接用作点击落点） |
+| 模板未命中 | 中心为空值 | `center=None` | 调用方 |
+
+`center` 是**匹配到的模板实际中心**（按截图尺寸归一化、保留四位小数），不是搜索区域 `roi` 的中心：
+调用方需要点击按钮时直接取它，不需要再用像素位置自行换算。模板未命中表示位置不可信，因此不给中心。
 
 匹配流程不截图、不保存截图、不管理模板缓存；文件加载只通过 OpenCV executor 的 system.files 边界完成。
 

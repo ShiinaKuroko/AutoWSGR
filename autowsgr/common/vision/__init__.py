@@ -32,12 +32,12 @@ from autowsgr.common.vision.adapters.text_recognition import (
 )
 from autowsgr.common.vision.service import (
     RecognitionResult,
-    after_ocr,
-    after_pixels,
-    after_template,
-    before_ocr,
-    before_pixels,
-    before_template,
+    expect_ocr_absent,
+    expect_pixels_absent,
+    expect_template_absent,
+    expect_ocr,
+    expect_pixels,
+    expect_template,
     shot,
 )
 
@@ -56,11 +56,11 @@ __all__ = [
     'Template',
     'TemplateMatchResult',
     'TextDetection',
-    'after_ocr',
-    'after_pixels',
-    'after_template',
-    'before_ocr',
-    'before_pixels',
-    'before_template',
+    'expect_ocr_absent',
+    'expect_pixels_absent',
+    'expect_template_absent',
+    'expect_ocr',
+    'expect_pixels',
+    'expect_template',
     'shot',
 ]

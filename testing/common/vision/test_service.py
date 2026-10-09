@@ -24,12 +24,12 @@ def test_public_service_exports_are_stable() -> None:
     """公共入口只暴露七个识别功能和识别数据模型。"""
     entries = (
         'shot',
-        'before_template',
-        'before_ocr',
-        'before_pixels',
-        'after_template',
-        'after_ocr',
-        'after_pixels',
+        'expect_template',
+        'expect_ocr',
+        'expect_pixels',
+        'expect_template_absent',
+        'expect_ocr_absent',
+        'expect_pixels_absent',
     )
     for entry in entries:
         assert callable(getattr(vision, entry))
@@ -121,3 +121,18 @@ def test_ocr_entry_uses_profile_and_candidate_constraint(monkeypatch: pytest.Mon
     )
 
     assert result == [TextDetection('123', 0.95, (0, 0, 12, 10))]
+
+
+def test_ocr_expect_accepts_candidate_collection() -> None:
+    """OCR 期望支持候选集合：命中任一即算找到。"""
+    detections = [TextDetection('最强之舟（困难）', 0.91, (0, 0, 20, 10))]
+
+    assert service._text_found(detections, '最强之舟（困难）')
+    assert service._text_found(detections, ('最强之舟', '最强之舟（困难）'))
+    assert not service._text_found(detections, ('最强之舟',))
+
+
+def test_ocr_expect_rejects_empty_candidate_collection() -> None:
+    """空候选集合属于非法期望，必须显式失败。"""
+    with pytest.raises(ValueError, match='候选集合不能为空'):
+        service._expected_texts(())
