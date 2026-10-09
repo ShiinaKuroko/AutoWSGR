@@ -11,7 +11,10 @@ class PageName(StrEnum):
     """游戏页面名称。"""
 
     HOME = '主页面'
-    MAP = '地图页面'
+    SORTIE_MAP = '出征页面'
+    EXERCISE = '演习页面'
+    EXPEDITION = '远征页面'
+    CAMPAIGN = '战役页面'
     BATTLE_PREP = '出征准备'
     SIDEBAR = '侧边栏'
     MISSION = '任务页面'

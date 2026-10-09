@@ -41,7 +41,7 @@ _HOME_PAGE_COVERAGE_MIN = 0.6  # 标签模板覆盖度达到此值才确认页�
 # ── 标签模板 ────────────────────────────────────────────────────────────────────────
 
 _TEMPLATE_FILES: dict[PageName, str] = {
-    PageName.MAP: 'map.png',
+    PageName.SORTIE_MAP: 'map.png',
     PageName.BUILD: 'build.png',
     PageName.INTENSIFY: 'intensify.png',
     PageName.MISSION: 'mission.png',

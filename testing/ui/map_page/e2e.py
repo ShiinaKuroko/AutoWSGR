@@ -56,7 +56,7 @@ def run_test(runner: UIControllerTestRunner) -> None:
     battle_page = BattlePage(runner.ctx)
 
     # ───── Step 0: 验证初始状态 ──────────────────────────────────────
-    runner.verify_current('初始验证: sortie_page', '地图页面', SortiePage.check_current_page)
+    runner.verify_current('初始验证: sortie_page', '出征页面', SortiePage.check_current_page)
     if runner.aborted:
         return
 
@@ -81,7 +81,7 @@ def run_test(runner: UIControllerTestRunner) -> None:
     for panel in panel_sequence:
         runner.execute_step(
             f'面板切换 → {panel.value}',
-            '地图页面',
+            '出征页面',
             SortiePage.check_current_page,
             lambda p=panel: sortie_page.click_tab(p),
         )
@@ -91,7 +91,7 @@ def run_test(runner: UIControllerTestRunner) -> None:
     # ───── Step 7: 章节 → 下一章 ─────────────────────────────────────
     runner.execute_step(
         '章节 → 下一章',
-        '地图页面',
+        '出征页面',
         SortiePage.check_current_page,
         battle_page.click_next_chapter,
     )
@@ -101,7 +101,7 @@ def run_test(runner: UIControllerTestRunner) -> None:
     # ───── Step 8: 章节 → 上一章 ─────────────────────────────────────
     runner.execute_step(
         '章节 → 上一章 (恢复)',
-        '地图页面',
+        '出征页面',
         SortiePage.check_current_page,
         battle_page.click_prev_chapter,
     )
@@ -147,7 +147,7 @@ def main() -> None:
         ctrl,
         SortiePage.check_current_page,
         lambda: _navigate_to(ctrl, args.pause),
-        '地图页面',
+        '出征页面',
         auto_mode=args.auto,
         pause=args.pause,
     ):
@@ -155,7 +155,7 @@ def main() -> None:
         sys.exit(1)
     runner = UIControllerTestRunner(
         ctrl,
-        controller_name='地图页面',
+        controller_name='出征页面',
         log_dir=args.log_dir,
         auto_mode=args.auto,
         pause=args.pause,

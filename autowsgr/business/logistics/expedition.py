@@ -51,7 +51,7 @@ class ExpeditionCheckExecutor(BaseExecutor):
             self._report('checked', collected=0)
             return False
 
-        goto_page(self.ctx, PageName.MAP)
+        goto_page(self.ctx, PageName.SORTIE_MAP)
         sortie_page = SortiePage(self.ctx)
         screen = self.ctx.ctrl.screenshot()
         if not SortiePage.check_expedition_notification(screen):

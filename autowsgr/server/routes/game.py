@@ -38,7 +38,7 @@ async def game_acquisition() -> ApiResponse:
     from autowsgr.application.ui.navigation import goto_page
 
     def _recognize() -> dict[str, int | None]:
-        goto_page(ctx, '地图页面')
+        goto_page(ctx, '出征页面')
         campaign_page = CampaignPage(ctx)
         counts = campaign_page.read_acquisition_counts()
         return {

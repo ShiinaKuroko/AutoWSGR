@@ -330,7 +330,7 @@ class NormalFightRunner:
 
     def _enter_normal(self) -> None:
         """导航到常规出征面板并进入地图。"""
-        goto_page(self._ctx, PageName.MAP)
+        goto_page(self._ctx, PageName.SORTIE_MAP)
         battle_page = BattlePage(self._ctx)
 
         # 在出征面板读取今日已获取数量

@@ -299,7 +299,7 @@ class BattlePreparationPage:
             click_coord=constants.CLICK_BACK,
             checker=SortiePage.check_current_page,
             source=PageName.BATTLE_PREP,
-            target=PageName.MAP,
+            target=PageName.SORTIE_MAP,
         )
 
     def go_back_to_event(self) -> None:

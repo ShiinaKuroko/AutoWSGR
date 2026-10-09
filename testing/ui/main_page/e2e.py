@@ -134,7 +134,7 @@ def run_test(runner: UIControllerTestRunner) -> None:  # noqa: PLR0911, C901, PL
     # ───── Step 4: 主页面 → 地图页面 (出征) ─────────────────────────
     runner.execute_step(
         '主页面 → 地图页面 (navigate_to SORTIE)',
-        '地图页面',
+        '出征页面',
         SortiePage.check_current_page,
         lambda: main_page.navigate_to(Target.SORTIE),
     )
@@ -254,7 +254,7 @@ def run_test(runner: UIControllerTestRunner) -> None:  # noqa: PLR0911, C901, PL
     # ───── Step 9: navigate_to(SORTIE) ───────────────────────────────
     runner.execute_step(
         '主页面 → 地图页面',
-        '地图页面',
+        '出征页面',
         SortiePage.check_current_page,
         lambda: main_page.navigate_to(Target.SORTIE),
     )

@@ -77,7 +77,7 @@ class CampaignExecutor(BaseExecutor):
                 self.spec.difficulty,
             )
             if not reuse_page:
-                goto_page(self.ctx, PageName.MAP)
+                goto_page(self.ctx, PageName.SORTIE_MAP)
             self._operations.enter_campaign(self.spec)
 
             # 8、等待出征准备页稳定后加载战役编队。

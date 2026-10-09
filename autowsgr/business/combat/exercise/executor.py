@@ -99,7 +99,7 @@ class ExerciseExecutor(BaseExecutor):
             )
 
             # 1、导航到演习入口
-            goto_page(self.ctx, PageName.MAP)
+            goto_page(self.ctx, PageName.SORTIE_MAP)
             self._operations.switch_to_exercise_panel()
             self._wait(1.0)  # 断点①：面板导航完成后
 
@@ -119,7 +119,7 @@ class ExerciseExecutor(BaseExecutor):
                     break  # 配额耗尽, 无需复位面板
 
                 # 4、回到演习入口
-                goto_page(self.ctx, PageName.MAP)
+                goto_page(self.ctx, PageName.SORTIE_MAP)
                 self._operations.switch_to_exercise_panel()  # 复位面板, 供下一场识别
 
             _log.info(

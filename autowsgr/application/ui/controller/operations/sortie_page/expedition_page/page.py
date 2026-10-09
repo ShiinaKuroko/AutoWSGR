@@ -170,14 +170,14 @@ class ExpeditionPage(SortiePage):
                     self._ctrl,
                     checker=self.check_current_page,
                     source='远征页',
-                    target=PageName.MAP.value,
+                    target=PageName.SORTIE_MAP.value,
                 )
             except NavigationError as error:
                 _log.opt(exception=True).error(
                     '[UI] 远征页 → 失败：动作={!r}，期望={!r}，实际={!r}，'
                     '原因={!r}，错误类型={!r}，错误={!r}，结果=失败，下一步=抛出异常',
                     '返回地图',
-                    '地图页面',
+                    '出征页面',
                     '未到达',
                     '页面未到达',
                     type(error).__name__,

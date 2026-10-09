@@ -47,7 +47,7 @@ _TAB_SWITCH_RETRY_DELAY = 1.0  # 标签切换重试前的等待时间（秒）�
 class TabbedPageType(enum.Enum):
     """共享标签页页面类型。"""
 
-    MAP = PageName.MAP
+    MAP = PageName.SORTIE_MAP
     BUILD = PageName.BUILD
     INTENSIFY = PageName.INTENSIFY
     MISSION = PageName.MISSION
@@ -192,7 +192,7 @@ class SortiePage:
             self._ctrl,
             click_coord=constants.CLICK_BACK,
             checker=HomePage.check_current_page,
-            source=PageName.MAP.value,
+            source=PageName.SORTIE_MAP.value,
             target=PageName.HOME.value,
         )
         _log.info('[UI] 出征页 → 返回：结果=成功')
