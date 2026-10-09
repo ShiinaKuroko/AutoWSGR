@@ -121,7 +121,7 @@ def _new_controller(rt: Any, config: Any) -> Any:
     if DecisiveBattlePage.check_current_page(screen).matched:
         rt.note('启动状态识别: 决战总览页')
         controller._battle_page.navigate_to_chapter(config.chapter)
-    elif current_page in {PageName.HOME.value, PageName.MAP.value}:
+    elif current_page in {PageName.HOME.value, PageName.SORTIE_MAP.value}:
         rt.note(f'启动状态识别: {current_page or "未知页面"}，导航到决战总览')
         controller._prepare_entry_state()
         if not DecisiveBattlePage.check_current_page(rt.ctx.ctrl.screenshot()).matched:

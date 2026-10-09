@@ -57,7 +57,7 @@ def run(rt: Any) -> bool:
     rt.note(f'顺序: {targets}')
 
     ctx = rt.ctx
-    if rt.action('进入地图页面', goto_page, ctx, PageName.MAP) is rt.FAILED:
+    if rt.action('进入地图页面', goto_page, ctx, PageName.SORTIE_MAP) is rt.FAILED:
         return False
 
     page = BattlePage(ctx)

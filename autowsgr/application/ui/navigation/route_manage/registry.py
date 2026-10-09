@@ -13,8 +13,8 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from autowsgr.application.ui.navigation.page_checker.home import check_home_page
-from autowsgr.application.ui.navigation.page_checker.sortie import check_sortie_page
+from autowsgr.application.ui.navigation.page_checker.home_checker import check_home_page
+from autowsgr.application.ui.navigation.page_checker.sortie_checker import check_sortie_page
 from autowsgr.application.ui.navigation.types import PageName
 
 
@@ -26,8 +26,8 @@ class RouteManage:
     """登记并查询页面之间的导航动作。"""
 
     _routes: tuple[RouteEntry, ...] = (
-        ('主页 → 出征页', PageName.HOME, PageName.MAP, 'navigate_to', check_sortie_page),
-        ('出征页 → 主页', PageName.MAP, PageName.HOME, 'go_back', check_home_page),
+        ('主页 → 出征页', PageName.HOME, PageName.SORTIE_MAP, 'navigate_to', check_sortie_page),
+        ('出征页 → 主页', PageName.SORTIE_MAP, PageName.HOME, 'go_back', check_home_page),
     )
     _routes_by_edge = {(route[1], route[2]): route for route in _routes}
 

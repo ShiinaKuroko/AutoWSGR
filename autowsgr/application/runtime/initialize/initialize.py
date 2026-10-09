@@ -29,7 +29,7 @@ from typing import TYPE_CHECKING
 from autowsgr.application.runtime.initialize import updater
 from autowsgr.application.runtime.types import GameAPP
 from autowsgr.application.ui.navigation import goto_page
-from autowsgr.application.ui.navigation.page_checker.home import check_home_page
+from autowsgr.application.ui.navigation.page_checker.home_checker import check_home_page
 from autowsgr.application.ui.navigation.service import NavigationError
 from autowsgr.application.ui.navigation.types import PageName
 from autowsgr.common.system.logger import get_logger
