@@ -1,12 +1,12 @@
 """E2E 快速实机验证框架 — 基座 (E2ERunner)。
 
 算法说明:
-1. 目标: 把 "连接设备 → 启动游戏 → 执行操作 → 判定结果" 的重复劳动收敛成一个
-   基座, 验证脚本 (case) 只写业务步骤本身, 实现 "加一个文件 = 多一个可跑的实机
-   验证"。
-2. 初始化: 走生产同款 Launcher 流程 (load_config → setup_logger → connect →
-   ensure_ready), 保证验证环境与 GUI / examples 脚本运行时行为一致;
-   --no-launch 可跳过游戏就绪 (纯只读验证), --with-ocr 决定是否初始化 OCR。
+1. 目标: 把 "连接设备 → 准备任务上下文 → 执行操作 → 判定结果" 的重复劳动收敛成
+   一个基座, 验证脚本 (case) 只写业务步骤本身, 实现 "加一个文件 = 多一个可跑的
+   实机验证"。
+2. 初始化: `--no-launch` 用 common.device 的 DeviceService 连接设备, 并绑定
+   dispatch ContextHandle 交给 case (rt.ctx); 完整模式 (启动游戏并回到首页) 依赖
+   navigation.goto_page 和 application.runtime.initialize 迁移到新栈, 尚未接通。
 3. 步骤执行: rt.action(label, fn) 执行任意函数并计时; 正常时原样返回 fn 的返回
    值, 抛异常时记为失败、自动截图存证并返回 FAILED 哨兵, case 据此短路退出。
 4. 断言: rt.check(label, fn) 把返回值当 bool 判定, 用于次数 / 状态核对。
@@ -19,10 +19,10 @@ from __future__ import annotations
 # 处理 Windows GBK 编码兼容性 (中文输出在默认代码页下可能乱码)
 import sys
 import time
+from contextlib import ExitStack
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from types import SimpleNamespace
 from typing import Any
 
 
@@ -37,6 +37,44 @@ except Exception:  # noqa: S110
 # ═══════════════════════════════════════════════════════════════════════════════
 # 数据结构
 # ═══════════════════════════════════════════════════════════════════════════════
+
+
+class _StaticFrameDevice:
+    """静态截图设备替身：按调用方选定的截图返回画面。"""
+
+    def __init__(self) -> None:
+        self._frame: Any = None
+
+    def use_frame(self, path: str | Path) -> None:
+        """切换当前帧。
+
+        Args:
+            path: 外挂截图路径，允许位于仓库之外。
+
+        Raises:
+            FileNotFoundError: 截图无法读取或解码。
+        """
+        # 外挂截图必须用 cv2 直接读；仓库的文件读取接口只允许仓库内路径。
+        import cv2
+        import numpy
+
+        frame = cv2.imdecode(numpy.fromfile(str(path), dtype=numpy.uint8), cv2.IMREAD_COLOR)
+        if frame is None:
+            raise FileNotFoundError(f'静态截图无法读取: {path}')
+        self._frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+    def screenshot(self) -> Any:
+        """返回当前帧。
+
+        Raises:
+            RuntimeError: 尚未选定任何截图。
+        """
+        if self._frame is None:
+            raise RuntimeError('静态帧尚未设置')
+        return self._frame
+
+    def disconnect(self) -> None:
+        """静态替身不持有设备资源。"""
 
 
 @dataclass
@@ -69,8 +107,9 @@ class RunnerState:
 class E2ERunner:
     """单个 E2E case 的执行基座。
 
-    职责: 设备连接、游戏就绪、步骤计时与记录、失败截图、汇总与退出码。
-    case 只需调用 :meth:`action` / :meth:`check` / :meth:`note` 组织自己的步骤。
+    职责: 设备连接、任务上下文、步骤计时与记录、失败截图、汇总与退出码。
+    case 只需调用 :meth:`action` / :meth:`check` / :meth:`note` 组织自己的步骤,
+    并从 rt.ctx 拿到已绑定 runtime 的 dispatch ContextHandle。
     """
 
     # 失败哨兵: action 抛异常时返回它 (区别于业务返回值 None/False/空列表)
@@ -85,6 +124,7 @@ class E2ERunner:
         config_path: str | None = None,
         debug: bool = False,
         no_launch: bool = False,
+        static_frames: bool = False,
         with_ocr: bool = False,
     ) -> None:
         self.case_name = case_name
@@ -93,12 +133,14 @@ class E2ERunner:
         self.config_path = config_path  # 配置文件路径; None 时自动检测
         self.debug = debug  # True 时日志级别 DEBUG
         self.no_launch = no_launch  # True 时跳过游戏就绪 (纯只读验证)
+        self.static_frames = static_frames  # True 时用外挂截图离线验证 (不连接设备)
         self.with_ocr = with_ocr  # True 时初始化 OCR 引擎 (编队识别等需要)
         self.state = RunnerState()
-        self.ctx: Any = None  # GameContext (prepare() 成功后可用)
-        self._launcher: Any = None
+        self.ctx: Any = None  # 已绑定的 dispatch ContextHandle (prepare() 成功后可用)
+        self._runtime: Any = None  # RuntimeBindings: 设备、配置和 OCR 服务引用
+        self._scope_stack: Any = None  # ExitStack: 持有本次运行的任务上下文作用域
+        self._launcher: Any = None  # 已连接的设备服务
         self._cleanup_done = False
-        self._recovery_in_progress = False
         # 每次运行独立目录: logs/e2e_tools/<case>/<时间戳>
         stamp = datetime.now().astimezone().strftime('%Y%m%d_%H%M%S')
         self.log_dir = Path('logs/e2e_tools') / case_name / stamp
@@ -106,75 +148,31 @@ class E2ERunner:
     # ── 初始化 ─────────────────────────────────────────────────────
 
     def prepare(self) -> bool:
-        """连接设备并准备游戏环境。
+        """连接设备并准备本次运行的任务上下文。
 
-        流程与生产 launch() 对齐: 读配置 → 初始化日志 → 连接设备 → 游戏就绪。
-        ``no_launch=True`` 时只连接不启动游戏 (截图/页面识别等只读验证)。
+        ``no_launch=True`` 只连接设备并绑定 dispatch Context, 供截图、页面识别和
+        checker 验证使用。完整模式需要启动游戏并回到首页, 依赖尚未迁移完成的
+        ``navigation.goto_page`` 和 ``application.runtime.initialize``。
         """
-        if self.case_name == 'screenshot' and self.no_launch:
-            return self._prepare_readonly_screenshot()
+        if self.static_frames:
+            return self._prepare_static_frames()
+        if self.no_launch:
+            return self._prepare_readonly()
 
-        from autowsgr.application.runtime.launcher import Launcher
-        from autowsgr.common.system.logger import setup_logger
+        # TODO: 完整实机链路 (启动游戏 → 回到首页 → 执行 case) 依赖
+        # navigation.goto_page 与 application.runtime.initialize 迁移到新栈。
+        # 影响范围: 所有不使用 --no-launch 的 case。删除条件: 上述两个入口在新栈
+        # 可用后, 按 _prepare_readonly 的方式组装 runtime 并在本分支续接游戏就绪。
+        error = '完整实机链路未接通: 依赖 navigation.goto_page (导航器重写第 2 步)'
+        self._record('准备运行环境', ok=False, error=error)
+        print(f'  [FAIL] {error}; 只读验证请加 --no-launch')
+        return False
 
-        launcher = Launcher(config_path=self.config_path)
-        # Keep the handle before connect so a partially connected controller is
-        # still released when connection or context construction fails.
-        self._launcher = launcher
-        cfg = launcher.load_config()
-
-        # 日志目录/级别以本次运行为准, 通道配置沿用 usersettings.yaml
-        channels = cfg.log.effective_channels or None
-        setup_logger(
-            log_dir=self.log_dir,
-            level='DEBUG' if self.debug else 'INFO',
-            save_images=True,
-            channels=channels,
-        )
-
-        # 命令行指定 serial 时覆盖配置
-        if self.serial is not None:
-            emu = cfg.emulator.model_copy(update={'serial': self.serial})
-            launcher.set_config(cfg.model_copy(update={'emulator': emu}))
-
-        # 连接设备
-        try:
-            launcher.connect()
-            serial = launcher.config.emulator.serial or 'auto'
-            res = launcher.ctrl.resolution
-            print(f'  [OK] 设备已连接: {serial} {res[0]}x{res[1]}')
-        except Exception as exc:
-            self._record('连接设备', ok=False, error=str(exc))
-            print(f'  [FAIL] 设备连接失败: {exc}')
-            return False
-
-        try:
-            # 组装 GameContext (与 testing/ops 的 launch_for_test 同款流程)
-            from autowsgr.application.runtime.context import GameContext
-
-            if self.with_ocr:
-                self.ctx = launcher.build_context()  # 含 OCR 引擎
-            else:
-                self.ctx = GameContext(ctrl=launcher.ctrl, config=launcher.config, ocr=None)
-
-            if self.no_launch:
-                # 显式只读模式: 不启动/导航游戏, 供截图和页面识别诊断使用。
-                return True
-
-            # 所有正常 E2E 都从同一个业务初始化入口开始，避免 OCR 分支
-            # 与普通分支产生不同的首页/浮层状态。
-            self._initialize_game()
-        except Exception as exc:
-            self._record('初始化游戏', ok=False, error=str(exc))
-            print(f'  [FAIL] 游戏初始化失败: {exc}')
-            self._error_screenshot('prepare')
-            return False
-        return True
-
-    def _prepare_readonly_screenshot(self) -> bool:
-        """Prepare the screenshot smoke case through the rewritten device API."""
+    def _prepare_readonly(self) -> bool:
+        """连接设备并绑定 dispatch 任务上下文 (不启动游戏、不执行页面操作)。"""
         from autowsgr.common.device.config import DeviceConfig
         from autowsgr.common.device.service import DeviceService
+        from autowsgr.dispatch.context import ContextTemplate, RuntimeBindings, context
 
         self._launcher = DeviceService(
             DeviceConfig(ADB_CONNECTION=self.serial) if self.serial else DeviceConfig(),
@@ -186,11 +184,55 @@ class E2ERunner:
             print(f'  [FAIL] 设备连接失败: {exc}')
             return False
 
-        self.ctx = SimpleNamespace(ctrl=self._launcher)
+        # 只读模式没有可用的生产配置和 OCR 引擎 (autowsgr.config 与 OCREngine 仍在
+        # 迁移中), 只读 case 只消费设备服务; 需要配置或 OCR 的 case 等其链路迁移后再接。
+        self._bind_task_context(self._launcher)
+        if self.with_ocr:
+            self.note('只读模式不初始化 OCR: 新栈 OCR 入口迁移中, 该参数当前被忽略')
         print(f'  [OK] 设备已连接: {info.serial} {info.resolution[0]}x{info.resolution[1]}')
         return True
 
+    def _prepare_static_frames(self) -> bool:
+        """用静态截图替身准备离线验证 (不连接设备、不启动游戏)。"""
+        self._launcher = _StaticFrameDevice()
+        self._bind_task_context(self._launcher)
+        print('  [OK] 静态帧模式: 使用外挂截图, 不连接设备')
+        return True
+
+    def _bind_task_context(self, ctrl: Any) -> None:
+        """绑定本次运行的 dispatch 任务上下文。
+
+        Args:
+            ctrl: 已就绪的运行时设备引用。
+        """
+        from autowsgr.dispatch.context import ContextTemplate, RuntimeBindings, context
+
+        # 只读运行没有生产配置和 OCR 引擎可注入, 只消费设备引用。
+        self._runtime = RuntimeBindings(ctrl=ctrl, config=None, ocr=None, ship_ocr=None)
+        self._scope_stack = ExitStack()
+        self._scope_stack.enter_context(
+            context.bind(
+                f'e2e:{self.case_name}',
+                template=ContextTemplate.for_task('navigation_checker'),
+                runtime=self._runtime,
+            ),
+        )
+        self.ctx = context.request()
+
     # ── 步骤 API (case 调用) ───────────────────────────────────────
+
+    def use_frame(self, path: str | Path) -> None:
+        """切换静态验证使用的截图。
+
+        Args:
+            path: 外挂截图路径; 换机器或换活动时由 case 指定。
+
+        Raises:
+            RuntimeError: 当前不是静态帧模式。
+        """
+        if not isinstance(self._launcher, _StaticFrameDevice):
+            raise RuntimeError('只有静态帧模式可以切换截图')
+        self._launcher.use_frame(path)
 
     def action(self, label: str, fn: Any, /, *args: Any, **kwargs: Any) -> Any:
         """执行一个操作步骤。
@@ -204,15 +246,8 @@ class E2ERunner:
         """
         t0 = time.monotonic()
         try:
-            if not self._ensure_game_running():
-                raise RuntimeError('游戏进程已退出且重新初始化失败')
             value = fn(*args, **kwargs)
-            # 操作期间进程可能被外部关闭。此处只恢复运行环境，不重放
-            # 已经执行过的业务函数，避免点击类操作被重复提交。
-            if not self._ensure_game_running():
-                raise RuntimeError('操作后游戏进程已退出且重新初始化失败')
         except Exception as exc:
-            self._recover_after_error()
             self._record(label, ok=False, error=str(exc), t0=t0)
             print(f'  [FAIL] {label}: {exc}')
             self._error_screenshot(label)
@@ -225,15 +260,9 @@ class E2ERunner:
         """断言步骤: 把 fn 返回值当 bool 判定, 打印 PASS/FAIL。"""
         t0 = time.monotonic()
         try:
-            if not self._ensure_game_running():
-                raise RuntimeError('游戏进程已退出且重新初始化失败')
             passed = bool(fn(*args, **kwargs))
             error: str | None = None
-            if not self._ensure_game_running():
-                passed = False
-                error = '检查后游戏进程已退出且重新初始化失败'
         except Exception as exc:
-            self._recover_after_error()
             passed = False
             error = str(exc)
         self._record(label, ok=passed, error=error, t0=t0)
@@ -255,7 +284,7 @@ class E2ERunner:
         self._error_screenshot('case_crash')
 
     def finalize(self, *, overall: bool = True) -> int:
-        """先收口游戏生命周期，再打印汇总并返回进程退出码。"""
+        """先释放运行资源，再打印汇总并返回进程退出码。"""
         self.cleanup()
         total = len(self.state.steps)
         failed = self.state.failed
@@ -274,22 +303,15 @@ class E2ERunner:
         return 0 if verdict == 'PASS' else 1
 
     def cleanup(self) -> None:
-        """无论 case 结果如何，尝试回主页并释放设备连接。"""
+        """无论 case 结果如何，关闭任务上下文并释放设备连接。"""
         if self._cleanup_done:
             return
         self._cleanup_done = True
 
-        if self.ctx is not None and not self.no_launch:
-            t0 = time.monotonic()
-            try:
-                self._initialize_game()
-            except Exception as exc:
-                self._record('清理: 回到主页面', ok=False, error=str(exc), t0=t0)
-                print(f'  [FAIL] 清理: 回到主页面: {exc}')
-                self._error_screenshot('cleanup')
-            else:
-                self._record('清理: 回到主页面', ok=True, t0=t0)
-                print(f'  [OK] 清理: 回到主页面 ({self._ms_since(t0)}ms)')
+        # 先退出任务上下文作用域, 再断开设备, 避免残留绑定阻塞下一次 bind。
+        if self._scope_stack is not None:
+            self._scope_stack.close()
+            self._scope_stack = None
 
         if self._launcher is None:
             return
@@ -298,75 +320,6 @@ class E2ERunner:
         except Exception as exc:
             self._record('清理: 断开设备', ok=False, error=str(exc))
             print(f'  [FAIL] 清理: 断开设备: {exc}')
-
-    # ── 游戏生命周期 ─────────────────────────────────────────────
-
-    def _game_package(self) -> str:
-        """返回当前配置对应的 Android 包名。"""
-        if self.ctx is None:
-            raise RuntimeError('GameContext 尚未构造')
-        app = self.ctx.config.account.game_app
-        package = getattr(app, 'package_name', None)
-        if package is None:
-            from autowsgr.common.types import GameAPP
-
-            package = GameAPP(str(app)).package_name
-        return package
-
-    def _initialize_game(self) -> None:
-        """调用唯一业务初始化入口，保证终态为首页待机。"""
-        if self.ctx is None:
-            raise RuntimeError('GameContext 尚未构造')
-        from autowsgr.application.runtime.initialize.initialize import initialize
-
-        initialize(self.ctx)
-        self._handle_daily_overlays()
-
-    def _handle_daily_overlays(self) -> None:
-        """处理每日首次登录弹窗，供初始化和异常恢复共用。"""
-        from autowsgr.application.runtime.initialize.overlays import (
-            OverlayState,
-            handle_daily_overlays,
-        )
-
-        state = getattr(self.ctx, 'overlay_state', None)
-        if state is None:
-            state = OverlayState()
-            self.ctx.overlay_state = state
-        handle_daily_overlays(self.ctx.ctrl, state)
-
-    def _ensure_game_running(self) -> bool:
-        """检测游戏是否仍在运行；异常退出时只重新初始化一次。"""
-        if self.no_launch or self.ctx is None:
-            return True
-        try:
-            running = self.ctx.ctrl.is_app_running(self._game_package())
-        except Exception as exc:
-            self.note(f'无法检查游戏进程: {exc}')
-            return False
-        if running or self._recovery_in_progress:
-            return running
-
-        self._recovery_in_progress = True
-        try:
-            self.note('检测到游戏进程异常退出，重新初始化')
-            self._initialize_game()
-        except Exception as exc:
-            self.note(f'重新初始化失败: {exc}')
-            return False
-        else:
-            return True
-        finally:
-            self._recovery_in_progress = False
-
-    def _recover_after_error(self) -> None:
-        """在步骤异常后尝试恢复已退出的游戏进程。"""
-        if self.no_launch or self.ctx is None or self._recovery_in_progress:
-            return
-        try:
-            self._ensure_game_running()
-        except Exception as recovery_error:
-            self.note(f'异常后恢复失败: {recovery_error}')
 
     # ── 内部工具 ───────────────────────────────────────────────────
 
@@ -393,13 +346,13 @@ class E2ERunner:
 
     def _error_screenshot(self, label: str) -> None:
         """失败时自动截图存证 (截图本身失败则静默跳过)。"""
-        if self.ctx is None or self.ctx.ctrl is None:
+        if self._runtime is None or self._runtime.ctrl is None:
             return
         try:
             # 失败分支才需要图片工具，避免普通 runner 导入时加载图像编码依赖。
             from tools.debug_toolkit.function.screenshot import save_image
 
-            screen = self.ctx.ctrl.screenshot()
+            screen = self._runtime.ctrl.screenshot()
             tag = f'e2e_fail_{label.replace(" ", "_")[:40]}'
             path = save_image(screen, tag=tag, img_dir=self.log_dir / 'images')
             if path:

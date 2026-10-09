@@ -1,4 +1,4 @@
-"""保存 ADB 截图和 debug 过程中的图片产物。"""
+"""保存设备截图和 debug 过程中的图片产物。"""
 
 from __future__ import annotations
 
@@ -8,13 +8,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import cv2
-
-from autowsgr.common.device import adb
-
-from tools.debug_toolkit.function.collect import (
-    _read_saved_serial,
-    _write_png,
-)
 
 
 if TYPE_CHECKING:
@@ -56,16 +49,28 @@ def save_image(
 
 
 def add_arguments(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument('--serial', help='ADB serial, defaults to the saved serial')
-    parser.add_argument('--adb-path', type=Path, help='override the bundled adb.exe')
+    parser.add_argument('--serial', help='ADB serial, defaults to auto discovery')
     parser.add_argument('-o', '--output', type=Path, help='explicit PNG path')
 
 
 def run(args: argparse.Namespace) -> int:
-    adb_path = adb.find_adb(args.adb_path)
-    serial = args.serial or _read_saved_serial()
-    image = adb.capture_screen(serial, adb_path)
+    from autowsgr.common.device.config import DeviceConfig
+    from autowsgr.common.device.service import DeviceService
+
+    service = DeviceService(
+        DeviceConfig(ADB_CONNECTION=args.serial) if args.serial else DeviceConfig(),
+    )
+    try:
+        service.connect()
+        image = service.screenshot()
+    finally:
+        service.disconnect()
+
     output = args.output or RESULT_ROOT / f'screenshot_{datetime.now(UTC):%Y%m%d_%H%M%S}.png'
-    _write_png(output, image)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    success, encoded = cv2.imencode('.png', cv2.cvtColor(image, cv2.COLOR_RGB2BGR))
+    if not success:
+        raise RuntimeError('截图编码失败')
+    encoded.tofile(str(output))
     print(output)
     return 0

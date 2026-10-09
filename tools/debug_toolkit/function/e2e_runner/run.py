@@ -122,6 +122,13 @@ def split_argv(argv: list[str]) -> tuple[list[str], str | None, list[str]]:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
+def _mode_label(options: argparse.Namespace) -> str:
+    """返回本次运行的模式说明。"""
+    if options.static:
+        return '静态帧 (离线识别验证)'
+    return '只读 (跳过游戏就绪)' if options.no_launch else '完整 (游戏就绪)'
+
+
 def main() -> int:
     global_argv, case_name, rest = split_argv(sys.argv[1:])
 
@@ -144,6 +151,7 @@ def main() -> int:
     gp.add_argument('--config', default=None, help='用户配置文件路径 (默认自动检测)')
     gp.add_argument('--debug', action='store_true', help='DEBUG 日志')
     gp.add_argument('--no-launch', action='store_true', help='跳过游戏就绪 (只读验证)')
+    gp.add_argument('--static', action='store_true', help='用外挂截图离线验证 (不连接设备)')
     gp.add_argument('--with-ocr', action='store_true', help='初始化 OCR 引擎')
     g = gp.parse_args(global_argv)
 
@@ -162,7 +170,7 @@ def main() -> int:
     print('═' * 68)
     print(f'  设备: {g.serial or "自动检测 (usersettings.yaml)"}')
     print(
-        f'  模式: {"只读 (跳过游戏就绪)" if g.no_launch else "完整 (游戏就绪)"}'
+        f'  模式: {_mode_label(g)}'
         f'{" + OCR" if g.with_ocr else ""}'
     )
 
@@ -176,6 +184,7 @@ def main() -> int:
         config_path=g.config,
         debug=g.debug,
         no_launch=g.no_launch,
+        static_frames=g.static,
         with_ocr=g.with_ocr,
     )
     if not rt.prepare():

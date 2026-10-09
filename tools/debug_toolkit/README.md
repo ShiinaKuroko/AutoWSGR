@@ -20,7 +20,10 @@ result/
 ```
 
 The `e2e` command runs the bundled canonical runner. All E2E cases live under
-this package; the old root-level E2E entry is removed.
+this package; the old root-level E2E entry is removed. Global flags come before
+the case name. Today only `--no-launch` (readonly) cases run: the game-ready
+path still depends on `navigation.goto_page`, which the rewrite has not landed
+yet.
 
 ## Commands
 
@@ -32,7 +35,7 @@ python tools/debug_toolkit/main.py roi --image result/screenshot/screenshot_*.pn
 python tools/debug_toolkit/main.py ocr --image result/screenshot/screenshot_*/1x/screenshot_*_roi_1x.png
 python tools/debug_toolkit/main.py inspect --image screenshot.png --roi 0.8,0.8,0.9,0.9 --allowlist "0-9"
 python tools/debug_toolkit/main.py inspect --image screenshot.png --check-page main --pixel 0.5,0.5
-python tools/debug_toolkit/main.py e2e --serial 127.0.0.1:16384 screenshot --no-launch
+python tools/debug_toolkit/main.py e2e --no-launch --serial 127.0.0.1:16384 screenshot
 python tools/debug_toolkit/main.py e2e --with-ocr change_fleet --fleet 2 --ships U-47,U-96
 python tools/debug_toolkit/main.py collect adb 127.0.0.1:16384
 python tools/debug_toolkit/main.py collect team --mode A
