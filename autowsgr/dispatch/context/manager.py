@@ -83,6 +83,14 @@ class ContextHandle:
         """Return the requested destination page, if any."""
         return self._state().target_page
 
+    def read_event_type(self) -> str | None:
+        """Return the activity type bound to the active task, if any."""
+        return self._state().template.event_type
+
+    def read_event_stage(self) -> str | None:
+        """Return the activity stage bound to the active task, if any."""
+        return self._state().template.event_stage
+
     def record_route_step(self, step: int) -> None:
         """Record the current zero-based route step."""
         if isinstance(step, bool) or not isinstance(step, int) or step < 0:

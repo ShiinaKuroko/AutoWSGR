@@ -61,6 +61,29 @@ def test_context_state_does_not_cross_task_scopes() -> None:
         assert manager.request().read_current_page() is None
 
 
+def test_context_carries_activity_binding() -> None:
+    template = ContextTemplate.for_task('event_fight', event_type='stage_push', event_stage='EX7')
+    manager = ContextManager()
+
+    with manager.bind('event-task', template=template):
+        handle = manager.request()
+
+        assert handle.task_type == 'event_fight'
+        assert handle.read_event_type() == 'stage_push'
+        assert handle.read_event_stage() == 'EX7'
+
+
+def test_context_leaves_activity_binding_empty_for_plain_tasks() -> None:
+    manager = ContextManager()
+    template = ContextTemplate.for_task('navigation_checker')
+
+    with manager.bind('plain-task', template=template):
+        handle = manager.request()
+
+        assert handle.read_event_type() is None
+        assert handle.read_event_stage() is None
+
+
 def test_runtime_bindings_are_scope_bound() -> None:
     manager = ContextManager()
     template = ContextTemplate.for_task('navigation_checker')

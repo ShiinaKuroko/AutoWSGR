@@ -333,6 +333,7 @@ TaskContext 第一阶段只允许收集跨模块编排确实需要的状态：
 | 字段类别 | 典型内容 | 主要写入者 |
 | --- | --- | --- |
 | 任务身份 | `request_id`、`task_type`、请求来源 | dispatch |
+| 活动任务参数 | `event_type`、`event_stage`（由 YAML 任务提供） | dispatch（bind 时随模板注入，导航器只读） |
 | 导航状态 | 当前页面、目标页面、当前路由步骤 | Navigator |
 | 观测结果 | 最近一次截图、页面识别结果、识别事件 | dispatch / Navigator |
 | 操作结果 | 最近一次页面操作结果或异常事实 | dispatch / Controller 编排层 |
@@ -390,6 +391,8 @@ read_current_page()
 set_current_page(...)
 read_target_page()
 set_target_page(...)
+read_event_type()
+read_event_stage()
 record_route_step(...)
 record_result(...)
 record_error(...)
