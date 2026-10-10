@@ -1,13 +1,23 @@
-"""定义主页坐标、感兴趣区域和通知颜色校准数据。"""
+"""模块功能：维护主页的点击落点与通知探针。
+
+上层调用：
+- application.ui.controller.home.main_page.page：读取主页点击落点。
+- application.ui.controller.home.main_page.recognition：读取通知探针与颜色。
+
+下层依赖：
+- common.vision：提供颜色类型。
+
+边界：只保存静态校准数据，不识别画面、不编排流程、不持有运行状态。
+"""
 
 from __future__ import annotations
 
 from autowsgr.common.vision.adapters.pixel_matching import Color
-from autowsgr.common.vision.adapters.template_matching import ROI
 
 
-# -- 主页导航坐标 -----------------------------------------------------------
+# ── 主页导航落点 ────────────────────────────────────────────────────────────────────
 
+# 坐标为 1280x720 参考画面的归一化值；键与 Target 枚举名一致。
 NAV_POSITIONS = {
     'sortie': (0.9430, 0.9069),
     'task': (0.6836, 0.9042),
@@ -17,8 +27,17 @@ NAV_POSITIONS = {
 }
 
 
-# -- 通知探针 ---------------------------------------------------------------
+# ── 每日浮窗点击落点 ──────────────────────────────────────────────────────────────────
 
+# 公告关闭按钮的落点；其余浮窗按钮的落点由识别产出后由调用方传入。
+DISMISS_POSITIONS = {
+    'news_close': (0.0352, 0.0625),
+}
+
+
+# ── 通知探针 ──────────────────────────────────────────────────────────────────────
+
+# 通知红点的采样位置与颜色判定参数。
 PROBE_POSITIONS = {
     'expedition_ready': (0.9719, 0.8403),
     'task_ready': (0.7227, 0.8458),
@@ -28,37 +47,10 @@ NOTIFICATION_RED = Color(255, 89, 45)
 NOTIFICATION_RED_TOLERANCE = 40.0
 
 
-# -- 主页浮窗区域 -----------------------------------------------------------
-
-DISMISS_POSITIONS = {
-    'news_close': (0.0352, 0.0625),
-}
-
-NEWS_TEXT_ROI = ROI(0.08671875, 0.87638889, 0.21250000, 0.94027778)
-"""公告标题区域，边界比模板各方向扩大 1 像素。"""
-
-NEWS_CHECKBOX_ROI = ROI(0.03828125, 0.86527778, 0.08750000, 0.94583333)
-"""公告勾选框区域，边界比模板各方向扩大 1 像素。"""
-
-REWARD_TEXT_ROI = ROI(0.10156250, 0.26805556, 0.33125000, 0.33611111)
-"""每日奖励标题区域，边界比模板各方向扩大 1 像素。"""
-
-REWARD_CLAIM_BUTTON_ROI = ROI(0.44062500, 0.62916667, 0.55937500, 0.70277778)
-"""每日奖励领取按钮区域，边界比模板各方向扩大 1 像素。"""
-
-REWARD_CONFIRM_BUTTON_ROI = ROI(0.43515625, 0.51944444, 0.56953125, 0.62083333)
-"""奖励确认按钮区域，边界比模板各方向扩大 1 像素。"""
-
-
 __all__ = [
     'DISMISS_POSITIONS',
     'NAV_POSITIONS',
-    'NEWS_CHECKBOX_ROI',
-    'NEWS_TEXT_ROI',
     'NOTIFICATION_RED',
     'NOTIFICATION_RED_TOLERANCE',
     'PROBE_POSITIONS',
-    'REWARD_CLAIM_BUTTON_ROI',
-    'REWARD_CONFIRM_BUTTON_ROI',
-    'REWARD_TEXT_ROI',
 ]
