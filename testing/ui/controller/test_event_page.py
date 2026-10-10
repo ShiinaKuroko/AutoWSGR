@@ -65,22 +65,13 @@ def test_switch_difficulty_uses_recognized_center() -> None:
     assert ctrl.clicks == [(0.5, 0.25)]
 
 
-def test_go_to_prepare_prefers_recognized_center() -> None:
-    """确认出征优先使用识别产出的中心。"""
+def test_go_to_prepare_uses_recognized_center() -> None:
+    """确认出征使用识别产出的中心。"""
     page, ctrl = _build()
 
     page.go_to_prepare((0.4, 0.8))
 
     assert ctrl.clicks == [(0.4, 0.8)]
-
-
-def test_go_to_prepare_falls_back_without_center() -> None:
-    """没有识别结果时使用兜底落点。"""
-    page, ctrl = _build()
-
-    page.go_to_prepare()
-
-    assert ctrl.clicks == [stage_push_constants.CLICK_SORTIE_PREPARE_FALLBACK]
 
 
 def test_back_actions_use_fixed_positions() -> None:

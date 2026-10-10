@@ -17,6 +17,9 @@ from autowsgr.application.ui.navigation.page_checker.home_checker.checker import
     check_home_page,
     check_home_reward_confirm,
     check_home_reward_overlay,
+    read_news_checkbox_center,
+    read_reward_claim_center,
+    read_reward_confirm_center,
 )
 
 
@@ -26,4 +29,7 @@ __all__ = [
     'check_home_page',
     'check_home_reward_confirm',
     'check_home_reward_overlay',
+    'read_news_checkbox_center',
+    'read_reward_claim_center',
+    'read_reward_confirm_center',
 ]

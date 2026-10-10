@@ -76,6 +76,19 @@ def test_overlay_clicks_use_fixed_positions(action: str, name: str) -> None:
     assert ctrl.clicks == [constants.OVERLAY_POSITIONS[name]]
 
 
+@pytest.mark.parametrize(
+    'action',
+    ['click_news_checkbox', 'click_reward_claim', 'click_reward_confirm'],
+)
+def test_overlay_click_uses_recognized_center(action: str) -> None:
+    """传入识别中心时点击中心，而不是固定落点。"""
+    page, ctrl = _build()
+
+    getattr(page, action)((0.25, 0.75))
+
+    assert ctrl.clicks == [(0.25, 0.75)]
+
+
 def _install_pixels(monkeypatch: pytest.MonkeyPatch, *, matched: bool) -> dict[str, object]:
     """用替身接管像素识别，记录调用参数。"""
     captured: dict[str, object] = {}

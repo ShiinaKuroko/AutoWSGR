@@ -225,3 +225,21 @@ def check_event_sortie_prepare(ctx: ContextHandle, *, event_type: str, stage: st
     matched = recognition.is_stage_title_matched(title_texts, stage, data)
     _log.debug('[UI] 出征准备前置页 → 校验章节：stage={!r}，matched={!r}', stage, matched)
     return matched
+
+
+def read_sortie_prepare_center(
+    ctx: ContextHandle,
+    *,
+    event_type: str,
+) -> tuple[float, float] | None:
+    """读取节点浮窗内"确认出征"按钮的中心。
+
+    Args:
+        ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
+        event_type: 活动玩法标识，用于确认调用方选对了 checker。
+
+    Returns:
+        按钮模板命中时的归一化中心；未命中时为 None。
+    """
+    calibration.require_activity(event_type, constants.ACTIVITY)
+    return recognition.read_sortie_prepare_center(ctx)

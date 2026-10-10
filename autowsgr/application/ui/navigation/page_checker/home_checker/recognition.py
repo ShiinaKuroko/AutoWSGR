@@ -16,10 +16,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from autowsgr.common.system.logger import get_logger
-from autowsgr.common.vision import expect_template
 from autowsgr.application.ui.navigation.page_checker import calibration
 from autowsgr.application.ui.navigation.page_checker.home_checker import constants
+from autowsgr.common.system.logger import get_logger
+from autowsgr.common.vision import expect_template
 
 
 if TYPE_CHECKING:
@@ -172,3 +172,90 @@ def is_reward_confirm_visible(ctx: ContextHandle) -> bool:
     )
     _log.debug('[UI] 主页识别 → 读奖励确认浮窗：visible={!r}', result.satisfied)
     return result.satisfied
+
+
+def read_news_checkbox_center(ctx: ContextHandle) -> tuple[float, float] | None:
+    """读取每日公告勾选框的中心。
+
+    Args:
+        ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
+
+    Returns:
+        勾选框模板命中时的归一化中心；未命中时为 None。
+    """
+    templates = (
+        calibration.load_module_template(
+            constants.TEMPLATE_NAMESPACE,
+            constants.NEWS_CHECKED_TEMPLATE,
+            name='home_news_checked',
+        ),
+        calibration.load_module_template(
+            constants.TEMPLATE_NAMESPACE,
+            constants.NEWS_UNCHECKED_TEMPLATE,
+            name='home_news_unchecked',
+        ),
+    )
+    result = expect_template(
+        ctx,
+        template=templates,
+        roi=constants.NEWS_CHECKBOX_ROI,
+        confidence=_TEMPLATE_CONFIDENCE,
+    )
+    center = next(
+        (
+            match.center
+            for match in result.observation
+            if match.matched and match.center is not None
+        ),
+        None,
+    )
+    _log.debug('[UI] 主页识别 → 读勾选框中心：center={!r}', center)
+    return center
+
+
+def read_reward_claim_center(ctx: ContextHandle) -> tuple[float, float] | None:
+    """读取每日奖励领取按钮的中心。
+
+    Args:
+        ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
+
+    Returns:
+        领取按钮模板命中时的归一化中心；未命中时为 None。
+    """
+    result = expect_template(
+        ctx,
+        template=calibration.load_module_template(
+            constants.TEMPLATE_NAMESPACE,
+            constants.REWARD_CLAIM_TEMPLATE,
+            name='home_reward_claim',
+        ),
+        roi=constants.REWARD_CLAIM_BUTTON_ROI,
+        confidence=_TEMPLATE_CONFIDENCE,
+    )
+    center = result.observation[0].center
+    _log.debug('[UI] 主页识别 → 读领取按钮中心：center={!r}', center)
+    return center
+
+
+def read_reward_confirm_center(ctx: ContextHandle) -> tuple[float, float] | None:
+    """读取每日奖励确认按钮的中心。
+
+    Args:
+        ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
+
+    Returns:
+        确认按钮模板命中时的归一化中心；未命中时为 None。
+    """
+    result = expect_template(
+        ctx,
+        template=calibration.load_module_template(
+            constants.TEMPLATE_NAMESPACE,
+            constants.REWARD_CONFIRM_TEMPLATE,
+            name='home_reward_confirm',
+        ),
+        roi=constants.REWARD_CONFIRM_BUTTON_ROI,
+        confidence=_TEMPLATE_CONFIDENCE,
+    )
+    center = result.observation[0].center
+    _log.debug('[UI] 主页识别 → 读确认按钮中心：center={!r}', center)
+    return center

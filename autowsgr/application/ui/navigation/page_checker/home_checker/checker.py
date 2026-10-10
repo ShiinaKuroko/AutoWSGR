@@ -14,8 +14,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from autowsgr.common.system.logger import get_logger
 from autowsgr.application.ui.navigation.page_checker.home_checker import recognition
+from autowsgr.common.system.logger import get_logger
 
 
 if TYPE_CHECKING:
@@ -97,3 +97,39 @@ def check_home_reward_confirm(ctx: ContextHandle) -> bool:
         确认浮窗存在时为真。
     """
     return recognition.is_reward_confirm_visible(ctx)
+
+
+def read_news_checkbox_center(ctx: ContextHandle) -> tuple[float, float] | None:
+    """读取每日公告勾选框的中心。
+
+    Args:
+        ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
+
+    Returns:
+        勾选框模板命中时的归一化中心；未命中时为 None。
+    """
+    return recognition.read_news_checkbox_center(ctx)
+
+
+def read_reward_claim_center(ctx: ContextHandle) -> tuple[float, float] | None:
+    """读取每日奖励领取按钮的中心。
+
+    Args:
+        ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
+
+    Returns:
+        领取按钮模板命中时的归一化中心；未命中时为 None。
+    """
+    return recognition.read_reward_claim_center(ctx)
+
+
+def read_reward_confirm_center(ctx: ContextHandle) -> tuple[float, float] | None:
+    """读取每日奖励确认按钮的中心。
+
+    Args:
+        ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
+
+    Returns:
+        确认按钮模板命中时的归一化中心；未命中时为 None。
+    """
+    return recognition.read_reward_confirm_center(ctx)

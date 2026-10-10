@@ -52,6 +52,24 @@ def test_switch_entry_clicks_switch_position() -> None:
     assert ctrl.clicks == [constants.CLICK_SWITCH_ENTRY]
 
 
+def test_enter_game_uses_recognized_center() -> None:
+    """传识别中心时点击中心，而不是固定落点。"""
+    page, ctrl = _build()
+
+    page.enter_game((0.25, 0.75))
+
+    assert ctrl.clicks == [(0.25, 0.75)]
+
+
+def test_switch_entry_uses_recognized_center() -> None:
+    """传识别中心时点击中心，而不是固定落点。"""
+    page, ctrl = _build()
+
+    page.click_switch_entry((0.3, 0.4))
+
+    assert ctrl.clicks == [(0.3, 0.4)]
+
+
 @pytest.mark.parametrize('position', range(len(constants.SERVER_POSITIONS)))
 def test_click_server_uses_position_table(position: int) -> None:
     """每个区服条目点击对应落点。"""

@@ -94,6 +94,30 @@ def find_server_position(ctx: ContextHandle, name: str) -> int | None:
     return recognition.find_server_position(ctx, name)
 
 
+def read_enter_button_center(ctx: ContextHandle) -> tuple[float, float] | None:
+    """读取登录页"进入游戏"按钮的中心。
+
+    Args:
+        ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
+
+    Returns:
+        按钮模板命中时的归一化中心；未命中时为 None。
+    """
+    return recognition.read_enter_button_center(ctx)
+
+
+def read_switch_entry_center(ctx: ContextHandle) -> tuple[float, float] | None:
+    """读取登录页"点击换区"入口的中心。
+
+    Args:
+        ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
+
+    Returns:
+        入口模板命中时的归一化中心；未命中时为 None。
+    """
+    return recognition.read_switch_entry_center(ctx)
+
+
 __all__ = [
     'check_black_screen',
     'check_loading',
@@ -101,4 +125,6 @@ __all__ = [
     'check_server_select',
     'check_update_prompt',
     'find_server_position',
+    'read_enter_button_center',
+    'read_switch_entry_center',
 ]

@@ -71,15 +71,14 @@ class EventPage:
         _log.info('[UI] 活动页面 → 点击章节入口：node={}，position={!r}', node, position)
         self._ctx.runtime.ctrl.click(*position)
 
-    def go_to_prepare(self, position: tuple[float, float] | None = None) -> None:
+    def go_to_prepare(self, position: tuple[float, float]) -> None:
         """点击"确认出征"，从章节浮窗进入通用编队页。
 
         Args:
-            position: 识别产出的按钮中心；为空时使用本玩法兜底落点。
+            position: 识别产出的按钮中心。
         """
-        target = position or stage_push_constants.CLICK_SORTIE_PREPARE_FALLBACK
-        _log.info('[UI] 活动页面 → 点击确认出征：position={!r}', target)
-        self._ctx.runtime.ctrl.click(*target)
+        _log.info('[UI] 活动页面 → 点击确认出征：position={!r}', position)
+        self._ctx.runtime.ctrl.click(*position)
 
     def switch_difficulty(self, position: tuple[float, float]) -> None:
         """点击难度按钮，切换普通与困难模式。

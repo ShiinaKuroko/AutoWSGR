@@ -17,6 +17,7 @@ from autowsgr.application.ui.navigation.page_checker.sortie_checker.checker impo
     check_exercise_page,
     check_expedition_page,
     check_sortie_page,
+    read_tab_center,
 )
 
 
@@ -26,4 +27,5 @@ __all__ = [
     'check_exercise_page',
     'check_expedition_page',
     'check_sortie_page',
+    'read_tab_center',
 ]

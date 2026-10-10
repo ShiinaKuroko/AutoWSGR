@@ -225,6 +225,31 @@ def wait_sortie_overlay(ctx: ContextHandle) -> bool:
     return result.satisfied
 
 
+def read_sortie_prepare_center(ctx: ContextHandle) -> tuple[float, float] | None:
+    """读取节点浮窗内"确认出征"按钮的中心。
+
+    Args:
+        ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
+
+    Returns:
+        按钮模板命中时的归一化中心；未命中时为 None。
+    """
+    result = expect_template(
+        ctx,
+        template=calibration.load_module_template(
+            constants.TEMPLATE_NAMESPACE,
+            constants.SORTIE_PREPARE_TEMPLATE,
+            name='event_sortie_prepare',
+        ),
+        roi=constants.SORTIE_PREPARE_ROI,
+        confidence=_TEMPLATE_CONFIDENCE,
+        attempts=_PROBE_ATTEMPTS,
+    )
+    center = result.observation[0].center
+    _log.debug('[UI] 活动识别 → 读确认出征中心：center={!r}', center)
+    return center
+
+
 def is_sortie_overlay_open(ctx: ContextHandle, data: Mapping[str, Any]) -> bool:
     """判断节点浮窗当前是否已经打开。
 

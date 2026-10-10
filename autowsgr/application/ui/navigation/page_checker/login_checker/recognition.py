@@ -122,6 +122,46 @@ def is_login_page_visible(ctx: ContextHandle) -> bool:
     return result.satisfied
 
 
+def read_enter_button_center(ctx: ContextHandle) -> tuple[float, float] | None:
+    """读取登录页"进入游戏"按钮的中心。
+
+    Args:
+        ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
+
+    Returns:
+        按钮模板命中时的归一化中心；未命中时为 None。
+    """
+    result = expect_template(
+        ctx,
+        template=_template(constants.ENTER_BUTTON_TEMPLATE, '进入游戏按钮'),
+        roi=constants.ENTER_BUTTON_ROI,
+        attempts=1,
+    )
+    center = result.observation[0].center
+    _log.debug('[UI] 登录识别 → 读进入游戏中心：center={!r}', center)
+    return center
+
+
+def read_switch_entry_center(ctx: ContextHandle) -> tuple[float, float] | None:
+    """读取登录页"点击换区"入口的中心。
+
+    Args:
+        ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
+
+    Returns:
+        入口模板命中时的归一化中心；未命中时为 None。
+    """
+    result = expect_template(
+        ctx,
+        template=_template(constants.SWITCH_ENTRY_TEMPLATE, '点击换区'),
+        roi=constants.SWITCH_ENTRY_ROI,
+        attempts=1,
+    )
+    center = result.observation[0].center
+    _log.debug('[UI] 登录识别 → 读换区入口中心：center={!r}', center)
+    return center
+
+
 def is_server_select_visible(ctx: ContextHandle) -> bool:
     """判断是否在区服选择页。
 
@@ -175,4 +215,6 @@ __all__ = [
     'is_login_page_visible',
     'is_server_select_visible',
     'is_update_prompt_visible',
+    'read_enter_button_center',
+    'read_switch_entry_center',
 ]

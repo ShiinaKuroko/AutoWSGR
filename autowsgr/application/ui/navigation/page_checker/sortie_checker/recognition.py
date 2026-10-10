@@ -16,10 +16,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from autowsgr.common.system.logger import get_logger
-from autowsgr.common.vision import ROI, expect_template
 from autowsgr.application.ui.navigation.page_checker import calibration
 from autowsgr.application.ui.navigation.page_checker.sortie_checker import constants
+from autowsgr.common.system.logger import get_logger
+from autowsgr.common.vision import ROI, expect_template
 
 
 if TYPE_CHECKING:
@@ -33,6 +33,38 @@ _log = get_logger('ui')
 
 # 模板匹配命中阈值。
 _TEMPLATE_CONFIDENCE = 0.85
+
+
+# ── 标签模板表 ──────────────────────────────────────────────────────────────
+
+# 标签名 → (激活态模板, 未激活态模板, 识别区域)；点击前用两张模板任一定位标签。
+_TAB_TEMPLATES = {
+    'sortie': (
+        constants.SORTIE_TAB_TEMPLATE,
+        constants.SORTIE_TAB_INACTIVE_TEMPLATE,
+        constants.SORTIE_TAB_ROI,
+    ),
+    'exercise': (
+        constants.EXERCISE_TAB_TEMPLATE,
+        constants.EXERCISE_TAB_INACTIVE_TEMPLATE,
+        constants.EXERCISE_TAB_ROI,
+    ),
+    'expedition': (
+        constants.EXPEDITION_TAB_TEMPLATE,
+        constants.EXPEDITION_TAB_INACTIVE_TEMPLATE,
+        constants.EXPEDITION_TAB_ROI,
+    ),
+    'campaign': (
+        constants.CAMPAIGN_TAB_TEMPLATE,
+        constants.CAMPAIGN_TAB_INACTIVE_TEMPLATE,
+        constants.CAMPAIGN_TAB_ROI,
+    ),
+    'decisive': (
+        constants.DECISIVE_TAB_TEMPLATE,
+        constants.DECISIVE_TAB_INACTIVE_TEMPLATE,
+        constants.DECISIVE_TAB_ROI,
+    ),
+}
 
 
 # ── 标签激活事实读取 ────────────────────────────────────────────────────────
@@ -86,6 +118,51 @@ def is_decisive_tab_active(ctx: ContextHandle) -> bool:
         constants.DECISIVE_TAB_ROI,
         name='decisive_tab',
     )
+
+
+def read_tab_center(ctx: ContextHandle, tab: str) -> tuple[float, float] | None:
+    """读取出征页某个标签的中心。
+
+    Args:
+        ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
+        tab: 标签名，取值 sortie / exercise / expedition / campaign / decisive。
+
+    Returns:
+        标签模板命中时的归一化中心；未命中时为 None。
+
+    Raises:
+        ValueError: 标签名不在本页标签表内。
+    """
+    templates = _TAB_TEMPLATES.get(tab)
+    if templates is None:
+        raise ValueError(f'未知的出征标签: {tab!r}')
+    active, inactive, roi = templates
+    result = expect_template(
+        ctx,
+        template=(
+            calibration.load_module_template(
+                constants.TEMPLATE_NAMESPACE, active, name=f'{tab}_tab'
+            ),
+            calibration.load_module_template(
+                constants.TEMPLATE_NAMESPACE,
+                inactive,
+                name=f'{tab}_tab_inactive',
+            ),
+        ),
+        roi=roi,
+        confidence=_TEMPLATE_CONFIDENCE,
+        attempts=1,
+    )
+    center = next(
+        (
+            match.center
+            for match in result.observation
+            if match.matched and match.center is not None
+        ),
+        None,
+    )
+    _log.debug('[UI] 出征标签 → 读标签中心：tab={!r}，center={!r}', tab, center)
+    return center
 
 
 def _is_tab_active(ctx: ContextHandle, filename: str, roi: ROI, *, name: str) -> bool:

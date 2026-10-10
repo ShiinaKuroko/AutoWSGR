@@ -81,3 +81,19 @@ def check_decisive_page(ctx: ContextHandle) -> bool:
         决战标签激活时为真。
     """
     return recognition.is_decisive_tab_active(ctx)
+
+
+def read_tab_center(ctx: ContextHandle, tab: str) -> tuple[float, float] | None:
+    """读取出征页某个标签的中心。
+
+    Args:
+        ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
+        tab: 标签名，取值 sortie / exercise / expedition / campaign / decisive。
+
+    Returns:
+        标签模板命中时的归一化中心；未命中时为 None。
+
+    Raises:
+        ValueError: 标签名不在本页标签表内。
+    """
+    return recognition.read_tab_center(ctx, tab)

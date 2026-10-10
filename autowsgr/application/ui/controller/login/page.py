@@ -42,15 +42,25 @@ class LoginPage:
 
     # ── 登录页 ───────────────────────────────────────────────────────────────────
 
-    def enter_game(self) -> None:
-        """点击"进入游戏"按钮。"""
-        _log.info('[UI] 登录页 → 进入游戏：position={!r}', constants.CLICK_ENTER_GAME)
-        self._ctx.runtime.ctrl.click(*constants.CLICK_ENTER_GAME)
+    def enter_game(self, position: tuple[float, float] | None = None) -> None:
+        """点击"进入游戏"按钮。
 
-    def click_switch_entry(self) -> None:
-        """点击"点击换区"入口，让区服列表出现。"""
-        _log.info('[UI] 登录页 → 打开区服列表：position={!r}', constants.CLICK_SWITCH_ENTRY)
-        self._ctx.runtime.ctrl.click(*constants.CLICK_SWITCH_ENTRY)
+        Args:
+            position: 识别产出的按钮中心；为空时使用固定落点。
+        """
+        target = position or constants.CLICK_ENTER_GAME
+        _log.info('[UI] 登录页 → 进入游戏：position={!r}', target)
+        self._ctx.runtime.ctrl.click(*target)
+
+    def click_switch_entry(self, position: tuple[float, float] | None = None) -> None:
+        """点击"点击换区"入口，让区服列表出现。
+
+        Args:
+            position: 识别产出的入口中心；为空时使用固定落点。
+        """
+        target = position or constants.CLICK_SWITCH_ENTRY
+        _log.info('[UI] 登录页 → 打开区服列表：position={!r}', target)
+        self._ctx.runtime.ctrl.click(*target)
 
     # ── 区服选择 ──────────────────────────────────────────────────────────────────
 
