@@ -172,7 +172,6 @@ class E2ERunner:
         """连接设备并绑定 dispatch 任务上下文 (不启动游戏、不执行页面操作)。"""
         from autowsgr.common.device.config import DeviceConfig
         from autowsgr.common.device.service import DeviceService
-        from autowsgr.dispatch.context import ContextTemplate, RuntimeBindings, context
 
         self._launcher = DeviceService(
             DeviceConfig(ADB_CONNECTION=self.serial) if self.serial else DeviceConfig(),
@@ -231,7 +230,7 @@ class E2ERunner:
             RuntimeError: 当前不是静态帧模式。
         """
         if not isinstance(self._launcher, _StaticFrameDevice):
-            raise RuntimeError('只有静态帧模式可以切换截图')
+            raise TypeError('只有静态帧模式可以切换截图')
         self._launcher.use_frame(path)
 
     def action(self, label: str, fn: Any, /, *args: Any, **kwargs: Any) -> Any:

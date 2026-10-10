@@ -18,15 +18,15 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from autowsgr.application.ui.controller.fleet.main_page import constants
-from autowsgr.common.system.logger import get_logger
-from autowsgr.application.ui.navigation.types import PageName
 from autowsgr.application.ui.navigation.interaction import (
     NavigationError,
     click_and_wait_for_page,
     wait_leave_page,
 )
-from autowsgr.common.vision import ImageChecker, PageMatch, PixelChecker
+from autowsgr.application.ui.navigation.types import PageName
 from autowsgr.application.vision.resources import Templates
+from autowsgr.common.system.logger import get_logger
+from autowsgr.common.vision import ImageChecker, PageMatch, PixelChecker
 
 
 if TYPE_CHECKING:
@@ -39,10 +39,10 @@ if TYPE_CHECKING:
         FleetSnapshot,
     )
     from autowsgr.application.ui.controller.fleet.support.repair import RepairStrategy
-    from autowsgr.common.device.service import DeviceService
     from autowsgr.business.combat.fleet_models import FleetSlotRule
     from autowsgr.business.combat.types import ShipType
     from autowsgr.business.logistics.types import ShipDamageState
+    from autowsgr.common.device.service import DeviceService
 
 
 _log = get_logger('ui.fleet.main_page')

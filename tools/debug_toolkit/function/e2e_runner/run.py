@@ -169,10 +169,7 @@ def main() -> int:
     print(f'  E2E: {case_name} — {getattr(mod, "DESC", "")}')
     print('═' * 68)
     print(f'  设备: {g.serial or "自动检测 (usersettings.yaml)"}')
-    print(
-        f'  模式: {_mode_label(g)}'
-        f'{" + OCR" if g.with_ocr else ""}'
-    )
+    print(f'  模式: {_mode_label(g)}{" + OCR" if g.with_ocr else ""}')
 
     # 执行
     from tools.debug_toolkit.function.e2e_runner.framework import E2ERunner

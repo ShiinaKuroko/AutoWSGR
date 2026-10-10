@@ -15,7 +15,9 @@ from typing import Any
 import pytest
 
 from autowsgr.application.ui.controller.home.event_page import EventPage, constants
-from autowsgr.application.ui.controller.home.event_page.stage_push import constants as stage_push_constants
+from autowsgr.application.ui.controller.home.event_page.stage_push import (
+    constants as stage_push_constants,
+)
 
 
 class _Ctrl:
@@ -24,7 +26,7 @@ class _Ctrl:
     def __init__(self) -> None:
         self.clicks: list[tuple[float, float]] = []
 
-    def click(self, x: float, y: float, *, delay: bool = False) -> None:
+    def click(self, x: float, y: float, *, delay: bool = False) -> None:  # noqa: ARG002
         self.clicks.append((x, y))
 
 
@@ -50,7 +52,7 @@ def test_go_to_overlay_rejects_invalid_node(node: int) -> None:
     """非法落点序号被拒绝。"""
     page, _ = _build()
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match='章节落点超出范围'):
         page.go_to_overlay(node)
 
 
@@ -95,5 +97,5 @@ def test_unknown_event_type_is_rejected() -> None:
     """未支持的玩法被拒绝。"""
     page, _ = _build(event_type='assault')
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match='不支持的活动玩法'):
         page.go_to_overlay(1)

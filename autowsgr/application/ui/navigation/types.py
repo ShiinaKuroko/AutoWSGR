@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-
 from autowsgr.common.system.enums import StrEnum
 
 
@@ -28,4 +26,3 @@ class PageName(StrEnum):
     DECISIVE_BATTLE = '决战页面'
     CHOOSE_SHIP = '选择舰船页面'
     EVENT_MAP = '活动页面'
-

@@ -145,7 +145,9 @@ class TestInitialize:
         monkeypatch.setattr(initialize, 'goto_page', goto_page)
         dismiss = MagicMock()
         monkeypatch.setattr(overlays, 'handle_daily_overlays', dismiss)
-        monkeypatch.setattr(initialize, 'identify_current_page', lambda _c, **_k: PageName.SORTIE_MAP)
+        monkeypatch.setattr(
+            initialize, 'identify_current_page', lambda _c, **_k: PageName.SORTIE_MAP
+        )
 
         initialize.initialize(ctx)
 

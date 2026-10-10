@@ -1,6 +1,6 @@
-from autowsgr.application.ui.navigation.route_manage import RouteManage
 from autowsgr.application.ui.navigation.page_checker.home_checker import check_home_page
 from autowsgr.application.ui.navigation.page_checker.sortie_checker import check_sortie_page
+from autowsgr.application.ui.navigation.route_manage import RouteManage
 from autowsgr.application.ui.navigation.types import PageName
 
 

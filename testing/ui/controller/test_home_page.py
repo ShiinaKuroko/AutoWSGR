@@ -14,7 +14,12 @@ from typing import Any
 
 import pytest
 
-from autowsgr.application.ui.controller.home.main_page import HomePage, Target, constants
+from autowsgr.application.ui.controller.home.main_page import (
+    HomePage,
+    Target,
+    constants,
+    recognition,
+)
 
 
 class _Ctrl:
@@ -23,7 +28,7 @@ class _Ctrl:
     def __init__(self) -> None:
         self.clicks: list[tuple[float, float]] = []
 
-    def click(self, x: float, y: float, *, delay: bool = False) -> None:
+    def click(self, x: float, y: float, *, delay: bool = False) -> None:  # noqa: ARG002
         self.clicks.append((x, y))
 
 
@@ -49,7 +54,7 @@ def test_go_to_rejects_missing_position(monkeypatch: pytest.MonkeyPatch) -> None
     page, _ = _build()
     monkeypatch.delitem(constants.NAV_POSITIONS, 'event')
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match='没有该目标的落点'):
         page.go_to(Target.EVENT)
 
 
@@ -87,3 +92,32 @@ def test_reward_confirm_uses_recognized_center() -> None:
     page.click_reward_confirm((0.5, 0.57))
 
     assert ctrl.clicks == [(0.5, 0.57)]
+
+
+def _install_pixels(monkeypatch: pytest.MonkeyPatch, *, matched: bool) -> dict[str, object]:
+    """用替身接管像素识别，记录调用参数。"""
+    captured: dict[str, object] = {}
+
+    def fake_expect_pixels(_ctx: object, **options: object) -> object:
+        captured.update(options)
+        return SimpleNamespace(satisfied=matched)
+
+    monkeypatch.setattr(recognition, 'expect_pixels', fake_expect_pixels)
+    return captured
+
+
+def test_expedition_notification_uses_pixel_signature(monkeypatch: pytest.MonkeyPatch) -> None:
+    """远征通知走 expect_pixels，使用约定签名并单帧探测。"""
+    captured = _install_pixels(monkeypatch, matched=True)
+
+    assert recognition.check_expedition_ready(object()) is True
+    assert captured['signature'] is constants.EXPEDITION_READY_SIGNATURE
+    assert captured['attempts'] == 1
+
+
+def test_task_notification_reports_absence(monkeypatch: pytest.MonkeyPatch) -> None:
+    """任务通知未命中时返回假，且使用任务签名。"""
+    captured = _install_pixels(monkeypatch, matched=False)
+
+    assert recognition.check_task_ready(object()) is False
+    assert captured['signature'] is constants.TASK_READY_SIGNATURE
