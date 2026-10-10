@@ -1,6 +1,6 @@
 # [任务书] UI 控制器点击落点统一（识别中心 + 静态兜底）
 
-> 状态：**执行中**（2026-10-11）
+> 状态：**已完成**（2026-10-11，提交 `15acbf9`；模板中心已下沉到 `common.vision.expect_template_center`）
 > Task ID：`20260913-shiinaskuya-upgrade-7b3e`｜分支：`codex/20260913-shiinaskuya-upgrade-7b3e`
 > 关联：`[规范]ui-controller-code-style.md`｜`[规范]python-code-style.md`
 
