@@ -2,15 +2,13 @@
 
 上层调用：
 - application.ui.controller.home.main_page.page：读取主页通知状态。
+- business.logistics：判断远征与任务是否完成。
 
 下层依赖：
-- common.vision：提供像素采样能力。
-- main_page.constants：提供通知探针位置、颜色和容差。
+- main_page.constants：提供通知的像素规则。
+- common.vision：提供像素识别入口。
 
-边界：只读取主页通知事实，不识别浮窗、不执行点击。
-
-浮窗识别已迁移到导航器的 `page_checker.home_checker`；本模块当前引用的 `vision.numpy`
-入口在 `common.vision` 重写后已不存在，通知识别待后续批按新入口重写。
+边界：只读取通知事实，不执行点击、不导航、不编排流程。
 """
 
 from __future__ import annotations
@@ -18,30 +16,37 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from autowsgr.application.ui.controller.home.main_page import constants
-from autowsgr.common import vision
+from autowsgr.common.vision import expect_pixels
 
 
 if TYPE_CHECKING:
-    import numpy as np
+    from autowsgr.dispatch.context import ContextHandle
 
 
-def check_expedition_ready(screen: np.ndarray) -> bool:
-    """检查远征完成通知颜色是否出现。"""
-    return _check_notification(screen, 'expedition_ready')
+def check_expedition_ready(ctx: ContextHandle) -> bool:
+    """检查远征完成通知是否出现。
+
+    Args:
+        ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
+
+    Returns:
+        远征通知探针命中时为真。
+    """
+    result = expect_pixels(ctx, signature=constants.EXPEDITION_READY_SIGNATURE, attempts=1)
+    return result.satisfied
 
 
-def check_task_ready(screen: np.ndarray) -> bool:
-    """检查任务奖励通知颜色是否出现。"""
-    return _check_notification(screen, 'task_ready')
+def check_task_ready(ctx: ContextHandle) -> bool:
+    """检查任务奖励通知是否出现。
 
+    Args:
+        ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
 
-def _check_notification(screen: np.ndarray, name: str) -> bool:
-    """检查一个命名主页通知探针。"""
-    pixel = vision.numpy.sample_pixel(screen, *constants.PROBE_POSITIONS[name])
-    return constants.NOTIFICATION_RED.near(
-        type(constants.NOTIFICATION_RED)(*pixel),
-        constants.NOTIFICATION_RED_TOLERANCE,
-    )
+    Returns:
+        任务通知探针命中时为真。
+    """
+    result = expect_pixels(ctx, signature=constants.TASK_READY_SIGNATURE, attempts=1)
+    return result.satisfied
 
 
 __all__ = ['check_expedition_ready', 'check_task_ready']

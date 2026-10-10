@@ -12,7 +12,7 @@
 
 from __future__ import annotations
 
-from autowsgr.common.vision.adapters.pixel_matching import Color
+from autowsgr.common.vision.adapters.pixel_matching import Color, PixelRule, PixelSignature
 
 
 # ── 页面壳和顶部标签 ────────────────────────────────────────────────────────
@@ -29,6 +29,10 @@ TAB_POSITIONS = {
 
 # ── 出征区域远征通知 ────────────────────────────────────────────────────────
 
-EXPEDITION_NOTIF_COLOR = Color(245, 88, 47)  # sortie_page 顶部远征通知的目标颜色。
-EXPEDITION_NOTIF_TOLERANCE = 40.0  # 顶部远征通知颜色容差，用于覆盖截图渲染误差。
-EXPEDITION_NOTIF_PROBE = (0.4953, 0.0213)  # sortie_page 顶部远征通知探针位置。
+# 顶部远征完成通知的像素规则：探针位置命中橙红色即视为通知出现。
+EXPEDITION_NOTIF_SIGNATURE = PixelSignature(
+    name='expedition_notification',
+    rules=(
+        PixelRule(x=0.4953, y=0.0213, color=Color(245, 88, 47), tolerance=40.0),
+    ),
+)
