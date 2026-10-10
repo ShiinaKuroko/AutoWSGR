@@ -75,6 +75,9 @@ home_checker.checker
 | 公告浮窗识别 | `home_checker.check_home_news_overlay` | `checker.py` | `ctx` | `HomeNewsOverlay` | 给出浮窗是否在、勾选框状态 | 点击勾选框或关闭公告 |
 | 奖励浮窗识别 | `home_checker.check_home_reward_overlay` | `checker.py` | `ctx` | `bool` | 判断奖励浮窗是否存在 | 点击领奖按钮 |
 | 奖励确认浮窗识别 | `home_checker.check_home_reward_confirm` | `checker.py` | `ctx` | `bool` | 判断确认浮窗是否存在 | 点击确认按钮 |
+| 勾选框中心读取 | `home_checker.read_news_checkbox_center` | `checker.py` | `ctx` | 归一化中心或 `None` | 给出勾选框中心供点击 | 点击、判断浮窗状态 |
+| 领奖按钮中心读取 | `home_checker.read_reward_claim_center` | `checker.py` | `ctx` | 归一化中心或 `None` | 给出领奖按钮中心供点击 | 点击、判断浮窗状态 |
+| 确认按钮中心读取 | `home_checker.read_reward_confirm_center` | `checker.py` | `ctx` | 归一化中心或 `None` | 给出确认按钮中心供点击 | 点击、判断浮窗状态 |
 | 模板加载 | `page_checker.calibration.load_module_template` | `page_checker/calibration.py` | 命名空间、文件名、名称 | `Template`；读模板文件 | 按命名空间加载模板 | 识别、缓存策略 |
 
 ## 4. 主页识别
@@ -200,6 +203,9 @@ if home_checker.check_home_reward_overlay(ctx):
 
 ```text
 home_checker.check_home_reward_confirm(ctx: ContextHandle) -> bool
+home_checker.read_news_checkbox_center(ctx: ContextHandle) -> tuple[float, float] | None
+home_checker.read_reward_claim_center(ctx: ContextHandle) -> tuple[float, float] | None
+home_checker.read_reward_confirm_center(ctx: ContextHandle) -> tuple[float, float] | None
 ```
 
 ### 7.3 调用示例

@@ -80,6 +80,7 @@ normal.checker
 | 首页活动入口识别 | `event_checker.stage_push.check_event_entry` | `stage_push/checker.py` | `ctx`、`event_type` | `bool`；不修改外部状态 | 判断入口卡片是否可见 | 点击入口、判断当前页面 |
 | 活动地图状态读取 | `event_checker.stage_push.read_event_map_state` | `stage_push/checker.py` | `ctx`、`event_type` | `EventMapState`；不修改外部状态 | 读出难度事实与当前难度 | 切难度、判断是否该切 |
 | 出征准备前置页确认 | `event_checker.stage_push.check_event_sortie_prepare` | `stage_push/checker.py` | `ctx`、`event_type`、`stage` | `bool`；不修改外部状态 | 确认节点浮窗指向目标章节 | 点章节、点出击准备 |
+| 确认出征按钮中心读取 | `event_checker.stage_push.read_sortie_prepare_center` | `stage_push/checker.py` | `ctx`、`event_type` | 归一化中心或 `None` | 给出"确认出征"按钮中心 | 点击、判断浮窗状态 |
 | 章节标识解析 | `event_checker.stage_push.parse_stage` | `stage_push/checker.py` | 章节标识 | `EventStage`；纯函数 | 给出难度与落点序号 | 点击、切难度 |
 | 活动模板加载 | `event.calibration.load_activity_template` | `calibration.py` | 活动标识、文件名、名称 | `Template`；读模板文件 | 按活动目录加载模板 | 识别、缓存策略 |
 | 活动数据加载 | `event.calibration.load_activity_data` | `calibration.py` | 活动标识、期号 | 数据映射；读数据文件 | 读取并缓存本期数据 | 解释数据语义 |
@@ -183,6 +184,7 @@ if state.on_clean_map and state.current_mode is normal.EventMode.HARD:
 
 ```text
 event_checker.stage_push.check_event_sortie_prepare(ctx, *, event_type: str, stage: str) -> bool
+event_checker.stage_push.read_sortie_prepare_center(ctx, *, event_type: str) -> tuple[float, float] | None
 ```
 
 - `stage`：目标章节标识，例如 `EX7`；本期数据里没有该章节时抛 `ValueError`（入口第一行校验）；

@@ -70,7 +70,7 @@ event_page.EventPage
 | 能力 | 对外入口 | 输入 | 输出/副作用 | 负责内容 | 不负责内容 |
 | --- | --- | --- | --- | --- | --- |
 | 进入章节浮窗 | `EventPage.go_to_overlay` | 落点序号 | 一次点击 | 查表并点击章节入口 | 确认浮窗是否出现 |
-| 进入编队页 | `EventPage.go_to_prepare` | 识别中心或空 | 一次点击 | 点击"确认出征" | 确认是否到达编队页 |
+| 进入编队页 | `EventPage.go_to_prepare` | 识别中心 | 一次点击 | 点击"确认出征" | 确认是否到达编队页 |
 | 切换难度 | `EventPage.switch_difficulty` | 识别中心 | 一次点击 | 点击难度按钮 | 判断当前难度、决定是否切换 |
 | 关闭章节浮窗 | `EventPage.click_overlay_close` | 无 | 一次点击 | 点击浮窗关闭按钮 | 确认浮窗已关闭 |
 | 返回首页 | `EventPage.go_back` | 无 | 一次点击 | 点击返回按钮 | 确认已回到首页 |
@@ -118,20 +118,21 @@ page.go_to_overlay(stage.node)
 
 ### 5.1 能力说明
 
-"确认出征"按钮位于章节浮窗内，浮窗位置随节点变化，因此落点由 checker 识别产出；没有识别
-结果时使用本玩法兜底落点，保证流程仍能前进。
+"确认出征"按钮位于章节浮窗内，浮窗位置随节点变化，因此落点必须由 checker 识别产出后传入；
+没有识别中心说明按钮位置不可信，调用方不得点击。
 
 ### 5.2 稳定入口
 
 ```text
-EventPage.go_to_prepare(position: tuple[float, float] | None = None) -> None
+EventPage.go_to_prepare(position: tuple[float, float]) -> None
 ```
 
 ### 5.3 调用示例
 
 ```python
-overlay = normal.read_sortie_prepare(ctx)   # checker 给出中心
-page.go_to_prepare(overlay.center)
+center = normal.read_sortie_prepare_center(ctx, event_type='stage_push')   # checker 给出中心
+if center is not None:
+    page.go_to_prepare(center)
 ```
 
 ### 5.4 错误和副作用

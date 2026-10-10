@@ -1,4 +1,4 @@
-"""模块功能：提供 common.vision 的七个公共识别能力。
+"""模块功能：提供 common.vision 的八个公共识别能力。
 
 上层调用：
 - application、business、dispatch 和 server：确认当前状态或操作结果。
@@ -7,7 +7,7 @@
 - adapters：提供模板匹配、OCR 和像素匹配等重新修饰后的视觉方法。
 - dispatch.context：提供设备服务和截图事实写入（仅类型注解使用）。
 
-边界：只提供截图、前识别和后识别七个功能；识别数据、识别规则和预期全部由调用方
+边界：只提供截图、前识别和后识别八个功能；识别数据、识别规则和预期全部由调用方
 提供，service 不决定识别什么、不执行点击、不解析页面语义。
 """
 
@@ -19,7 +19,11 @@ from typing import TYPE_CHECKING
 
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.vision.adapters import match_pixels, match_templates, recognize_text
-from autowsgr.common.vision.config import OPENCV_TEMPLATE_CONFIDENCE
+from autowsgr.common.vision.config import (
+    DEFAULT_RECOGNITION_ATTEMPTS,
+    DEFAULT_RECOGNITION_INTERVAL_SECONDS,
+    OPENCV_TEMPLATE_CONFIDENCE,
+)
 
 
 if TYPE_CHECKING:
@@ -42,11 +46,6 @@ if TYPE_CHECKING:
 
 
 _log = get_logger('vision.recognition')
-
-# 一次识别请求的默认最大尝试次数，单位为次。
-DEFAULT_RECOGNITION_ATTEMPTS = 3
-# 相邻两次识别尝试之间的默认等待时间，单位为秒。
-DEFAULT_RECOGNITION_INTERVAL_SECONDS = 0.5
 
 
 # ── 识别结果 ──────────────────────────────────────────────────────────────────────

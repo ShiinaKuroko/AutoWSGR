@@ -12,6 +12,15 @@ from __future__ import annotations
 from pathlib import Path
 
 
+# ── 识别流程默认参数 ───────────────────────────────────────────────
+
+DEFAULT_RECOGNITION_ATTEMPTS = 3
+"""一次识别请求的默认最大尝试次数，单位为次。"""
+
+DEFAULT_RECOGNITION_INTERVAL_SECONDS = 0.5
+"""相邻两次识别尝试之间的默认等待时间，单位为秒。"""
+
+
 # ── 模板资源 ───────────────────────────────────────────────────────
 
 OPENCV_TEMPLATE_ROOT = Path(__file__).resolve().parents[3] / 'resources' / 'image'
@@ -54,6 +63,8 @@ OCR_DEFAULT_THRESHOLD = 0.3
 
 
 __all__ = [
+    'DEFAULT_RECOGNITION_ATTEMPTS',
+    'DEFAULT_RECOGNITION_INTERVAL_SECONDS',
     'NUMPY_COORDINATE_MAX',
     'NUMPY_COORDINATE_MIN',
     'NUMPY_DEFAULT_PIXEL_TOLERANCE',

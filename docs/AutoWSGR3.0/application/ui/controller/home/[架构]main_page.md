@@ -66,10 +66,10 @@ main_page.HomePage
 | 能力 | 对外入口 | 输入 | 输出/副作用 | 负责内容 | 不负责内容 |
 | --- | --- | --- | --- | --- | --- |
 | 进入目标页 | `HomePage.go_to` | `Target` | 一次点击 | 查表并点击目标页入口 | 确认是否到达目标页 |
-| 勾选公告 | `HomePage.click_news_checkbox` | 识别中心 | 一次点击 | 点击勾选框 | 判断勾选状态 |
+| 勾选公告 | `HomePage.click_news_checkbox` | 识别中心或固定落点 | 一次点击 | 点击勾选框 | 判断勾选状态 |
 | 关闭公告 | `HomePage.click_news_close` | 无 | 一次点击 | 点击公告关闭按钮 | 确认公告已关闭 |
-| 领取每日奖励 | `HomePage.click_reward_claim` | 识别中心 | 一次点击 | 点击领取按钮 | 确认浮窗已切换 |
-| 确认奖励 | `HomePage.click_reward_confirm` | 识别中心 | 一次点击 | 点击确认按钮 | 确认浮窗已关闭 |
+| 领取每日奖励 | `HomePage.click_reward_claim` | 识别中心或固定落点 | 一次点击 | 点击领取按钮 | 确认浮窗已切换 |
+| 确认奖励 | `HomePage.click_reward_confirm` | 识别中心或固定落点 | 一次点击 | 点击确认按钮 | 确认浮窗已关闭 |
 | 通知识别 | `check_expedition_ready` / `check_task_ready` | 截图 | `bool` | 判定通知红点是否出现 | 点击、页面跳转 |
 
 ## 4. 进入目标页
@@ -112,15 +112,16 @@ page.go_to(Target.SORTIE)
 ### 5.1 能力说明
 
 四个浮窗按钮中，勾选框、领取、确认的落点随浮窗位置变化，由 checker 识别产出后传入；
-公告关闭按钮位置固定，用 `DISMISS_POSITIONS`。
+识别不到中心时退回 `OVERLAY_POSITIONS` 的固定落点，保证模板匹配失败仍能点击。公告关闭按钮
+没有模板，位置固定，直接用 `OVERLAY_POSITIONS`。
 
 ### 5.2 稳定入口
 
 ```text
-HomePage.click_news_checkbox(position) -> None
+HomePage.click_news_checkbox(position: tuple[float, float] | None = None) -> None
 HomePage.click_news_close() -> None
-HomePage.click_reward_claim(position) -> None
-HomePage.click_reward_confirm(position) -> None
+HomePage.click_reward_claim(position: tuple[float, float] | None = None) -> None
+HomePage.click_reward_confirm(position: tuple[float, float] | None = None) -> None
 ```
 
 ### 5.3 调用示例
@@ -140,7 +141,7 @@ if state.matched and state.checked is False:
 
 ### 5.5 维护规则
 
-浮窗按钮位置由识别产出，通常不需要改常量；公告关闭按钮变化时改 `DISMISS_POSITIONS`。
+浮窗按钮位置由识别产出，通常不需要改常量；公告关闭按钮变化时改 `OVERLAY_POSITIONS`。
 
 ## 6. 通知识别（保留在控制器）
 

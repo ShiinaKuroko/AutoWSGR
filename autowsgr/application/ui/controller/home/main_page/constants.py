@@ -40,9 +40,9 @@ OVERLAY_POSITIONS = {
 
 # ── 通知探针 ────────────────────────────────────────────────────────────────
 
-# 通知红点的颜色与容差：远征与任务共用。
-NOTIFICATION_RED = Color(255, 89, 45)
-NOTIFICATION_RED_TOLERANCE = 40.0
+# 通知红点的颜色与容差：只在本模块内构造探针，远征与任务共用。
+_NOTIFICATION_RED = Color(255, 89, 45)
+_NOTIFICATION_RED_TOLERANCE = 40.0
 
 # 主页两个通知探针的像素规则：探针位置命中通知红即视为通知出现。
 EXPEDITION_READY_SIGNATURE = PixelSignature(
@@ -51,8 +51,8 @@ EXPEDITION_READY_SIGNATURE = PixelSignature(
         PixelRule(
             x=0.9719,
             y=0.8403,
-            color=NOTIFICATION_RED,
-            tolerance=NOTIFICATION_RED_TOLERANCE,
+            color=_NOTIFICATION_RED,
+            tolerance=_NOTIFICATION_RED_TOLERANCE,
         ),
     ),
 )
@@ -62,8 +62,8 @@ TASK_READY_SIGNATURE = PixelSignature(
         PixelRule(
             x=0.7227,
             y=0.8458,
-            color=NOTIFICATION_RED,
-            tolerance=NOTIFICATION_RED_TOLERANCE,
+            color=_NOTIFICATION_RED,
+            tolerance=_NOTIFICATION_RED_TOLERANCE,
         ),
     ),
 )
@@ -72,8 +72,6 @@ TASK_READY_SIGNATURE = PixelSignature(
 __all__ = [
     'EXPEDITION_READY_SIGNATURE',
     'NAV_POSITIONS',
-    'NOTIFICATION_RED',
-    'NOTIFICATION_RED_TOLERANCE',
     'OVERLAY_POSITIONS',
     'TASK_READY_SIGNATURE',
 ]

@@ -467,10 +467,12 @@ current = adapters.text_recognition.parse_counter('3/10', 10)
 
 配置文件：`autowsgr/common/vision/config.py`。
 
-配置常量使用 `NUMPY_`、`OPENCV_` 和 `OCR_` 前缀。当前配置是模块级静态值，不是用户配置模型；OCR 模型目录、用户运行目录和阈值可以通过环境变量覆盖，并在 `OCRExecutor` 创建时生效。
+配置常量使用 `NUMPY_`、`OPENCV_`、`OCR_` 和 `DEFAULT_` 前缀。当前配置是模块级静态值，不是用户配置模型；OCR 模型目录、用户运行目录和阈值可以通过环境变量覆盖，并在 `OCRExecutor` 创建时生效。
 
 | 字段 | 默认值 | 类型/单位 | 业务作用 | 是否可覆写 | 生效时机 |
 | --- | --- | --- | --- | --- | --- |
+| `DEFAULT_RECOGNITION_ATTEMPTS` | `3` | `int`，次数 | 一次识别的默认最大尝试次数 | 否 | 调用入口取默认值 |
+| `DEFAULT_RECOGNITION_INTERVAL_SECONDS` | `0.5` | `float`，秒 | 相邻两次识别尝试的默认间隔 | 否 | 调用入口取默认值 |
 | `NUMPY_DEFAULT_PIXEL_TOLERANCE` | `30.0` | `float`，颜色距离 | 默认像素颜色容差 | 否 | 模块导入 |
 | `NUMPY_COORDINATE_MIN` | `0.0` | `float`，相对坐标 | 相对坐标下界 | 否 | 模块导入 |
 | `NUMPY_COORDINATE_MAX` | `1.0` | `float`，相对坐标 | 相对坐标上界 | 否 | 模块导入 |
