@@ -2,7 +2,7 @@
 
 状态：生效
 
-适用范围：`docs/AutoWSGR-3.0/` 下的模块架构说明文档。
+适用范围：各代码模块目录下的 `[架构]<模块名>.md` 模块架构说明文档。
 
 本规范以 `[架构]common-system.md` 为结构基准，抽象出所有模块架构文档必须遵守
 的内容、顺序和验收要求。模块的具体业务语义由各模块文档填写，本规范不替代模块
@@ -34,26 +34,28 @@
 
 ### 1.1 文件位置和命名
 
-架构文档统一放在 `docs/AutoWSGR-3.0/`，文件名使用
-`[架构]<层级路径>-<模块名>.md`：`<层级路径>` 是模块在代码树中的层级，用连字符连接。
-文件名本身必须能定位模块所属层级，不能只靠目录名区分。
+架构文档统一放在 `docs/AutoWSGR3.0/` 下，**目录层级与代码一一对应**：顶层按四个业务域分
+`common/`、`dispatch/`、`application/`、`business/`，往下逐级复制模块的代码路径。
+
+文档放在被描述模块的**父目录**，文件名 `[架构]<模块名>.md`。
 
 ```text
-docs/AutoWSGR-3.0/[架构]common-system.md                                  # common 层（历史命名，合规）
-docs/AutoWSGR-3.0/[架构]common-device.md
-docs/AutoWSGR-3.0/[架构]application-ui-navigation-event-checker.md        # application 层下的活动 checker
-docs/AutoWSGR-3.0/[架构]business-combat-bettle.md                        # business 层下的常规战
+docs/AutoWSGR3.0/common/[架构]system.md                                        # 描述 autowsgr/common/system/
+docs/AutoWSGR3.0/common/[架构]vision.md                                        # 描述 autowsgr/common/vision/
+docs/AutoWSGR3.0/application/ui/controller/home/[架构]main_page.md              # 描述 .../controller/home/main_page/
+docs/AutoWSGR3.0/application/ui/controller/operations/sortie_page/[架构]main_page.md
+docs/AutoWSGR3.0/application/ui/navigation/page_checker/[架构]event_checker.md
 ```
 
-其中 `<模块名>` 必须与代码模块的业务名称一致，不使用宽泛的 `common`、`core`、`utils`
-或 `manager` 作为唯一名称。同一层级新增模块时沿用该层已出现的层级路径前缀。
+`<模块名>` 必须与代码目录名一致，不使用宽泛的 `common`、`core`、`utils` 或 `manager`
+作为唯一名称；同一父目录下多个模块的文档靠文件名区分。
 
 示例：
 
 ```text
-docs/AutoWSGR-3.0/[架构]common-system.md
-docs/AutoWSGR-3.0/[架构]common-device.md
-docs/AutoWSGR-3.0/[架构]dispatch-context.md
+docs/AutoWSGR3.0/common/[架构]system.md
+docs/AutoWSGR3.0/common/[架构]device.md
+docs/AutoWSGR3.0/dispatch/context/[架构]context.md
 ```
 
 ### 1.2 文件开头

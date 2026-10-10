@@ -39,7 +39,7 @@ device 的业务语义是：
 >
 > 5、我们本次的任务是重写模块，不用考虑与上层交互的契约，我们的目的是形成自己的边界，为同层、或者上层提供调用方法。并且有明确的契约
 >
-> 6、要求产出：一份task任务书，你要自己规划这一轮的治理，和门禁，以及台账。产出一份docs，和@C:/ShiinaKuroko/01.Project/AutoWSGR/.worktrees/ShiinaSkuya-upgrade/docs/AutoWSGR-3.0/[架构]common-system.md 类似与架构说明，作用是描述 device模块提供了什么方法，怎么调用，这些方法的业务作用是什么。文档位置暂时放在 docs/AutoWSGR-3.0 目录下
+> 6、要求产出：一份task任务书，你要自己规划这一轮的治理，和门禁，以及台账。产出一份docs，和@C:/ShiinaKuroko/01.Project/AutoWSGR/.worktrees/ShiinaSkuya-upgrade/docs/AutoWSGR3.0/common/[架构]system.md 类似与架构说明，作用是描述 device模块提供了什么方法，怎么调用，这些方法的业务作用是什么。文档位置暂时放在 docs/AutoWSGR-3.0 目录下
 >
 > 7、任务书的需要包含我的原文，每一次阶段结束重新阅读任务书并且理解我的需求，修正后续的任务并且执行，直到任务结束
 >
@@ -317,7 +317,7 @@ usersettings.yaml 的输入。固定协议常量、资源路径和安全校验�
 
 动作：
 
-- 产出 docs/AutoWSGR-3.0/[架构]common-device.md。
+- 产出 docs/AutoWSGR3.0/common/[架构]device.md。
 - 文档描述模块架构、功能、调用示例、配置覆写、资源规则、维护方法和边界。
 - 单测统一放在 testing/common/device。
 - 验证各公开出口、配置模型、ADB 资源、平台分支、发现逻辑、时序和控制器协议。
@@ -380,4 +380,4 @@ usersettings.yaml 的输入。固定协议常量、资源路径和安全校验�
 - 旧 application、business、server、testing/ops、GUI 及工具旧调用方未适配，符合本轮范围外约束。
 
 本任务书状态为 done。后续工作是由上层按本文和
-`docs/AutoWSGR-3.0/[架构]common-device.md` 适配新的 device.XXX 契约。
+`docs/AutoWSGR3.0/common/[架构]device.md` 适配新的 device.XXX 契约。

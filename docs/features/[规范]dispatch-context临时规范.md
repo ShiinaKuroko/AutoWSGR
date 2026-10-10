@@ -163,7 +163,7 @@ testing/dispatch/context/
 
 业务链路的联调测试仍放在对应的 `testing/ui`、`testing/business` 或 `testing/dispatch`
 目录，不把业务行为全部搬进 Context 单测。正式架构说明后续放在
-`docs/AutoWSGR-3.0/`，本文件只作为临时实施协议。
+`docs/AutoWSGR3.0/` 下按代码层级维护的 `[架构]<模块名>.md`，本文件只作为临时实施协议。
 
 ## 2. 基本术语
 

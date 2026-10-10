@@ -21,9 +21,9 @@
    - `docs/features/[台账]ui-controller-governance.md`
    - `docs/features/[台账]导航器重写.md`
 3. 调用 common 基础模块时：
-   - `docs/AutoWSGR-3.0/[架构]common-system.md`
-   - `docs/AutoWSGR-3.0/[架构]common-device.md`
-   - `docs/AutoWSGR-3.0/[架构]common-vision.md`
+   - `docs/AutoWSGR3.0/common/[架构]system.md`
+   - `docs/AutoWSGR3.0/common/[架构]device.md`
+   - `docs/AutoWSGR3.0/common/[架构]vision.md`
 
 模块级规范先于项目级规范。出现无法消解的规范冲突时暂停当前改动并报告，不自行猜测。
 
@@ -98,7 +98,7 @@ worktree 项目偏好；只有在超级用户模式已按全局协议被用户�
 
 ## 6. Common 调用边界
 
-调用 `autowsgr.common` 的基础能力时，严格使用 `docs/AutoWSGR-3.0/` 三份架构文档定义的
+调用 `autowsgr.common` 的基础能力时，严格使用 `docs/AutoWSGR3.0/common/` 下三份架构文档定义的
 稳定公开出口、输入输出、异常和所有权：
 
 - 不引用 common 私有实现路径、内部执行器、私有缓存或深层模块作为新契约；
