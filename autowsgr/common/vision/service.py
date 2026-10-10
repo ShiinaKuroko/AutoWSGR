@@ -120,6 +120,42 @@ def expect_template(
     )
 
 
+def expect_template_center(
+    ctx: ContextHandle,
+    *,
+    template: Template | Sequence[Template],
+    roi: ROI | Sequence[ROI | None] | None = None,
+    confidence: float = OPENCV_TEMPLATE_CONFIDENCE,
+    attempts: int = DEFAULT_RECOGNITION_ATTEMPTS,
+    interval_seconds: float = DEFAULT_RECOGNITION_INTERVAL_SECONDS,
+) -> tuple[float, float] | None:
+    """前识别：重试模板匹配并返回第一个命中模板的中心。
+
+    Args:
+        ctx: 提供设备服务和截图事实写入的统一 ContextHandle。
+        template: 单个模板，或需要逐个匹配的一组模板。
+        roi: 共享搜索区域，或与模板一一对应的区域序列。
+        confidence: 期望的匹配置信度，模板分数达到它才算命中。
+        attempts: 最大识别次数。
+        interval_seconds: 两次识别之间的等待秒数。
+
+    Returns:
+        第一个命中模板的归一化中心；没有命中时为 None。
+    """
+    result = expect_template(
+        ctx,
+        template=template,
+        roi=roi,
+        confidence=confidence,
+        attempts=attempts,
+        interval_seconds=interval_seconds,
+    )
+    for match in result.observation:
+        if match.matched and match.center is not None:
+            return match.center
+    return None
+
+
 def expect_ocr(
     ctx: ContextHandle,
     *,
@@ -415,11 +451,12 @@ def _validate_retry_options(attempts: int, interval_seconds: float) -> None:
 
 __all__ = [
     'RecognitionResult',
-    'expect_ocr_absent',
-    'expect_pixels_absent',
-    'expect_template_absent',
     'expect_ocr',
+    'expect_ocr_absent',
     'expect_pixels',
+    'expect_pixels_absent',
     'expect_template',
+    'expect_template_absent',
+    'expect_template_center',
     'shot',
 ]

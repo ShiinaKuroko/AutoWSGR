@@ -20,7 +20,7 @@ from typing import TYPE_CHECKING
 from autowsgr.application.ui.navigation.page_checker import calibration
 from autowsgr.application.ui.navigation.page_checker.event_checker.stage_push import constants
 from autowsgr.common.system.logger import get_logger
-from autowsgr.common.vision import expect_ocr, expect_template
+from autowsgr.common.vision import expect_ocr, expect_template, expect_template_center
 
 
 if TYPE_CHECKING:
@@ -234,7 +234,7 @@ def read_sortie_prepare_center(ctx: ContextHandle) -> tuple[float, float] | None
     Returns:
         按钮模板命中时的归一化中心；未命中时为 None。
     """
-    result = expect_template(
+    center = expect_template_center(
         ctx,
         template=calibration.load_module_template(
             constants.TEMPLATE_NAMESPACE,
@@ -245,7 +245,6 @@ def read_sortie_prepare_center(ctx: ContextHandle) -> tuple[float, float] | None
         confidence=_TEMPLATE_CONFIDENCE,
         attempts=_PROBE_ATTEMPTS,
     )
-    center = result.observation[0].center
     _log.debug('[UI] 活动识别 → 读确认出征中心：center={!r}', center)
     return center
 

@@ -18,7 +18,7 @@ from typing import TYPE_CHECKING
 from autowsgr.application.ui.navigation.page_checker import calibration
 from autowsgr.application.ui.navigation.page_checker.login_checker import constants
 from autowsgr.common.system.logger import get_logger
-from autowsgr.common.vision import Template, expect_ocr, expect_template
+from autowsgr.common.vision import Template, expect_ocr, expect_template, expect_template_center
 
 
 if TYPE_CHECKING:
@@ -131,13 +131,12 @@ def read_enter_button_center(ctx: ContextHandle) -> tuple[float, float] | None:
     Returns:
         按钮模板命中时的归一化中心；未命中时为 None。
     """
-    result = expect_template(
+    center = expect_template_center(
         ctx,
         template=_template(constants.ENTER_BUTTON_TEMPLATE, '进入游戏按钮'),
         roi=constants.ENTER_BUTTON_ROI,
         attempts=1,
     )
-    center = result.observation[0].center
     _log.debug('[UI] 登录识别 → 读进入游戏中心：center={!r}', center)
     return center
 
@@ -151,13 +150,12 @@ def read_switch_entry_center(ctx: ContextHandle) -> tuple[float, float] | None:
     Returns:
         入口模板命中时的归一化中心；未命中时为 None。
     """
-    result = expect_template(
+    center = expect_template_center(
         ctx,
         template=_template(constants.SWITCH_ENTRY_TEMPLATE, '点击换区'),
         roi=constants.SWITCH_ENTRY_ROI,
         attempts=1,
     )
-    center = result.observation[0].center
     _log.debug('[UI] 登录识别 → 读换区入口中心：center={!r}', center)
     return center
 

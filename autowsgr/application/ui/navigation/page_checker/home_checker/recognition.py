@@ -19,7 +19,7 @@ from typing import TYPE_CHECKING
 from autowsgr.application.ui.navigation.page_checker import calibration
 from autowsgr.application.ui.navigation.page_checker.home_checker import constants
 from autowsgr.common.system.logger import get_logger
-from autowsgr.common.vision import expect_template
+from autowsgr.common.vision import expect_template, expect_template_center
 
 
 if TYPE_CHECKING:
@@ -195,19 +195,11 @@ def read_news_checkbox_center(ctx: ContextHandle) -> tuple[float, float] | None:
             name='home_news_unchecked',
         ),
     )
-    result = expect_template(
+    center = expect_template_center(
         ctx,
         template=templates,
         roi=constants.NEWS_CHECKBOX_ROI,
         confidence=_TEMPLATE_CONFIDENCE,
-    )
-    center = next(
-        (
-            match.center
-            for match in result.observation
-            if match.matched and match.center is not None
-        ),
-        None,
     )
     _log.debug('[UI] 主页识别 → 读勾选框中心：center={!r}', center)
     return center
@@ -222,7 +214,7 @@ def read_reward_claim_center(ctx: ContextHandle) -> tuple[float, float] | None:
     Returns:
         领取按钮模板命中时的归一化中心；未命中时为 None。
     """
-    result = expect_template(
+    center = expect_template_center(
         ctx,
         template=calibration.load_module_template(
             constants.TEMPLATE_NAMESPACE,
@@ -232,7 +224,6 @@ def read_reward_claim_center(ctx: ContextHandle) -> tuple[float, float] | None:
         roi=constants.REWARD_CLAIM_BUTTON_ROI,
         confidence=_TEMPLATE_CONFIDENCE,
     )
-    center = result.observation[0].center
     _log.debug('[UI] 主页识别 → 读领取按钮中心：center={!r}', center)
     return center
 
@@ -246,7 +237,7 @@ def read_reward_confirm_center(ctx: ContextHandle) -> tuple[float, float] | None
     Returns:
         确认按钮模板命中时的归一化中心；未命中时为 None。
     """
-    result = expect_template(
+    center = expect_template_center(
         ctx,
         template=calibration.load_module_template(
             constants.TEMPLATE_NAMESPACE,
@@ -256,6 +247,5 @@ def read_reward_confirm_center(ctx: ContextHandle) -> tuple[float, float] | None
         roi=constants.REWARD_CONFIRM_BUTTON_ROI,
         confidence=_TEMPLATE_CONFIDENCE,
     )
-    center = result.observation[0].center
     _log.debug('[UI] 主页识别 → 读确认按钮中心：center={!r}', center)
     return center
