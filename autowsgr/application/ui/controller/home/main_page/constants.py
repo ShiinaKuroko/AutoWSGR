@@ -27,11 +27,14 @@ NAV_POSITIONS = {
 }
 
 
-# ── 每日浮窗点击落点 ────────────────────────────────────────────────────────
+# ── 每日浮窗按钮落点 ────────────────────────────────────────────────────────
 
-# 公告关闭按钮的落点；其余浮窗按钮的落点由识别产出后由调用方传入。
-DISMISS_POSITIONS = {
+# 坐标为 1280x720 归一化值，由静态样本做模板匹配实测（score=1.000）。
+OVERLAY_POSITIONS = {
+    'news_checkbox': (0.0625, 0.9049),
     'news_close': (0.0352, 0.0625),
+    'reward_claim': (0.5000, 0.6653),
+    'reward_confirm': (0.5020, 0.5694),
 }
 
 
@@ -67,10 +70,10 @@ TASK_READY_SIGNATURE = PixelSignature(
 
 
 __all__ = [
-    'DISMISS_POSITIONS',
     'EXPEDITION_READY_SIGNATURE',
     'NAV_POSITIONS',
     'NOTIFICATION_RED',
     'NOTIFICATION_RED_TOLERANCE',
+    'OVERLAY_POSITIONS',
     'TASK_READY_SIGNATURE',
 ]

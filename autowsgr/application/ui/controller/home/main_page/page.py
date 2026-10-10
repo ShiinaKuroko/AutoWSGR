@@ -89,35 +89,31 @@ class HomePage:
 
     # ── 每日浮窗 ──────────────────────────────────────────────────────────────────
 
-    def click_news_checkbox(self, position: tuple[float, float]) -> None:
-        """点击每日公告勾选框。
-
-        Args:
-            position: 识别产出的勾选框中心。
-        """
-        _log.info('[UI] 主页面 → 勾选公告：position={!r}', position)
-        self._ctx.runtime.ctrl.click(*position)
+    def click_news_checkbox(self) -> None:
+        """点击每日公告勾选框。"""
+        self._click_overlay('news_checkbox', '勾选公告')
 
     def click_news_close(self) -> None:
         """点击关闭每日公告。"""
-        position = constants.DISMISS_POSITIONS['news_close']
-        _log.info('[UI] 主页面 → 关闭公告：position={!r}', position)
-        self._ctx.runtime.ctrl.click(*position)
+        self._click_overlay('news_close', '关闭公告')
 
-    def click_reward_claim(self, position: tuple[float, float]) -> None:
-        """点击每日奖励领取按钮。
+    def click_reward_claim(self) -> None:
+        """点击每日奖励领取按钮。"""
+        self._click_overlay('reward_claim', '领取每日奖励')
+
+    def click_reward_confirm(self) -> None:
+        """点击奖励确认按钮。"""
+        self._click_overlay('reward_confirm', '确认奖励')
+
+    # ── 内部实现 ────────────────────────────────────────────────────────────
+
+    def _click_overlay(self, name: str, action: str) -> None:
+        """点击一个每日浮窗按钮。
 
         Args:
-            position: 识别产出的领取按钮中心。
+            name: 按钮在 `OVERLAY_POSITIONS` 中的名称。
+            action: 日志里显示的动作名。
         """
-        _log.info('[UI] 主页面 → 领取每日奖励：position={!r}', position)
-        self._ctx.runtime.ctrl.click(*position)
-
-    def click_reward_confirm(self, position: tuple[float, float]) -> None:
-        """点击奖励确认按钮。
-
-        Args:
-            position: 识别产出的确认按钮中心。
-        """
-        _log.info('[UI] 主页面 → 确认奖励：position={!r}', position)
+        position = constants.OVERLAY_POSITIONS[name]
+        _log.info('[UI] 主页面 → {}：position={!r}', action, position)
         self._ctx.runtime.ctrl.click(*position)

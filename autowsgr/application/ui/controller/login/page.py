@@ -1,79 +1,73 @@
-"""模块功能：编排登录前启动画面的识别和进入游戏流程。
+"""模块功能：控制登录页与区服选择页的单次点击。
 
 上层调用：
-- application.runtime.startup：等待游戏 UI 就绪并处理冷启动入口。
-- application.runtime.initialize.initialize：执行非运行状态下的登录进入步骤。
+- application.ui.navigation：登录页进入游戏、打开区服列表与选择区服。
 
 下层依赖：
-- application.ui.controller.login.constants：提供启动画面坐标和像素签名。
-- application.ui.controller.login.recognition：提供启动画面识别结果。
-- common.system.logger：记录启动画面操作。
-- common.device：提供游戏设备控制器。
-- common.vision：提供统一页面匹配结果类型。
+- login.constants：提供进入游戏、换区入口与区服条目落点。
+- common.device.service：通过 `ctx.runtime.ctrl` 执行点击。
 
-边界：
-只编排启动画面识别和进入游戏，不负责游戏启动、登录后页面导航或浮层处理。
+边界：只做**单次点击**，不识别画面、不等待页面、不编排启动流程、不重试。
+画面确认由 login_checker 负责，能否继续的决策由 dispatch 处理器负责。
 """
 
 from __future__ import annotations
 
-import time
 from typing import TYPE_CHECKING
 
-from autowsgr.application.ui.controller.login import constants, recognition
+from autowsgr.application.ui.controller.login import constants
 from autowsgr.common.system.logger import get_logger
 
 
 if TYPE_CHECKING:
-    import numpy
-
-    from autowsgr.common.device.service import DeviceService
-    from autowsgr.application.ui.navigation.types import PageMatch
+    from autowsgr.dispatch.context import ContextHandle
 
 
 _log = get_logger('ui.login')
 
-_ENTER_GAME_SETTLE_SECONDS: float = 2.0
-"""点击进入后等待登录启动画面过渡的时间 (秒)。"""
+
+# ── 页面控制器 ─────────────────────────────────────────────────────────────────────
 
 
 class LoginPage:
-    """游戏登录前启动画面的 UI 控制器。"""
+    """登录页与区服选择页的单击控制器。"""
 
-    def __init__(self, ctrl: DeviceService) -> None:
-        """保存登录启动画面的设备控制器。
-
-        Args:
-            ctrl: Android 设备控制器实例。
-        """
-        self._ctrl = ctrl
-
-    # ── 启动画面识别 ───────────────────────────────────────────────────────────────
-
-    @staticmethod
-    def check_current_page(screen: numpy.ndarray) -> PageMatch:
-        """判断截图是否为登录前启动画面。
+    def __init__(self, ctx: ContextHandle) -> None:
+        """绑定任务上下文。
 
         Args:
-            screen: 登录启动画面 RGB 截图，形状为 ``(H, W, 3)``。
-
-        Returns:
-            启动画面的像素签名匹配结果。
+            ctx: 提供设备服务的 dispatch 上下文句柄。
         """
-        return recognition.check_current_page(screen)
+        self._ctx = ctx
 
-    # ── 登录启动流程 ───────────────────────────────────────────────────────────────
+    # ── 登录页 ───────────────────────────────────────────────────────────────────
 
     def enter_game(self) -> None:
-        """提交进入游戏动作并等待启动画面过渡。
+        """点击"进入游戏"按钮。"""
+        _log.info('[UI] 登录页 → 进入游戏：position={!r}', constants.CLICK_ENTER_GAME)
+        self._ctx.runtime.ctrl.click(*constants.CLICK_ENTER_GAME)
 
-        登录后的页面终态由运行时启动流程继续确认。
+    def click_switch_entry(self) -> None:
+        """点击"点击换区"入口，让区服列表出现。"""
+        _log.info('[UI] 登录页 → 打开区服列表：position={!r}', constants.CLICK_SWITCH_ENTRY)
+        self._ctx.runtime.ctrl.click(*constants.CLICK_SWITCH_ENTRY)
+
+    # ── 区服选择 ──────────────────────────────────────────────────────────────────
+
+    def click_server(self, position: int) -> None:
+        """点击第 position 个区服条目。
+
+        Args:
+            position: 区服条目序号（0 起），顺序与 `constants.SERVER_POSITIONS` 一致。
+
+        Raises:
+            ValueError: 序号超出区服条目范围。
         """
+        if not 0 <= position < len(constants.SERVER_POSITIONS):
+            raise ValueError(f'区服条目序号超出范围: {position!r}')
+        target = constants.SERVER_POSITIONS[position]
+        _log.info('[UI] 区服列表 → 选择区服：position={}，target={!r}', position, target)
+        self._ctx.runtime.ctrl.click(*target)
 
-        # 1. 提交进入游戏动作，将登录后的页面确认交给运行时流程。
-        _log.info('[UI] 登录画面 → 尝试进入')
-        self._ctrl.click(*constants.CLICK_ENTER)
 
-        # 2. 等待启动画面过渡，避免运行时在点击动画期间重复读取状态。
-        time.sleep(_ENTER_GAME_SETTLE_SECONDS)
-        _log.info('[UI] 登录画面 → 进入游戏：结果=已提交')
+__all__ = ['LoginPage']

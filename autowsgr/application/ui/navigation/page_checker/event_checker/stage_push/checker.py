@@ -16,18 +16,18 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from autowsgr.common.system.logger import get_logger
 from autowsgr.application.ui.navigation.page_checker import calibration
 from autowsgr.application.ui.navigation.page_checker.event_checker.stage_push import (
     constants,
     recognition,
 )
-from autowsgr.application.ui.navigation.page_checker.event_checker.stage_push.recognition import (
-    EventMode,
-)
+from autowsgr.common.system.logger import get_logger
 
 
 if TYPE_CHECKING:
+    from autowsgr.application.ui.navigation.page_checker.event_checker.stage_push.recognition import (
+        EventMode,
+    )
     from autowsgr.dispatch.context import ContextHandle
 
 
@@ -76,7 +76,7 @@ _NODE_COUNT = 6
 def parse_stage(stage: str) -> EventStage:
     """把任务里的章节标识解析成执行参数。
 
-    支持任务契约的 `EX1`–`EX12`，以及旧控制器的 `E1`–`E6` / `H1`–`H6` 写法。
+    支持任务契约的 `EX1`-`EX12`，以及旧控制器的 `E1`-`E6` / `H1`-`H6` 写法。
 
     Args:
         stage: 章节标识。
@@ -88,44 +88,61 @@ def parse_stage(stage: str) -> EventStage:
         ValueError: 标识格式非法或超出范围。
     """
     number = _stage_number(stage)
-    difficulty = recognition.EventMode.NORMAL if number <= _NODE_COUNT else recognition.EventMode.HARD
+    difficulty = (
+        recognition.EventMode.NORMAL if number <= _NODE_COUNT else recognition.EventMode.HARD
+    )
     return EventStage(difficulty=difficulty, node=(number - 1) % _NODE_COUNT + 1)
 
 
 def _stage_number(stage: str) -> int:
-    """把章节标识换算成跨难度的全局编号（1–12）。
+    """把章节标识换算成跨难度的全局编号（1-12）。
 
     Raises:
         ValueError: 标识格式非法或超出范围。
     """
     text = stage.strip().upper()
+    legacy = len(text) == 2 and text[0] in ('E', 'H')
     if text.startswith('EX'):
-        number = _parse_number(text[2:], stage)
-    elif len(text) == 2 and text[0] in ('E', 'H'):
-        number = _parse_number(text[1:], stage)
+        digits = text[2:]
+    elif legacy:
+        digits = text[1:]
+    else:
+        raise ValueError(f'无效的章节标识: {stage!r}')
+    if not digits.isdigit():
+        raise ValueError(f'无效的章节标识: {stage!r}')
+
+    number = int(digits)
+    if legacy:
         if not 1 <= number <= _NODE_COUNT:
             raise ValueError(f'章节标识超出范围: {stage!r}')
         if text[0] == 'H':
             number += _NODE_COUNT
-    else:
-        raise ValueError(f'无效的章节标识: {stage!r}')
-    if not 1 <= number <= _NODE_COUNT * 2:
+    elif not 1 <= number <= _NODE_COUNT * 2:
         raise ValueError(f'章节标识超出范围: {stage!r}')
     return number
 
 
-def _parse_number(text: str, stage: str) -> int:
-    """解析标识里的数字部分。
+# ── 识别入口 ────────────────────────────────────────────────────────────────
+
+
+def check_event_map_page(ctx: ContextHandle, *, event_type: str) -> bool:
+    """确认当前是否在活动地图页。
+
+    判断标准：地图标题区域识别到本期地图名。章节浮窗态由浮窗入口单独确认。
+
+    Args:
+        ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
+        event_type: 活动玩法标识。
+
+    Returns:
+        读到地图标题时为真。
 
     Raises:
-        ValueError: 数字部分缺失或不是纯数字。
+        ValueError: 活动玩法标识与当前 checker 不一致。
     """
-    if not text.isdigit():
-        raise ValueError(f'无效的章节标识: {stage!r}')
-    return int(text)
-
-
-# ── 识别入口 ──────────────────────────────────────────────────────────────────────
+    calibration.require_activity(event_type, constants.ACTIVITY)
+    data = calibration.load_activity_data(constants.ACTIVITY, constants.PERIOD)
+    return recognition.is_map_title_present(ctx, data)
 
 
 def check_event_entry(ctx: ContextHandle, *, event_type: str) -> bool:

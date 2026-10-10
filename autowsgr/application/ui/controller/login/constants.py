@@ -1,32 +1,34 @@
-"""模块功能：维护登录前启动画面的页面坐标和像素签名。
+"""模块功能：维护登录页与区服选择页的点击落点。
 
 上层调用：
-- application.ui.controller.login.page：检查启动画面并执行进入游戏点击。
+- application.ui.controller.login.page：读取进入游戏、换区入口与区服条目落点。
 
-下层依赖：
-- common.vision：提供像素规则和像素签名数据类型。
+下层依赖：无，只保存静态坐标。
 
-本模块只保存启动画面的静态页面校准，不保存设备对象、上下文或运行状态。
+边界：只保存点击落点，不识别画面、不编排流程、不持有运行状态。
 """
 
 from __future__ import annotations
 
-from autowsgr.common.vision.adapters.pixel_matching import PixelRule, PixelSignature
+
+# ── 登录页落点 ─────────────────────────────────────────────────────────────────────
+
+# 进入游戏按钮中心，取自识别模板 LOGIN_ENTER_BUTTON_720P 的 ROI 中心。
+CLICK_ENTER_GAME = (0.8863, 0.8667)
+
+# 换区入口文字中心，取自识别模板 SERVER_SWITCH_ENTRY_720P 的 ROI 中心。
+CLICK_SWITCH_ENTRY = (0.7332, 0.7306)
 
 
-# 坐标按 1280x720 设计分辨率校准，并以相对坐标保存。
-CLICK_ENTER = (0.8915, 0.8584)  # 启动画面右下角进入按钮，用于进入游戏主流程。
+# ── 区服条目落点 ────────────────────────────────────────────────────────────────────
 
-PAGE_SIGNATURE = PixelSignature(
-    name='启动画面',
-    rules=(
-        PixelRule.of(0.0508, 0.8722, (204, 210, 208), tolerance=30.0),  # 底部横幅左侧灰色锚点。
-        PixelRule.of(0.8125, 0.8569, (224, 183, 41), tolerance=30.0),  # 底部横幅黄色锚点。
-        PixelRule.of(0.8695, 0.9028, (222, 198, 40), tolerance=30.0),  # 底部横幅中部黄色锚点。
-        PixelRule.of(0.9641, 0.8681, (222, 197, 43), tolerance=30.0),  # 底部横幅右侧黄色锚点。
-        PixelRule.of(0.7914, 0.7333, (237, 237, 237), tolerance=30.0),  # 启动画面内容区浅色锚点。
-    ),
-)  # 启动画面像素签名，用于点击进入前确认页面状态。
+# 四个区服条目中心，顺序与区服列表从上到下一致：0 胡德 / 1 俾斯麦 / 2 昆西 / 3 长春。
+SERVER_POSITIONS = (
+    (0.8410, 0.0792),
+    (0.8407, 0.2340),
+    (0.8430, 0.3938),
+    (0.8434, 0.5472),
+)
 
 
-__all__ = ['CLICK_ENTER', 'PAGE_SIGNATURE']
+__all__ = ['CLICK_ENTER_GAME', 'CLICK_SWITCH_ENTRY', 'SERVER_POSITIONS']

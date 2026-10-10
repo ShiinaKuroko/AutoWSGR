@@ -17,10 +17,10 @@ import re
 from enum import StrEnum
 from typing import TYPE_CHECKING
 
-from autowsgr.common.system.logger import get_logger
-from autowsgr.common.vision import expect_ocr, expect_template
 from autowsgr.application.ui.navigation.page_checker import calibration
 from autowsgr.application.ui.navigation.page_checker.event_checker.stage_push import constants
+from autowsgr.common.system.logger import get_logger
+from autowsgr.common.vision import expect_ocr, expect_template
 
 
 if TYPE_CHECKING:
@@ -94,6 +94,31 @@ def _calculate_mode_from_title(
 
 
 # ── 页面事实读取与判断 ─────────────────────────────────────────────────────────────────
+
+
+def is_map_title_present(ctx: ContextHandle, data: Mapping[str, Any]) -> bool:
+    """判断活动地图标题是否可读。
+
+    地图标题由「地图名」+（可选）「困难」组成，括号形态多变，因此统一断言：
+    标题区域识别到普通地图名、或出现"困难"二字，即认为标题可读。
+
+    Args:
+        ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
+        data: 本期活动数据。
+
+    Returns:
+        标题区域命中任一候选时为真。
+    """
+    normal_name = str(data['map_name']['normal'])
+    result = expect_ocr(
+        ctx,
+        expect=(normal_name, _HARD_MARKER),
+        roi=constants.MAP_NAME_ROI,
+        recognition_profile='single_line',
+        attempts=1,
+    )
+    _log.debug('[UI] 活动识别 → 查地图标题：present={!r}', result.satisfied)
+    return result.satisfied
 
 
 def is_event_entry_visible(ctx: ContextHandle) -> bool:
