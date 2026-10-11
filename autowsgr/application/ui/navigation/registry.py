@@ -140,6 +140,7 @@ _NAV_TARGETS: dict[PageName, tuple[NavTarget, ...]] = {
                 login_checker.read_enter_button_center(ctx)
             ),
             '登录页 → 主页（经每日浮窗链）',
+            confirm=False,
         ),
     ),
     PageName.SERVER_SELECT: (
@@ -168,8 +169,12 @@ _NAV_TARGETS: dict[PageName, tuple[NavTarget, ...]] = {
             PageName.HOME_NEWS,
             lambda ctx, **_: SortiePage(ctx).go_back(),
             '出征页 → 主页（经每日浮窗链）',
+            confirm=False,
         ),
     ),
+    # 每日浮窗链：进链的边只负责「走到这一步」，浮窗在不在由各自的动作自查；
+    # 每一步的到达确认都关掉，因为「到了吗」取决于下一个浮窗是否存在，静态判不了。
+    # 只有链尾「→ 主页」做真确认——那里才知道主页是否真的干净。
     PageName.HOME_NEWS: (
         NavTarget(
             PageName.HOME_REWARD,
@@ -214,6 +219,7 @@ _NAV_TARGETS: dict[PageName, tuple[NavTarget, ...]] = {
             PageName.HOME_NEWS,
             lambda ctx, **_: EventPage(ctx, event_type=_event_type(ctx)).go_back(),
             '活动地图 → 主页（经每日浮窗链）',
+            confirm=False,
         ),
     ),
 }
