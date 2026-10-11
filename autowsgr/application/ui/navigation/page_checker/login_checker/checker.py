@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from autowsgr.application.ui.navigation.page_checker.login_checker import recognition
+from autowsgr.application.ui.navigation.page_checker.login_checker import constants, recognition
 
 
 if TYPE_CHECKING:
@@ -151,6 +151,23 @@ def check_server_select(
     )
 
 
+def server_index(name: str) -> int:
+    """返回区服名在登录列表中的固定位置。
+
+    区服列表固定不滚动，位置是静态映射；OCR 定位失败时用它兜底。
+
+    Args:
+        name: 区服名，取值见 `constants.SERVER_NAMES`。
+
+    Returns:
+        位置序号（0 起）。
+
+    Raises:
+        ValueError: 名字不在区服列表内。
+    """
+    return constants.SERVER_NAMES.index(name)
+
+
 def find_server_position(ctx: ContextHandle, name: str) -> int | None:
     """查找目标区服在列表中的位置。
 
@@ -197,4 +214,5 @@ __all__ = [
     'find_server_position',
     'read_enter_button_center',
     'read_switch_entry_center',
+    'server_index',
 ]

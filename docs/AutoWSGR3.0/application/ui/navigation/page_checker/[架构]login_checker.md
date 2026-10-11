@@ -78,6 +78,7 @@ login_checker.checker
 | 登录页识别 | `login_checker.check_login_page` | `checker.py` | `ctx` | `bool`；不修改外部状态 | 进入游戏模板或换区入口任一命中 | 点击、判断区服 |
 | 区服选择页识别 | `login_checker.check_server_select` | `checker.py` | `ctx` | `bool`；不修改外部状态 | 切换大区模板命中 | 点击区服条目 |
 | 区服定位 | `login_checker.find_server_position` | `checker.py` | `ctx`、区服名 | 位置序号或 `None` | 四条区域逐条 OCR 比对 | 点击、判断换区成功 |
+| 区服序号映射 | `login_checker.server_index` | `checker.py` | 区服名 | 位置序号 | 返回固定位置，OCR 失败时兜底 | 识别、点击 |
 | 进入游戏按钮中心 | `login_checker.read_enter_button_center` | `checker.py` | `ctx` | 归一化中心或 `None` | 给出按钮中心供点击 | 点击、确认已进入主页 |
 | 换区入口中心 | `login_checker.read_switch_entry_center` | `checker.py` | `ctx` | 归一化中心或 `None` | 给出入口中心供点击 | 点击、确认列表出现 |
 | 模板加载 | `page_checker.calibration.load_module_template` | `page_checker/calibration.py` | 命名空间、文件名、名称 | `Template`；读模板文件 | 按命名空间加载模板 | 识别、缓存策略 |
@@ -199,6 +200,7 @@ if login_checker.check_server_select(ctx):
 
 ```text
 login_checker.find_server_position(ctx: ContextHandle, name: str) -> int | None
+login_checker.server_index(name: str) -> int
 ```
 
 `name` 取值见 `constants.SERVER_NAMES`；单帧探测，逐条比对，命中即返回。

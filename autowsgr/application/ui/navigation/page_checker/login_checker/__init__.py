@@ -21,6 +21,7 @@ from autowsgr.application.ui.navigation.page_checker.login_checker.checker impor
     find_server_position,
     read_enter_button_center,
     read_switch_entry_center,
+    server_index,
 )
 
 
@@ -33,4 +34,5 @@ __all__ = [
     'find_server_position',
     'read_enter_button_center',
     'read_switch_entry_center',
+    'server_index',
 ]

@@ -38,11 +38,18 @@ _TEMPLATE_CONFIDENCE = 0.85
 # ── 页面事实读取 ────────────────────────────────────────────────────────────────────
 
 
-def is_home_page_visible(ctx: ContextHandle) -> bool:
+def is_home_page_visible(
+    ctx: ContextHandle,
+    *,
+    attempts: int = 1,
+    interval_seconds: float = 0.5,
+) -> bool:
     """判断主页模板是否可见。
 
     Args:
         ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
+        attempts: 识别次数，默认只探测当前一帧。
+        interval_seconds: 两次识别之间的等待秒数。
 
     Returns:
         主页模板命中时为真。
@@ -56,6 +63,8 @@ def is_home_page_visible(ctx: ContextHandle) -> bool:
         ),
         roi=constants.HOME_MAIN_ROI,
         confidence=_TEMPLATE_CONFIDENCE,
+        attempts=attempts,
+        interval_seconds=interval_seconds,
     )
     _log.debug('[UI] 主页识别 → 查主页模板：visible={!r}', result.satisfied)
     return result.satisfied

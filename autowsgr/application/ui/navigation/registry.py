@@ -38,10 +38,18 @@ if TYPE_CHECKING:
 
 # ── 页面 → 到达确认 ─────────────────────────────────────────────────────────
 
+# 主页确认节奏：从登录页进入要等登录动画与加载，因此给足重试。
+_HOME_CONFIRM_ATTEMPTS = 30
+_HOME_CONFIRM_INTERVAL_SECONDS = 1.0
+
 _PAGE_CHECKERS: dict[PageName, Callable[[ContextHandle], bool]] = {
     PageName.LOGIN_PAGE: login_checker.check_login_page,
     PageName.SERVER_SELECT: login_checker.check_server_select,
-    PageName.HOME: home_checker.check_home_page,
+    PageName.HOME: lambda ctx: home_checker.check_home_page(
+        ctx,
+        attempts=_HOME_CONFIRM_ATTEMPTS,
+        interval_seconds=_HOME_CONFIRM_INTERVAL_SECONDS,
+    ),
     PageName.SORTIE_MAP: sortie_checker.check_sortie_page,
     PageName.EVENT_MAP: lambda ctx: stage_push.check_event_map_page(
         ctx,

@@ -90,7 +90,7 @@ home_checker.checker
 ### 4.2 稳定入口
 
 ```text
-home_checker.check_home_page(ctx: ContextHandle) -> bool
+home_checker.check_home_page(ctx, *, attempts=1, interval_seconds=0.5) -> bool
 ```
 
 - `ctx`：提供设备服务与截图事实的 `ContextHandle`；

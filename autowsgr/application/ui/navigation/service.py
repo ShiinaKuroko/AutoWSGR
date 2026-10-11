@@ -1,25 +1,33 @@
 """模块功能：提供导航器的统一入口。
 
 上层调用：
-- application 与 business：请求到达某个页面或回退上一页。
+- dispatch 与 business：把游戏带到登录页、请求到达某个页面或回退上一页。
 
 下层依赖：
 - navigation.registry：查询可达目标、到达确认与路径。
 - navigation.types：页面契约与导航错误。
 - dispatch.session：进程级会话状态。
-- page_checker.home_checker 与 controller.home.main_page：每日弹窗的识别。
+- page_checker 与 controller.home.main_page：登录流程识别、主页识别与每日弹窗点击。
 
-边界：编排识别、算路、执行与逐步确认；不做页面坐标、业务流程与恢复决策，失败直接抛给调用方。
+边界：编排启动流程、识别、算路、执行与逐步确认；不做页面坐标、业务流程与恢复决策，
+失败直接抛给调用方。
 """
 
 from __future__ import annotations
 
+import time
 from typing import TYPE_CHECKING
 
+from autowsgr.application.runtime.types import LoginServer
 from autowsgr.application.ui.controller.home.main_page import HomePage
 from autowsgr.application.ui.navigation import registry
-from autowsgr.application.ui.navigation.page_checker import home_checker
-from autowsgr.application.ui.navigation.types import NavigationError, NavTarget, PageName
+from autowsgr.application.ui.navigation.page_checker import home_checker, login_checker
+from autowsgr.application.ui.navigation.types import (
+    ManualUpdateRequiredError,
+    NavigationError,
+    NavTarget,
+    PageName,
+)
 from autowsgr.common.system.logger import get_logger
 from autowsgr.dispatch.session import SessionState, get_session
 
@@ -29,6 +37,23 @@ if TYPE_CHECKING:
 
 
 _log = get_logger('ui.navigation')
+
+
+# ── 启动流程参数 ────────────────────────────────────────────────────────────
+
+# 拉起 App 后等待进程进入启动画面的时间，单位为秒。
+_STARTUP_SETTLE_SECONDS = 5.0
+# 等健康游戏提示出现的最大识别次数，以及相邻两次识别的间隔秒数。
+_STARTUP_ATTEMPTS = 120
+_STARTUP_INTERVAL_SECONDS = 1.0
+# 确认画面消失、读取更新提示与加载状态时的探测次数。
+_PROBE_ATTEMPTS = 3
+# 等登录页出现的最大识别次数。
+_LOGIN_PAGE_ATTEMPTS = 60
+# 仍在加载时按用户定的兜底再探一次的等待时间，单位为秒。
+_LOADING_RECHECK_WAIT_SECONDS = 3.0
+# 强杀游戏后等待进程退出的时间，单位为秒。
+_RESTART_SETTLE_SECONDS = 2.0
 
 
 class NavigationService:
@@ -92,7 +117,114 @@ class NavigationService:
         _log.info('[UI] 导航 → 回退：source={!r}，target={!r}', current.value, target.value)
         self._walk(registry.find_path(current, target), {})
 
+    # ── 启动流程 ────────────────────────────────────────────────────────────
+
+    def ensure_started(self) -> None:
+        """把游戏带到「登录页」。
+
+        启动段（健康游戏提示、更新提示、加载中）没有可导航的边，只能在这里编排；
+        换区复用导航图的两条边。
+
+        Raises:
+            ManualUpdateRequiredError: 检测到游戏更新，需要人工处理。
+            NavigationError: 启动超时、加载未完成或状态不明。
+        """
+        ctrl = self._ctx.runtime.ctrl
+        package = self._ctx.runtime.config.account.package_name
+
+        # 1. 游戏没运行就先拉起，等待进程进入启动画面。
+        if not ctrl.is_app_running(package):
+            _log.info('[UI] 启动 → 拉起游戏：package={!r}', package)
+            ctrl.start_app(package)
+            time.sleep(_STARTUP_SETTLE_SECONDS)
+
+        # 2. 等健康游戏提示出现，再确认它已经切走。
+        if not login_checker.check_black_screen(
+            self._ctx,
+            attempts=_STARTUP_ATTEMPTS,
+            interval_seconds=_STARTUP_INTERVAL_SECONDS,
+        ):
+            raise NavigationError('启动超时：未出现健康游戏提示')
+        login_checker.check_black_screen(
+            self._ctx,
+            absent=True,
+            attempts=_PROBE_ATTEMPTS,
+            interval_seconds=_STARTUP_INTERVAL_SECONDS,
+        )
+
+        # 3. 更新分支：后识别通过说明没有更新，前识别通过说明需要人工更新。
+        if not login_checker.check_update_prompt(
+            self._ctx,
+            absent=True,
+            attempts=_PROBE_ATTEMPTS,
+            interval_seconds=_STARTUP_INTERVAL_SECONDS,
+        ):
+            if login_checker.check_update_prompt(self._ctx):
+                raise ManualUpdateRequiredError('检测到游戏更新，需要人工处理')
+            raise NavigationError('启动状态不明：无法确认是否需要更新')
+
+        # 4. 加载分支：仍在加载时按用户定的兜底再探一次。
+        if not login_checker.check_loading(
+            self._ctx,
+            absent=True,
+            attempts=_PROBE_ATTEMPTS,
+            interval_seconds=_STARTUP_INTERVAL_SECONDS,
+        ):
+            time.sleep(_LOADING_RECHECK_WAIT_SECONDS)
+            if not login_checker.check_loading(
+                self._ctx,
+                absent=True,
+                attempts=_PROBE_ATTEMPTS,
+                interval_seconds=_STARTUP_INTERVAL_SECONDS,
+            ):
+                raise NavigationError('启动超时：游戏仍在加载')
+
+        # 5. 等登录页出现。
+        if not login_checker.check_login_page(
+            self._ctx,
+            attempts=_LOGIN_PAGE_ATTEMPTS,
+            interval_seconds=_STARTUP_INTERVAL_SECONDS,
+        ):
+            raise NavigationError('启动超时：未出现登录页')
+
+        # 6. 按用户设置完成一次换区。
+        self._select_server()
+
+    def restart_game(self) -> None:
+        """SL：强杀游戏后重新走一遍启动流程。"""
+        ctrl = self._ctx.runtime.ctrl
+        package = self._ctx.runtime.config.account.package_name
+        _log.warning('[UI] 启动 → 强制重启游戏：package={!r}', package)
+        ctrl.stop_app(package)
+        time.sleep(_RESTART_SETTLE_SECONDS)
+        self.ensure_started()
+
     # ── 内部实现 ────────────────────────────────────────────────────────────
+
+    def _select_server(self) -> None:
+        """按用户设置完成一次区服选择；本次运行已选过则跳过。
+
+        Raises:
+            NavigationError: 换区路径无法确认到达。
+        """
+        session = self._session
+        if session.server_selected:
+            return
+
+        wanted = self._ctx.runtime.config.account.game_server
+        if wanted is LoginServer.default:
+            session.mark_server_selected()
+            return
+
+        index = login_checker.find_server_position(self._ctx, wanted.value)
+        if index is None:
+            # 区服列表位置固定，OCR 读不到时按静态映射兜底。
+            index = login_checker.server_index(wanted.value)
+            _log.warning('[UI] 启动 → 区服定位兜底：server={!r}，position={}', wanted.value, index)
+
+        self.navigate_to(PageName.SERVER_SELECT)
+        self.navigate_to(PageName.LOGIN_PAGE, position=index)
+        session.mark_server_selected()
 
     def _walk(self, path: tuple[NavTarget, ...], params: dict[str, object]) -> None:
         """按路径逐步执行动作并确认到达。

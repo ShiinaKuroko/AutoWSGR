@@ -69,4 +69,11 @@ class NavigationError(ApplicationError):
     """导航失败时抛出。"""
 
 
+class ManualUpdateRequiredError(NavigationError):
+    """游戏需要更新，导航无法继续。
+
+    这不是导航失败：重启游戏也不会改变，应由处理器转成需要人工介入的错误。
+    """
+
+
 __all__ = ['NavTarget', 'NavigationError', 'PageName']
