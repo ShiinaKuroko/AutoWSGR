@@ -48,7 +48,7 @@ class ShipSelectionPage:
         """判断截图是否为船池选择页面。"""
         result = PixelChecker.check_signature(screen, constants.PAGE_SIGNATURE)
         return PageMatch(
-            name=PageName.CHOOSE_SHIP.value,
+            name=PageName.SHIP_SELECTION.value,
             matched=result.matched,
             score=result.ratio,
         )
@@ -66,7 +66,7 @@ class ShipSelectionPage:
                 ).matched
             ),
             timeout=constants.CHOOSE_PAGE_TIMEOUT,
-            source=PageName.CHOOSE_SHIP,
+            source=PageName.SHIP_SELECTION,
             target='船池输入',
         )
 
@@ -89,7 +89,7 @@ class ShipSelectionPage:
             ),
             timeout=constants.CHOOSE_PAGE_TIMEOUT,
             source='船池输入',
-            target=PageName.CHOOSE_SHIP,
+            target=PageName.SHIP_SELECTION,
         )
 
     def click_ship_card(self, x: float, y: float) -> None:
@@ -122,8 +122,8 @@ class ShipSelectionPage:
             self._ctrl,
             click_coord=constants.CLICK_BACK,
             checker=parent_checker,
-            source=PageName.CHOOSE_SHIP,
-            target=PageName.BATTLE_PREP,
+            source=PageName.SHIP_SELECTION,
+            target=PageName.BATTLE_PREPARATIONARATION,
         )
 
 

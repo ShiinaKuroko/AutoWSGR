@@ -1,65 +1,39 @@
 # PageName 语义统一
 
-状态：`TODO`，后续单独处理。
+状态：**已完成**（2026-10-12）：在新导航器框架内执行，结果见下。
 
 所属任务：`20260830-autowsgr-upgrade`
 
-## 当前结论
+## 执行结果
 
-当前 `PageName` 共 15 个成员。它们是页面状态标识，不等同于页面目录、
-Controller 类名、视觉模板名或页面内浮层名。
+以 `autowsgr/application/ui/navigation/types.py` 为准，`PageName` 由 24 个成员调整为 **23 个**：
 
-枚举成员当前为：
+| 动作 | 成员 | 说明 |
+| --- | --- | --- |
+| 改名 | `BATTLE_PREP` → `BATTLE_PREPARATION` | 去缩写，与 `BattlePreparationPage` 对齐 |
+| 改名 | `CHOOSE_SHIP` → `SHIP_SELECTION` | 页面状态用名词，不用动作短语 |
+| 删除 | `CHOOSE_REPAIR` | 零调用；它表达的是浴室页上的「选择修理」浮层，不是独立页面状态 |
 
-```text
-HOME、MAP、BATTLE_PREP、SIDEBAR、MISSION、BACKYARD、BATH、CANTEEN、
-CHOOSE_REPAIR、BUILD、INTENSIFY、FRIEND、DECISIVE_BATTLE、CHOOSE_SHIP、EVENT_MAP
-```
+**枚举值一个字没动**（仍是「出征准备」「选择舰船页面」），所以 `PageName(value)`、注册键与导航状态序列化结果不变。
 
-## 已确认保持
+## 未采纳的原候选
 
-- `PageName.HOME` 是主页状态，枚举值“主页面”保持不变；不恢复旧成员 `MAIN`。
-- `PageName.MAP` 对应 `MapPage` 的地图/出征区域，当前无需改名。
-- `SIDEBAR`、`MISSION`、`BACKYARD`、`BATH`、`CANTEEN`、`BUILD`、`INTENSIFY`
-  和 `FRIEND` 已能直接表达业务语义，当前无需改名。
-- `Templates.MainPage`、`CommonPage`、`Templates.Bath.CHOOSE_REPAIR` 以及测试目录名
-  不属于本台账的机械替换范围。
+| 候选 | 原因 |
+| --- | --- |
+| `DECISIVE_BATTLE` → `DECISIVE` | `DECISIVE` 是形容词，单看不像页面名，反而更难懂 |
+| `EVENT_MAP` → `EVENT` | `EVENT` 单看像「事件」；同域还有 `SORTIE_MAP`，改后会不一致 |
 
-## 待确认的候选改名
+## 改名后的框架事实
 
-以下只建议修改 Python 成员名，不修改枚举值：
+- 类型定义已从旧的 `autowsgr/common/types.py` 迁到 `navigation/types.py`，本文件原描述已过期。
+- `Templates.Page.BATTLE_PREP`、`Templates.Bath.CHOOSE_REPAIR` 是**视觉模板名**，与 `PageName` 无关，未改动。
+- 新框架下 5 个成员暂无调用方：`EXERCISE`、`EXPEDITION`、`CAMPAIGN`、`FRIEND`。它们是**尚未接入导航图的页面**
+  （checker 已存在、边未注册），不是死代码。
 
-| 当前成员 | 候选成员 | 原因 |
-|---|---|---|
-| `BATTLE_PREP` | `BATTLE_PREPARATION` | 去除 `PREP` 缩写，与 `BattlePreparationPage` 对齐 |
-| `DECISIVE_BATTLE` | `DECISIVE` | 与 `decisive` 页面域和“决战”业务名对齐 |
-| `EVENT_MAP` | `EVENT` | 与 `event` 页面域和“活动”业务名对齐 |
-| `CHOOSE_SHIP` | `SHIP_SELECTION` | 页面状态使用名词语义，不使用动作短语 |
+## 验证
 
-## `CHOOSE_REPAIR` 边界
-
-`PageName.CHOOSE_REPAIR` 当前没有仓内调用方。实际识别对象是浴室页面上的
-“选择修理”浮层，`BathPage.check_current_page()` 仍返回 `PageName.BATH`。
-
-因此不能把它直接改名为另一个页面状态。后续需要单独确认：
-
-1. 是否存在仓外调用方依赖 `PageName.CHOOSE_REPAIR`。
-2. 是否删除这个无调用的遗留成员。
-3. 如果需要表达浮层，是否放入独立的浮层状态类型，而不是继续放在 `PageName`。
-
-## 处理要求
-
-确认候选映射后再执行以下工作：
-
-1. 同步 `autowsgr/common/types.py` 中的成员名。
-2. 同步页面注册表、导航图、运行时、业务、测试、工具和文档调用方。
-3. 用原枚举值验证 `PageName(value)`、页面注册键和导航状态序列化结果不变。
-4. 不修改 `bath_page`，不顺手处理上下文或 OCR 专题。
-5. 完成 focused pytest、compileall、相关 import smoke、scoped pre-commit 和
-   `git diff --check`。
-
-## 当前未处理
-
-- 尚未修改任何 `PageName` 成员或调用方。
-- 尚未删除或迁移 `CHOOSE_REPAIR`。
-- 尚未改变任何页面行为、导航路径或外部字符串契约。
+- import smoke：`PageName` 23 个成员；`BATTLE_PREPARATION` / `SHIP_SELECTION` 取值不变；`CHOOSE_REPAIR` 已不存在。
+- `compileall autowsgr/application/ui autowsgr/dispatch` 通过。
+- focused pytest（`testing/ui/navigation`、`testing/dispatch`、`testing/ui/page_checker`、`testing/ui/controller`）
+  共 136 passed。余下 14 个失败全部在 `testing/dispatch/test_processor.py`，来自旧模块缺口
+  （`goto_page`、`CombatPlan`、`common.constants`），与本次改动无关。

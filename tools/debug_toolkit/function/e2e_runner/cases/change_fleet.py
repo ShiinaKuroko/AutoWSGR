@@ -48,7 +48,7 @@ def run(rt: Any) -> bool:
             '启动后位于主页面',
             lambda: HomePage.check_current_page(ctx.ctrl.screenshot()).matched,
         )
-        or rt.action('进入出征准备页', goto_page, ctx, PageName.BATTLE_PREP) is rt.FAILED
+        or rt.action('进入出征准备页', goto_page, ctx, PageName.BATTLE_PREPARATION) is rt.FAILED
     ):
         return False
 

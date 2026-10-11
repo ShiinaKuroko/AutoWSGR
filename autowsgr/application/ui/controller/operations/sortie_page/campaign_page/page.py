@@ -126,7 +126,7 @@ class CampaignPage(SortiePage):
                 self._ctrl,
                 checker=BattlePreparationPage.check_current_page,
                 source=f'战役页面-{campaign_name}',
-                target=PageName.BATTLE_PREP.value,
+                target=PageName.BATTLE_PREPARATION.value,
             )
         except NavigationError:
             _log.error(

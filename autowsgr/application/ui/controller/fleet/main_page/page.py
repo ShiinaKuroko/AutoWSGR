@@ -222,7 +222,7 @@ class BattlePreparationPage:
     def check_current_page(screen: numpy.ndarray) -> PageMatch:
         """判断截图是否为出征准备页面。"""
         result = ImageChecker.find_template(screen, Templates.Page.BATTLE_PREP, confidence=0.85)
-        page_name = PageName.BATTLE_PREP.value
+        page_name = PageName.BATTLE_PREPARATION.value
         if result is None:
             return PageMatch(name=page_name, matched=False, score=0.0)
         return PageMatch(name=page_name, matched=True, score=result.confidence)
@@ -282,7 +282,7 @@ class BattlePreparationPage:
                 self._ctrl,
                 checker=self.check_current_page,
                 timeout=timeout,
-                source=PageName.BATTLE_PREP,
+                source=PageName.BATTLE_PREPARATION,
                 target=target,
                 probe=True,
             )
@@ -298,7 +298,7 @@ class BattlePreparationPage:
             self._ctrl,
             click_coord=constants.CLICK_BACK,
             checker=SortiePage.check_current_page,
-            source=PageName.BATTLE_PREP,
+            source=PageName.BATTLE_PREPARATION,
             target=PageName.SORTIE_MAP,
         )
 
@@ -311,7 +311,7 @@ class BattlePreparationPage:
             self._ctrl,
             click_coord=constants.CLICK_BACK,
             checker=BaseEventPage.check_current_page,
-            source=PageName.BATTLE_PREP,
+            source=PageName.BATTLE_PREPARATION,
             target=PageName.EVENT_MAP,
         )
 

@@ -117,7 +117,7 @@ class SomePage:
 | `CampaignPage`            | `MAP`               | 战役选择和出征准备入口       |
 | `ExercisePage`             | `MAP`               | 演习对手和出征入口           |
 | `ExpeditionPage`           | `MAP`               | 远征槽位和奖励收取           |
-| `BattlePreparationPage`   | `BATTLE_PREP`       | 舰队选择、血量检测、出征      |
+| `BattlePreparationPage`   | `BATTLE_PREPARATION` | 舰队选择、血量检测、出征      |
 | `BathPage`                | `BATH`              | 浴室修理                     |
 | `CanteenPage`             | `CANTEEN`           | 食堂烹饪                     |
 | `BuildPage`               | `BUILD`             | 建造/解装/开发/废弃           |
@@ -128,7 +128,7 @@ class SomePage:
 | `LoginPage`               | —                   | 登录前启动画面（不注册为 PageName） |
 | `IntensifyPage`           | `INTENSIFY`         | 强化界面                     |
 | `FriendPage`              | `FRIEND`            | 好友界面                     |
-| `ShipSelectionPage`       | `CHOOSE_SHIP`       | 选船界面                     |
+| `ShipSelectionPage`       | `SHIP_SELECTION`     | 选船界面                     |
 | `BaseEventPage`           | `EVENT_MAP`         | 活动地图页面                  |
 
 ---
@@ -168,7 +168,7 @@ class NavEdge:
           │
           ├─── MAP ──── DECISIVE_BATTLE
           │     │
-          │     └─── BATTLE_PREP
+          │     └─── BATTLE_PREPARATION
           │
           └─── BACKYARD ──┬─── BATH
                           │

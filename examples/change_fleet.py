@@ -13,7 +13,7 @@ from autowsgr.dispatch.legacy_scheduler import launch
 # 1. 启动 (加载配置 → 连接模拟器 → 启动游戏)
 ctx = launch('usersettings.yaml')
 
-goto_page(ctx, PageName.BATTLE_PREP)
+goto_page(ctx, PageName.BATTLE_PREPARATION)
 
 page = BattlePreparationPage(ctx)
 

@@ -108,7 +108,7 @@ class BattlePage(SortiePage):
             click_coord=constants.CLICK_ENTER_SORTIE,
             checker=BattlePreparationPage.check_current_page,
             source=f'地图-出征 {chapter}-{map_num}',
-            target=PageName.BATTLE_PREP,
+            target=PageName.BATTLE_PREPARATION,
         )
 
     # ── 普通出征基础操作 ────────────────────────────────────────────────────

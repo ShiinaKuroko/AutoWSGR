@@ -98,7 +98,7 @@ def test_candidates_includes_parent_for_leaf_pages() -> None:
     """无入边叶子页 (BATTLE_PREP) 的来路只在栈中:parent 必须进候选。"""
     s = UIStack()
     s.push(P.MAP)
-    s.push(P.BATTLE_PREP)
+    s.push(P.BATTLE_PREPARATION)
     assert s.parent == P.MAP.value
     assert P.MAP.value in s.candidates()
 

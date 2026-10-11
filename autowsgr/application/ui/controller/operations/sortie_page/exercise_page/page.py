@@ -180,7 +180,7 @@ class ExercisePage(SortiePage):
         # 局部导入避免舰队页面包与 sortie 页面包初始化时形成循环依赖。
         from autowsgr.application.ui.controller.fleet import BattlePreparationPage
 
-        target = PageName.BATTLE_PREP.value
+        target = PageName.BATTLE_PREPARATION.value
         _log.info('[UI] 演习 → 开始战斗：目标={!r}，状态=开始', target)
         try:
             operations.click_start_battle(self._ctrl)
@@ -201,7 +201,7 @@ class ExercisePage(SortiePage):
             )
             raise
 
-        self._ctx.ui_stack.push(PageName.BATTLE_PREP)
+        self._ctx.ui_stack.push(PageName.BATTLE_PREPARATION)
         _log.info('[UI] 演习 → 开始战斗：目标={!r}，结果=成功', target)
 
         # 5. 报告完整挑战流程已确认完成。

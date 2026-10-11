@@ -129,7 +129,7 @@ def test_enter_campaign_owns_the_complete_entry_flow(
         ctrl,
         checker=FakeBattlePreparationPage.check_current_page,
         source='战役页面-困难潜艇',
-        target=PageName.BATTLE_PREP.value,
+        target=PageName.BATTLE_PREPARATION.value,
     )
 
 
