@@ -50,6 +50,9 @@ def _install_navigator(
         def ensure_started(self) -> None:
             calls.append('ensure_started')
 
+        def ensure_server_selected(self) -> None:
+            calls.append('ensure_server_selected')
+
         def navigate_to(self, target: PageName, **_params: object) -> None:
             calls.append(target.value)
             if navigate_error is not None and not raised['done']:
@@ -79,7 +82,7 @@ def test_skips_start_when_game_already_running(monkeypatch: pytest.MonkeyPatch) 
 
     startup.ensure_ready(_ctx(running=True))
 
-    assert calls == [PageName.HOME.value]
+    assert calls == ['ensure_server_selected', PageName.HOME.value]
 
 
 def test_update_required_becomes_manual_repair_without_restart(
@@ -92,7 +95,7 @@ def test_update_required_becomes_manual_repair_without_restart(
     with pytest.raises(ManualRepairRequiredError, match='手动完成'):
         startup.ensure_ready(_ctx(running=True))
 
-    assert calls == [PageName.HOME.value]
+    assert calls == ['ensure_server_selected', PageName.HOME.value]
 
 
 def test_navigation_failure_restarts_once(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -102,4 +105,9 @@ def test_navigation_failure_restarts_once(monkeypatch: pytest.MonkeyPatch) -> No
 
     startup.ensure_ready(_ctx(running=True))
 
-    assert calls == [PageName.HOME.value, 'restart_game', PageName.HOME.value]
+    assert calls == [
+        'ensure_server_selected',
+        PageName.HOME.value,
+        'restart_game',
+        PageName.HOME.value,
+    ]

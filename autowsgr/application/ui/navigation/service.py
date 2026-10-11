@@ -193,7 +193,7 @@ class NavigationService:
             raise NavigationError('启动超时：未出现登录页')
 
         # 6. 按用户设置完成一次换区。
-        self._select_server()
+        self.ensure_server_selected()
 
     def restart_game(self) -> None:
         """SL：强杀游戏后重新走一遍启动流程。"""
@@ -208,6 +208,40 @@ class NavigationService:
         self.ensure_started()
 
     # ── 内部实现 ────────────────────────────────────────────────────────────
+
+    def ensure_server_selected(self) -> None:
+        """按用户设置完成区服选择；本次运行已选过则跳过。
+
+        游戏可能本来就停在区服选择页（上次没选完），这时不再点开列表，直接按配置点区服
+        再回登录页。位置由「用户配置 + OCR 定位 + 序号兜底」现算，不依赖调用方传参。
+
+        Raises:
+            NavigationError: 停在区服选择页但没有可用的区服设置。
+        """
+        session = self._session
+        if session.server_selected:
+            return
+
+        in_server_select = self._detect_page() is PageName.SERVER_SELECT
+        wanted = self._ctx.runtime.config.account.game_server
+        if wanted is LoginServer.default:
+            # 不知道该选哪个区服，不能乱选。本来不在列表里就没事；
+            # 停在列表里只能交给 SL 回到干净状态。
+            if in_server_select:
+                raise NavigationError('停在区服选择页但用户未指定区服')
+            session.mark_server_selected()
+            return
+
+        index = login_checker.find_server_position(self._ctx, wanted.value)
+        if index is None:
+            # 区服列表位置固定，OCR 读不到时按静态映射兜底。
+            index = login_checker.server_index(wanted.value)
+            _log.warning('[UI] 启动 → 区服定位兜底：server={!r}，position={}', wanted.value, index)
+
+        if not in_server_select:
+            self.navigate_to(PageName.SERVER_SELECT)
+        self.navigate_to(PageName.LOGIN_PAGE, position=index)
+        session.mark_server_selected()
 
     def _wait_for_app_process(self, package: str) -> bool:
         """等游戏进程出现。
@@ -227,31 +261,6 @@ class NavigationService:
                 return True
             time.sleep(_APP_PROCESS_POLL_SECONDS)
         return False
-
-    def _select_server(self) -> None:
-        """按用户设置完成一次区服选择；本次运行已选过则跳过。
-
-        Raises:
-            NavigationError: 换区路径无法确认到达。
-        """
-        session = self._session
-        if session.server_selected:
-            return
-
-        wanted = self._ctx.runtime.config.account.game_server
-        if wanted is LoginServer.default:
-            session.mark_server_selected()
-            return
-
-        index = login_checker.find_server_position(self._ctx, wanted.value)
-        if index is None:
-            # 区服列表位置固定，OCR 读不到时按静态映射兜底。
-            index = login_checker.server_index(wanted.value)
-            _log.warning('[UI] 启动 → 区服定位兜底：server={!r}，position={}', wanted.value, index)
-
-        self.navigate_to(PageName.SERVER_SELECT)
-        self.navigate_to(PageName.LOGIN_PAGE, position=index)
-        session.mark_server_selected()
 
     def _walk(self, path: tuple[NavTarget, ...], params: dict[str, object]) -> None:
         """按路径逐步执行动作并确认到达。

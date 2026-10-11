@@ -45,14 +45,14 @@ def ensure_ready(ctx: ContextHandle) -> None:
     """
     navigator = NavigationService(ctx)
 
-    # 1. 游戏没运行才走启动流程；已经在跑就直接靠导航器回到主页。
-    if not _is_game_running(ctx):
-        navigator.ensure_started()
-    else:
-        _follow_game_display(ctx)
-
-    # 2. 三种入口状态统一收口到导航器的回主页。
+    # 三种入口状态统一收口；启动失败、区服没选完、回主页失败都走同一套恢复。
     try:
+        if not _is_game_running(ctx):
+            navigator.ensure_started()
+        else:
+            _follow_game_display(ctx)
+            # 游戏可能停在区服选择页（上次没选完），先把区服选完再回家。
+            navigator.ensure_server_selected()
         navigator.navigate_to(PageName.HOME)
     except ManualUpdateRequiredError as error:
         _log.error('[DISPATCH] 启动 → 终止：reason={!r}', str(error))
