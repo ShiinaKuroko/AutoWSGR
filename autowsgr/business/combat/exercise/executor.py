@@ -85,11 +85,7 @@ class ExerciseExecutor(BaseExecutor):
             raise TypeError('任务进度 _results 必须是列表')
         results: list[CombatResult] = list(previous)
 
-        # 每次任务都从初始化后的首页开始，避免复用过期页面上下文。
-        from autowsgr.application.runtime.initialize.initialize import initialize
-
         try:
-            initialize(self.ctx)
             _log.info(
                 '[Exercise] 演习编队加载：队伍 {}，规则 {}',
                 self.fleet_id,

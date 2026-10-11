@@ -40,21 +40,6 @@ _log = get_logger('business.combat.decisive')
 _MAX_RECOVERY_ATTEMPTS = 3
 
 
-def _recover_decisive_after_error(ctx: Any, attempt: int) -> None:
-    """重启游戏并恢复可识别入口，供下一次决战尝试使用。"""
-    from autowsgr.application.runtime.startup import ensure_game_ready, restart_game
-
-    app = ctx.config.account.game_app
-    package = app.package_name if hasattr(app, 'package_name') else app
-    _log.warning(
-        '[决战] 错误恢复 {}/{}: 重启游戏并恢复入口',
-        attempt,
-        _MAX_RECOVERY_ATTEMPTS,
-    )
-    restart_game(ctx.ctrl, package)
-    ensure_game_ready(ctx, app)
-
-
 # ─────────────────────────────────────────────────────────────────────────────
 # 结果枚举
 # ─────────────────────────────────────────────────────────────────────────────
@@ -215,5 +200,4 @@ class DecisiveExecutor(BaseExecutor):
             result = controller.run(full_recovery_check=attempt > 1)
             if result is not DecisiveResult.ERROR or attempt == _MAX_RECOVERY_ATTEMPTS:
                 return result
-            _recover_decisive_after_error(self.ctx, attempt)
         return result

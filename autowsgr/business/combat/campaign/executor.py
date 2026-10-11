@@ -44,20 +44,13 @@ class CampaignExecutor(BaseExecutor):
         if previous is not None and not isinstance(previous, CombatResult):
             raise TypeError('任务进度 _result 必须是 CombatResult')
 
-        # 2、加载游戏初始化入口。
-        from autowsgr.application.runtime.initialize.initialize import initialize
-
-        # 3、读取连续战役的页面复用标记。
+        # 2、读取连续战役的页面复用标记。
         reuse_page = self.progress.pop('_reuse_campaign_page', False)
         if not isinstance(reuse_page, bool):
             raise TypeError('任务进度 _reuse_campaign_page 必须是布尔值')
 
         try:
-            # 4、从首页初始化本次战役；连续战役沿用当前页面。
-            if not reuse_page:
-                initialize(self.ctx)
-
-            # 5、暂停恢复已有结果时直接交回处理器。
+            # 3、暂停恢复已有结果时直接交回处理器。
             if previous is not None:
                 self.progress.pop('_result', None)
                 self.progress.pop('_campaign_fleet', None)
