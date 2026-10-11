@@ -99,12 +99,17 @@ def check_loading(
     )
 
 
+# 导航确认节奏：点击后要等弹层动画，单帧会立刻判失败。
+_NAV_CONFIRM_ATTEMPTS = 10
+_NAV_CONFIRM_INTERVAL_SECONDS = 0.5
+
+
 def check_login_page(
     ctx: ContextHandle,
     *,
     absent: bool = False,
-    attempts: int = 1,
-    interval_seconds: float = 0.5,
+    attempts: int = _NAV_CONFIRM_ATTEMPTS,
+    interval_seconds: float = _NAV_CONFIRM_INTERVAL_SECONDS,
 ) -> bool:
     """确认是否在登录页。
 
@@ -129,8 +134,8 @@ def check_server_select(
     ctx: ContextHandle,
     *,
     absent: bool = False,
-    attempts: int = 1,
-    interval_seconds: float = 0.5,
+    attempts: int = _NAV_CONFIRM_ATTEMPTS,
+    interval_seconds: float = _NAV_CONFIRM_INTERVAL_SECONDS,
 ) -> bool:
     """确认是否在区服选择页。
 

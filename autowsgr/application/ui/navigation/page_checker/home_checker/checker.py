@@ -44,12 +44,17 @@ class HomeNewsOverlay:
 # ── 识别入口 ──────────────────────────────────────────────────────────────────────
 
 
+# 导航确认节奏：从登录页进入要等登录动画与加载，因此给足重试。
+_NAV_CONFIRM_ATTEMPTS = 30
+_NAV_CONFIRM_INTERVAL_SECONDS = 1.0
+
+
 def check_home_page(
     ctx: ContextHandle,
     *,
     absent: bool = False,
-    attempts: int = 1,
-    interval_seconds: float = 0.5,
+    attempts: int = _NAV_CONFIRM_ATTEMPTS,
+    interval_seconds: float = _NAV_CONFIRM_INTERVAL_SECONDS,
 ) -> bool:
     """确认当前是否在主页。
 

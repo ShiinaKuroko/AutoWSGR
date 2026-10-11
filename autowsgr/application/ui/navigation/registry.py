@@ -38,101 +38,16 @@ if TYPE_CHECKING:
 
 # ── 页面 → 到达确认 ─────────────────────────────────────────────────────────
 
-# 主页确认节奏：从登录页进入要等登录动画与加载，因此给足重试。
-_HOME_CONFIRM_ATTEMPTS = 30
-_HOME_CONFIRM_INTERVAL_SECONDS = 1.0
-
-# 登录页与区服选择页的确认节奏：点击后要等弹层动画，单帧会立刻判失败。
-_LOGIN_PAGE_CONFIRM_ATTEMPTS = 10
-_SERVER_SELECT_CONFIRM_ATTEMPTS = 10
-_LOGIN_PAGE_CONFIRM_INTERVAL_SECONDS = 0.5
-
-
-def _is_login_page(ctx: ContextHandle, **kwargs: object) -> bool:
-    """确认登录页；点开弹层后画面要等一会儿才切过去。
-
-    Args:
-        ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
-        **kwargs: 透传前后识别参数（absent / attempts / interval_seconds）。
-
-    Returns:
-        断言满足时为真。
-    """
-    return login_checker.check_login_page(
-        ctx,
-        absent=bool(kwargs.get('absent', False)),
-        attempts=int(kwargs.get('attempts', _LOGIN_PAGE_CONFIRM_ATTEMPTS)),
-        interval_seconds=float(
-            kwargs.get('interval_seconds', _LOGIN_PAGE_CONFIRM_INTERVAL_SECONDS)
-        ),
-    )
-
-
-def _is_server_select(ctx: ContextHandle, **kwargs: object) -> bool:
-    """确认区服选择页；打开区服列表后弹层动画要等一会儿。
-
-    Args:
-        ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
-        **kwargs: 透传前后识别参数（absent / attempts / interval_seconds）。
-
-    Returns:
-        断言满足时为真。
-    """
-    return login_checker.check_server_select(
-        ctx,
-        absent=bool(kwargs.get('absent', False)),
-        attempts=int(kwargs.get('attempts', _SERVER_SELECT_CONFIRM_ATTEMPTS)),
-        interval_seconds=float(
-            kwargs.get('interval_seconds', _LOGIN_PAGE_CONFIRM_INTERVAL_SECONDS)
-        ),
-    )
-
-
-def _is_event_map(ctx: ContextHandle, **kwargs: object) -> bool:
-    """确认活动地图页身份。
-
-    只判"这一页是不是活动地图"，不校验任务玩法，因此在没有活动任务的导航里也能参与定位。
-
-    Args:
-        ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
-        **kwargs: 透传前后识别参数（absent / attempts / interval_seconds）。
-
-    Returns:
-        断言满足时为真。
-    """
-    return stage_push.check_event_map_page(ctx, **kwargs)  # type: ignore[arg-type]
-
-
-def _is_event_stage_overlay(ctx: ContextHandle, **kwargs: object) -> bool:
-    """确认活动章节浮窗的出现或消失。
-
-    只判"浮窗在不在"，不校验它指向哪个章节：定位当前页时任务的章节参数未必就是眼前这个浮窗，
-    章节是否点对由业务与 E2E 用 ``check_event_sortie_prepare(ctx, stage=...)`` 单独校验。
-
-    Args:
-        ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
-        **kwargs: 透传前后识别参数（absent / attempts / interval_seconds）。
-
-    Returns:
-        断言满足时为真。
-    """
-    return stage_push.check_event_sortie_prepare(ctx, **kwargs)  # type: ignore[arg-type]
-
-
-# 值统一收 (ctx, *, absent=False, attempts=1, interval_seconds=0.5)：前识别判出现，
-# 后识别（absent=True）判消失，节奏由各页面自己带。
+# 值统一收 (ctx, *, absent=False, attempts, interval_seconds)：前识别判出现，后识别
+# （absent=True）判消失。识别节奏是各页面自己的默认值，定义在对应 checker 的签名里；
+# 调用方需要覆盖时直接传参，注册表不再兼职配节奏。
 _PAGE_CHECKERS: dict[PageName, Callable[..., bool]] = {
-    PageName.LOGIN_PAGE: _is_login_page,
-    PageName.SERVER_SELECT: _is_server_select,
-    PageName.HOME: lambda ctx, **kwargs: home_checker.check_home_page(
-        ctx,
-        absent=bool(kwargs.get('absent', False)),
-        attempts=int(kwargs.get('attempts', _HOME_CONFIRM_ATTEMPTS)),
-        interval_seconds=float(kwargs.get('interval_seconds', _HOME_CONFIRM_INTERVAL_SECONDS)),
-    ),
+    PageName.LOGIN_PAGE: login_checker.check_login_page,
+    PageName.SERVER_SELECT: login_checker.check_server_select,
+    PageName.HOME: home_checker.check_home_page,
     PageName.SORTIE_MAP: sortie_checker.check_sortie_page,
-    PageName.EVENT_MAP: _is_event_map,
-    PageName.EVENT_STAGE_OVERLAY: _is_event_stage_overlay,
+    PageName.EVENT_MAP: stage_push.check_event_map_page,
+    PageName.EVENT_STAGE_OVERLAY: stage_push.check_event_sortie_prepare,
 }
 
 

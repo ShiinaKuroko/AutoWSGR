@@ -229,30 +229,9 @@ def test_go_back_rejects_empty_stack(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_login_pages_register_arrival_checkers() -> None:
-    """登录页与区服选择页都注册了到达确认入口，并转发到对应 checker。"""
-    ctx = _ctx()
-    calls: list[str] = []
-
-    monkeypatch = pytest.MonkeyPatch()
-    monkeypatch.setattr(
-        login_checker,
-        'check_login_page',
-        lambda _ctx, **_kwargs: calls.append('login') or True,
-    )
-    monkeypatch.setattr(
-        login_checker,
-        'check_server_select',
-        lambda _ctx, **_kwargs: calls.append('server') or True,
-    )
-    try:
-        assert registry.get_checker(PageName.LOGIN_PAGE) is not None
-        assert registry.get_checker(PageName.SERVER_SELECT) is not None
-        assert registry.get_checker(PageName.LOGIN_PAGE)(ctx) is True  # type: ignore[misc]
-        assert registry.get_checker(PageName.SERVER_SELECT)(ctx) is True  # type: ignore[misc]
-    finally:
-        monkeypatch.undo()
-
-    assert calls == ['login', 'server']
+    """登录页与区服选择页的确认入口就是各自的 checker。"""
+    assert registry.get_checker(PageName.LOGIN_PAGE) is login_checker.check_login_page
+    assert registry.get_checker(PageName.SERVER_SELECT) is login_checker.check_server_select
 
 
 def test_executor_rejects_failed_departure(monkeypatch: pytest.MonkeyPatch) -> None:

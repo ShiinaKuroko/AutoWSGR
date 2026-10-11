@@ -16,6 +16,9 @@ import pytest
 from autowsgr.application.ui.navigation.page_checker.login_checker import checker, recognition
 
 
+# 导航确认入口有自己的默认节奏（等弹层动画），其余入口保持单帧。
+_NAV_CONFIRM_ENTRIES = {'check_login_page', 'check_server_select'}
+
 _SCREEN_ENTRIES = [
     ('check_black_screen', 'is_black_screen_visible'),
     ('check_update_prompt', 'is_update_prompt_visible'),
@@ -57,7 +60,7 @@ def test_check_entry_defaults_to_single_frame(
     entry: str,
     target: str,
 ) -> None:
-    """不传参数时按单帧前识别探测，导航器行为不变。"""
+    """不传参数时按各入口自己的默认节奏做前识别。"""
     captured: dict[str, Any] = {}
 
     def fake(_ctx: object, **options: object) -> bool:
@@ -67,7 +70,12 @@ def test_check_entry_defaults_to_single_frame(
     monkeypatch.setattr(recognition, target, fake)
 
     assert getattr(checker, entry)(object()) is True
-    assert captured == {'absent': False, 'attempts': 1, 'interval_seconds': 0.5}
+    expected_attempts = 10 if entry in _NAV_CONFIRM_ENTRIES else 1
+    assert captured == {
+        'absent': False,
+        'attempts': expected_attempts,
+        'interval_seconds': 0.5,
+    }
 
 
 def test_position_and_center_entries_stay_single_frame(
