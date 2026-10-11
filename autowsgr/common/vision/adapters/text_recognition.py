@@ -227,7 +227,6 @@ def recognize_prepared_text(
 
 __all__ = [
     'RecognitionProfile',
-    'TextDetection',
     'parse_counter',
     'prepare_text',
     'recognize_prepared_text',

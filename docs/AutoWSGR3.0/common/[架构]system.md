@@ -60,7 +60,7 @@ from autowsgr.common.system.config import LogConfig
 | errors.py | SystemError 及四个层级基类 | 稳定的错误捕获边界 | 具体领域错误和恢复策略 |
 | files.py | load_yaml、save_yaml、load_image、save_image | 路径校验、解析、编码和原子写入 | 业务字段解释和业务加载器 |
 | logger.py | get_logger、setup_logger | 日志对象、级别筛选和输出 sink | 业务日志内容和业务结果判断 |
-| config.py | LogConfig | 配置字段、默认值和输入校验 | 执行配置、读取用户文件和运行时状态 |
+| config.py | LogConfig、LOG_TIMEZONE | 配置字段、默认值、输入校验和日志时区 | 执行配置、读取用户文件和运行时状态 |
 
 ## 4. 枚举能力：system.enums
 
@@ -399,7 +399,8 @@ system.logger.get_logger
 system.logger.setup_logger
 ~~~
 
-system.config.LogConfig 是配置模型的明确导入路径，不通过 system 根包聚合。
+system.config.LogConfig 和 system.config.LOG_TIMEZONE 是配置模型与日志时区的明确导入路径，
+不通过 system 根包聚合。
 
 ### 9.2 不属于公开出口的内容
 

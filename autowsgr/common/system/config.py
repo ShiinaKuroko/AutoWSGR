@@ -45,4 +45,4 @@ class LogConfig(BaseModel):
         return self
 
 
-__all__ = ['LogConfig']
+__all__ = ['LOG_TIMEZONE', 'LogConfig']

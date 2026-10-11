@@ -533,7 +533,7 @@ ValueError / FileNotFoundError / RuntimeError
 
 ### 14.2 内部内容
 
-`_MATCHER`、`_ocr_executor`、`TemplateMatcher._relative_path`、`OCRExecutor._recognize`、模型句柄、MaaFramework 绑定、模板根路径拼接和模块缓存均属于实现细节。`numpy_engine`、`opencv_engine` 和 `ocr_engine` 的执行器类用于 adapters 组合，不应被上层绕过 service 形成第二套调用契约。
+`_MATCHER`、`_ocr_executor`、`_TemplateMatcher._relative_path`、`OCRExecutor._recognize`、模型句柄、MaaFramework 绑定、模板根路径拼接和模块缓存均属于实现细节。`numpy_engine`、`opencv_engine` 和 `ocr_engine` 的执行器类用于 adapters 组合，不应被上层绕过 service 形成第二套调用契约。
 
 当前 `Template`、`ROI`、像素签名模型仍从其定义模块提供输入；根门面没有复制这些类型，也没有为旧接口提供兼容别名。
 
