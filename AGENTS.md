@@ -28,7 +28,7 @@
    - `docs/AutoWSGR3.0/common/[架构]vision.md`
    - `docs/AutoWSGR3.0/application/ui/navigation/[架构]navigation.md`
 
-模块级规范先于项目级规范。出现无法消解的规范冲突时暂停当前改动并报告，不自行猜测。
+模块级规范先于架构说明。出现无法消解的规范冲突时暂停当前改动并报告，不自行猜测。
 
 本 worktree 不默认执行仓库级的发布、提交格式、全量测试、全量 pre-commit、构建、跨仓
 契约检查或 Code Graph 维护。除非用户另行要求，这些不构成当前临时项目的交付门禁。
