@@ -122,6 +122,12 @@ def _stage_number(stage: str) -> int:
     return number
 
 
+# 导航确认节奏：进出这一页要走完动画与加载，因此给足重试；只做页面定位的调用方
+# 可以显式传更小的 attempts 只探一帧。
+_NAV_CONFIRM_ATTEMPTS = 5
+_NAV_CONFIRM_INTERVAL_SECONDS = 1.0
+
+
 # ── 识别入口 ────────────────────────────────────────────────────────────────
 
 
@@ -129,8 +135,8 @@ def check_event_map_page(
     ctx: ContextHandle,
     *,
     absent: bool = False,
-    attempts: int = 1,
-    interval_seconds: float = 0.5,
+    attempts: int = _NAV_CONFIRM_ATTEMPTS,
+    interval_seconds: float = _NAV_CONFIRM_INTERVAL_SECONDS,
     event_type: str | None = None,
 ) -> bool:
     """确认当前是否在活动地图页。
@@ -141,7 +147,7 @@ def check_event_map_page(
     Args:
         ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
         absent: 期望地图标志消失时为真，默认期望它出现。
-        attempts: 识别次数，默认只探测当前一帧。
+        attempts: 识别次数，默认按导航确认节奏（进出这一页要等动画走完）。
         interval_seconds: 两次识别之间的等待秒数。
         event_type: 活动玩法标识；提供时校验调用方选对了 checker。
 
@@ -219,8 +225,8 @@ def check_event_sortie_prepare(
     ctx: ContextHandle,
     *,
     absent: bool = False,
-    attempts: int = 1,
-    interval_seconds: float = 0.5,
+    attempts: int = _NAV_CONFIRM_ATTEMPTS,
+    interval_seconds: float = _NAV_CONFIRM_INTERVAL_SECONDS,
     event_type: str | None = None,
     stage: str | None = None,
 ) -> bool:
