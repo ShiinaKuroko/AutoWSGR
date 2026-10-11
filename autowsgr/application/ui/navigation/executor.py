@@ -17,6 +17,10 @@ from typing import TYPE_CHECKING
 
 from autowsgr.application.ui.navigation import registry
 from autowsgr.application.ui.navigation.types import NavigationError, PageName
+from autowsgr.common.system.logger import get_logger
+
+
+_log = get_logger('ui.navigation.executor')
 
 
 if TYPE_CHECKING:
@@ -68,6 +72,7 @@ class NavigationExecutor:
             NavigationError: 离开确认或到达确认失败。
         """
         for edge in path:
+            _log.debug('[UI] 导航执行 → 前进：edge={!r}', edge.description)
             edge.action(self._ctx, **params)
             self._confirm_departure()
             if self._on_arrive is not None:
@@ -88,6 +93,7 @@ class NavigationExecutor:
             NavigationError: 离开确认或到达确认失败。
         """
         for edge in path:
+            _log.debug('[UI] 导航执行 → 后退：edge={!r}', edge.description)
             edge.action(self._ctx)
             self._confirm_departure()
             if self._on_arrive is not None:
@@ -112,8 +118,12 @@ class NavigationExecutor:
             return
         page = PageName(current)
         confirm = registry.get_checker(page)
-        if confirm is not None and not confirm(self._ctx, absent=True):
+        if confirm is None:
+            _log.debug('[UI] 导航执行 → 离开确认：page={!r}，结果=跳过', page.value)
+            return
+        if not confirm(self._ctx, absent=True):
             raise NavigationError(f'离开确认失败：{page.value} 仍然存在')
+        _log.debug('[UI] 导航执行 → 离开确认：page={!r}，结果=成功', page.value)
 
     def _confirm_arrival(self, edge: NavTarget) -> None:
         """到达确认：用前识别确认目标页标志已经出现。
@@ -122,8 +132,12 @@ class NavigationExecutor:
             NavigationError: 前识别未通过。
         """
         confirm = registry.get_checker(edge.target)
-        if confirm is not None and not confirm(self._ctx):
+        if confirm is None:
+            _log.debug('[UI] 导航执行 → 到达确认：page={!r}，结果=跳过', edge.target.value)
+            return
+        if not confirm(self._ctx):
             raise NavigationError(f'到达确认失败：{edge.description!r}')
+        _log.debug('[UI] 导航执行 → 到达确认：page={!r}，结果=成功', edge.target.value)
 
 
 __all__ = ['NavigationExecutor']
