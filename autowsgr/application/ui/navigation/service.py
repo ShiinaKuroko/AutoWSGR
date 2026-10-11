@@ -9,8 +9,8 @@
 - dispatch.session：进程级会话状态。
 - page_checker 与 controller.home.main_page：登录流程识别、主页识别与每日弹窗点击。
 
-边界：编排启动流程、识别、算路、执行与逐步确认；不做页面坐标、业务流程与恢复决策，
-失败直接抛给调用方。
+边界：编排启动流程、识别与算路；路径的执行与前后识别交给 navigation.executor；
+不做页面坐标、业务流程与恢复决策，失败直接抛给调用方。
 """
 
 from __future__ import annotations
@@ -21,11 +21,11 @@ from typing import TYPE_CHECKING
 from autowsgr.application.runtime.types import LoginServer
 from autowsgr.application.ui.controller.home.main_page import HomePage
 from autowsgr.application.ui.navigation import registry
+from autowsgr.application.ui.navigation.executor import NavigationExecutor
 from autowsgr.application.ui.navigation.page_checker import home_checker, login_checker
 from autowsgr.application.ui.navigation.types import (
     ManualUpdateRequiredError,
     NavigationError,
-    NavTarget,
     PageName,
 )
 from autowsgr.common.system.logger import get_logger
@@ -72,6 +72,7 @@ class NavigationService:
         """
         self._ctx = ctx
         self._session = session or get_session()
+        self._executor = NavigationExecutor(ctx, self._session, on_arrive=self._on_arrive)
 
     # ── 公开入口 ────────────────────────────────────────────────────────────
 
@@ -100,7 +101,7 @@ class NavigationService:
 
         path = registry.find_path(source, target)
         _log.info('[UI] 导航 → 开始：source={!r}，target={!r}', source.value, target.value)
-        self._walk(path, params)
+        self._executor.walk_forward(path, params)
         _log.info('[UI] 导航 → 完成：target={!r}', target.value)
 
     def navigate_back(self) -> None:
@@ -119,7 +120,7 @@ class NavigationService:
 
         target = PageName(previous)
         _log.info('[UI] 导航 → 回退：source={!r}，target={!r}', current.value, target.value)
-        self._walk(registry.find_path(current, target), {})
+        self._executor.walk_backward(registry.find_path(current, target))
 
     # ── 启动流程 ────────────────────────────────────────────────────────────
 
@@ -262,23 +263,17 @@ class NavigationService:
             time.sleep(_APP_PROCESS_POLL_SECONDS)
         return False
 
-    def _walk(self, path: tuple[NavTarget, ...], params: dict[str, object]) -> None:
-        """按路径逐步执行动作并确认到达。
+    def _on_arrive(self, page: PageName) -> None:
+        """到达某页后、确认到达前的上层处理。
 
-        Raises:
-            NavigationError: 某一步的到达确认失败。
+        到达主页先清每日浮窗再确认：浮窗要进了主页才出现，在登录页那一步处理会把
+        「今日已处理」的标记浪费掉。
+
+        Args:
+            page: 刚刚到达的页面。
         """
-        session = self._session
-        for edge in path:
-            edge.action(self._ctx, **params)
-            if edge.target is PageName.HOME:
-                # 到达主页后先清每日浮窗再确认：浮窗要进了主页才出现，在登录页那一步
-                # 处理会把「今日已处理」的标记浪费掉。
-                self._handle_daily_popup(session)
-            confirm = registry.get_checker(edge.target)
-            if confirm is not None and not confirm(self._ctx):
-                raise NavigationError(f'到达确认失败：{edge.description!r}')
-            session.push_page(edge.target.value)
+        if page is PageName.HOME:
+            self._handle_daily_popup(self._session)
 
     def _current_page(self) -> PageName:
         """返回当前页面：优先取导航栈顶，栈空时识别一次。"""
