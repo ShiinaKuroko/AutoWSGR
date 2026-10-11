@@ -23,6 +23,11 @@ DESC = '初始化链路: 任意状态 → 首页待机 (SL 兜底)'
 def add_arguments(parser: Any) -> None:
     """case 专属参数。"""
     parser.add_argument('--cold', action='store_true', help='先强杀游戏再初始化 (测冷启动分支)')
+    parser.add_argument(
+        '--pre',
+        default=None,
+        help='初始化前先用导航器前往指定页面 (PageName 成员名，如 EVENT_MAP)',
+    )
 
 
 def run(rt: Any) -> bool:
@@ -36,7 +41,17 @@ def run(rt: Any) -> bool:
     # ① 初始状态记录 (对照用, 不参与判定)
     rt.note(f'初始是否在主页: {home_checker.check_home_page(ctx)}')
 
-    # ② --cold: 强杀游戏 → 强制走冷启动分支
+    # ② --pre: 先用生产导航前往指定页面，测带栈与不带栈两种初始化入口
+    if rt.args.pre is not None:
+        from autowsgr.application.ui.navigation.service import NavigationService
+        from autowsgr.application.ui.navigation.types import PageName
+
+        target = PageName[rt.args.pre]
+        navigator = NavigationService(ctx)
+        if rt.action(f'前往 {target.value}', navigator.navigate_to, target) is rt.FAILED:
+            return False
+
+    # ③ --cold: 强杀游戏 → 强制走冷启动分支
     if rt.args.cold:
         package = ctx.runtime.config.account.package_name
         if rt.action(f'强杀游戏 ({package})', ctrl.stop_app, package) is rt.FAILED:

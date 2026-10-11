@@ -109,6 +109,7 @@ def split_argv(argv: list[str]) -> tuple[list[str], str | None, list[str]]:
         '--config',
         '--event-type',
         '--event-stage',
+        '--server',
     }
     i = 0
     while i < len(argv):
@@ -161,6 +162,7 @@ def main() -> int:
     gp.add_argument('--with-ocr', action='store_true', help='初始化 OCR 引擎')
     gp.add_argument('--event-type', default=None, help='任务上下文的活动玩法标识 (如 stage_push)')
     gp.add_argument('--event-stage', default=None, help='任务上下文的活动章节标识 (如 EX7)')
+    gp.add_argument('--server', default='默认', help='换区目标：默认/胡德/俾斯麦/昆西/长春')
     g = gp.parse_args(global_argv)
 
     # case 参数 (由 case 自己定义; 未定义 add_arguments 时 rest 必须为空)
@@ -193,6 +195,7 @@ def main() -> int:
         with_ocr=g.with_ocr,
         event_type=g.event_type,
         event_stage=g.event_stage,
+        game_server=g.server,
     )
     if not rt.prepare():
         return rt.finalize(overall=False)

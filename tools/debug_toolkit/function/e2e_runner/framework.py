@@ -150,6 +150,7 @@ class E2ERunner:
         with_ocr: bool = False,
         event_type: str | None = None,
         event_stage: str | None = None,
+        game_server: str = '默认',
     ) -> None:
         self.case_name = case_name
         self.args = case_args  # case 自己的参数 namespace (run.py 解析后传入)
@@ -161,6 +162,7 @@ class E2ERunner:
         self.with_ocr = with_ocr  # True 时初始化 OCR 引擎 (编队识别等需要)
         self.event_type = event_type  # 任务上下文的活动玩法标识 (如 stage_push)
         self.event_stage = event_stage  # 任务上下文的活动章节标识 (如 EX7)
+        self.game_server = game_server  # 换区目标，取值同 LoginServer
         self.state = RunnerState()
         self.ctx: Any = None  # 已绑定的 dispatch ContextHandle (prepare() 成功后可用)
         self._runtime: Any = None  # RuntimeBindings: 设备、配置和 OCR 服务引用
@@ -194,7 +196,7 @@ class E2ERunner:
         config = _E2EConfig(
             account=_E2EAccount(
                 package_name=GameAPP.official.package_name,
-                game_server=LoginServer.default,
+                game_server=LoginServer(self.game_server),
             ),
         )
         if not self._prepare_readonly(config=config):
