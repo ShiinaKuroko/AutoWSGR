@@ -98,6 +98,18 @@ def test_cold_start_launches_and_enters_home(monkeypatch: pytest.MonkeyPatch) ->
     ]
 
 
+def test_cold_start_clears_stale_pages(monkeypatch: pytest.MonkeyPatch) -> None:
+    """游戏被重新拉起后必须清栈，否则回主页会被「已在目标页面」短路。"""
+    calls: list[str] = []
+    session = SessionState()
+    session.push_page(PageName.HOME.value)
+    _install(monkeypatch, calls, session=session)
+
+    startup.ensure_ready(_ctx(calls, running=False, server='默认'))
+
+    assert session.current_page() is None
+
+
 def test_running_game_skips_startup_section(monkeypatch: pytest.MonkeyPatch) -> None:
     """游戏在跑时不做启动段也不换区，直接回主页。"""
     calls: list[str] = []

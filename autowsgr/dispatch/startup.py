@@ -94,6 +94,9 @@ def _prepare(navigator: NavigationService, ctx: ContextHandle) -> None:
         if not _wait_for_app_process(ctx, package):
             raise NavigationError('启动超时：游戏进程未起来')
         cold_started = True
+        # 游戏刚被重新拉起，栈里记的页面已经不存在了。不清空的话接下来那句
+        # navigate_to(HOME) 会命中「已在目标页面」而直接短路，实际却还停在启动画面。
+        get_session().clear_pages()
 
     # 多显示器模拟器会把游戏放到独立屏，截图必须跟上，否则识别读的是桌面帧。
     ctrl.follow_display(package)
