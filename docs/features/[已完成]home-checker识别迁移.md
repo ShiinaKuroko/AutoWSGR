@@ -2,7 +2,7 @@
 
 > 状态：**设计已定稿，待批准执行**（2026-10-10）
 > Task ID：`20260913-shiinaskuya-upgrade-7b3e`｜分支：`codex/20260913-shiinaskuya-upgrade-7b3e`
-> 关联：`[规范]architecture-document.md`｜`[规范]python-code-style.md`｜`[规范]ui-controller-code-style.md`｜
+> 关联：`[规范]architecture-document.md`｜`[规范]python-code-style.md`｜`[规范]ui-code-style.md`｜
 > `[规范]dispatch-context临时规范.md`｜样板：`[架构]application-ui-navigation-event-checker.md`
 
 ## 0. 本批范围

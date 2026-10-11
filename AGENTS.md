@@ -20,7 +20,7 @@
 
 1. 模块级规范：
    - `docs/features/[规范]python-code-style.md`
-   - `docs/features/[规范]ui-controller-code-style.md`
+   - `docs/features/[规范]ui-code-style.md`
    - `docs/features/[规范]dispatch-context临时规范.md`
 2. 项目级规范和当前状态：
    - `docs/features/[台账]ui-controller-governance.md`
@@ -79,7 +79,7 @@ worktree 项目偏好；只有在超级用户模式已按全局协议被用户�
 
 ### UI Controller
 
-遵守 `docs/features/[规范]ui-controller-code-style.md`：
+遵守 `docs/features/[规范]ui-code-style.md`：
 
 - `page.py` 是页面包的稳定入口和完整流程编排者；
 - `recognition.py` 或语义明确的下层模块只读取和转换页面事实；
