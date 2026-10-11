@@ -87,8 +87,9 @@ login_checker.checker
 ### 4.1 能力说明
 
 三个入口对应启动阶段的三类画面事实：健康游戏提示（黑屏全屏模板）、更新提示（OCR）、
-加载中（OCR）。三者都是**单帧探测**（`attempts=1`），只回答"这一帧是不是该画面"，不等待画面
-出现——等待与分支由 dispatch 处理器按"先后识别、再前识别"的顺序编排。
+加载中（OCR）。默认是**单帧探测**（`attempts=1`），只回答"这一帧是不是该画面"；调用方需要等待
+时传 `absent` / `attempts` / `interval_seconds`，参数原样透传给 `common.vision`——等待与分支由
+dispatch 处理器编排，checker 不替它决定耐心。
 
 更新提示与加载中共用同一条底部横幅区域（`PROGRESS_TEXT_ROI`），靠期望文本区分。
 不识别"更新中"画面：动态进度条无法稳定判断，更新一律交用户手动处理。
@@ -96,9 +97,9 @@ login_checker.checker
 ### 4.2 稳定入口
 
 ```text
-login_checker.check_black_screen(ctx: ContextHandle) -> bool
-login_checker.check_update_prompt(ctx: ContextHandle) -> bool
-login_checker.check_loading(ctx: ContextHandle) -> bool
+login_checker.check_black_screen(ctx, *, absent=False, attempts=1, interval_seconds=0.5) -> bool
+login_checker.check_update_prompt(ctx, *, absent=False, attempts=1, interval_seconds=0.5) -> bool
+login_checker.check_loading(ctx, *, absent=False, attempts=1, interval_seconds=0.5) -> bool
 ```
 
 ### 4.3 调用示例
@@ -135,7 +136,7 @@ if login_checker.check_update_prompt(ctx):
 ### 5.2 稳定入口
 
 ```text
-login_checker.check_login_page(ctx: ContextHandle) -> bool
+login_checker.check_login_page(ctx, *, absent=False, attempts=1, interval_seconds=0.5) -> bool
 ```
 
 ### 5.3 调用示例
@@ -167,7 +168,7 @@ if login_checker.check_login_page(ctx):
 ### 6.2 稳定入口
 
 ```text
-login_checker.check_server_select(ctx: ContextHandle) -> bool
+login_checker.check_server_select(ctx, *, absent=False, attempts=1, interval_seconds=0.5) -> bool
 ```
 
 ### 6.3 调用示例
@@ -340,7 +341,7 @@ page.click_enter_game(login_checker.read_enter_button_center(ctx))   # 为空时
 | 注册到导航器到达确认表（`test_navigation.py`） | 覆盖（断言 `LOGIN_PAGE` / `SERVER_SELECT` 的确认入口） |
 | 四个模板与自匹配分数 | 用户实测（进入游戏与换区模板在同一画面均为 1.000） |
 | OCR 期望文本 | 用户实测（更新提示 8 字、加载中 6 字、四个区服名全部一致） |
-| 模块专属 pytest | **缺失**：尚无 `testing/ui/page_checker/test_login_checker.py`，识别分支未被单测覆盖 |
+| 模块专属 pytest（`testing/ui/page_checker/test_login_checker.py`） | 11 项通过：参数透传、默认单帧、定位入口不接收节奏参数 |
 | 真图静态验证 | 无对应 `e2e` case（登录阶段需要启动流程，暂未建立） |
 | 未验证项 | 实机启动链路（依赖启动流程与初始化重写） |
 | 用户验收 | 通过（2026-10-11） |

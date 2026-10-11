@@ -21,64 +21,134 @@ if TYPE_CHECKING:
     from autowsgr.dispatch.context import ContextHandle
 
 
-def check_black_screen(ctx: ContextHandle) -> bool:
+def check_black_screen(
+    ctx: ContextHandle,
+    *,
+    absent: bool = False,
+    attempts: int = 1,
+    interval_seconds: float = 0.5,
+) -> bool:
     """确认是否停留在健康游戏提示画面。
 
     Args:
         ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
+        absent: 期望条件取反时为真，默认期望原始条件成立。
+        attempts: 识别次数，默认只探测当前一帧。
+        interval_seconds: 两次识别之间的等待秒数。
 
     Returns:
-        在健康游戏提示画面时为真。
+        断言满足时为真。
     """
-    return recognition.is_black_screen_visible(ctx)
+    return recognition.is_black_screen_visible(
+        ctx,
+        absent=absent,
+        attempts=attempts,
+        interval_seconds=interval_seconds,
+    )
 
 
-def check_update_prompt(ctx: ContextHandle) -> bool:
+def check_update_prompt(
+    ctx: ContextHandle,
+    *,
+    absent: bool = False,
+    attempts: int = 1,
+    interval_seconds: float = 0.5,
+) -> bool:
     """确认是否出现需要更新的提示。
 
     Args:
         ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
+        absent: 期望条件取反时为真，默认期望原始条件成立。
+        attempts: 识别次数，默认只探测当前一帧。
+        interval_seconds: 两次识别之间的等待秒数。
 
     Returns:
-        出现更新提示时为真。
+        断言满足时为真。
     """
-    return recognition.is_update_prompt_visible(ctx)
+    return recognition.is_update_prompt_visible(
+        ctx,
+        absent=absent,
+        attempts=attempts,
+        interval_seconds=interval_seconds,
+    )
 
 
-def check_loading(ctx: ContextHandle) -> bool:
+def check_loading(
+    ctx: ContextHandle,
+    *,
+    absent: bool = False,
+    attempts: int = 1,
+    interval_seconds: float = 0.5,
+) -> bool:
     """确认是否正在加载。
 
     Args:
         ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
+        absent: 期望条件取反时为真，默认期望原始条件成立。
+        attempts: 识别次数，默认只探测当前一帧。
+        interval_seconds: 两次识别之间的等待秒数。
 
     Returns:
-        显示"正在进入港区"时为真。
+        断言满足时为真。
     """
-    return recognition.is_loading_visible(ctx)
+    return recognition.is_loading_visible(
+        ctx,
+        absent=absent,
+        attempts=attempts,
+        interval_seconds=interval_seconds,
+    )
 
 
-def check_login_page(ctx: ContextHandle) -> bool:
+def check_login_page(
+    ctx: ContextHandle,
+    *,
+    absent: bool = False,
+    attempts: int = 1,
+    interval_seconds: float = 0.5,
+) -> bool:
     """确认是否在登录页。
 
     Args:
         ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
+        absent: 期望条件取反时为真，默认期望原始条件成立。
+        attempts: 识别次数，默认只探测当前一帧。
+        interval_seconds: 两次识别之间的等待秒数。
 
     Returns:
-        登录页任一特征可见时为真。
+        断言满足时为真。
     """
-    return recognition.is_login_page_visible(ctx)
+    return recognition.is_login_page_visible(
+        ctx,
+        absent=absent,
+        attempts=attempts,
+        interval_seconds=interval_seconds,
+    )
 
 
-def check_server_select(ctx: ContextHandle) -> bool:
+def check_server_select(
+    ctx: ContextHandle,
+    *,
+    absent: bool = False,
+    attempts: int = 1,
+    interval_seconds: float = 0.5,
+) -> bool:
     """确认是否在区服选择页。
 
     Args:
         ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
+        absent: 期望条件取反时为真，默认期望原始条件成立。
+        attempts: 识别次数，默认只探测当前一帧。
+        interval_seconds: 两次识别之间的等待秒数。
 
     Returns:
-        切换大区按钮可见时为真。
+        断言满足时为真。
     """
-    return recognition.is_server_select_visible(ctx)
+    return recognition.is_server_select_visible(
+        ctx,
+        absent=absent,
+        attempts=attempts,
+        interval_seconds=interval_seconds,
+    )
 
 
 def find_server_position(ctx: ContextHandle, name: str) -> int | None:

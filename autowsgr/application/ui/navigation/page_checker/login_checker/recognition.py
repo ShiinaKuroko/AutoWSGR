@@ -41,74 +41,116 @@ def _template(filename: str, name: str) -> Template:
     return calibration.load_module_template(constants.TEMPLATE_NAMESPACE, filename, name=name)
 
 
-def is_black_screen_visible(ctx: ContextHandle) -> bool:
+def is_black_screen_visible(
+    ctx: ContextHandle,
+    *,
+    absent: bool = False,
+    attempts: int = 1,
+    interval_seconds: float = 0.5,
+) -> bool:
     """判断是否停留在健康游戏提示的黑屏画面。
 
     Args:
         ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
+        absent: 期望画面消失时为真，默认期望它出现。
+        attempts: 识别次数，默认只探测当前一帧。
+        interval_seconds: 两次识别之间的等待秒数。
 
     Returns:
-        全屏模板命中时为真。
+        断言满足时为真。
     """
     result = expect_template(
         ctx,
         template=_template(constants.BLACK_SCREEN_TEMPLATE, '健康游戏提示'),
-        attempts=1,
+        attempts=attempts,
+        interval_seconds=interval_seconds,
+        absent=absent,
     )
     _log.debug('[UI] 登录识别 → 健康游戏提示：matched={!r}', result.satisfied)
     return result.satisfied
 
 
-def is_update_prompt_visible(ctx: ContextHandle) -> bool:
+def is_update_prompt_visible(
+    ctx: ContextHandle,
+    *,
+    absent: bool = False,
+    attempts: int = 1,
+    interval_seconds: float = 0.5,
+) -> bool:
     """判断是否出现"有新的内容需要更新"提示。
 
     Args:
         ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
+        absent: 期望提示消失时为真，默认期望它出现。
+        attempts: 识别次数，默认只探测当前一帧。
+        interval_seconds: 两次识别之间的等待秒数。
 
     Returns:
-        提示文字区域识别到期望文本时为真。
+        断言满足时为真。
     """
     result = expect_ocr(
         ctx,
         expect=constants.UPDATE_PROMPT_TEXT,
         roi=constants.UPDATE_PROMPT_ROI,
         recognition_profile='single_line',
-        attempts=1,
+        attempts=attempts,
+        interval_seconds=interval_seconds,
+        absent=absent,
     )
     _log.debug('[UI] 登录识别 → 更新提示：matched={!r}', result.satisfied)
     return result.satisfied
 
 
-def is_loading_visible(ctx: ContextHandle) -> bool:
+def is_loading_visible(
+    ctx: ContextHandle,
+    *,
+    absent: bool = False,
+    attempts: int = 1,
+    interval_seconds: float = 0.5,
+) -> bool:
     """判断是否正在加载（"正在进入港区"）。
 
     Args:
         ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
+        absent: 期望加载画面消失时为真，默认期望它出现。
+        attempts: 识别次数，默认只探测当前一帧。
+        interval_seconds: 两次识别之间的等待秒数。
 
     Returns:
-        进度文字区域识别到"正在进入港区"时为真。
+        断言满足时为真。
     """
     result = expect_ocr(
         ctx,
         expect=constants.LOADING_TEXT,
         roi=constants.PROGRESS_TEXT_ROI,
         recognition_profile='single_line',
-        attempts=1,
+        attempts=attempts,
+        interval_seconds=interval_seconds,
+        absent=absent,
     )
     _log.debug('[UI] 登录识别 → 加载中：matched={!r}', result.satisfied)
     return result.satisfied
 
 
-def is_login_page_visible(ctx: ContextHandle) -> bool:
+def is_login_page_visible(
+    ctx: ContextHandle,
+    *,
+    absent: bool = False,
+    attempts: int = 1,
+    interval_seconds: float = 0.5,
+) -> bool:
     """判断是否在登录页。
 
     进入游戏按钮与点击换区文字**二选一命中**即视为在登录页。
 
     Args:
         ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
+        absent: 期望离开登录页时为真，默认期望在登录页。
+        attempts: 识别次数，默认只探测当前一帧。
+        interval_seconds: 两次识别之间的等待秒数。
 
     Returns:
-        任一登录页模板命中时为真。
+        断言满足时为真。
     """
     result = expect_template(
         ctx,
@@ -116,7 +158,9 @@ def is_login_page_visible(ctx: ContextHandle) -> bool:
             _template(constants.ENTER_BUTTON_TEMPLATE, '进入游戏按钮'),
             _template(constants.SWITCH_ENTRY_TEMPLATE, '点击换区'),
         ),
-        attempts=1,
+        attempts=attempts,
+        interval_seconds=interval_seconds,
+        absent=absent,
     )
     _log.debug('[UI] 登录识别 → 登录页：matched={!r}', result.satisfied)
     return result.satisfied
@@ -160,20 +204,31 @@ def read_switch_entry_center(ctx: ContextHandle) -> tuple[float, float] | None:
     return center
 
 
-def is_server_select_visible(ctx: ContextHandle) -> bool:
+def is_server_select_visible(
+    ctx: ContextHandle,
+    *,
+    absent: bool = False,
+    attempts: int = 1,
+    interval_seconds: float = 0.5,
+) -> bool:
     """判断是否在区服选择页。
 
     Args:
         ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
+        absent: 期望区服列表关闭时为真，默认期望它打开。
+        attempts: 识别次数，默认只探测当前一帧。
+        interval_seconds: 两次识别之间的等待秒数。
 
     Returns:
-        切换大区按钮命中时为真。
+        断言满足时为真。
     """
     result = expect_template(
         ctx,
         template=_template(constants.SWITCH_SERVER_TEMPLATE, '切换大区按钮'),
         roi=constants.SWITCH_SERVER_ROI,
-        attempts=1,
+        attempts=attempts,
+        interval_seconds=interval_seconds,
+        absent=absent,
     )
     _log.debug('[UI] 登录识别 → 区服选择页：matched={!r}', result.satisfied)
     return result.satisfied
