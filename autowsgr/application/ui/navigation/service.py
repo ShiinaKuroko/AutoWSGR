@@ -18,7 +18,6 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING
 
-from autowsgr.application.runtime.types import LoginServer
 from autowsgr.application.ui.controller.home.main_page import HomePage
 from autowsgr.application.ui.navigation import registry
 from autowsgr.application.ui.navigation.executor import NavigationExecutor
@@ -39,25 +38,18 @@ if TYPE_CHECKING:
 _log = get_logger('ui.navigation')
 
 
-# ── 启动流程参数 ────────────────────────────────────────────────────────────
+# ── 流程参数 ────────────────────────────────────────────────────────────────
 
-# 拉起 App 后等进程出现的超时与轮询间隔，单位为秒；进程一出现就立刻往下走。
 # 每日浮窗：每轮等待时长，以及浮窗可能一个接一个出现时的轮询上限。
 _POPUP_SETTLE_SECONDS = 1.5
 _POPUP_ATTEMPTS = 5
-_APP_PROCESS_TIMEOUT_SECONDS = 30.0
-_APP_PROCESS_POLL_SECONDS = 0.5
-# 等健康游戏提示出现的最大识别次数，以及相邻两次识别的间隔秒数。
-_STARTUP_ATTEMPTS = 120
-_STARTUP_INTERVAL_SECONDS = 1.0
+# 启动三信号里「黑屏」「加载中」是宽泛校验，识别不到就等这么久再看下一项。
+_STARTUP_STEP_WAIT_SECONDS = 3.0
 # 确认画面消失、读取更新提示与加载状态时的探测次数。
 _PROBE_ATTEMPTS = 3
-# 等登录页出现的最大识别次数。
+# 等登录页出现的最大识别次数，以及相邻两次识别的间隔秒数。
 _LOGIN_PAGE_ATTEMPTS = 60
-# 仍在加载时按用户定的兜底再探一次的等待时间，单位为秒。
-_LOADING_RECHECK_WAIT_SECONDS = 3.0
-# 强杀游戏后等待进程退出的时间，单位为秒。
-_RESTART_SETTLE_SECONDS = 2.0
+_STARTUP_INTERVAL_SECONDS = 1.0
 
 
 class NavigationService:
@@ -124,68 +116,39 @@ class NavigationService:
 
     # ── 启动流程 ────────────────────────────────────────────────────────────
 
-    def ensure_started(self) -> None:
-        """把游戏带到「登录页」。
+    def navigate_to_login(self) -> None:
+        """把处于启动阶段的游戏带到「登录页」。
 
-        启动段（健康游戏提示、更新提示、加载中）没有可导航的边，只能在这里编排；
-        换区复用导航图的两条边。
+        启动三信号由游戏特性决定：
+        - 「健康游戏提示」与「加载中」都是宽泛校验，识别不到就等一会儿再看下一项；
+        - 「更新提示」是唯一的硬分支，它一旦弹出游戏必然卡死，识别到就抛错交人工处理。
+
+        调用方负责在游戏没运行时拉起 App；本方法不碰进程，也不做换区。
 
         Raises:
             ManualUpdateRequiredError: 检测到游戏更新，需要人工处理。
-            NavigationError: 启动超时、加载未完成或状态不明。
+            NavigationError: 启动超时，未出现登录页。
         """
-        ctrl = self._ctx.runtime.ctrl
-        package = self._ctx.runtime.config.account.package_name
-
-        # 1. 游戏没运行就先拉起，进程一出现就立刻往下走，不固定等待。
-        if not ctrl.check_app_running(package):
-            _log.info('[UI] 启动 → 拉起游戏：package={!r}', package)
-            ctrl.start_app(package)
-            if not self._wait_for_app_process(package):
-                raise NavigationError('启动超时：游戏进程未起来')
-
-        # 2. 等健康游戏提示出现，再确认它已经切走。
-        if not login_checker.check_black_screen(
-            self._ctx,
-            attempts=_STARTUP_ATTEMPTS,
-            interval_seconds=_STARTUP_INTERVAL_SECONDS,
-        ):
-            raise NavigationError('启动超时：未出现健康游戏提示')
-        login_checker.check_black_screen(
-            self._ctx,
-            absent=True,
-            attempts=_PROBE_ATTEMPTS,
-            interval_seconds=_STARTUP_INTERVAL_SECONDS,
-        )
-
-        # 3. 更新分支：后识别通过说明没有更新，前识别通过说明需要人工更新。
-        if not login_checker.check_update_prompt(
-            self._ctx,
-            absent=True,
-            attempts=_PROBE_ATTEMPTS,
-            interval_seconds=_STARTUP_INTERVAL_SECONDS,
-        ):
-            if login_checker.check_update_prompt(self._ctx):
-                raise ManualUpdateRequiredError('检测到游戏更新，需要人工处理')
-            raise NavigationError('启动状态不明：无法确认是否需要更新')
-
-        # 4. 加载分支：仍在加载时按用户定的兜底再探一次。
-        if not login_checker.check_loading(
-            self._ctx,
-            absent=True,
-            attempts=_PROBE_ATTEMPTS,
-            interval_seconds=_STARTUP_INTERVAL_SECONDS,
-        ):
-            time.sleep(_LOADING_RECHECK_WAIT_SECONDS)
-            if not login_checker.check_loading(
+        # 1. 健康游戏提示：能不能识别到不重要，识别不到就等一会儿。
+        if login_checker.check_black_screen(self._ctx):
+            login_checker.check_black_screen(
                 self._ctx,
                 absent=True,
                 attempts=_PROBE_ATTEMPTS,
                 interval_seconds=_STARTUP_INTERVAL_SECONDS,
-            ):
-                raise NavigationError('启动超时：游戏仍在加载')
+            )
+        else:
+            time.sleep(_STARTUP_STEP_WAIT_SECONDS)
 
-        # 5. 等登录页出现。
+        # 2. 更新提示：唯一硬分支，弹出来游戏就卡在这里，只能人工处理。
+        if login_checker.check_update_prompt(self._ctx):
+            raise ManualUpdateRequiredError('检测到游戏更新，需要人工处理')
+
+        # 3. 加载中：同样是宽泛校验，没在加载就往下走。
+        if login_checker.check_loading(self._ctx):
+            time.sleep(_STARTUP_STEP_WAIT_SECONDS)
+
+        # 4. 等登录页出现；已经在登录页时这里会立刻通过。
         if not login_checker.check_login_page(
             self._ctx,
             attempts=_LOGIN_PAGE_ATTEMPTS,
@@ -193,75 +156,7 @@ class NavigationService:
         ):
             raise NavigationError('启动超时：未出现登录页')
 
-        # 6. 按用户设置完成一次换区。
-        self.ensure_server_selected()
-
-    def restart_game(self) -> None:
-        """SL：强杀游戏后重新走一遍启动流程。"""
-        ctrl = self._ctx.runtime.ctrl
-        package = self._ctx.runtime.config.account.package_name
-        _log.warning('[UI] 启动 → 强制重启游戏：package={!r}', package)
-        ctrl.stop_app(package)
-        time.sleep(_RESTART_SETTLE_SECONDS)
-        # 游戏重开后栈里的页面已经不存在；不清空的话下一次 navigate_to 会被
-        # 「已在目标页面」短路掉，实际却停在登录页。
-        self._session.clear_pages()
-        self.ensure_started()
-
     # ── 内部实现 ────────────────────────────────────────────────────────────
-
-    def ensure_server_selected(self) -> None:
-        """按用户设置完成区服选择；本次运行已选过则跳过。
-
-        游戏可能本来就停在区服选择页（上次没选完），这时不再点开列表，直接按配置点区服
-        再回登录页。位置由「用户配置 + OCR 定位 + 序号兜底」现算，不依赖调用方传参。
-
-        Raises:
-            NavigationError: 停在区服选择页但没有可用的区服设置。
-        """
-        session = self._session
-        if session.server_selected:
-            return
-
-        in_server_select = self._detect_page() is PageName.SERVER_SELECT
-        wanted = self._ctx.runtime.config.account.game_server
-        if wanted is LoginServer.default:
-            # 不知道该选哪个区服，不能乱选。本来不在列表里就没事；
-            # 停在列表里只能交给 SL 回到干净状态。
-            if in_server_select:
-                raise NavigationError('停在区服选择页但用户未指定区服')
-            session.mark_server_selected()
-            return
-
-        index = login_checker.find_server_position(self._ctx, wanted.value)
-        if index is None:
-            # 区服列表位置固定，OCR 读不到时按静态映射兜底。
-            index = login_checker.server_index(wanted.value)
-            _log.warning('[UI] 启动 → 区服定位兜底：server={!r}，position={}', wanted.value, index)
-
-        if not in_server_select:
-            self.navigate_to(PageName.SERVER_SELECT)
-        self.navigate_to(PageName.LOGIN_PAGE, position=index)
-        session.mark_server_selected()
-
-    def _wait_for_app_process(self, package: str) -> bool:
-        """等游戏进程出现。
-
-        进程一出现就返回，不做固定秒数的空等——固定等待很可能正好错开启动画面。
-
-        Args:
-            package: Android 包名。
-
-        Returns:
-            超时前进程出现时为真。
-        """
-        ctrl = self._ctx.runtime.ctrl
-        deadline = time.monotonic() + _APP_PROCESS_TIMEOUT_SECONDS
-        while time.monotonic() < deadline:
-            if ctrl.check_app_running(package):
-                return True
-            time.sleep(_APP_PROCESS_POLL_SECONDS)
-        return False
 
     def _on_arrive(self, page: PageName) -> None:
         """到达某页后、确认到达前的上层处理。
