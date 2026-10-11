@@ -225,6 +225,37 @@ def wait_sortie_overlay(ctx: ContextHandle) -> bool:
     return result.satisfied
 
 
+def read_mode_button_center(ctx: ContextHandle) -> tuple[float, float] | None:
+    """读取模式按钮的中心。
+
+    Args:
+        ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
+
+    Returns:
+        模式按钮模板命中时的归一化中心；未命中时为 None。
+    """
+    center = expect_template_center(
+        ctx,
+        template=(
+            calibration.load_module_template(
+                constants.TEMPLATE_NAMESPACE,
+                constants.MODE_NORMAL_TEMPLATE,
+                name='event_mode_normal',
+            ),
+            calibration.load_module_template(
+                constants.TEMPLATE_NAMESPACE,
+                constants.MODE_HARD_TEMPLATE,
+                name='event_mode_hard',
+            ),
+        ),
+        roi=constants.MODE_ROI,
+        confidence=_TEMPLATE_CONFIDENCE,
+        attempts=_PROBE_ATTEMPTS,
+    )
+    _log.debug('[UI] 活动识别 → 读模式按钮中心：center={!r}', center)
+    return center
+
+
 def read_sortie_prepare_center(ctx: ContextHandle) -> tuple[float, float] | None:
     """读取节点浮窗内"确认出征"按钮的中心。
 

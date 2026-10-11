@@ -42,6 +42,36 @@ if TYPE_CHECKING:
 _HOME_CONFIRM_ATTEMPTS = 30
 _HOME_CONFIRM_INTERVAL_SECONDS = 1.0
 
+
+def _is_event_map(ctx: ContextHandle) -> bool:
+    """确认活动地图页身份。
+
+    只判"这一页是不是活动地图"，不校验任务玩法，因此在没有活动任务的导航里也能参与定位。
+
+    Args:
+        ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
+
+    Returns:
+        读到本期地图标题时为真。
+    """
+    return stage_push.check_event_map_page(ctx)
+
+
+def _is_event_stage_overlay(ctx: ContextHandle) -> bool:
+    """确认活动章节浮窗已经打开。
+
+    只判"浮窗在不在"，不校验它指向哪个章节：定位当前页时任务的章节参数未必就是眼前这个浮窗，
+    章节是否点对由业务与 E2E 用 ``check_event_sortie_prepare(ctx, stage=...)`` 单独校验。
+
+    Args:
+        ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
+
+    Returns:
+        浮窗模板命中时为真。
+    """
+    return stage_push.check_event_sortie_prepare(ctx)
+
+
 _PAGE_CHECKERS: dict[PageName, Callable[[ContextHandle], bool]] = {
     PageName.LOGIN_PAGE: login_checker.check_login_page,
     PageName.SERVER_SELECT: login_checker.check_server_select,
@@ -51,15 +81,8 @@ _PAGE_CHECKERS: dict[PageName, Callable[[ContextHandle], bool]] = {
         interval_seconds=_HOME_CONFIRM_INTERVAL_SECONDS,
     ),
     PageName.SORTIE_MAP: sortie_checker.check_sortie_page,
-    PageName.EVENT_MAP: lambda ctx: stage_push.check_event_map_page(
-        ctx,
-        event_type=_event_type(ctx),
-    ),
-    PageName.EVENT_STAGE_OVERLAY: lambda ctx: stage_push.check_event_sortie_prepare(
-        ctx,
-        event_type=_event_type(ctx),
-        stage=_event_stage(ctx),
-    ),
+    PageName.EVENT_MAP: _is_event_map,
+    PageName.EVENT_STAGE_OVERLAY: _is_event_stage_overlay,
 }
 
 
@@ -102,6 +125,13 @@ _NAV_TARGETS: dict[PageName, tuple[NavTarget, ...]] = {
             PageName.HOME,
             lambda ctx, **_: SortiePage(ctx).go_back(),
             '出征页 → 首页',
+        ),
+    ),
+    PageName.EVENT_STAGE_OVERLAY: (
+        NavTarget(
+            PageName.EVENT_MAP,
+            lambda ctx, **_: EventPage(ctx, event_type=_event_type(ctx)).click_overlay_close(),
+            '活动章节浮窗 → 活动地图',
         ),
     ),
     PageName.EVENT_MAP: (

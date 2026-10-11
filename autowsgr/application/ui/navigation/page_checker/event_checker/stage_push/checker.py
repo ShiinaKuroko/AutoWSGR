@@ -125,14 +125,15 @@ def _stage_number(stage: str) -> int:
 # ── 识别入口 ────────────────────────────────────────────────────────────────
 
 
-def check_event_map_page(ctx: ContextHandle, *, event_type: str) -> bool:
+def check_event_map_page(ctx: ContextHandle, *, event_type: str | None = None) -> bool:
     """确认当前是否在活动地图页。
 
     判断标准：地图标题区域识别到本期地图名。章节浮窗态由浮窗入口单独确认。
+    省略 event_type 时只判页面身份，供导航器定位当前页使用（此时任务可能没绑活动）。
 
     Args:
         ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
-        event_type: 活动玩法标识。
+        event_type: 活动玩法标识；提供时校验调用方选对了 checker。
 
     Returns:
         读到地图标题时为真。
@@ -140,7 +141,8 @@ def check_event_map_page(ctx: ContextHandle, *, event_type: str) -> bool:
     Raises:
         ValueError: 活动玩法标识与当前 checker 不一致。
     """
-    calibration.require_activity(event_type, constants.ACTIVITY)
+    if event_type is not None:
+        calibration.require_activity(event_type, constants.ACTIVITY)
     data = calibration.load_activity_data(constants.ACTIVITY, constants.PERIOD)
     return recognition.is_map_title_present(ctx, data)
 
@@ -197,30 +199,43 @@ def read_event_map_state(ctx: ContextHandle, *, event_type: str) -> EventMapStat
     return state
 
 
-def check_event_sortie_prepare(ctx: ContextHandle, *, event_type: str, stage: str) -> bool:
-    """确认节点浮窗已打开且指向目标章节。
+def check_event_sortie_prepare(
+    ctx: ContextHandle,
+    *,
+    event_type: str | None = None,
+    stage: str | None = None,
+) -> bool:
+    """确认节点浮窗是否打开，并在给出章节时校验它指向目标章节。
+
+    三个参数全部可省略：省略 event_type 时不校验调用方选对了 checker，省略 stage 时只判
+    "浮窗已经打开"，供导航器定位当前页使用。
 
     Args:
         ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
-        event_type: 活动玩法标识，用于确认调用方选对了 checker。
-        stage: 目标章节标识，例如 EX7。
+        event_type: 活动玩法标识；提供时校验调用方选对了 checker。
+        stage: 目标章节标识，例如 EX7；提供时校验浮窗标题指向该章节。
 
     Returns:
-        浮窗模板命中且标题指向目标章节时为真。
+        浮窗已打开，且（给出章节时）标题指向目标章节时为真。
 
     Raises:
-        ValueError: 本期活动数据里没有该章节。
+        ValueError: 给出了本期活动数据里没有的章节。
     """
-    calibration.require_activity(event_type, constants.ACTIVITY)
+    if event_type is not None:
+        calibration.require_activity(event_type, constants.ACTIVITY)
     data = calibration.load_activity_data(constants.ACTIVITY, constants.PERIOD)
-    if stage not in data['stages']:
+    if stage is not None and stage not in data['stages']:
         raise ValueError(f'本期活动没有该章节: {stage!r}')
 
     # 1. 先等节点浮窗出现，浮窗没有出现时不需要继续判定标题。
     if not recognition.wait_sortie_overlay(ctx):
         return False
 
-    # 2. 再用关卡标题确认进入的是目标章节。
+    # 2. 没有指定章节时，浮窗打开即算到达。
+    if stage is None:
+        return True
+
+    # 3. 再用关卡标题确认进入的是目标章节。
     title_texts = recognition.read_stage_title_texts(ctx, data)
     matched = recognition.is_stage_title_matched(title_texts, stage, data)
     _log.debug('[UI] 出征准备前置页 → 校验章节：stage={!r}，matched={!r}', stage, matched)
@@ -243,3 +258,21 @@ def read_sortie_prepare_center(
     """
     calibration.require_activity(event_type, constants.ACTIVITY)
     return recognition.read_sortie_prepare_center(ctx)
+
+
+def read_mode_button_center(
+    ctx: ContextHandle,
+    *,
+    event_type: str,
+) -> tuple[float, float] | None:
+    """读取模式按钮的中心，供控制器切换难度。
+
+    Args:
+        ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
+        event_type: 活动玩法标识，用于确认调用方选对了 checker。
+
+    Returns:
+        模式按钮模板命中时的归一化中心；未命中时为 None。
+    """
+    calibration.require_activity(event_type, constants.ACTIVITY)
+    return recognition.read_mode_button_center(ctx)

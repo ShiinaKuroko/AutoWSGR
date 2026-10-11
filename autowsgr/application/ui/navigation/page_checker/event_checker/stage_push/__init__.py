@@ -21,6 +21,7 @@ from autowsgr.application.ui.navigation.page_checker.event_checker.stage_push.ch
     check_event_sortie_prepare,
     parse_stage,
     read_event_map_state,
+    read_mode_button_center,
     read_sortie_prepare_center,
 )
 from autowsgr.application.ui.navigation.page_checker.event_checker.stage_push.recognition import (
@@ -37,5 +38,6 @@ __all__ = [
     'check_event_sortie_prepare',
     'parse_stage',
     'read_event_map_state',
+    'read_mode_button_center',
     'read_sortie_prepare_center',
 ]
