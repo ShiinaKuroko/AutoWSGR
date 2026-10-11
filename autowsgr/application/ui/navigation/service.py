@@ -147,24 +147,21 @@ class NavigationService:
     # ── 内部实现 ────────────────────────────────────────────────────────────
 
     def _current_page(self) -> PageName:
-        """返回当前页面：优先取导航栈顶，栈空时识别一次。"""
+        """返回当前页面：优先取导航栈顶，栈空时遍历确认入口识别一次。
+
+        识别到的页面会立刻压栈，后续导航就能直接复用。
+
+        Raises:
+            NavigationError: 栈空且所有确认入口都识别不到。
+        """
         session = self._session
         current = session.current_page()
         if current is not None:
             return PageName(current)
-        page = self._detect_page()
-        session.push_page(page.value)
-        return page
-
-    def _detect_page(self) -> PageName:
-        """遍历所有确认入口，判断当前在哪一页。
-
-        Raises:
-            NavigationError: 所有确认入口都识别不到。
-        """
         for page in PageName:
             confirm = registry.get_checker(page)
             if confirm is not None and confirm(self._ctx):
                 _log.info('[UI] 导航 → 识别当前页面：page={!r}', page.value)
+                session.push_page(page.value)
                 return page
         raise NavigationError('无法识别当前页面')
