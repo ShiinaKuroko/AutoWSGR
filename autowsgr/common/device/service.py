@@ -59,7 +59,7 @@ class DeviceService:
         """
         info = connection._connect_device(self._session)
         if package is not None:
-            self._follow_application_display(package)
+            self.follow_display(package)
         return info
 
     # ── 操作模拟器 ─────────────────────────────────────────────────────────

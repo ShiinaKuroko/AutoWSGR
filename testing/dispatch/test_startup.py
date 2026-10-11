@@ -25,7 +25,10 @@ from autowsgr.dispatch import startup
 
 def _ctx(*, running: bool) -> Any:
     """构造带设备与配置替身的上下文。"""
-    ctrl = SimpleNamespace(is_app_running=lambda _package: running)
+    ctrl = SimpleNamespace(
+        is_app_running=lambda _package: running,
+        follow_display=lambda _package: None,
+    )
     account = SimpleNamespace(package_name='com.example.game')
     runtime = SimpleNamespace(ctrl=ctrl, config=SimpleNamespace(account=account))
     return SimpleNamespace(runtime=runtime)

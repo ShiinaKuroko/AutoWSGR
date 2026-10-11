@@ -86,6 +86,9 @@ class NavigationService:
         source = self._current_page()
         if source == target:
             _log.info('[UI] 导航 → 已在目标页面：target={!r}', target.value)
+            # 已在首页时同样要清每日浮窗，否则浮窗会一直留着挡住后续识别。
+            if source is PageName.HOME:
+                self._handle_daily_popup(session)
             return
 
         path = registry.find_path(source, target)
@@ -116,7 +119,10 @@ class NavigationService:
 
         target = PageName(previous)
         _log.info('[UI] 导航 → 回退：source={!r}，target={!r}', current.value, target.value)
-        self._walk(registry.find_path(current, target), {})
+        path = registry.find_path(current, target)
+        if self._passes_home(current, path):
+            self._handle_daily_popup(session)
+        self._walk(path, {})
 
     # ── 启动流程 ────────────────────────────────────────────────────────────
 
