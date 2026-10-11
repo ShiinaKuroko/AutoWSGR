@@ -42,6 +42,43 @@ if TYPE_CHECKING:
 _HOME_CONFIRM_ATTEMPTS = 30
 _HOME_CONFIRM_INTERVAL_SECONDS = 1.0
 
+# 登录页与区服选择页的确认节奏：点击后要等弹层动画，单帧会立刻判失败。
+_LOGIN_PAGE_CONFIRM_ATTEMPTS = 10
+_SERVER_SELECT_CONFIRM_ATTEMPTS = 10
+_LOGIN_PAGE_CONFIRM_INTERVAL_SECONDS = 0.5
+
+
+def _is_login_page(ctx: ContextHandle) -> bool:
+    """确认登录页；点开弹层后画面要等一会儿才切过去。
+
+    Args:
+        ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
+
+    Returns:
+        登录页模板命中时为真。
+    """
+    return login_checker.check_login_page(
+        ctx,
+        attempts=_LOGIN_PAGE_CONFIRM_ATTEMPTS,
+        interval_seconds=_LOGIN_PAGE_CONFIRM_INTERVAL_SECONDS,
+    )
+
+
+def _is_server_select(ctx: ContextHandle) -> bool:
+    """确认区服选择页；打开区服列表后弹层动画要等一会儿。
+
+    Args:
+        ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
+
+    Returns:
+        区服选择页模板命中时为真。
+    """
+    return login_checker.check_server_select(
+        ctx,
+        attempts=_SERVER_SELECT_CONFIRM_ATTEMPTS,
+        interval_seconds=_LOGIN_PAGE_CONFIRM_INTERVAL_SECONDS,
+    )
+
 
 def _is_event_map(ctx: ContextHandle) -> bool:
     """确认活动地图页身份。
@@ -73,8 +110,8 @@ def _is_event_stage_overlay(ctx: ContextHandle) -> bool:
 
 
 _PAGE_CHECKERS: dict[PageName, Callable[[ContextHandle], bool]] = {
-    PageName.LOGIN_PAGE: login_checker.check_login_page,
-    PageName.SERVER_SELECT: login_checker.check_server_select,
+    PageName.LOGIN_PAGE: _is_login_page,
+    PageName.SERVER_SELECT: _is_server_select,
     PageName.HOME: lambda ctx: home_checker.check_home_page(
         ctx,
         attempts=_HOME_CONFIRM_ATTEMPTS,
