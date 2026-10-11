@@ -20,8 +20,9 @@ from autowsgr.application.ui.controller.login import constants as login_constant
 from autowsgr.application.ui.navigation import registry
 from autowsgr.application.ui.navigation.executor import NavigationExecutor
 from autowsgr.application.ui.navigation.page_checker import home_checker, login_checker
+from autowsgr.application.ui.navigation.registry import NavTarget
 from autowsgr.application.ui.navigation.service import NavigationService
-from autowsgr.application.ui.navigation.types import NavigationError, NavTarget, PageName
+from autowsgr.application.ui.navigation.types import NavigationError, PageName
 from autowsgr.dispatch.session import SessionState
 
 

@@ -26,7 +26,7 @@ _log = get_logger('ui.navigation.executor')
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from autowsgr.application.ui.navigation.types import NavTarget
+    from autowsgr.application.ui.navigation.registry import NavTarget
     from autowsgr.dispatch.context import ContextHandle
     from autowsgr.dispatch.session import SessionState
 

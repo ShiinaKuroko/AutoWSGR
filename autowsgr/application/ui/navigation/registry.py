@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 from collections import deque
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from autowsgr.application.ui.controller.home.event_page import EventPage
@@ -27,13 +28,31 @@ from autowsgr.application.ui.navigation.page_checker import (
     sortie_checker,
 )
 from autowsgr.application.ui.navigation.page_checker.event_checker import stage_push
-from autowsgr.application.ui.navigation.types import NavigationError, NavTarget, PageName
+from autowsgr.application.ui.navigation.types import NavigationError, PageName
 
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
     from autowsgr.dispatch.context import ContextHandle
+
+
+# ── 导航边 ──────────────────────────────────────────────────────────────────
+
+
+@dataclass(frozen=True, slots=True)
+class NavTarget:
+    """从某个页面可以直达的一个目标。
+
+    Attributes:
+        target: 目标页面。
+        action: 执行一次点击的动作，可接收调用方透传的参数。
+        description: 这条边的说明，供维护与日志使用。
+    """
+
+    target: PageName
+    action: Callable[..., None]
+    description: str = ''
 
 
 # ── 页面 → 到达确认 ─────────────────────────────────────────────────────────
