@@ -28,7 +28,7 @@
 autowsgr/common/vision/
 ├── __init__.py                         # 通用视觉公共门面
 ├── config.py                            # NumPy、OpenCV 和 OCR 静态配置
-├── service.py                           # 八个公共识别功能：截图、前识别和后识别
+├── service.py                           # 五个公共识别功能：截图、模板、OCR、像素与模板中心
 ├── numpy_engine/
 │   ├── __init__.py                      # NumPy 执行器出口
 │   └── executor.py                      # 数组校验、坐标、采样和裁切
@@ -55,8 +55,8 @@ autowsgr/common/vision/
 
 | 文件/目录 | 负责内容 | 不负责内容 |
 | --- | --- | --- |
-| `__init__.py` | 只导出八个识别入口、结果类型和识别数据模型 | 算法实现、隐式初始化和业务规则 |
-| `service.py` | 八个公共识别功能（截图、前识别、后识别）和唯一一份识别循环 | 视觉算法、识别规则、页面语义和缓存管理 |
+| `__init__.py` | 只导出五个识别入口、结果类型和识别数据模型 | 算法实现、隐式初始化和业务规则 |
+| `service.py` | 五个公共识别功能（截图、模板识别、OCR 识别、像素识别与模板中心）和唯一一份识别循环 | 视觉算法、识别规则、页面语义和缓存管理 |
 | `config.py` | 视觉静态参数、环境变量名称和模板根路径 | 运行时状态和模型初始化 |
 | `numpy_engine/executor.py` | NumPy 数组原子操作 | 像素签名策略和页面判断 |
 | `opencv_engine/executor.py` | OpenCV 图片读取、变换和原子匹配 | 模板目录业务语义和缓存 |
@@ -105,21 +105,20 @@ application / business / tools
 
 ### 2.4 公开出口策略
 
-`autowsgr.common.vision` 是稳定门面，`service.py` 是门面背后的识别入口实现。根门面只导出八个识别入口、返回类型 `RecognitionResult` 和识别数据模型；不导出 executor 实现类、适配层组合函数、模块缓存或私有辅助函数。
+`autowsgr.common.vision` 是稳定门面，`service.py` 是门面背后的识别入口实现。根门面只导出五个识别入口、返回类型 `RecognitionResult` 和识别数据模型；不导出 executor 实现类、适配层组合函数、模块缓存或私有辅助函数。
 
-上层使用视觉能力只经 `service.py` 里的八个入口：`shot`、`expect_template`/`expect_ocr`/`expect_pixels`（识别存在）、
-`expect_template_center`（识别存在并直接返回命中模板的中心）和
-`expect_template_absent`/`expect_ocr_absent`/`expect_pixels_absent`（识别不存在）；每个入口只接受对应识别类型的数据、
-规则和预期，不做跨类型分发。历史上这两组入口叫"前识别/后识别"，现按语义命名。`expect_ocr` / `expect_ocr_absent`
-的 `expect` 接受单条文本或候选集合：识别存在时命中任一条即满足，识别不存在时需要全部候选都不出现才满足。
+上层使用视觉能力只经 `service.py` 里的五个入口：`shot`、`expect_template`/`expect_ocr`/`expect_pixels`
+和 `expect_template_center`（返回命中模板的中心）。前识别与后识别由 `absent` 参数切换：默认识别存在，
+为真时断言取反，等待与重试循环完全一致。每个入口只接受对应识别类型的数据、规则和预期，不做跨类型分发。
+`expect_ocr` 的 `expect` 接受单条文本或候选集合：识别存在时命中任一条即满足，`absent=True` 时需要全部候选都不出现。
 
-门面另外导出调用方表达识别数据和判读结果所需的模型：`ROI`、`Template`、`Color`、`PixelRule`、`MatchStrategy`、`PixelSignature`、`CompositePixelSignature`、`RecognitionProfile`、`TemplateMatchResult`、`PixelMatchResult`、`PixelDetail`、`TextDetection`，以及返回类型 `RecognitionResult`。底层组合能力（模板匹配、OCR、像素匹配、文本预处理、计数解析）和两个基础执行器句柄不再从门面导出；需要它们时经八个识别入口使用。
+门面另外导出调用方表达识别数据和判读结果所需的模型：`ROI`、`Template`、`Color`、`PixelRule`、`MatchStrategy`、`PixelSignature`、`CompositePixelSignature`、`RecognitionProfile`、`TemplateMatchResult`、`PixelMatchResult`、`PixelDetail`、`TextDetection`，以及返回类型 `RecognitionResult`。底层组合能力（模板匹配、OCR、像素匹配、文本预处理、计数解析）和两个基础执行器句柄不再从门面导出；需要它们时经五个识别入口使用。
 
 图像变换（灰度、缩放等）目前只由 `opencv_engine` 提供，是否对上层开放尚未确定；读图统一走 `system.files`。
 
 ## 3. 能力总览
 
-上层使用视觉能力的唯一入口是 `service.py` 的八个识别功能；下表是适配层与基础执行器提供的能力清单，供 service 和本层内部使用。
+上层使用视觉能力的唯一入口是 `service.py` 的五个识别功能；下表是适配层与基础执行器提供的能力清单，供 service 和本层内部使用。
 
 | 能力 | 对外入口 | 所在文件 | 输入 | 输出/副作用 | 负责内容 | 不负责内容 |
 | --- | --- | --- | --- | --- | --- | --- |

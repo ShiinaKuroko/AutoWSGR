@@ -9,9 +9,6 @@ import numpy
 import pytest
 
 from autowsgr.common.vision import (
-    expect_ocr_absent,
-    expect_pixels_absent,
-    expect_template_absent,
     expect_ocr,
     expect_pixels,
     expect_template,
@@ -119,13 +116,14 @@ def test_template_rejects_non_positive_match_count() -> None:
 
 
 def test_expect_template_absent_waits_for_disappearance(monkeypatch: pytest.MonkeyPatch) -> None:
+    """absent 为真时，命中即不满足、消失才满足。"""
     ctx, _, _ = _ctx()
     monkeypatch.setattr(service, 'match_templates', lambda *_a, **_k: [_match(True)])
-    present = expect_template_absent(ctx, template=_template(), attempts=1)
+    present = expect_template(ctx, template=_template(), attempts=1, absent=True)
     assert present.satisfied is False
 
     monkeypatch.setattr(service, 'match_templates', lambda *_a, **_k: [_match(False)])
-    gone = expect_template_absent(ctx, template=_template(), attempts=1)
+    gone = expect_template(ctx, template=_template(), attempts=1, absent=True)
     assert gone.satisfied is True
 
 
@@ -139,15 +137,17 @@ def test_expect_ocr_compares_expected_text(monkeypatch: pytest.MonkeyPatch) -> N
 
 
 def test_expect_ocr_absent_confirms_text_is_gone(monkeypatch: pytest.MonkeyPatch) -> None:
+    """absent 为真时，文本不再出现才算满足。"""
     ctx, _, _ = _ctx()
     monkeypatch.setattr(service, 'recognize_text', lambda *_a, **_k: [])
 
-    assert expect_ocr_absent(ctx, expect='远征', attempts=1).satisfied is True
+    assert expect_ocr(ctx, expect='远征', attempts=1, absent=True).satisfied is True
 
 
-def test_before_and_expect_pixels_absent_follow_the_match_flag(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_expect_pixels_absent_follows_the_match_flag(monkeypatch: pytest.MonkeyPatch) -> None:
+    """absent 翻转像素匹配的断言方向。"""
     ctx, _, _ = _ctx()
     monkeypatch.setattr(service, 'match_pixels', lambda *_a, **_k: SimpleNamespace(matched=True))
 
     assert expect_pixels(ctx, signature=object(), attempts=1).satisfied is True
-    assert expect_pixels_absent(ctx, signature=object(), attempts=1).satisfied is False
+    assert expect_pixels(ctx, signature=object(), attempts=1, absent=True).satisfied is False

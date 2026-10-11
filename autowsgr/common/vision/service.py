@@ -1,4 +1,4 @@
-"""模块功能：提供 common.vision 的八个公共识别能力。
+"""模块功能：提供 common.vision 的五个公共识别能力。
 
 上层调用：
 - application、business、dispatch 和 server：确认当前状态或操作结果。
@@ -7,7 +7,7 @@
 - adapters：提供模板匹配、OCR 和像素匹配等重新修饰后的视觉方法。
 - dispatch.context：提供设备服务和截图事实写入（仅类型注解使用）。
 
-边界：只提供截图、前识别和后识别八个功能；识别数据、识别规则和预期全部由调用方
+边界：只提供截图、模板识别、OCR 识别、像素识别与模板中心五个功能；识别数据、规则和预期由调用方
 提供，service 不决定识别什么、不执行点击、不解析页面语义。
 """
 
@@ -93,8 +93,12 @@ def expect_template(
     min_matches: int = 1,
     attempts: int = DEFAULT_RECOGNITION_ATTEMPTS,
     interval_seconds: float = DEFAULT_RECOGNITION_INTERVAL_SECONDS,
+    absent: bool = False,
 ) -> RecognitionResult[list[TemplateMatchResult]]:
-    """前识别：重试模板匹配，直到命中数量达到调用方预期。
+    """重试模板匹配，直到命中数量满足调用方预期。
+
+    absent 决定断言方向：默认期望目标出现，为真时期望目标消失；两种模式共用同一套
+    截图与重试循环，只是最后的断言相反。
 
     Args:
         ctx: 提供设备服务和截图事实写入的统一 ContextHandle。
@@ -104,16 +108,17 @@ def expect_template(
         min_matches: 期望命中的模板数量。
         attempts: 最大识别次数。
         interval_seconds: 两次识别之间的等待秒数。
+        absent: 期望目标消失时为真，此时命中数量低于 min_matches 才算满足。
 
     Returns:
-        satisfied 表示命中数量是否达到预期；observation 是最后一次匹配结果列表。
+        satisfied 表示断言是否满足；observation 是最后一次匹配结果列表。
     """
     required = _required_matches(min_matches)
     return _retry(
         ctx,
         task='模板识别',
         observe=lambda frame: match_templates(frame, template, roi=roi, confidence=confidence),
-        accept=lambda matches: _matched_count(matches) >= required,
+        accept=lambda matches: (_matched_count(matches) >= required) != absent,
         attempts=attempts,
         interval_seconds=interval_seconds,
     )
@@ -165,10 +170,12 @@ def expect_ocr(
     candidates: Sequence[str] | None = None,
     attempts: int = DEFAULT_RECOGNITION_ATTEMPTS,
     interval_seconds: float = DEFAULT_RECOGNITION_INTERVAL_SECONDS,
+    absent: bool = False,
 ) -> RecognitionResult[list[TextDetection]]:
-    """前识别：重试 OCR，直到实际文本与调用方期望结果一致。
+    """重试 OCR，直到实际文本满足调用方预期。
 
     OCR 实际文本与 expect 直接相等比对；模糊匹配、去噪和纠错属于调用方的后处理规则。
+    absent 决定断言方向：默认期望文本出现，为真时期望文本消失。
 
     Args:
         ctx: 提供设备服务和截图事实写入的统一 ContextHandle。
@@ -179,9 +186,10 @@ def expect_ocr(
         candidates: OCR 完整文本候选集合。
         attempts: 最大识别次数。
         interval_seconds: 两次识别之间的等待秒数。
+        absent: 期望文本消失时为真，此时文本不再命中才算满足。
 
     Returns:
-        satisfied 表示是否识别到期望文本；observation 是最后一次 OCR 结果。
+        satisfied 表示断言是否满足；observation 是最后一次 OCR 结果。
     """
     return _retry(
         ctx,
@@ -193,7 +201,7 @@ def expect_ocr(
             recognition_profile=recognition_profile,
             candidates=candidates,
         ),
-        accept=lambda detections: _text_found(detections, expect),
+        accept=lambda detections: _text_found(detections, expect) != absent,
         attempts=attempts,
         interval_seconds=interval_seconds,
     )
@@ -207,8 +215,11 @@ def expect_pixels(
     with_details: bool = False,
     attempts: int = DEFAULT_RECOGNITION_ATTEMPTS,
     interval_seconds: float = DEFAULT_RECOGNITION_INTERVAL_SECONDS,
+    absent: bool = False,
 ) -> RecognitionResult[PixelMatchResult]:
-    """前识别：重试像素匹配，直到调用方给的签名判定命中。
+    """重试像素匹配，直到签名判定满足调用方预期。
+
+    absent 决定断言方向：默认期望签名命中，为真时期望签名不再命中。
 
     Args:
         ctx: 提供设备服务和截图事实写入的统一 ContextHandle。
@@ -217,9 +228,10 @@ def expect_pixels(
         with_details: 是否要求结果包含逐规则详情。
         attempts: 最大识别次数。
         interval_seconds: 两次识别之间的等待秒数。
+        absent: 期望签名不再命中时为真。
 
     Returns:
-        satisfied 表示签名是否命中；observation 是最后一次像素匹配结果。
+        satisfied 表示断言是否满足；observation 是最后一次像素匹配结果。
     """
     return _retry(
         ctx,
@@ -230,124 +242,7 @@ def expect_pixels(
             roi=roi,
             with_details=with_details,
         ),
-        accept=lambda result: result.matched,
-        attempts=attempts,
-        interval_seconds=interval_seconds,
-    )
-
-
-def expect_template_absent(
-    ctx: ContextHandle,
-    *,
-    template: Template | Sequence[Template],
-    roi: ROI | Sequence[ROI | None] | None = None,
-    confidence: float = OPENCV_TEMPLATE_CONFIDENCE,
-    min_matches: int = 1,
-    attempts: int = DEFAULT_RECOGNITION_ATTEMPTS,
-    interval_seconds: float = DEFAULT_RECOGNITION_INTERVAL_SECONDS,
-) -> RecognitionResult[list[TemplateMatchResult]]:
-    """后识别：重试模板匹配，直到命中数量低于预期，确认目标已经消失。
-
-    Args:
-        ctx: 提供设备服务和截图事实写入的统一 ContextHandle。
-        template: 单个模板，或需要逐个匹配的一组模板。
-        roi: 共享搜索区域，或与模板一一对应的区域序列。
-        confidence: 期望的匹配置信度，模板分数达到它才算命中。
-        min_matches: 期望命中的模板数量。
-        attempts: 最大确认次数。
-        interval_seconds: 两次确认之间的等待秒数。
-
-    Returns:
-        satisfied 表示是否确认目标已经消失；observation 是最后一次匹配结果列表。
-    """
-    required = _required_matches(min_matches)
-    # 后识别确认目标消失，因此命中数量低于预期才算符合预期。
-    return _retry(
-        ctx,
-        task='模板识别',
-        observe=lambda frame: match_templates(frame, template, roi=roi, confidence=confidence),
-        accept=lambda matches: _matched_count(matches) < required,
-        attempts=attempts,
-        interval_seconds=interval_seconds,
-    )
-
-
-def expect_ocr_absent(
-    ctx: ContextHandle,
-    *,
-    expect: str | Sequence[str],
-    roi: ROI | None = None,
-    allowlist: str = '',
-    recognition_profile: str = 'full',
-    candidates: Sequence[str] | None = None,
-    attempts: int = DEFAULT_RECOGNITION_ATTEMPTS,
-    interval_seconds: float = DEFAULT_RECOGNITION_INTERVAL_SECONDS,
-) -> RecognitionResult[list[TextDetection]]:
-    """后识别：重试 OCR，直到期望文本不再出现，确认操作已经生效。
-
-    Args:
-        ctx: 提供设备服务和截图事实写入的统一 ContextHandle。
-        expect: 期望已经消失的完整文本，或候选集合；候选集合全部不出现才算符合预期。
-        roi: OCR 识别区域。
-        allowlist: 允许识别的字符集合。
-        recognition_profile: OCR 识别配置名称。
-        candidates: OCR 完整文本候选集合。
-        attempts: 最大确认次数。
-        interval_seconds: 两次确认之间的等待秒数。
-
-    Returns:
-        satisfied 表示期望文本是否已经消失；observation 是最后一次 OCR 结果。
-    """
-    # 后识别确认文本消失，因此期望文本不再出现才算符合预期。
-    return _retry(
-        ctx,
-        task='OCR 识别',
-        observe=lambda frame: recognize_text(
-            frame,
-            roi=roi,
-            allowlist=allowlist,
-            recognition_profile=recognition_profile,
-            candidates=candidates,
-        ),
-        accept=lambda detections: not _text_found(detections, expect),
-        attempts=attempts,
-        interval_seconds=interval_seconds,
-    )
-
-
-def expect_pixels_absent(
-    ctx: ContextHandle,
-    *,
-    signature: PixelSignature | CompositePixelSignature,
-    roi: ROI | None = None,
-    with_details: bool = False,
-    attempts: int = DEFAULT_RECOGNITION_ATTEMPTS,
-    interval_seconds: float = DEFAULT_RECOGNITION_INTERVAL_SECONDS,
-) -> RecognitionResult[PixelMatchResult]:
-    """后识别：重试像素匹配，直到签名不再命中，确认操作已经生效。
-
-    Args:
-        ctx: 提供设备服务和截图事实写入的统一 ContextHandle。
-        signature: 调用方定义的像素规则或规则组合。
-        roi: 采样区域。
-        with_details: 是否要求结果包含逐规则详情。
-        attempts: 最大确认次数。
-        interval_seconds: 两次确认之间的等待秒数。
-
-    Returns:
-        satisfied 表示签名是否已经不再命中；observation 是最后一次像素匹配结果。
-    """
-    # 后识别确认状态变化，因此签名不再命中才算符合预期。
-    return _retry(
-        ctx,
-        task='像素识别',
-        observe=lambda frame: match_pixels(
-            frame,
-            signature,
-            roi=roi,
-            with_details=with_details,
-        ),
-        accept=lambda result: not result.matched,
+        accept=lambda result: result.matched != absent,
         attempts=attempts,
         interval_seconds=interval_seconds,
     )
@@ -451,11 +346,8 @@ def _validate_retry_options(attempts: int, interval_seconds: float) -> None:
 __all__ = [
     'RecognitionResult',
     'expect_ocr',
-    'expect_ocr_absent',
     'expect_pixels',
-    'expect_pixels_absent',
     'expect_template',
-    'expect_template_absent',
     'expect_template_center',
     'shot',
 ]

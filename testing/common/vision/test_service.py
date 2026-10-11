@@ -21,15 +21,13 @@ from autowsgr.common.vision.ocr_engine import TextDetection
 
 
 def test_public_service_exports_are_stable() -> None:
-    """公共入口只暴露七个识别功能和识别数据模型。"""
+    """公共入口只暴露识别功能与识别数据模型。"""
     entries = (
         'shot',
         'expect_template',
         'expect_ocr',
         'expect_pixels',
-        'expect_template_absent',
-        'expect_ocr_absent',
-        'expect_pixels_absent',
+        'expect_template_center',
     )
     for entry in entries:
         assert callable(getattr(vision, entry))
