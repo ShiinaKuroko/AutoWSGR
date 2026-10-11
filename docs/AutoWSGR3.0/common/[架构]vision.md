@@ -67,7 +67,7 @@ autowsgr/common/vision/
 | `adapters/text_recognition.py` | OCR 预处理、识别模式、候选约束和计数解析 | 领域词典和设备截图 |
 | `adapters/__init__.py` | 聚合可复用组合函数 | 复制或重写组合实现 |
 
-唯一的运行时状态由其使用者持有：`service.numpy` 和 `service.opencv` 持有基础执行器实例，`pixel_matching._MATCHER` 和 `template_matching._MATCHER` 持有组合器实例，`text_recognition._ocr_executor` 缓存 OCR 执行器。配置模块不持有这些状态。
+唯一的运行时状态由其使用者持有：`pixel_matching._MATCHER` 和 `template_matching._MATCHER` 持有组合器实例，`text_recognition._OPENCV` 持有 OpenCV 执行器，`text_recognition._ocr_executor` 缓存 OCR 执行器。配置模块和 `service.py` 不持有这些状态。
 
 ### 2.3 依赖方向
 
@@ -306,7 +306,7 @@ signature = PixelSignature(
     name='home_ready',
     rules=(PixelRule(0.5, 0.5, Color(10, 20, 30)),),
 )
-result = adapters.pixel_matching.match_pixels(screen, signature)
+pixel_result = adapters.pixel_matching.match_pixels(screen, signature)
 ```
 
 ### 7.4 错误和副作用
@@ -362,7 +362,7 @@ template = Template(
     image=template_image,
     source_resolution=(1280, 720),
 )
-result = adapters.template_matching.match_template(screen, template, confidence=0.85)
+template_result = adapters.template_matching.match_template(screen, template, confidence=0.85)
 ```
 
 ### 8.4 错误和副作用

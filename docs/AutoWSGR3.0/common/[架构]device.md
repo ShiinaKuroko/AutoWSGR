@@ -95,7 +95,7 @@ Scrcpy，Scrcpy 执行器不直接负责设备发现，平台生命周期不负�
 from autowsgr.common import device
 
 device_service = device.service.DeviceService()
-info = device_service.connect()
+device_info = device_service.connect()
 
 try:
     device_service.click(0.5, 0.5)
@@ -210,7 +210,7 @@ resolve_device_serial(config)
     ↓
 connect_adb_device(serial)
     ↓
-connect_scrcpy(adb_device, serial)
+connect_scrcpy(device, serial)
     ↓
 写回 session.serial / session.adb_device
 ~~~

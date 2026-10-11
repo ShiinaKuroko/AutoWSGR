@@ -155,7 +155,7 @@ from pathlib import Path
 from autowsgr.common import system
 
 path = Path('data/state.yaml')
-data = system.files.load_yaml(path, allowed_root=path.parent)
+yaml_mapping = system.files.load_yaml(path, allowed_root=path.parent)
 ~~~
 
 契约：
@@ -188,7 +188,7 @@ system.files.save_yaml(
 
 ~~~text
 save_yaml(
-    data: dict[str, Any],
+    yaml_mapping: dict[str, Any],
     path: str | Path,
     *,
     allowed_root: str | Path,
@@ -311,6 +311,9 @@ setup_logger(config: LogConfig | None = None) -> None
 config.py 是统一配置模型文件，不是某个能力的私有配置文件。配置字段通过模块
 前缀区分所有权，当前日志字段使用 LOG_ 前缀；以后只有确实需要可调整行为的
 能力才能增加对应前缀。
+
+config.py 同时定义日志时区常量 LOG_TIMEZONE，供 LogConfig 目录命名和 logger 记录时间
+共用，保证这个值只有一个定义源。
 
 当前模型为 LogConfig，因为现阶段只有日志配置。它不读取 usersettings.yaml，
 只负责保存已传入的字段、默认值和校验结果。
