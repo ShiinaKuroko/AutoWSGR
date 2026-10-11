@@ -35,12 +35,12 @@ _log = get_logger('device.engine.scrcpy')
 # Scrcpy server 与执行代码由 scrcpy_engine 私有持有。
 _SCRCPY_ENGINE_DIR = Path(__file__).resolve().parent
 _SCRCPY_SERVER_FILE = _SCRCPY_ENGINE_DIR / 'scrcpy-server.jar'
-_SCRCPY_SERVER_VERSION = '2.7'
+_SCRCPY_SERVER_VERSION = '5.0.1'
 _DEVICE_JAR_PATH = '/data/local/tmp/scrcpy-server.jar'
 
 # ── scrcpy 控制协议 ─────────────────────────────────────────────────────────
 
-# 协议常量对应 scrcpy 2.7 的 control_msg.h / control_msg.c。
+# 协议常量对应 scrcpy 5.0.1 的 control_msg.h / control_msg.c。
 
 # 控制消息类型。
 _TYPE_INJECT_KEYCODE = 0
@@ -100,6 +100,8 @@ class ScrcpyEngine:
 
         self._device: AdbDevice | None = None
         self._resolution: tuple[int, int] = (0, 0)
+        # 截图目标显示器；多显示器模拟器在连接后由上层跟随应用切换。
+        self._display_id = 0
         self._last_frame: numpy.ndarray | None = None
 
         # scrcpy 连接状态。
@@ -375,6 +377,7 @@ class ScrcpyEngine:
             f'video_bit_rate={self._bitrate}',
             f'max_fps={self._max_fps}',
             'video_codec=h264',
+            f'display_id={self._display_id}',
             'send_device_meta=false',
             'send_frame_meta=false',
             'send_codec_meta=false',
@@ -579,6 +582,24 @@ class ScrcpyEngine:
 
         self._alive = False
         self._frame_ready.clear()
+
+    def reconnect_to_display(self, display_id: int) -> None:
+        """切换截图目标显示器并重建视频流。
+
+        目标显示器与当前相同时不重连，避免每次启动应用都白重建一次通道。
+
+        Args:
+            display_id: 目标显示器编号。
+
+        Raises:
+            DeviceConnectionError: 重建后仍拿不到首帧。
+        """
+        with self._reconnect_lock:
+            if display_id == self._display_id and self._alive:
+                return
+            self._display_id = display_id
+            _log.info('[DEVICE] scrcpy 服务 → 切换显示器：display_id={}，结果=重连', display_id)
+            self._reconnect_scrcpy_stream()
 
     def _reconnect_scrcpy_stream(self) -> None:
         """在保持 ADB 设备连接的前提下重建 scrcpy 视频流与控制流。"""

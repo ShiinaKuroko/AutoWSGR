@@ -7,6 +7,7 @@
 
 from __future__ import annotations
 
+import re
 from typing import TYPE_CHECKING
 
 
@@ -120,6 +121,30 @@ def _check_application_running(session: DeviceSession, package: str) -> bool:
         应用进程存在时为 True。
     """
     return package in _execute_shell_command(session, 'ps -A')
+
+
+def _find_application_display(session: DeviceSession, package: str) -> int | None:
+    """查找应用当前前台的显示器编号。
+
+    多显示器模拟器（如 MuMu 的独立屏）会把应用放到非默认显示器上，截图必须跟随，
+    否则只能截到默认显示器上的桌面。
+
+    Args:
+        session: 当前设备会话。
+        package: Android 应用包名。
+
+    Returns:
+        应用所在显示器编号；应用不在任何显示器前台时为 None。
+    """
+    dump = _execute_shell_command(session, 'dumpsys activity activities')
+    current_display: int | None = None
+    for line in dump.splitlines():
+        display_match = re.match(r'\s*Display #(\d+)', line)
+        if display_match is not None:
+            current_display = int(display_match.group(1))
+        if 'topResumedActivity' in line and package in line:
+            return current_display
+    return None
 
 
 def _execute_shell_command(session: DeviceSession, cmd: str) -> str:

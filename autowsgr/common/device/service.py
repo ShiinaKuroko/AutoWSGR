@@ -7,6 +7,7 @@
 
 from __future__ import annotations
 
+import time
 from typing import TYPE_CHECKING
 
 from autowsgr.common.device.config import DeviceConfig
@@ -18,6 +19,11 @@ from autowsgr.common.device.device_engine.orchestration import (
     screenshot,
 )
 from autowsgr.common.device.device_engine.orchestration.connection import DeviceInfo
+
+
+# 等待应用出现在某块显示器上的超时与轮询间隔，单位为秒。
+_APPLICATION_DISPLAY_TIMEOUT_SECONDS = 15.0
+_APPLICATION_DISPLAY_POLL_SECONDS = 0.5
 
 
 if TYPE_CHECKING:
@@ -39,8 +45,11 @@ class DeviceService:
 
     # ── 连接模拟器 ─────────────────────────────────────────────────────────
 
-    def connect(self) -> DeviceInfo:
+    def connect(self, package: str | None = None) -> DeviceInfo:
         """连接设备并完成 ADB、Scrcpy、视频和控制通道初始化。
+
+        Args:
+            package: 已知的主应用包名；给出时会跟随它所在的显示器。
 
         Returns:
             已建立连接的 serial 和设备分辨率。
@@ -48,7 +57,10 @@ class DeviceService:
         Raises:
             DeviceConnectionError: 设备发现、ADB 或 Scrcpy 连接失败。
         """
-        return connection._connect_device(self._session)
+        info = connection._connect_device(self._session)
+        if package is not None:
+            self._follow_application_display(package)
+        return info
 
     # ── 操作模拟器 ─────────────────────────────────────────────────────────
 
@@ -113,12 +125,32 @@ class DeviceService:
         operation._input_text(self._session, content, delay=delay)
 
     def start_app(self, package: str) -> None:
-        """启动指定的 Android 应用。
+        """启动指定的 Android 应用，并让截图跟随它所在的显示器。
 
         Args:
             package: Android 应用包名。
         """
         operation._start_application(self._session, package)
+        self.follow_display(package)
+
+    def follow_display(self, package: str) -> None:
+        """让截图目标跟随应用所在的显示器。
+
+        多显示器模拟器（如 MuMu 的独立屏）会把应用放到非默认显示器上，而 scrcpy 默认只镜像
+        0 号屏；不跟随就只能截到桌面。应用刚启动时那块屏还没建立，因此这里轮询等待。
+
+        Args:
+            package: Android 应用包名。
+        """
+        deadline = time.monotonic() + _APPLICATION_DISPLAY_TIMEOUT_SECONDS
+        while True:
+            display_id = operation._find_application_display(self._session, package)
+            if display_id is not None:
+                self._session.scrcpy.reconnect_to_display(display_id)
+                return
+            if time.monotonic() >= deadline:
+                return
+            time.sleep(_APPLICATION_DISPLAY_POLL_SECONDS)
 
     def stop_app(self, package: str) -> None:
         """停止指定的 Android 应用。

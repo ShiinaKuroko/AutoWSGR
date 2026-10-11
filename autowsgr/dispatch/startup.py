@@ -48,6 +48,8 @@ def ensure_ready(ctx: ContextHandle) -> None:
     # 1. 游戏没运行才走启动流程；已经在跑就直接靠导航器回到主页。
     if not _is_game_running(ctx):
         navigator.ensure_started()
+    else:
+        _follow_game_display(ctx)
 
     # 2. 三种入口状态统一收口到导航器的回主页。
     try:
@@ -59,6 +61,19 @@ def ensure_ready(ctx: ContextHandle) -> None:
         _log.warning('[DISPATCH] 启动 → 重启：reason={!r}，result=restart', str(error))
         navigator.restart_game()
         navigator.navigate_to(PageName.HOME)
+
+
+def _follow_game_display(ctx: ContextHandle) -> None:
+    """让设备截图跟随游戏所在的显示器。
+
+    多显示器模拟器（如 MuMu 的独立屏）会把游戏放到非默认显示器上，而 scrcpy 默认只镜像
+    0 号屏；游戏已经在跑时也必须跟随，否则后续识别全部读的是桌面帧。
+
+    Args:
+        ctx: 提供设备服务与配置的 dispatch 上下文句柄。
+    """
+    package = ctx.runtime.config.account.package_name
+    ctx.runtime.ctrl.follow_display(package)
 
 
 def _is_game_running(ctx: ContextHandle) -> bool:
