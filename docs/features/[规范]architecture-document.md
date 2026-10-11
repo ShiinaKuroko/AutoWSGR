@@ -2,9 +2,9 @@
 
 状态：生效
 
-适用范围：各代码模块目录下的 `[架构]<模块名>.md` 模块架构说明文档。
+适用范围：各代码模块目录下的 `<模块名>.md` 模块架构说明文档。
 
-本规范以 `[架构]common-system.md` 为结构基准，抽象出所有模块架构文档必须遵守
+本规范以 `common/system.md` 为结构基准，抽象出所有模块架构文档必须遵守
 的内容、顺序和验收要求。模块的具体业务语义由各模块文档填写，本规范不替代模块
 专项规范。
 
@@ -37,14 +37,14 @@
 架构文档统一放在 `docs/AutoWSGR3.0/` 下，**目录层级与代码一一对应**：顶层按四个业务域分
 `common/`、`dispatch/`、`application/`、`business/`，往下逐级复制模块的代码路径。
 
-文档放在被描述模块的**父目录**，文件名 `[架构]<模块名>.md`。
+文档放在被描述模块的**父目录**，文件名 `<模块名>.md`。
 
 ```text
-docs/AutoWSGR3.0/common/[架构]system.md                                        # 描述 autowsgr/common/system/
-docs/AutoWSGR3.0/common/[架构]vision.md                                        # 描述 autowsgr/common/vision/
-docs/AutoWSGR3.0/application/ui/controller/home/[架构]main_page.md              # 描述 .../controller/home/main_page/
-docs/AutoWSGR3.0/application/ui/controller/operations/sortie_page/[架构]main_page.md
-docs/AutoWSGR3.0/application/ui/navigation/page_checker/[架构]event_checker.md
+docs/AutoWSGR3.0/common/system.md                                        # 描述 autowsgr/common/system/
+docs/AutoWSGR3.0/common/vision.md                                        # 描述 autowsgr/common/vision/
+docs/AutoWSGR3.0/application/ui/controller/home/main_page.md              # 描述 .../controller/home/main_page/
+docs/AutoWSGR3.0/application/ui/controller/operations/sortie_page/main_page.md
+docs/AutoWSGR3.0/application/ui/navigation/page_checker/event_checker.md
 ```
 
 `<模块名>` 必须与代码目录名一致，不使用宽泛的 `common`、`core`、`utils` 或 `manager`
@@ -53,9 +53,9 @@ docs/AutoWSGR3.0/application/ui/navigation/page_checker/[架构]event_checker.md
 示例：
 
 ```text
-docs/AutoWSGR3.0/common/[架构]system.md
-docs/AutoWSGR3.0/common/[架构]device.md
-docs/AutoWSGR3.0/dispatch/context/[架构]context.md
+docs/AutoWSGR3.0/common/system.md
+docs/AutoWSGR3.0/common/device.md
+docs/AutoWSGR3.0/dispatch/context/context.md
 ```
 
 ### 1.2 文件开头
@@ -80,8 +80,8 @@ docs/AutoWSGR3.0/dispatch/context/[架构]context.md
 
 | 代码单元 | 文档位置 | 文档名 |
 | --- | --- | --- |
-| 包目录 `A/B/` | `docs/AutoWSGR3.0/…/A/` | `[架构]B.md` |
-| 模块文件 `A/C.py` | `docs/AutoWSGR3.0/…/A/` | `[架构]C.md` |
+| 包目录 `A/B/` | `docs/AutoWSGR3.0/…/A/` | `B.md` |
+| 模块文件 `A/C.py` | `docs/AutoWSGR3.0/…/A/` | `C.md` |
 
 以下代码单元**不单独建文档**，写进所属包目录的文档：
 
@@ -93,10 +93,10 @@ docs/AutoWSGR3.0/dispatch/context/[架构]context.md
 
 | 子项 | 类型 | 文档 | 职责 |
 | --- | --- | --- | --- |
-| `registry.py` | 文件 | [registry](<./[架构]registry.md>) | 页面确认与可达边注册 |
-| `service.py` | 文件 | [service](<./[架构]service.md>) | 算路、浮窗与启动段 |
+| `registry.py` | 文件 | [registry](<./registry.md>) | 页面确认与可达边注册 |
+| `service.py` | 文件 | [service](<./service.md>) | 算路、浮窗与启动段 |
 | `types.py` | 数据文件 | 本文件「文件职责表」 | 页面名与导航错误 |
-| `page_checker/` | 子目录 | [page_checker](<./[架构]page_checker.md>) | 各页面识别 |
+| `page_checker/` | 子目录 | [page_checker](<./page_checker.md>) | 各页面识别 |
 
 漏项即视为文档缺陷，不允许用“其他文件略”代替。
 
@@ -104,15 +104,15 @@ docs/AutoWSGR3.0/dispatch/context/[架构]context.md
 
 架构文档之间通过引用组成可跳转的知识库，替代把细节堆在一份文档里：
 
-1. **只引架构文档**：只能链接 `docs/AutoWSGR3.0/` 下的 `[架构]*.md`。
+1. **只引架构文档**：只能链接 `docs/AutoWSGR3.0/` 下的 `*.md`。
    不引用任务书、todo、知识、台账、计划、评审、已完成等过程性文档；需要其中的结论时，
    把结论写进本模块文档，而不是转引。
 2. **只引直接关系**：父文档只引用直接子项；模块之间只引用直接协作方。不跳级引用
    （`navigation` 不直接链到 `stage_push`），不列完整依赖树。
 3. **引用方向与代码依赖方向一致**：下层文档不引用上层。
 4. **必须给可点击链接**，不用“见 xxx 文档”这类纯文字表述。
-5. **路径含方括号时用尖括号包住**：`[registry](<./[架构]registry.md>)`；不这么写
-   Markdown 无法解析，会变成死链。
+5. **链接路径统一用尖括号包住**：`[registry](<./registry.md>)`。路径里出现空格、
+   方括号等特殊字符时这是唯一能正确解析的写法，统一这么写省得记。
 6. **必引场景**：
    - 本模块用到的下层能力 → 引下层架构文档的对应能力章节；
    - 本模块注册进的框架（注册表、工厂、钩子）→ 引该框架的架构文档；
@@ -122,7 +122,7 @@ docs/AutoWSGR3.0/dispatch/context/[架构]context.md
 
 ### 1.5 顶层索引
 
-`docs/AutoWSGR3.0/[架构]index.md` 是整个架构知识库的入口，只负责导航，不写实现细节：
+`docs/AutoWSGR3.0/README.md` 是整个架构知识库的入口，只负责导航，不写实现细节：
 
 1. 分层架构图，标明各层名称和职责；
 2. 层级索引表：`层 | 包路径 | 职责 | 模块文档`，每个模块一个链接；
@@ -207,8 +207,8 @@ autowsgr/<layer>/<module>/
 | 文件/目录 | 文档 | 负责内容 | 不负责内容 |
 | --- | --- | --- | --- |
 | `__init__.py` | 本表说明 | 稳定出口 | 业务实现和隐式初始化 |
-| `<file>.py` | [<file>](<./[架构]<file>.md>) | <明确职责> | <明确排除项> |
-| `<subdir>/` | [<subdir>](<./[架构]<subdir>.md>) | <子模块职责> | <明确排除项> |
+| `<file>.py` | [<file>](<./<file>.md>) | <明确职责> | <明确排除项> |
+| `<subdir>/` | [<subdir>](<./<subdir>.md>) | <子模块职责> | <明确排除项> |
 
 每个运行时状态只能有一个文件或对象作为权威所有者。文档必须指出这个所有者。
 

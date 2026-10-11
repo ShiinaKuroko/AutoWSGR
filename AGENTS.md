@@ -23,10 +23,10 @@
    - `docs/features/[规范]ui-code-style.md`
    - `docs/features/[规范]dispatch-context临时规范.md`
 2. 架构说明：
-   - `docs/AutoWSGR3.0/common/[架构]system.md`
-   - `docs/AutoWSGR3.0/common/[架构]device.md`
-   - `docs/AutoWSGR3.0/common/[架构]vision.md`
-   - `docs/AutoWSGR3.0/application/ui/navigation/[架构]navigation.md`
+   - `docs/AutoWSGR3.0/common/system.md`
+   - `docs/AutoWSGR3.0/common/device.md`
+   - `docs/AutoWSGR3.0/common/vision.md`
+   - `docs/AutoWSGR3.0/application/ui/navigation/navigation.md`
 
 模块级规范先于架构说明。出现无法消解的规范冲突时暂停当前改动并报告，不自行猜测。
 

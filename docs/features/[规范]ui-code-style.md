@@ -46,7 +46,7 @@ page → 私有 operation / recognition → common
 统一以 docs/features/[规范]python-code-style.md 为准；本文件只定义页面模块的职责、
 规模扩展和依赖边界，不重复通用规则。
 
-本规范约束导航器与页面控制器的代码和相互调用，不替代 `[架构]navigation.md` 的设计说明、
+本规范约束导航器与页面控制器的代码和相互调用，不替代 `navigation.md` 的设计说明、
 业务任务、运行时上下文或 common 层自身的规范。页面模块的公共入口必须稳定，
 具体业务契约仍以实现和测试为准。
 
