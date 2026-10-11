@@ -42,6 +42,7 @@ _log = get_logger('ui.navigation')
 # ── 启动流程参数 ────────────────────────────────────────────────────────────
 
 # 拉起 App 后等进程出现的超时与轮询间隔，单位为秒；进程一出现就立刻往下走。
+_POPUP_SETTLE_SECONDS = 1.5
 _APP_PROCESS_TIMEOUT_SECONDS = 30.0
 _APP_PROCESS_POLL_SECONDS = 0.5
 # 等健康游戏提示出现的最大识别次数，以及相邻两次识别的间隔秒数。
@@ -91,17 +92,18 @@ class NavigationService:
                 self._handle_daily_popup(session)
             return
 
-        path = registry.find_path(source, target)
-        if self._passes_home(source, path):
+        # 从主页出发前先清浮窗，避免它挡住主页上的识别。
+        if source is PageName.HOME:
             self._handle_daily_popup(session)
-            source = self._current_page()
-            if source == target:
-                return
-            path = registry.find_path(source, target)
 
+        path = registry.find_path(source, target)
         _log.info('[UI] 导航 → 开始：source={!r}，target={!r}', source.value, target.value)
         self._walk(path, params)
         _log.info('[UI] 导航 → 完成：target={!r}', target.value)
+        # 到达主页后才处理每日浮窗：出发时浮窗往往还没加载出来，提前处理会把「今日已处理」
+        # 的标记消耗在浮窗尚不存在的那一刻。
+        if target is PageName.HOME:
+            self._handle_daily_popup(session)
 
     def navigate_back(self) -> None:
         """回退到上一个页面。
@@ -120,9 +122,9 @@ class NavigationService:
         target = PageName(previous)
         _log.info('[UI] 导航 → 回退：source={!r}，target={!r}', current.value, target.value)
         path = registry.find_path(current, target)
-        if self._passes_home(current, path):
-            self._handle_daily_popup(session)
         self._walk(path, {})
+        if target is PageName.HOME:
+            self._handle_daily_popup(session)
 
     # ── 启动流程 ────────────────────────────────────────────────────────────
 
@@ -290,17 +292,14 @@ class NavigationService:
                 return page
         raise NavigationError('无法识别当前页面')
 
-    @staticmethod
-    def _passes_home(source: PageName, path: tuple[NavTarget, ...]) -> bool:
-        """判断本次导航是否经过首页。"""
-        if source is PageName.HOME:
-            return True
-        return any(edge.target is PageName.HOME for edge in path)
-
     def _handle_daily_popup(self, session: SessionState) -> None:
-        """经过首页时处理每日弹窗：公告与奖励各自独立检测。"""
+        """到达首页时处理每日弹窗：公告与奖励各自独立检测。
+
+        刚到达时浮窗可能还没加载出来，因此先等一个短间隔；本能力每天只跑一次。
+        """
         if session.daily_popup_handled:
             return
+        time.sleep(_POPUP_SETTLE_SECONDS)
         self._handle_daily_news()
         self._handle_daily_reward()
         session.mark_daily_popup_handled()
