@@ -66,6 +66,7 @@ def _accept_all(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(home_checker, 'check_home_reward_overlay', lambda _ctx: False)
     # 换区入口先识别中心、识别不到才退回固定落点；替身统一走兜底。
     monkeypatch.setattr(login_checker, 'read_switch_entry_center', lambda _ctx: None)
+    monkeypatch.setattr(login_checker, 'read_enter_button_center', lambda _ctx: None)
 
 
 def test_find_path_multi_hop() -> None:
