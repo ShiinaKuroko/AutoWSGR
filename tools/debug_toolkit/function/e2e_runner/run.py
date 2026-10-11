@@ -101,14 +101,20 @@ def print_case_list(cases: dict[str, Any]) -> None:
 def split_argv(argv: list[str]) -> tuple[list[str], str | None, list[str]]:
     """把 argv 切成 (全局参数, case 名, case 参数)。
 
-    规则: 从左向右扫描, 跳过全局 flag; ``--serial``/``--config`` 带一个值;
+    规则: 从左向右扫描, 跳过全局 flag; 下面带值的全局参数各占两个 token;
     第一个非 ``-`` 开头的 token 视为 case 名, 其后全部归 case 参数。
     """
+    valued_options = {
+        '--serial',
+        '--config',
+        '--event-type',
+        '--event-stage',
+    }
     i = 0
     while i < len(argv):
         tok = argv[i]
-        if tok in {'--serial', '--config'} and i + 1 < len(argv):
-            i += 2  # --serial 及其值
+        if tok in valued_options and i + 1 < len(argv):
+            i += 2  # 带值的全局参数及其值
             continue
         if tok.startswith('-'):
             i += 1
