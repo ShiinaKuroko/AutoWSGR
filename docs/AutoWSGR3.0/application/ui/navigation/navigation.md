@@ -227,10 +227,59 @@ def check_xxx_page(
 **与 dispatch 的分工**：dispatch 决定何时启动、何时 SL、按配置决定是否换区；导航器负责识别与点击。
 因此 **dispatch 的代码里不出现任何 checker 调用**。
 
-## 11. 变更记录
+## 11. 当前导航图（2026-10-12）
+
+**已接入**：9 个页面、12 条边（`PageName` 有成员 + `_PAGE_CHECKERS` 有注册 + `_NAV_TARGETS` 有边）。
+
+| 页面 | `PageName` | 识别入口 |
+| --- | --- | --- |
+| 登录页 | `LOGIN_PAGE` | `login_checker.check_login_page` |
+| 区服选择页 | `SERVER_SELECT` | `login_checker.check_server_select` |
+| 主页（**不含浮窗**） | `HOME` | `home_checker.check_home_page` |
+| 每日公告浮窗 | `HOME_NEWS` | `home_checker.check_home_news_page` |
+| 每日奖励浮窗 | `HOME_REWARD` | `home_checker.check_home_reward_page` |
+| 奖励确认浮窗 | `HOME_REWARD_CONFIRM` | `home_checker.check_home_reward_confirm_page` |
+| 出征页 | `SORTIE_MAP` | `sortie_checker.check_sortie_page` |
+| 活动地图 | `EVENT_MAP` | `stage_push.check_event_map_page` |
+| 活动章节浮窗 | `EVENT_STAGE_OVERLAY` | `stage_push.check_event_sortie_prepare` |
+
+```text
+登录页面 → 区服选择页面
+登录页面 → 每日公告弹窗        confirm=False
+区服选择页面 → 登录页面        收区服名，位置内部现算
+主页面 → 出征页面
+主页面 → 活动页面
+出征页面 → 每日公告弹窗        confirm=False
+活动页面 → 每日公告弹窗        confirm=False
+活动页面 → 活动章节浮窗
+活动章节浮窗 → 活动页面
+每日公告弹窗 → 每日奖励弹窗     confirm=False
+每日奖励弹窗 → 每日奖励确认     confirm=False
+每日奖励确认 → 主页面          链尾做真确认
+```
+
+**尚未接入**（`PageName` 里有名字，但没进门）：
+
+| 情况 | 页面 |
+| --- | --- |
+| checker 已存在、只是没注册 | `EXERCISE`、`EXPEDITION`、`CAMPAIGN`、`DECISIVE_BATTLE` |
+| 连 checker 都还没有 | `SIDEBAR`、`MISSION`、`BACKYARD`、`BATH`、`CANTEEN`、`BUILD`、`INTENSIFY`、`FRIEND`、`SHIP_SELECTION`、`BATTLE_PREPARATION` |
+
+对未接入的页面调 `navigate_to` 会抛「没有可达路径」——**不是坏了，是还没接**，按 §3 四步补上即可。
+
+**程序运行期状态**（`dispatch/session.py`）：
+
+| 字段 | 用途 | 生命周期 |
+| --- | --- | --- |
+| `_pages` | 导航栈，只保留最近 8 层（`_MAX_PAGES`） | 进程级；SL 后清空 |
+| `_server_selected` | 本次运行是否已换过区 | 进程级；SL 后**保留** |
+
+## 12. 变更记录
 
 | 日期 | 变更 |
 | --- | --- |
 | 2026-10-12 | 重写为维护视角：以注册中心为核心，补「接新页面四步 + 完整示例」与维护速查表 |
+| 2026-10-12 | 新增 §11 当前导航图：9 个已接入页面、12 条边、未接入清单与进程级状态字段；
+| | 记录 `PageName` 语义统一（`BATTLE_PREP`→`BATTLE_PREPARATION`、`CHOOSE_SHIP`→`SHIP_SELECTION`、删 `CHOOSE_REPAIR`） |
 | 2026-10-12 | 新增 §6 每日浮窗链：三个浮窗页 + `confirm=False` 的中间步 + 回主页边改指向公告；
 | | 每跳由五步改为四步（到达前钩子已移除） |
