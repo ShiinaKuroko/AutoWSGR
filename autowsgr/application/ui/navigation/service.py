@@ -41,8 +41,9 @@ _log = get_logger('ui.navigation')
 
 # ── 启动流程参数 ────────────────────────────────────────────────────────────
 
-# 拉起 App 后等待进程进入启动画面的时间，单位为秒。
-_STARTUP_SETTLE_SECONDS = 5.0
+# 拉起 App 后等进程出现的超时与轮询间隔，单位为秒；进程一出现就立刻往下走。
+_APP_PROCESS_TIMEOUT_SECONDS = 30.0
+_APP_PROCESS_POLL_SECONDS = 0.5
 # 等健康游戏提示出现的最大识别次数，以及相邻两次识别的间隔秒数。
 _STARTUP_ATTEMPTS = 120
 _STARTUP_INTERVAL_SECONDS = 1.0
@@ -132,11 +133,12 @@ class NavigationService:
         ctrl = self._ctx.runtime.ctrl
         package = self._ctx.runtime.config.account.package_name
 
-        # 1. 游戏没运行就先拉起，等待进程进入启动画面。
+        # 1. 游戏没运行就先拉起，进程一出现就立刻往下走，不固定等待。
         if not ctrl.is_app_running(package):
             _log.info('[UI] 启动 → 拉起游戏：package={!r}', package)
             ctrl.start_app(package)
-            time.sleep(_STARTUP_SETTLE_SECONDS)
+            if not self._wait_for_app_process(package):
+                raise NavigationError('启动超时：游戏进程未起来')
 
         # 2. 等健康游戏提示出现，再确认它已经切走。
         if not login_checker.check_black_screen(
@@ -200,6 +202,25 @@ class NavigationService:
         self.ensure_started()
 
     # ── 内部实现 ────────────────────────────────────────────────────────────
+
+    def _wait_for_app_process(self, package: str) -> bool:
+        """等游戏进程出现。
+
+        进程一出现就返回，不做固定秒数的空等——固定等待很可能正好错开启动画面。
+
+        Args:
+            package: Android 包名。
+
+        Returns:
+            超时前进程出现时为真。
+        """
+        ctrl = self._ctx.runtime.ctrl
+        deadline = time.monotonic() + _APP_PROCESS_TIMEOUT_SECONDS
+        while time.monotonic() < deadline:
+            if ctrl.is_app_running(package):
+                return True
+            time.sleep(_APP_PROCESS_POLL_SECONDS)
+        return False
 
     def _select_server(self) -> None:
         """按用户设置完成一次区服选择；本次运行已选过则跳过。
