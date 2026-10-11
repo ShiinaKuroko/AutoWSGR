@@ -14,6 +14,10 @@ from __future__ import annotations
 class SessionState:
     """程序运行期内的导航会话状态。"""
 
+    # 只保留最近若干层页面：更老的历史既不影响算路（只看栈顶），也回退不到，
+    # 留着只会随运行时间无限增长。
+    _MAX_PAGES = 8
+
     def __init__(self) -> None:
         self._server_selected = False
         self._pages: list[str] = []
@@ -32,8 +36,9 @@ class SessionState:
         return self._pages[-1] if self._pages else None
 
     def push_page(self, page: str) -> None:
-        """把页面压入导航栈。"""
+        """把页面压入导航栈，只保留最近若干层。"""
         self._pages.append(page)
+        del self._pages[: -self._MAX_PAGES]
 
     def pop_page(self) -> str | None:
         """弹出导航栈顶的页面值。"""
