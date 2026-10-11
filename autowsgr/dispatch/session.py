@@ -49,6 +49,10 @@ class SessionState:
         """弹出导航栈顶的页面值。"""
         return self._pages.pop() if self._pages else None
 
+    def clear_pages(self) -> None:
+        """清空导航栈；游戏被强杀重开后栈里的页面已经不存在。"""
+        self._pages.clear()
+
 
 _SESSION = SessionState()
 

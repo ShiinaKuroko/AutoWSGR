@@ -9,6 +9,7 @@
 
 from __future__ import annotations
 
+import time
 from types import SimpleNamespace
 from typing import Any
 
@@ -31,6 +32,12 @@ class _Ctrl:
 
     def click(self, x: float, y: float, *, delay: bool = False) -> None:  # noqa: ARG002
         self.clicks.append((x, y))
+
+
+@pytest.fixture(autouse=True)
+def _no_sleep(monkeypatch: pytest.MonkeyPatch) -> None:
+    """每日浮窗流程里的等待对测试没有意义，直接跳过。"""
+    monkeypatch.setattr(time, 'sleep', lambda _seconds: None)
 
 
 def _ctx() -> Any:
@@ -150,7 +157,11 @@ def test_daily_news_clicks_checkbox_then_close(monkeypatch: pytest.MonkeyPatch) 
             SimpleNamespace(matched=False, checked=None),
         ]
     )
-    monkeypatch.setattr(home_checker, 'check_home_news_overlay', lambda _ctx: next(states))
+    monkeypatch.setattr(
+        home_checker,
+        'check_home_news_overlay',
+        lambda _ctx: next(states, SimpleNamespace(matched=False, checked=None)),
+    )
     ctx = _ctx()
     session = SessionState()
     service = NavigationService(ctx, session=session)
@@ -166,9 +177,14 @@ def test_daily_news_clicks_checkbox_then_close(monkeypatch: pytest.MonkeyPatch) 
 def test_daily_reward_claims_then_confirms(monkeypatch: pytest.MonkeyPatch) -> None:
     """奖励浮窗存在时领取并确认。"""
     _accept_all(monkeypatch)
-    monkeypatch.setattr(home_checker, 'check_home_reward_overlay', lambda _ctx: True)
+    overlays = iter([True, False])
+    monkeypatch.setattr(
+        home_checker, 'check_home_reward_overlay', lambda _ctx: next(overlays, False)
+    )
     confirms = iter([True, False])
-    monkeypatch.setattr(home_checker, 'check_home_reward_confirm', lambda _ctx: next(confirms))
+    monkeypatch.setattr(
+        home_checker, 'check_home_reward_confirm', lambda _ctx: next(confirms, False)
+    )
     ctx = _ctx()
     session = SessionState()
     service = NavigationService(ctx, session=session)

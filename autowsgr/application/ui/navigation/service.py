@@ -42,7 +42,9 @@ _log = get_logger('ui.navigation')
 # ── 启动流程参数 ────────────────────────────────────────────────────────────
 
 # 拉起 App 后等进程出现的超时与轮询间隔，单位为秒；进程一出现就立刻往下走。
+# 每日浮窗：每轮等待时长，以及浮窗可能一个接一个出现时的轮询上限。
 _POPUP_SETTLE_SECONDS = 1.5
+_POPUP_ATTEMPTS = 5
 _APP_PROCESS_TIMEOUT_SECONDS = 30.0
 _APP_PROCESS_POLL_SECONDS = 0.5
 # 等健康游戏提示出现的最大识别次数，以及相邻两次识别的间隔秒数。
@@ -100,10 +102,6 @@ class NavigationService:
         _log.info('[UI] 导航 → 开始：source={!r}，target={!r}', source.value, target.value)
         self._walk(path, params)
         _log.info('[UI] 导航 → 完成：target={!r}', target.value)
-        # 到达主页后才处理每日浮窗：出发时浮窗往往还没加载出来，提前处理会把「今日已处理」
-        # 的标记消耗在浮窗尚不存在的那一刻。
-        if target is PageName.HOME:
-            self._handle_daily_popup(session)
 
     def navigate_back(self) -> None:
         """回退到上一个页面。
@@ -121,10 +119,7 @@ class NavigationService:
 
         target = PageName(previous)
         _log.info('[UI] 导航 → 回退：source={!r}，target={!r}', current.value, target.value)
-        path = registry.find_path(current, target)
-        self._walk(path, {})
-        if target is PageName.HOME:
-            self._handle_daily_popup(session)
+        self._walk(registry.find_path(current, target), {})
 
     # ── 启动流程 ────────────────────────────────────────────────────────────
 
@@ -207,6 +202,9 @@ class NavigationService:
         _log.warning('[UI] 启动 → 强制重启游戏：package={!r}', package)
         ctrl.stop_app(package)
         time.sleep(_RESTART_SETTLE_SECONDS)
+        # 游戏重开后栈里的页面已经不存在；不清空的话下一次 navigate_to 会被
+        # 「已在目标页面」短路掉，实际却停在登录页。
+        self._session.clear_pages()
         self.ensure_started()
 
     # ── 内部实现 ────────────────────────────────────────────────────────────
@@ -264,6 +262,10 @@ class NavigationService:
         session = self._session
         for edge in path:
             edge.action(self._ctx, **params)
+            if edge.target is PageName.HOME:
+                # 到达主页后先清每日浮窗再确认：浮窗要进了主页才出现，在登录页那一步
+                # 处理会把「今日已处理」的标记浪费掉。
+                self._handle_daily_popup(session)
             confirm = registry.get_checker(edge.target)
             if confirm is not None and not confirm(self._ctx):
                 raise NavigationError(f'到达确认失败：{edge.description!r}')
@@ -295,24 +297,29 @@ class NavigationService:
     def _handle_daily_popup(self, session: SessionState) -> None:
         """到达首页时处理每日弹窗：公告与奖励各自独立检测。
 
-        刚到达时浮窗可能还没加载出来，因此先等一个短间隔；本能力每天只跑一次。
+        刚到达时浮窗可能还没加载出来，每轮先等一个短间隔；浮窗也可能一个接一个出现，
+        因此最多轮询若干轮，直到某一轮什么都没发现为止。本能力每天只跑一次。
         """
         if session.daily_popup_handled:
             return
-        time.sleep(_POPUP_SETTLE_SECONDS)
-        self._handle_daily_news()
-        self._handle_daily_reward()
+        for _ in range(_POPUP_ATTEMPTS):
+            time.sleep(_POPUP_SETTLE_SECONDS)
+            if not self._handle_daily_news() and not self._handle_daily_reward():
+                break
         session.mark_daily_popup_handled()
 
-    def _handle_daily_news(self) -> None:
+    def _handle_daily_news(self) -> bool:
         """处理每日公告：存在则勾选（未勾选才点）、关闭、确认消失。
+
+        Returns:
+            本轮存在公告浮窗时为真。
 
         Raises:
             NavigationError: 关闭后公告仍然存在。
         """
         state = home_checker.check_home_news_overlay(self._ctx)
         if not state.matched:
-            return
+            return False
 
         page = HomePage(self._ctx)
         _log.info('[UI] 导航 → 每日公告：checked={!r}', state.checked)
@@ -321,15 +328,19 @@ class NavigationService:
         page.click_news_close()
         if home_checker.check_home_news_overlay(self._ctx).matched:
             raise NavigationError('每日公告关闭后仍然存在')
+        return True
 
-    def _handle_daily_reward(self) -> None:
+    def _handle_daily_reward(self) -> bool:
         """处理每日奖励：存在则领取、确认、确认消失。
+
+        Returns:
+            本轮存在奖励浮窗时为真。
 
         Raises:
             NavigationError: 领取后没有确认浮窗，或确认后浮窗仍然存在。
         """
         if not home_checker.check_home_reward_overlay(self._ctx):
-            return
+            return False
 
         page = HomePage(self._ctx)
         _log.info('[UI] 导航 → 每日奖励：开始')
@@ -339,3 +350,4 @@ class NavigationService:
         page.click_reward_confirm()
         if home_checker.check_home_reward_confirm(self._ctx):
             raise NavigationError('确认后奖励浮窗仍然存在')
+        return True
