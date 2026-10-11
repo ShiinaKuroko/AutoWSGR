@@ -39,10 +39,7 @@ class BettleExecutor(BaseExecutor):
     # ── 主流程 ─────────────────────────────────────────────────
 
     def _execute(self) -> CombatResult:
-        """初始化页面、执行一场出击并回到主页。"""
-        from autowsgr.application.runtime.initialize.initialize import initialize
-
-        initialize(self.ctx)
+        """执行一场出击并回到主页；启动与恢复由 dispatch 处理器负责。"""
         _log.info('[Bettle] 开始{}任务', '活动战' if self.task_type == 'event_fight' else '普通战')
         try:
             result = NormalFightRunner(

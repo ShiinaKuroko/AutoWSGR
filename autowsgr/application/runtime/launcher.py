@@ -204,43 +204,25 @@ class Launcher:
         _log.info('[Launcher] GameContext 已构建')
         return ctx
 
-    # ── 游戏启动 ──
-
-    def ensure_ready(self, ctx: GameContext) -> None:
-        """确保游戏已启动并位于主页面。
-
-        Parameters
-        ----------
-        ctx:
-            已构建的 GameContext（内部使用 ``ctx.ctrl``）。
-        """
-        from autowsgr.application.runtime.startup import ensure_game_ready
-
-        app = ctx.config.account.game_app
-        _log.info('[Launcher] 确保游戏就绪 (app={})', app.value)
-        ensure_game_ready(ctx, app)
-
     # ── 一步到位 ──
 
-    def launch(self, ensure_game: bool = True) -> GameContext:
-        """一步完成: 加载配置 → 连接 → 构造上下文 → 启动游戏。
+    def launch(self) -> GameContext:
+        """一步完成: 加载配置 → 连接 → 构造上下文。
 
         Returns
         -------
         GameContext
-            完全就绪的游戏上下文。
+            已连接并构建完成的上下文；游戏启动由 dispatch 处理器按需调用。
         """
         self.load_config()
         try:
             self.connect()
             ctx = self.build_context()
-            if ensure_game:
-                self.ensure_ready(ctx)
         except Exception:
             self.disconnect()
             raise
         else:
-            _log.info('[Launcher] 启动完成，游戏已就绪')
+            _log.info('[Launcher] 启动完成')
             return ctx
 
 
@@ -249,10 +231,10 @@ class Launcher:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
-def launch(config_path: str | Path | None = None, ensure_game: bool = True) -> GameContext:
+def launch(config_path: str | Path | None = None) -> GameContext:
     """一站式启动入口。
 
-    加载配置 → 连接模拟器 → 启动游戏 → 返回就绪的 :class:`GameContext`。
+    加载配置 → 连接模拟器 → 返回运行时上下文；游戏启动由 dispatch 处理器按需调用。
 
     Parameters
     ----------
@@ -277,4 +259,4 @@ def launch(config_path: str | Path | None = None, ensure_game: bool = True) -> G
         # 自动检测 usersettings.yaml 或使用默认值
         ctx = launch()
     """
-    return Launcher(config_path).launch(ensure_game=ensure_game)
+    return Launcher(config_path).launch()

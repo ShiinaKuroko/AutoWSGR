@@ -551,9 +551,9 @@ class Processor:
 
     def _default_recover(self) -> None:
         """硬重试的唯一恢复动作: 重新初始化到主页。"""
-        from autowsgr.application.runtime.initialize.initialize import initialize
+        from autowsgr.dispatch.startup import ensure_ready
 
-        initialize(self._ctx)
+        ensure_ready(self._ctx)
 
     def _report(self, event: str, **data: Any) -> None:
         if self.on_event is not None:
