@@ -29,12 +29,16 @@ from autowsgr.application.ui.navigation.page_checker import (
 )
 from autowsgr.application.ui.navigation.page_checker.event_checker import stage_push
 from autowsgr.application.ui.navigation.types import NavigationError, PageName
+from autowsgr.common.system.logger import get_logger
 
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
     from autowsgr.dispatch.context import ContextHandle
+
+
+_log = get_logger('ui.navigation')
 
 
 # ── 导航边 ──────────────────────────────────────────────────────────────────
@@ -92,7 +96,9 @@ _NAV_TARGETS: dict[PageName, tuple[NavTarget, ...]] = {
     PageName.SERVER_SELECT: (
         NavTarget(
             PageName.LOGIN_PAGE,
-            lambda ctx, **params: LoginPage(ctx).click_server(int(params['position'])),
+            lambda ctx, **params: LoginPage(ctx).click_server(
+                _server_index(ctx, str(params['server']))
+            ),
             '区服选择页 → 登录页',
         ),
     ),
@@ -142,6 +148,25 @@ _NAV_TARGETS: dict[PageName, tuple[NavTarget, ...]] = {
 
 
 # ── 上下文辅助 ──────────────────────────────────────────────────────────────
+
+
+def _server_index(ctx: ContextHandle, name: str) -> int:
+    """把区服名换成它在列表中的固定位置。
+
+    位置由 OCR 逐条比对得出；读不到时退回静态映射，保证换区链路不会因为一次识别失败而中断。
+
+    Args:
+        ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
+        name: 目标区服名，取值见 `login_checker.constants.SERVER_NAMES`。
+
+    Returns:
+        区服在列表中的位置序号（0 起）。
+    """
+    index = login_checker.find_server_position(ctx, name)
+    if index is None:
+        index = login_checker.server_index(name)
+        _log.warning('[UI] 导航 → 区服定位兜底：server={!r}，position={}', name, index)
+    return index
 
 
 def _event_type(ctx: ContextHandle) -> str:
