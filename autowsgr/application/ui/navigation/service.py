@@ -138,7 +138,7 @@ class NavigationService:
         package = self._ctx.runtime.config.account.package_name
 
         # 1. 游戏没运行就先拉起，进程一出现就立刻往下走，不固定等待。
-        if not ctrl.is_app_running(package):
+        if not ctrl.check_app_running(package):
             _log.info('[UI] 启动 → 拉起游戏：package={!r}', package)
             ctrl.start_app(package)
             if not self._wait_for_app_process(package):
@@ -258,7 +258,7 @@ class NavigationService:
         ctrl = self._ctx.runtime.ctrl
         deadline = time.monotonic() + _APP_PROCESS_TIMEOUT_SECONDS
         while time.monotonic() < deadline:
-            if ctrl.is_app_running(package):
+            if ctrl.check_app_running(package):
                 return True
             time.sleep(_APP_PROCESS_POLL_SECONDS)
         return False

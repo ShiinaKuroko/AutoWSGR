@@ -1,7 +1,12 @@
-"""管理 Linux/WSL 宿主下的模拟器进程生命周期。
+"""模块功能：管理 Linux/WSL 宿主下的模拟器进程生命周期。
 
-直接调用方：lifecycle 工厂创建的 Linux 模拟器管理器。
-下层依赖：ADB 执行器、设备错误、生命周期抽象、平台事实和 system.logger。
+上层调用：
+- common.device.device_engine.orchestration.lifecycle.service：通过工厂创建并调用。
+
+下层依赖：
+- common.device.adb_engine.executor、common.device.errors 和 lifecycle.base：提供进程探测、错误类型和抽象契约。
+- common.device.device_engine.foundation.platform 和 common.system.logger：提供平台事实与日志对象。
+
 边界：只管理宿主进程，不执行设备内截图或触控操作。
 """
 
@@ -141,7 +146,7 @@ class LinuxEmulatorManager(EmulatorProcessManager):
             self._process_name,
         )
 
-    # ── 进程状态查询 ─────────────────────────────────────────────────────────
+    # ── 进程状态查询 ────────────────────────────────────────────────────────
 
     @staticmethod
     def _read_online_adb_serials() -> list[str]:

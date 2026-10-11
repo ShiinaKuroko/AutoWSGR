@@ -1,7 +1,12 @@
-"""管理 macOS 宿主下的模拟器进程生命周期。
+"""模块功能：管理 macOS 宿主下的模拟器进程生命周期。
 
-直接调用方：lifecycle 工厂创建的 macOS 模拟器管理器。
-下层依赖：设备错误、生命周期抽象、平台类型和 system.logger。
+上层调用：
+- common.device.device_engine.orchestration.lifecycle.service：通过工厂创建并调用。
+
+下层依赖：
+- common.device.errors 和 lifecycle.base：提供错误类型和抽象契约。
+- common.device.device_engine.foundation.platform 和 common.system.logger：提供平台类型与日志对象。
+
 边界：只管理宿主进程，不执行设备内截图或触控操作。
 """
 
@@ -102,7 +107,7 @@ class MacEmulatorManager(EmulatorProcessManager):
             )
             raise DeviceError(f'停止模拟器失败: {exc}') from exc
 
-    # ── MuMu 实例状态 ──────────────────────────────────────────────────────
+    # ── MuMu 实例状态 ───────────────────────────────────────────────────────
 
     @property
     def _mumu_tool_path(self) -> str:

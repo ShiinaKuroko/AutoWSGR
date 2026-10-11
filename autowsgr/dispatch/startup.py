@@ -79,7 +79,7 @@ def _follow_game_display(ctx: ContextHandle) -> None:
 def _is_game_running(ctx: ContextHandle) -> bool:
     """判断游戏进程是否已经在运行。"""
     package = ctx.runtime.config.account.package_name
-    return bool(ctx.runtime.ctrl.is_app_running(package))
+    return bool(ctx.runtime.ctrl.check_app_running(package))
 
 
 __all__ = ['ensure_ready']

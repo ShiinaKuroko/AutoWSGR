@@ -1,8 +1,14 @@
 """模块功能：组合 ROI 裁切、模板加载、缩放和 OpenCV 匹配。
 
-直接调用方：service 入口和需要复用模板匹配的通用模块。
+上层调用：
+- common.vision.service：取用模板匹配入口。
+- common.vision.adapters：重新修饰模板匹配能力供 service 调用。
 
-直接依赖：OpenCV 基础执行器、模板配置、system.files 和 NumPy。
+下层依赖：
+- OpenCV：提供模板匹配算子。
+- NumPy：提供数组类型。
+- common.vision.config：提供模板置信度和来源分辨率。
+- common.vision.opencv_engine.executor：提供图片加载和匹配执行器。
 
 边界：不负责设备截图、模板缓存、页面状态或业务领域识别规则。
 """
@@ -23,12 +29,13 @@ from autowsgr.common.vision.opencv_engine.executor import OpenCVExecutor
 
 
 if TYPE_CHECKING:
-    import numpy as np
+    import numpy
 
-
-# ── 模板识别结果模型 ───────────────────────────────────────────────
 
 _log = get_logger('vision.template')
+
+
+# ── 模板识别结果模型 ────────────────────────────────────────────────────────
 
 
 @dataclass(frozen=True, slots=True)
@@ -54,7 +61,7 @@ class ROI:
             height: 图片高度，单位为像素。
 
         Returns:
-            ``(x1, y1, x2, y2)`` 像素坐标元组。
+            (x1, y1, x2, y2) 像素坐标元组。
         """
         return (
             int(self.x1 * width),
@@ -63,7 +70,7 @@ class ROI:
             int(self.y2 * height),
         )
 
-    def crop(self, image: np.ndarray) -> np.ndarray:
+    def crop(self, image: numpy.ndarray) -> numpy.ndarray:
         """从图片中裁切 ROI。
 
         Args:
@@ -83,7 +90,7 @@ class Template:
 
     name: str
     relative_path: str
-    image: np.ndarray
+    image: numpy.ndarray
     source_resolution: tuple[int, int] = OPENCV_TEMPLATE_SOURCE_RESOLUTION
 
 
@@ -108,7 +115,7 @@ class TemplateMatchResult:
     center: tuple[float, float] | None = None
 
 
-class TemplateMatcher:
+class _TemplateMatcher:
     """组合模板加载、ROI 裁切、缩放和 OpenCV 匹配。"""
 
     def __init__(self, executor: OpenCVExecutor | None = None) -> None:
@@ -126,7 +133,7 @@ class TemplateMatcher:
         Args:
             relative_path: 模板根目录下的相对路径。
             name: 可选的模板业务名称，默认使用文件名。
-            source_resolution: 模板截图分辨率，按 ``(width, height)`` 提供。
+            source_resolution: 模板截图分辨率，按 (width, height) 提供。
 
         Returns:
             已加载的模板数据。
@@ -148,7 +155,7 @@ class TemplateMatcher:
 
     def match(
         self,
-        image: np.ndarray,
+        image: numpy.ndarray,
         template: Template,
         *,
         roi: ROI | None = None,
@@ -160,7 +167,7 @@ class TemplateMatcher:
             image: 待搜索的 RGB 或灰度图片数组。
             template: 已加载的模板数据。
             roi: 可选的相对坐标搜索区域。
-            confidence: 命中阈值，范围为 ``[0, 1]``。
+            confidence: 命中阈值，范围为 [0, 1]。
 
         Returns:
             包含命中状态、匹配分数、绝对位置和 ROI 的结果。
@@ -227,12 +234,12 @@ def load_template(
     name: str | None = None,
     source_resolution: tuple[int, int] = OPENCV_TEMPLATE_SOURCE_RESOLUTION,
 ) -> Template:
-    """加载模板图片。
+    """加载模板图片并返回已加载的模板数据。
 
     Args:
         relative_path: 模板根目录下的相对路径。
         name: 可选的模板业务名称。
-        source_resolution: 模板截图分辨率，按 ``(width, height)`` 提供。
+        source_resolution: 模板截图分辨率，按 (width, height) 提供。
 
     Returns:
         已加载的模板数据。
@@ -245,35 +252,35 @@ def load_template(
 
 
 def match_template(
-    image: np.ndarray,
+    image: numpy.ndarray,
     template: Template,
     *,
     roi: ROI | None = None,
     confidence: float = OPENCV_TEMPLATE_CONFIDENCE,
 ) -> TemplateMatchResult:
-    """执行一次模板匹配。
+    """执行一次模板匹配并返回分数与位置。
 
     Args:
         image: 待搜索的 RGB 或灰度图片数组。
         template: 已加载的模板数据。
         roi: 可选的相对坐标搜索区域。
-        confidence: 命中阈值，范围为 ``[0, 1]``。
+        confidence: 命中阈值，范围为 [0, 1]。
 
     Returns:
         模板匹配结果。
     """
-    result = _MATCHER.match(image, template, roi=roi, confidence=confidence)
+    match_result = _MATCHER.match(image, template, roi=roi, confidence=confidence)
     _log.debug(
-        '[VISION] 模板匹配 → 匹配结果：template={!r}, score={:.3f}, matched={}',
-        result.template_path,
-        result.score,
-        result.matched,
+        '[VISION] 模板匹配 → 匹配结果：template_path={!r}, score={:.3f}, matched={}',
+        match_result.template_path,
+        match_result.score,
+        match_result.matched,
     )
-    return result
+    return match_result
 
 
 def match_templates(
-    image: np.ndarray,
+    image: numpy.ndarray,
     templates: Template | Sequence[Template],
     *,
     roi: ROI | Sequence[ROI | None] | None = None,
@@ -285,7 +292,7 @@ def match_templates(
         image: 待搜索的 RGB 或灰度图片数组。
         templates: 单个模板，或按业务优先级排列的模板序列。
         roi: 共享搜索区域，或与模板一一对应的区域序列。
-        confidence: 命中阈值，范围为 ``[0, 1]``。
+        confidence: 命中阈值，范围为 [0, 1]。
 
     Returns:
         与输入模板顺序一致的匹配结果列表；单模板也返回长度为一的列表。
@@ -327,7 +334,7 @@ def _template_roi_pairs(
     return tuple(zip(items, rois, strict=True))
 
 
-_MATCHER = TemplateMatcher()
+_MATCHER = _TemplateMatcher()
 
 
 __all__ = [

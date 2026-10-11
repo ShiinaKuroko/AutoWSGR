@@ -1,7 +1,12 @@
-"""编排设备连接和断开流程。
+"""模块功能：编排设备连接和断开流程。
 
-直接调用方：device.service 的设备连接维护入口。
-下层依赖：DeviceSession、ADB 执行器、设备发现和 Scrcpy 执行器。
+上层调用：
+- common.device.service：取用连接、重连和断开入口。
+
+下层依赖：
+- common.device.device_engine.session：提供设备会话。
+- common.device.adb_engine.executor、orchestration.discovery 和 scrcpy_engine.executor：提供 ADB、设备发现和 Scrcpy 通道。
+
 边界：只编排设备连接通道，不执行设备操作、不保存截图、不管理宿主模拟器进程。
 """
 

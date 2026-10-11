@@ -1,9 +1,16 @@
-"""程序级错误基类。
+"""模块功能：程序级错误基类。
 
-这些类型只提供稳定的捕获边界，不实现具体业务行为。具体错误由所属模块定义，
-并由所属模块决定构造参数和错误文本。
+这些类型只提供稳定的捕获边界，不实现具体业务行为；具体错误由所属模块定义，并决定
+构造参数和错误文本。
 
-下层依赖：Python 内置异常类型。
+上层调用：
+- application.errors、application.ui.navigation.types、business.combat.decisive.chapter
+  和 dispatch.context.errors：继承这些基类表达应用、业务和调度错误。
+- common.device.errors：继承 CommonError 表达设备错误。
+
+下层依赖：
+- Python 内置异常类型。
+
 边界：不定义设备、视觉、页面、导航、战斗或任务的具体错误。
 """
 

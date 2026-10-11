@@ -1,4 +1,13 @@
-"""宿主模拟器生命周期能力出口。"""
+"""模块功能：宿主模拟器生命周期能力出口。
+
+上层调用：
+- common.device.device_engine.session 和 common.device.service：取用模拟器管理器与工厂。
+
+下层依赖：
+- common.device.device_engine.orchestration.lifecycle 的 base、service 和各宿主实现。
+
+边界：只导出工厂和管理器类型，不实现进程控制。
+"""
 
 from autowsgr.common.device.device_engine.orchestration.lifecycle import service
 from autowsgr.common.device.device_engine.orchestration.lifecycle.base import EmulatorProcessManager

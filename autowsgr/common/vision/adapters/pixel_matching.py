@@ -1,8 +1,14 @@
 """模块功能：组合 NumPy 采样和颜色规则，完成像素签名匹配。
 
-直接调用方：service 入口和需要复用像素签名的通用识别模块。
+上层调用：
+- common.vision.service：取用像素签名匹配入口。
+- common.vision.adapters：重新修饰像素匹配能力供 service 调用。
 
-直接依赖：NumPy 执行器、ROI 模型、像素匹配配置和视觉日志基础设施。
+下层依赖：
+- NumPy：提供数组运算。
+- common.vision.numpy_engine.executor：提供像素采样和坐标换算。
+- common.vision.adapters.template_matching：提供 ROI 模型。
+- common.vision.config 和 common.system.logger：提供容差默认值和日志对象。
 
 边界：不负责设备截图、页面状态、模板加载或业务领域识别规则。
 """
@@ -14,7 +20,7 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import TYPE_CHECKING
 
-import numpy as np
+import numpy
 
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.vision.config import NUMPY_DEFAULT_PIXEL_TOLERANCE
@@ -25,9 +31,10 @@ if TYPE_CHECKING:
     from autowsgr.common.vision.adapters.template_matching import ROI
 
 
-# ── 像素规则模型 ───────────────────────────────────────────────────
-
 _log = get_logger('vision.pixel')
+
+
+# ── 像素规则模型 ────────────────────────────────────────────────────────────
 
 
 @dataclass(frozen=True, slots=True)
@@ -61,7 +68,7 @@ class Color:
             tolerance: 允许的颜色距离。
 
         Returns:
-            颜色距离不超过容差时返回 ``True``。
+            颜色距离不超过容差时返回 True。
         """
         return self.distance(other) <= tolerance
 
@@ -69,7 +76,7 @@ class Color:
         """返回 RGB 整数元组。
 
         Returns:
-            ``(red, green, blue)`` 元组。
+            (red, green, blue) 元组。
         """
         return self.red, self.green, self.blue
 
@@ -147,10 +154,11 @@ class PixelMatchResult:
 
     @property
     def ratio(self) -> float:
+        """返回命中规则占全部规则的比例；规则总数为零时为 0。"""
         return self.matched_count / self.total_count if self.total_count else 0.0
 
 
-class PixelMatcher:
+class _PixelMatcher:
     """组合 NumPy 采样、颜色计算和像素规则，完成一次像素匹配。"""
 
     def __init__(self, executor: NumpyExecutor | None = None) -> None:
@@ -158,7 +166,7 @@ class PixelMatcher:
 
     def match(
         self,
-        image: np.ndarray,
+        image: numpy.ndarray,
         signature: PixelSignature | CompositePixelSignature,
         *,
         roi: ROI | None = None,
@@ -176,16 +184,16 @@ class PixelMatcher:
             像素签名匹配结果。
         """
         # 1. 先限制检查区域，避免像素规则读取无关画面。
-        source = roi.crop(image) if roi is not None else image
+        source_image = roi.crop(image) if roi is not None else image
 
         # 2. 组合签名按顺序尝试，单个签名直接执行规则判定。
         if isinstance(signature, CompositePixelSignature):
-            return self._match_composite(source, signature, with_details=with_details)
-        return self._match_signature(source, signature, with_details=with_details)
+            return self._match_composite(source_image, signature, with_details=with_details)
+        return self._match_signature(source_image, signature, with_details=with_details)
 
     def _match_signature(
         self,
-        image: np.ndarray,
+        image: numpy.ndarray,
         signature: PixelSignature,
         *,
         with_details: bool,
@@ -198,10 +206,10 @@ class PixelMatcher:
 
         # 3. 批量采样后统一计算颜色距离，保持规则顺序与详情顺序一致。
         actual = self._executor.sample_pixels(image, [(rule.x, rule.y) for rule in rules])
-        expected = np.asarray([rule.color.as_tuple() for rule in rules], dtype=np.float32)
-        tolerances = np.asarray([rule.tolerance for rule in rules], dtype=np.float32)
-        distances = np.sqrt(
-            np.sum((actual.astype(np.float32) - expected) ** 2, axis=1),
+        expected = numpy.asarray([rule.color.as_tuple() for rule in rules], dtype=numpy.float32)
+        tolerances = numpy.asarray([rule.tolerance for rule in rules], dtype=numpy.float32)
+        distances = numpy.sqrt(
+            numpy.sum((actual.astype(numpy.float32) - expected) ** 2, axis=1),
         )
         matched_flags = distances <= tolerances
         matched_count = int(matched_flags.sum())
@@ -227,7 +235,7 @@ class PixelMatcher:
 
     def _match_composite(
         self,
-        image: np.ndarray,
+        image: numpy.ndarray,
         composite: CompositePixelSignature,
         *,
         with_details: bool,
@@ -245,12 +253,12 @@ class PixelMatcher:
         matched_count = 0
         details: list[PixelDetail] = []
         for signature in composite.signatures:
-            result = self._match_signature(image, signature, with_details=with_details)
-            matched_count += result.matched_count
+            signature_result = self._match_signature(image, signature, with_details=with_details)
+            matched_count += signature_result.matched_count
             if with_details:
-                details.extend(result.details)
+                details.extend(signature_result.details)
             # 组合签名只需要第一个命中结果，后续签名不会改变业务结论。
-            if result.matched:
+            if signature_result.matched:
                 return PixelMatchResult(
                     True,
                     composite.name,
@@ -268,7 +276,7 @@ class PixelMatcher:
 
 
 def match_pixels(
-    image: np.ndarray,
+    image: numpy.ndarray,
     signature: PixelSignature | CompositePixelSignature,
     *,
     roi: ROI | None = None,
@@ -285,18 +293,18 @@ def match_pixels(
     Returns:
         像素签名匹配结果。
     """
-    result = _MATCHER.match(image, signature, roi=roi, with_details=with_details)
+    match_result = _MATCHER.match(image, signature, roi=roi, with_details=with_details)
     _log.debug(
         '[VISION] 像素匹配 → 匹配结果：signature={!r}, matched_count={}, total_count={}, matched={}',
-        result.signature_name,
-        result.matched_count,
-        result.total_count,
-        result.matched,
+        match_result.signature_name,
+        match_result.matched_count,
+        match_result.total_count,
+        match_result.matched,
     )
-    return result
+    return match_result
 
 
-_MATCHER = PixelMatcher()
+_MATCHER = _PixelMatcher()
 
 
 __all__ = [

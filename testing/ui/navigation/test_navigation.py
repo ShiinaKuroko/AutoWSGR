@@ -264,7 +264,9 @@ def test_login_link_clicks_switch_entry_and_server(monkeypatch: pytest.MonkeyPat
     service.navigate_to(PageName.SERVER_SELECT)
     assert ctx.runtime.ctrl.clicks == [login_constants.CLICK_SWITCH_ENTRY]
 
-    service.navigate_to(PageName.LOGIN_PAGE, position=2)
+    # OCR 定位失败时按静态映射兜底，仍要点到目标区服条目。
+    monkeypatch.setattr(login_checker, 'find_server_position', lambda _ctx, _name: None)
+    service.navigate_to(PageName.LOGIN_PAGE, server='昆西')
     assert ctx.runtime.ctrl.clicks[-1] == login_constants.SERVER_POSITIONS[2]
 
 

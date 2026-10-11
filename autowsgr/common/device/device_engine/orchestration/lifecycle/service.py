@@ -1,7 +1,12 @@
-"""编排宿主模拟器的创建、启停和上线等待。
+"""模块功能：编排宿主模拟器的创建、启停和上线等待。
 
-直接调用方：device.service 的模拟器维护入口。
-下层依赖：宿主进程实现、平台事实、设备配置和设备错误。
+上层调用：
+- common.device.service：取用模拟器启停和上线等待入口。
+- common.device.device_engine.session：取用模拟器管理器工厂。
+
+下层依赖：
+- common.device.device_engine.orchestration.lifecycle 的各宿主实现、foundation.platform、common.device.config 和 common.device.errors。
+
 边界：不执行 Android 设备内的截图、触控或应用操作。
 """
 

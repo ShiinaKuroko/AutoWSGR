@@ -1,7 +1,14 @@
-"""执行主机侧 ADB 能力。
+"""模块功能：执行主机侧 ADB 能力。
 
-直接调用方：device_engine 的设备发现和连接流程。
-下层依赖：Python 标准库、OpenCV、设备错误和随包 ADB 资源。
+上层调用：
+- common.device.device_engine.orchestration.connection 和 discovery：定位 ADB 并读写设备列表。
+- common.device.device_engine.orchestration.lifecycle：重启 ADB 服务和截取设备画面。
+
+下层依赖：
+- Python 标准库和 OpenCV：提供进程执行与图像解码。
+- common.device.errors：提供设备错误类型。
+- 随包 ADB 资源：提供主机侧可执行文件。
+
 边界：只定位并执行 ADB，不选择业务设备、不管理模拟器进程、不编排页面流程。
 """
 

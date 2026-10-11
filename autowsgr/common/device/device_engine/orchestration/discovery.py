@@ -1,7 +1,12 @@
-"""发现在线设备候选并解析目标设备 serial。
+"""模块功能：发现在线设备候选并解析目标设备 serial。
 
-直接调用方：device_engine 的设备连接流程。
-下层依赖：ADB 执行器、宿主平台事实、设备配置和设备错误。
+上层调用：
+- common.device.device_engine.orchestration.connection：取用设备候选和 serial 解析。
+
+下层依赖：
+- common.device.adb_engine.executor：提供在线设备列表。
+- common.device.device_engine.foundation.platform、common.device.config 和 common.device.errors：提供平台事实、配置和错误类型。
+
 边界：不执行原始 ADB 命令、不管理宿主进程、不建立 Android I/O 通道。
 """
 
@@ -131,7 +136,7 @@ def discover_known_adb_devices() -> list[tuple[str, str]]:
     return devices
 
 
-# ── 候选选择 ─────────────────────────────────────────────────────────────────
+# ── 候选选择 ────────────────────────────────────────────────────────────────
 
 
 def select_emulator_candidate(candidates: list[EmulatorCandidate]) -> str:
@@ -174,7 +179,7 @@ def select_emulator_candidate(candidates: list[EmulatorCandidate]) -> str:
         print(f'  无效输入，请输入 0 到 {len(candidates) - 1} 之间的整数。')  # noqa: T201
 
 
-# ── serial 解析 ──────────────────────────────────────────────────────────────
+# ── serial 解析 ─────────────────────────────────────────────────────────────
 
 
 def resolve_device_serial(

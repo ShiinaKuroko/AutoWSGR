@@ -1,7 +1,12 @@
-"""编排设备截图读取和受限路径保存。
+"""模块功能：编排设备截图读取和受限路径保存。
 
-直接调用方：device.service 的截图入口。
-下层依赖：DeviceSession、Scrcpy 执行器和 system.files。
+上层调用：
+- common.device.service：取用截图和保存入口。
+
+下层依赖：
+- common.device.device_engine.session：提供 Scrcpy 执行器。
+- common.system.files：提供受限路径的图像写入。
+
 边界：不负责设备连接、图像识别或截图业务命名。
 """
 

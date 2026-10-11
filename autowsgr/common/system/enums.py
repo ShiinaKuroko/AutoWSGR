@@ -1,7 +1,14 @@
-"""通用枚举基类。
+"""模块功能：通用枚举基类。
 
-能力范围：统一枚举类型和非法值的错误提示。
-下层依赖：Python 标准库 `enum`。
+上层调用：
+- application.runtime.types、application.ui.navigation.types、business.combat.types、
+  business.logistics.types：按领域语义继承这些基类。
+- common.device.device_engine.foundation.platform 和 common.vision.adapters.text_recognition：
+  定义设备类型和识别模式枚举。
+
+下层依赖：
+- Python 标准库 enum。
+
 边界：不定义具体业务枚举成员，不保存可变配置。
 """
 

@@ -1,7 +1,12 @@
-"""提供设备连接、输入、截图和模拟器维护的统一服务入口。
+"""模块功能：提供设备连接、输入、截图和模拟器维护的统一服务入口。
 
-直接调用方：需要使用设备基础能力的应用、业务和工具模块。
-下层依赖：device_engine 流程、DeviceSession、设备配置和 system.files。
+上层调用：
+- application、business、dispatch 和 server：通过运行时控制器取用设备能力。
+
+下层依赖：
+- common.device.device_engine：提供连接、操作、截图和生命周期流程。
+- common.device.config 和 common.system.files：提供设备配置和受限路径写入。
+
 边界：只提供设备能力入口，不识别页面、不编排业务任务、不持有业务状态。
 """
 
@@ -21,15 +26,15 @@ from autowsgr.common.device.device_engine.orchestration import (
 from autowsgr.common.device.device_engine.orchestration.connection import DeviceInfo
 
 
-# 等待应用出现在某块显示器上的超时与轮询间隔，单位为秒。
-_APPLICATION_DISPLAY_TIMEOUT_SECONDS = 15.0
-_APPLICATION_DISPLAY_POLL_SECONDS = 0.5
-
-
 if TYPE_CHECKING:
     from pathlib import Path
 
     import numpy
+
+
+# 等待应用出现在某块显示器上的超时与轮询间隔，单位为秒。
+_APPLICATION_DISPLAY_TIMEOUT_SECONDS = 15.0
+_APPLICATION_DISPLAY_POLL_SECONDS = 0.5
 
 
 class DeviceService:
@@ -43,7 +48,7 @@ class DeviceService:
         """
         self._session = session.DeviceSession(config or DeviceConfig())
 
-    # ── 连接模拟器 ─────────────────────────────────────────────────────────
+        # ── 连接模拟器 ──────────────────────────────────────────────────────────
 
     def connect(self, package: str | None = None) -> DeviceInfo:
         """连接设备并完成 ADB、Scrcpy、视频和控制通道初始化。
@@ -57,12 +62,12 @@ class DeviceService:
         Raises:
             DeviceConnectionError: 设备发现、ADB 或 Scrcpy 连接失败。
         """
-        info = connection._connect_device(self._session)
+        device_info = connection._connect_device(self._session)
         if package is not None:
             self.follow_display(package)
-        return info
+        return device_info
 
-    # ── 操作模拟器 ─────────────────────────────────────────────────────────
+        # ── 操作模拟器 ──────────────────────────────────────────────────────────
 
     def click(self, x: float, y: float, *, delay: bool = False) -> None:
         """点击屏幕相对坐标。
@@ -160,7 +165,7 @@ class DeviceService:
         """
         operation._stop_application(self._session, package)
 
-    def is_app_running(self, package: str) -> bool:
+    def check_app_running(self, package: str) -> bool:
         """检查指定的 Android 应用是否正在运行。
 
         Args:
@@ -182,7 +187,7 @@ class DeviceService:
         """
         return operation._execute_shell_command(self._session, cmd)
 
-    # ── 截图与保存 ─────────────────────────────────────────────────────────
+        # ── 截图与保存 ──────────────────────────────────────────────────────────
 
     @property
     def resolution(self) -> tuple[int, int]:
@@ -211,7 +216,7 @@ class DeviceService:
         """
         screenshot._save_device_screenshot(self._session, path, allowed_root=allowed_root)
 
-    # ── 连接维护 ─────────────────────────────────────────────────────────
+        # ── 连接维护 ────────────────────────────────────────────────────────────
 
     def is_connected(self) -> bool:
         """返回设备的 Scrcpy 通道是否已建立。
@@ -233,7 +238,7 @@ class DeviceService:
         """
         return connection._reconnect_device(self._session)
 
-    def is_emulator_running(self) -> bool:
+    def check_emulator_running(self) -> bool:
         """检查宿主模拟器进程是否正在运行。
 
         Returns:

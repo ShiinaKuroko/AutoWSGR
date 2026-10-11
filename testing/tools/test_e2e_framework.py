@@ -11,7 +11,7 @@ from tools.debug_toolkit.function.e2e_runner.framework import E2ERunner
 def _runner() -> E2ERunner:
     runner = E2ERunner('unit', SimpleNamespace())
     ctrl = MagicMock()
-    ctrl.is_app_running.return_value = False
+    ctrl.check_app_running.return_value = False
     runner.ctx = SimpleNamespace(
         ctrl=ctrl,
         config=SimpleNamespace(

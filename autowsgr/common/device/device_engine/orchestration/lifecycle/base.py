@@ -1,7 +1,12 @@
-"""定义宿主模拟器进程生命周期的抽象契约。
+"""模块功能：定义宿主模拟器进程生命周期的抽象契约。
 
-直接调用方：lifecycle 工厂和各宿主系统的模拟器管理器。
-下层依赖：设备配置、设备错误和 system.logger。
+上层调用：
+- common.device.device_engine.orchestration.lifecycle：通过包出口导出管理器类型。
+- linux、macos 和 windows 管理器：实现这些抽象方法。
+
+下层依赖：
+- common.device.config、common.device.errors 和 common.system.logger。
+
 边界：只定义宿主进程生命周期，不执行 Android 设备 I/O。
 """
 

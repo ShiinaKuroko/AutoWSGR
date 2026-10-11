@@ -1,8 +1,13 @@
 """模块功能：执行 OpenCV 图片读取、变换和原子模板匹配。
 
-直接调用方：模板匹配和 OCR 文本预处理等视觉组合操作。
+上层调用：
+- common.vision.adapters.template_matching 和 text_recognition：取用图片读取、变换和模板匹配。
 
-直接依赖：OpenCV、NumPy、system.files 和 vision.config。
+下层依赖：
+- OpenCV：提供图像处理算子。
+- NumPy：提供数组类型。
+- common.system.files：提供受限路径的图片读取。
+- common.vision.config：提供模板根目录。
 
 边界：不定义模板业务规则、不管理缓存，也不处理设备截图或页面状态。
 """
@@ -20,17 +25,17 @@ from autowsgr.common.vision.config import OPENCV_TEMPLATE_ROOT
 if TYPE_CHECKING:
     from pathlib import Path
 
-    import numpy as np
+    import numpy
 
 
 class OpenCVExecutor:
     """只提供 OpenCV 和图片文件级操作，不包含模板规则。"""
 
-    # ── 图像读取与变换 ──────────────────────────────────────────────
+    # ── 图像读取与变换 ──────────────────────────────────────────────────────
 
     @staticmethod
-    def load_image(relative_path: Path) -> np.ndarray:
-        """从模板根目录加载图片。
+    def load_image(relative_path: Path) -> numpy.ndarray:
+        """从模板根目录加载图片并返回 RGB 数组。
 
         Args:
             relative_path: 模板根目录下的相对图片路径。
@@ -48,7 +53,7 @@ class OpenCVExecutor:
         )
 
     @staticmethod
-    def to_gray(image: np.ndarray) -> np.ndarray:
+    def to_gray(image: numpy.ndarray) -> numpy.ndarray:
         """将 RGB 图片转换为灰度图。
 
         Args:
@@ -63,19 +68,19 @@ class OpenCVExecutor:
 
     @staticmethod
     def resize(
-        image: np.ndarray,
+        image: numpy.ndarray,
         width: int,
         height: int,
         *,
         interpolation: str = 'area',
-    ) -> np.ndarray:
+    ) -> numpy.ndarray:
         """将图片缩放到指定尺寸。
 
         Args:
             image: 待缩放的图片数组。
             width: 目标宽度，单位为像素。
             height: 目标高度，单位为像素。
-            interpolation: 插值方式，可选 ``area``、``cubic``、``linear`` 或 ``nearest``。
+            interpolation: 插值方式，可选 area、cubic、linear 或 nearest。
 
         Returns:
             缩放后的图片数组。
@@ -96,8 +101,8 @@ class OpenCVExecutor:
         return cv2.resize(image, (width, height), interpolation=interpolation_flag)
 
     @staticmethod
-    def blur(image: np.ndarray, kernel_size: int) -> np.ndarray:
-        """执行高斯模糊。
+    def blur(image: numpy.ndarray, kernel_size: int) -> numpy.ndarray:
+        """对图片执行高斯模糊并返回新数组。
 
         Args:
             image: 待处理的图片数组。
@@ -114,8 +119,8 @@ class OpenCVExecutor:
         return cv2.GaussianBlur(image, (kernel_size, kernel_size), 0)
 
     @staticmethod
-    def normalize(image: np.ndarray) -> np.ndarray:
-        """将灰度图归一化到 ``0-255``。
+    def normalize(image: numpy.ndarray) -> numpy.ndarray:
+        """将灰度图归一化到 0-255。
 
         Args:
             image: 待归一化的灰度数组。
@@ -126,7 +131,7 @@ class OpenCVExecutor:
         return cv2.normalize(image, None, 0, 255, cv2.NORM_MINMAX)
 
     @staticmethod
-    def threshold(image: np.ndarray) -> np.ndarray:
+    def threshold(image: numpy.ndarray) -> numpy.ndarray:
         """使用 Otsu 算法生成二值图。
 
         Args:
@@ -138,7 +143,7 @@ class OpenCVExecutor:
         return cv2.threshold(image, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
 
     @staticmethod
-    def gray_to_rgb(image: np.ndarray) -> np.ndarray:
+    def gray_to_rgb(image: numpy.ndarray) -> numpy.ndarray:
         """将灰度图转换为 RGB 图。
 
         Args:
@@ -151,17 +156,17 @@ class OpenCVExecutor:
 
     @staticmethod
     def rotate_crop(
-        image: np.ndarray,
+        image: numpy.ndarray,
         center: tuple[float, float],
         size: tuple[int, int],
         angle: float,
-    ) -> np.ndarray:
+    ) -> numpy.ndarray:
         """围绕绝对像素中心旋转并裁切。
 
         Args:
             image: 待处理的图片数组。
             center: 旋转和裁切中心，单位为绝对像素。
-            size: 裁切尺寸，按 ``(width, height)`` 提供，单位为像素。
+            size: 裁切尺寸，按 (width, height) 提供，单位为像素。
             angle: 旋转角度，单位为度。
 
         Returns:
@@ -172,10 +177,12 @@ class OpenCVExecutor:
         rotated = cv2.warpAffine(image, matrix, (width, height))
         return cv2.getRectSubPix(rotated, size, center)
 
-    # ── 模板匹配 ───────────────────────────────────────────────────
+    # ── 模板匹配 ────────────────────────────────────────────────────────────
 
     @staticmethod
-    def match_template(image: np.ndarray, template: np.ndarray) -> tuple[float, tuple[int, int]]:
+    def match_template(
+        image: numpy.ndarray, template: numpy.ndarray
+    ) -> tuple[float, tuple[int, int]]:
         """调用 OpenCV 模板匹配并返回最高分和位置。
 
         Args:

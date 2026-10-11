@@ -1,7 +1,12 @@
-"""持有一次设备连接所需的共享运行状态。
+"""模块功能：持有一次设备连接所需的共享运行状态。
 
-直接调用方：device_engine 的连接、操作、截图和生命周期流程。
-下层依赖：设备配置、Scrcpy 执行器和生命周期类型。
+上层调用：
+- common.device.device_engine.orchestration.connection、operation 和 screenshot：读写会话事实。
+- common.device.device_engine.orchestration.lifecycle.service：读写模拟器管理器。
+
+下层依赖：
+- common.device.config、common.device.scrcpy_engine.executor 和生命周期类型。
+
 边界：只持有会话状态，不执行连接流程、不提供业务操作入口。
 """
 

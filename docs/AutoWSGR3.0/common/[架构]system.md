@@ -28,7 +28,7 @@ autowsgr/common/system/
 enums.py   ──→ Python 标准库
 errors.py  ──→ Python 内置异常
 config.py  ──→ Pydantic
-files.py   ──→ Python 标准库 / YAML 解析库
+files.py   ──→ Python 标准库 / YAML 解析库 / NumPy 和 OpenCV（仅图像能力按需加载）
 logger.py  ──→ config.py / Python 标准库 / Loguru
 ~~~
 
@@ -58,7 +58,7 @@ from autowsgr.common.system.config import LogConfig
 | --- | --- | --- | --- |
 | enums.py | BaseEnum、StrEnum、IntEnum | 通用枚举行为和非法值提示 | 具体业务枚举成员 |
 | errors.py | SystemError 及四个层级基类 | 稳定的错误捕获边界 | 具体领域错误和恢复策略 |
-| files.py | load_yaml、save_yaml | 路径校验、解析、编码和原子写入 | 业务字段解释和业务加载器 |
+| files.py | load_yaml、save_yaml、load_image、save_image | 路径校验、解析、编码和原子写入 | 业务字段解释和业务加载器 |
 | logger.py | get_logger、setup_logger | 日志对象、级别筛选和输出 sink | 业务日志内容和业务结果判断 |
 | config.py | LogConfig | 配置字段、默认值和输入校验 | 执行配置、读取用户文件和运行时状态 |
 
@@ -133,8 +133,9 @@ class FleetRuleError(system.errors.BusinessError):
 
 ### 6.1 能力说明
 
-system.files 是统一的通用文件边界。当前提供 YAML 映射的读取和保存；以后新增
-通用文件格式时，仍在此模块增加明确的 load_<format> 或 save_<format> 方法。
+system.files 是统一的通用文件边界。当前提供 YAML 映射的读取和保存，以及图像的
+读取和保存；以后新增通用文件格式时，仍在此模块增加明确的 load_<format> 或
+save_<format> 方法。
 
 它只处理“如何安全地读写”，不处理“文件内容代表什么”：
 
@@ -200,7 +201,31 @@ save_yaml(
 - 先写同目录临时文件，再使用原子替换，替换失败时保留原文件。
 - 写入失败必须向调用方报告。
 
-### 6.4 新增文件格式
+### 6.4 load_image 和 save_image
+
+~~~python
+from pathlib import Path
+
+from autowsgr.common import system
+
+image = system.files.load_image(path, allowed_root=path.parent)   # RGB 数组
+system.files.save_image(image, path, allowed_root=path.parent)    # 原子写入 PNG
+~~~
+
+契约：
+
+~~~text
+load_image(path: str | Path, *, allowed_root: str | Path) -> numpy.ndarray
+save_image(image: numpy.ndarray, path: str | Path, *, allowed_root: str | Path) -> None
+~~~
+
+- 与 load_yaml / save_yaml 共用路径规范化和允许目录校验。
+- load_image 返回 RGB 顺序的数组；解码失败抛出 ValueError。
+- save_image 接受 RGB 数组，内部转为 BGR 后编码为 PNG，写入使用原子替换。
+- NumPy 和 OpenCV 只在图像能力内按需加载，不进入 system 的静态依赖。
+- 图像内容解释属于上层视觉模块，files 只负责读写。
+
+### 6.5 新增文件格式
 
 新增格式前先确认它属于通用文件机制，而不是业务解析。实现时必须：
 
@@ -367,6 +392,8 @@ system.errors.DispatchError
 
 system.files.load_yaml
 system.files.save_yaml
+system.files.load_image
+system.files.save_image
 
 system.logger.get_logger
 system.logger.setup_logger

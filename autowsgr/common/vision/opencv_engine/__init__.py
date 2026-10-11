@@ -1,8 +1,10 @@
 """模块功能：提供 OpenCV 基础图像操作的稳定出口。
 
-直接调用方：视觉组合操作和需要直接处理图片的通用模块。
+上层调用：
+- common.vision.adapters.template_matching 和 text_recognition：取用 OpenCV 图片操作。
 
-直接依赖：executor 中的 OpenCV 原子操作和 system.files 文件边界。
+下层依赖：
+- common.vision.opencv_engine.executor：提供 OpenCV 原子操作。
 
 边界：不定义页面匹配规则，不处理设备截图或业务识别。
 """

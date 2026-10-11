@@ -80,10 +80,10 @@ Scrcpy，Scrcpy 执行器不直接负责设备发现，平台生命周期不负�
 | --- | --- | --- |
 | 连接模拟器 | `connect()` | 选择设备，建立 ADB、Scrcpy、视频和控制通道 |
 | 操作模拟器 | `click()`、`swipe()`、`long_tap()`、`key_event()`、`text()` | 执行屏幕输入 |
-| Android 控制 | `start_app()`、`stop_app()`、`is_app_running()`、`shell()` | 控制应用和执行设备内 Shell |
+| Android 控制 | `start_app()`、`stop_app()`、`check_app_running()`、`shell()` | 控制应用和执行设备内 Shell |
 | 截图 | `resolution`、`screenshot()`、`save_screenshot()` | 获取分辨率、读取 RGB 截图和受限保存 |
 | 连接维护 | `is_connected()`、`disconnect()`、`reconnect()` | 维护 Scrcpy 设备连接 |
-| 模拟器维护 | 在线检查、启动、停止、重启和等待上线 | 管理宿主模拟器进程 |
+| 模拟器维护 | `check_emulator_running()`、启动、停止、重启和等待上线 | 管理宿主模拟器进程 |
 
 统一入口的方法保留简洁设备语义；入口内部调用使用带对象名的私有函数，例如
 `connection._connect_device()`、`operation._click_screen()` 和

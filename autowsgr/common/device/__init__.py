@@ -1,7 +1,11 @@
-"""提供设备基础能力的统一命名空间。
+"""模块功能：提供设备基础能力的统一命名空间。
 
-直接调用方：需要使用设备基础能力的应用、业务和工具模块。
-下层依赖：device.service、device.config 和 system 基础能力。
+上层调用：
+- application、business、dispatch 和 server：通过 common.device.service 取用设备连接、输入和截图。
+
+下层依赖：
+- common.device.service、common.device.config 和 common.system 基础能力。
+
 边界：不识别游戏页面、不编排业务流程、不持有任务或用户业务状态。
 """
 

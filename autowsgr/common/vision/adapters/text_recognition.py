@@ -1,8 +1,14 @@
 """模块功能：组合 ROI 裁切、OpenCV 文本预处理和 OCR 识别。
 
-直接调用方：service 入口和需要复用通用文字识别流程的模块。
+上层调用：
+- common.vision.service：取用 prepare_text、recognize_text 等通用识别入口。
+- common.vision.adapters：重新修饰这里的能力供 service 调用。
 
-直接依赖：OpenCV、FastOCR、ROI 模型、视觉配置和日志基础设施。
+下层依赖：
+- OpenCV：提供文本预处理算子。
+- FastOCR：提供文字检测和识别。
+- common.vision.adapters.template_matching：提供 ROI 模型。
+- common.vision.config、ocr_engine 和 opencv_engine：提供识别参数与执行器。
 
 边界：不负责设备截图、领域文本修正、页面状态或业务候选规则的定义。
 """
@@ -22,12 +28,10 @@ from autowsgr.common.vision.opencv_engine.executor import OpenCVExecutor
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    import numpy as np
+    import numpy
 
     from autowsgr.common.vision.adapters.template_matching import ROI
 
-
-# ── OCR 识别配置 ───────────────────────────────────────────────────
 
 _log = get_logger('vision.ocr')
 
@@ -39,7 +43,7 @@ class RecognitionProfile(StrEnum):
     SINGLE_LINE = 'single_line'
 
 
-# ── OCR 基础执行器 ─────────────────────────────────────────────────
+# ── OCR 基础执行器 ──────────────────────────────────────────────────────────
 
 
 @cache
@@ -51,15 +55,15 @@ def _ocr_executor() -> OCRExecutor:
 _OPENCV = OpenCVExecutor()
 
 
-# ── 文本预处理 ─────────────────────────────────────────────────────
+# ── 文本预处理 ──────────────────────────────────────────────────────────────
 
 
 def prepare_text(
-    image: np.ndarray,
+    image: numpy.ndarray,
     *,
     scale: int = OPENCV_TEXT_SCALE,
     blur_kernel: int = OPENCV_TEXT_BLUR_KERNEL,
-) -> np.ndarray:
+) -> numpy.ndarray:
     """执行通用 OCR 文本预处理。
 
     Args:
@@ -85,18 +89,18 @@ def prepare_text(
     return _OPENCV.gray_to_rgb(_OPENCV.threshold(normalized))
 
 
-# ── 文本解析 ───────────────────────────────────────────────────────
+# ── 文本解析 ────────────────────────────────────────────────────────────────
 
 
 def parse_counter(text: str, max_value: int) -> int | None:
-    """从 ``X/Y`` 文本中提取分子，允许 OCR 丢失分隔符。
+    """从 X/Y 文本中提取分子，允许 OCR 丢失分隔符。
 
     Args:
         text: OCR 返回的计数文本。
         max_value: 计数分母，用于识别丢失分隔符的文本。
 
     Returns:
-        能够确认的分子；无法从无分隔符文本确认分母时返回 ``None``。
+        能够确认的分子；无法从无分隔符文本确认分母时返回 None。
 
     Raises:
         ValueError: 文本中没有可用数字，或分隔符前没有数字。
@@ -125,11 +129,11 @@ def parse_counter(text: str, max_value: int) -> int | None:
     return None
 
 
-# ── OCR 识别 ───────────────────────────────────────────────────────
+# ── OCR 识别 ────────────────────────────────────────────────────────────────
 
 
 def recognize_text(
-    image: np.ndarray,
+    image: numpy.ndarray,
     *,
     roi: ROI | None = None,
     allowlist: str = '',
@@ -152,38 +156,40 @@ def recognize_text(
         ValueError: 识别模式不是已定义的模式。
     """
     # 1. 先裁切调用方指定的区域，保证 OCR 坐标相对于识别输入。
-    source = roi.crop(image) if roi is not None else image
+    source_image = roi.crop(image) if roi is not None else image
     profile = RecognitionProfile(recognition_profile)
 
     # 2. 根据识别模式选择完整检测或单行识别。
     executor = _ocr_executor()
-    results = (
-        executor.recognize_line(source, allowlist)
+    detections = (
+        executor.recognize_line(source_image, allowlist)
         if profile is RecognitionProfile.SINGLE_LINE
-        else executor.recognize(source, allowlist)
+        else executor.recognize(source_image, allowlist)
     )
 
     _log.debug(
-        '[VISION] OCR → 识别结果：profile={!r}, count={}',
+        '[VISION] OCR → 识别结果：profile={!r}, detection_count={}',
         profile.value,
-        len(results),
+        len(detections),
     )
     if candidates is None:
-        return results
+        return detections
 
     # 3. 只保留调用方明确允许的完整文本，不在通用层猜测业务结果。
-    allowed = set(candidates)
-    filtered = [result for result in results if result.recognized_text in allowed]
+    allowed_texts = set(candidates)
+    matched_detections = [
+        detection for detection in detections if detection.recognized_text in allowed_texts
+    ]
     _log.debug(
         '[VISION] OCR → 候选约束：candidate_count={}, matched_count={}',
         len(candidates),
-        len(filtered),
+        len(matched_detections),
     )
-    return filtered
+    return matched_detections
 
 
 def recognize_prepared_text(
-    image: np.ndarray,
+    image: numpy.ndarray,
     *,
     roi: ROI | None = None,
     allowlist: str = '',
@@ -207,8 +213,8 @@ def recognize_prepared_text(
         按图片阅读顺序排列的标准化识别结果。
     """
     # 1. 先确定识别区域，再对区域内文字执行通用预处理。
-    source = roi.crop(image) if roi is not None else image
-    prepared = prepare_text(source, scale=scale, blur_kernel=blur_kernel)
+    source_image = roi.crop(image) if roi is not None else image
+    prepared = prepare_text(source_image, scale=scale, blur_kernel=blur_kernel)
 
     # 2. 预处理结果已经是识别输入，因此不再次传入 ROI。
     return recognize_text(

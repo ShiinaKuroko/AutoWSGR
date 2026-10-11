@@ -1,8 +1,13 @@
 """模块功能：加载 FastOCR 模型并执行单次文字识别。
 
-直接调用方：text_recognition 中的通用 OCR 组合操作。
+上层调用：
+- common.vision.adapters.text_recognition：取用通用 OCR 组合能力。
 
-直接依赖：MaaFramework、OpenCV、模型资源和 vision.config。
+下层依赖：
+- MaaFramework：提供 OCR 模型和识别任务。
+- OpenCV：提供图片通道转换。
+- NumPy：提供数组类型。
+- common.vision.config：提供模型路径、文件清单和阈值配置。
 
 边界：只返回标准化识别事实，不负责 OCR 文本修正、候选业务规则或页面流程。
 """
@@ -16,17 +21,11 @@ from typing import TYPE_CHECKING
 
 import cv2
 
-from autowsgr.common.vision.config import (
-    OCR_DEFAULT_THRESHOLD,
-    OCR_MODEL_DIR_ENV,
-    OCR_MODEL_FILES,
-    OCR_THRESHOLD_ENV,
-    OCR_USER_DIR_ENV,
-)
+from autowsgr.common.vision import config
 
 
 if TYPE_CHECKING:
-    import numpy as np
+    import numpy
 
 
 @dataclass(frozen=True, slots=True)
@@ -57,18 +56,18 @@ class OCRExecutor:
         from maa.toolkit import Toolkit
 
         # 1. 解析模型位置并确认运行所需的模型文件齐全。
-        configured_model_dir = os.getenv(OCR_MODEL_DIR_ENV, '').strip()
+        configured_model_dir = os.getenv(config.OCR_MODEL_DIR_ENV, '').strip()
         model_dir = (
             Path(configured_model_dir).expanduser().resolve()
             if configured_model_dir
             else self._BUNDLED_MODEL_DIR
         )
-        missing = [name for name in OCR_MODEL_FILES if not (model_dir / name).is_file()]
+        missing = [name for name in config.OCR_MODEL_FILES if not (model_dir / name).is_file()]
         if missing:
             raise RuntimeError(f'FastOCR 模型目录缺少文件: {", ".join(missing)}')
 
         # 2. 初始化 MaaFramework 用户目录，避免把运行数据写回模型资源目录。
-        configured_user_dir = os.getenv(OCR_USER_DIR_ENV, '').strip()
+        configured_user_dir = os.getenv(config.OCR_USER_DIR_ENV, '').strip()
         user_dir = (
             Path(configured_user_dir).expanduser().resolve()
             if configured_user_dir
@@ -98,9 +97,11 @@ class OCRExecutor:
 
         # 5. 读取并校验模型阈值，后续识别统一使用该配置。
         try:
-            threshold = float(os.getenv(OCR_THRESHOLD_ENV, str(OCR_DEFAULT_THRESHOLD)))
+            threshold = float(
+                os.getenv(config.OCR_THRESHOLD_ENV, str(config.OCR_DEFAULT_THRESHOLD))
+            )
         except ValueError as exc:
-            raise RuntimeError(f'{OCR_THRESHOLD_ENV} 必须是数字') from exc
+            raise RuntimeError(f'{config.OCR_THRESHOLD_ENV} 必须是数字') from exc
 
         self._threshold = threshold
         self._tasker = tasker
@@ -110,7 +111,7 @@ class OCRExecutor:
 
     def recognize(
         self,
-        image: np.ndarray,
+        image: numpy.ndarray,
         allowlist: str = '',
     ) -> list[TextDetection]:
         """执行完整文字检测并返回按阅读顺序排列的结果。
@@ -126,7 +127,7 @@ class OCRExecutor:
 
     def recognize_line(
         self,
-        image: np.ndarray,
+        image: numpy.ndarray,
         allowlist: str = '',
     ) -> list[TextDetection]:
         """识别已裁剪的单行文字并返回按阅读顺序排列的结果。
@@ -142,7 +143,7 @@ class OCRExecutor:
 
     def _recognize(
         self,
-        image: np.ndarray,
+        image: numpy.ndarray,
         allowlist: str,
         *,
         only_rec: bool,
@@ -161,7 +162,7 @@ class OCRExecutor:
             RuntimeError: FastOCR 任务失败或没有返回识别详情。
         """
         # 1. FastOCR 使用 BGR 输入，先转换图片通道顺序。
-        bgr = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+        bgr_image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
         # 2. 提交一次识别任务并等待模型返回结果。
         job = self._tasker.post_recognition(
@@ -170,7 +171,7 @@ class OCRExecutor:
                 only_rec=only_rec,
                 threshold=self._threshold,
             ),
-            bgr,
+            bgr_image,
         ).wait()
         if not job.succeeded:
             raise RuntimeError('FastOCR 识别任务失败')
@@ -179,22 +180,22 @@ class OCRExecutor:
             raise RuntimeError('FastOCR 未返回识别详情')
 
         # 3. 过滤空文本、应用字符约束，并统一识别区域坐标。
-        results: list[TextDetection] = []
+        detections: list[TextDetection] = []
         for node in detail.nodes:
             recognition = node.recognition
             if recognition is None:
                 continue
-            for result in recognition.filtered_results:
-                text = str(getattr(result, 'text', ''))
+            for detection in recognition.filtered_results:
+                text = str(getattr(detection, 'text', ''))
                 if allowlist:
                     text = ''.join(character for character in text if character in allowlist)
                 if not text:
                     continue
-                box_x, box_y, box_width, box_height = map(float, result.box)
-                results.append(
+                box_x, box_y, box_width, box_height = map(float, detection.box)
+                detections.append(
                     TextDetection(
                         recognized_text=text,
-                        confidence_score=float(result.score),
+                        confidence_score=float(detection.score),
                         text_region=(
                             round(box_x),
                             round(box_y),
@@ -204,10 +205,10 @@ class OCRExecutor:
                     )
                 )
         return sorted(
-            results,
-            key=lambda result: (
-                result.text_region[1] if result.text_region is not None else 0,
-                result.text_region[0] if result.text_region is not None else 0,
+            detections,
+            key=lambda detection: (
+                detection.text_region[1] if detection.text_region is not None else 0,
+                detection.text_region[0] if detection.text_region is not None else 0,
             ),
         )
 

@@ -1,7 +1,14 @@
-"""执行 Scrcpy 视频、控制和输入能力。
+"""模块功能：执行 Scrcpy 视频、控制和输入能力。
 
-直接调用方：device_engine 的设备连接、截图和操作流程。
-下层依赖：设备配置、操作时序、system.logger、已连接的 ADB 设备、Scrcpy server 和 PyAV。
+上层调用：
+- common.device.device_engine.session：持有执行器实例。
+- common.device.device_engine.orchestration.connection、operation 和 screenshot：取用通道、输入和截图能力。
+
+下层依赖：
+- common.device.config 和 foundation.delay：提供通道配置和操作时序。
+- common.system.logger：提供日志对象。
+- 已连接的 ADB 设备、Scrcpy server 和 PyAV：提供视频流与控制通道。
+
 边界：只维护一个 Scrcpy 执行器实例的通道与 I/O，不负责 ADB 会话或业务流程。
 """
 

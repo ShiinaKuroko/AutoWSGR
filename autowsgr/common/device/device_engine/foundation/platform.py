@@ -1,7 +1,13 @@
-"""读取宿主平台事实并解析模拟器安装信息。
+"""模块功能：读取宿主平台事实并解析模拟器安装信息。
 
-直接调用方：device_engine 的连接和模拟器生命周期流程。
-下层依赖：system.enums、Python 标准库环境、文件和 Windows 注册表能力。
+上层调用：
+- common.device.config：取用模拟器类型枚举。
+- common.device.device_engine.orchestration.discovery 和 lifecycle：取用平台事实与安装路径。
+
+下层依赖：
+- common.system.enums：提供宿主系统枚举基类。
+- Python 标准库和 Windows 注册表：提供环境与路径探测。
+
 边界：只读取宿主平台事实，不执行模拟器进程控制或 ADB 设备 I/O。
 """
 

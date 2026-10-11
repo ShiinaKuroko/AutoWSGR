@@ -1,7 +1,11 @@
-"""编排同一设备会话上的屏幕输入和 Android 应用操作。
+"""模块功能：编排同一设备会话上的屏幕输入和 Android 应用操作。
 
-直接调用方：device.service 的设备操作入口。
-下层依赖：DeviceSession、Scrcpy 执行器和 ADB 设备会话。
+上层调用：
+- common.device.service：取用点击、滑动、按键和应用操作入口。
+
+下层依赖：
+- common.device.device_engine.session：提供 Scrcpy 和 ADB 设备会话。
+
 边界：只转发设备操作，不负责建立或维护连接、不识别游戏页面。
 """
 
