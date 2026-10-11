@@ -70,13 +70,32 @@ _TAB_TEMPLATES = {
 # ── 标签激活事实读取 ────────────────────────────────────────────────────────
 
 
-def is_sortie_tab_active(ctx: ContextHandle) -> bool:
-    """判断出征标签是否激活。"""
+def is_sortie_tab_active(
+    ctx: ContextHandle,
+    *,
+    absent: bool = False,
+    attempts: int = 1,
+    interval_seconds: float = 0.5,
+) -> bool:
+    """判断出征标签是否激活。
+
+    Args:
+        ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
+        absent: 期望该标签不再激活时为真，默认期望它激活。
+        attempts: 识别次数，默认只探测当前一帧。
+        interval_seconds: 两次识别之间的等待秒数。
+
+    Returns:
+        断言满足时为真。
+    """
     return _is_tab_active(
         ctx,
         constants.SORTIE_TAB_TEMPLATE,
         constants.SORTIE_TAB_ROI,
         name='sortie_tab',
+        absent=absent,
+        attempts=attempts,
+        interval_seconds=interval_seconds,
     )
 
 
@@ -157,7 +176,16 @@ def read_tab_center(ctx: ContextHandle, tab: str) -> tuple[float, float] | None:
     return center
 
 
-def _is_tab_active(ctx: ContextHandle, filename: str, roi: ROI, *, name: str) -> bool:
+def _is_tab_active(
+    ctx: ContextHandle,
+    filename: str,
+    roi: ROI,
+    *,
+    name: str,
+    absent: bool = False,
+    attempts: int = 1,
+    interval_seconds: float = 0.5,
+) -> bool:
     """按激活态模板判断一个标签是否处于选中状态。"""
     result = expect_template(
         ctx,
@@ -168,6 +196,9 @@ def _is_tab_active(ctx: ContextHandle, filename: str, roi: ROI, *, name: str) ->
         ),
         roi=roi,
         confidence=_TEMPLATE_CONFIDENCE,
+        absent=absent,
+        attempts=attempts,
+        interval_seconds=interval_seconds,
     )
     _log.debug('[UI] 出征标签 → 读激活状态：tab={!r}，active={!r}', name, result.satisfied)
     return result.satisfied

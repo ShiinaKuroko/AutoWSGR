@@ -53,12 +53,11 @@ def _ctx() -> Any:
 def _accept_all(monkeypatch: pytest.MonkeyPatch) -> None:
     """让所有已注册页面的确认入口都返回真，并让每日浮窗视为不存在。
 
-    替身把所有页面都判成"存在"，所以离开确认必须单独放行——真机上它由真实 checker
-    决定（点走后旧标志消失）。离开确认自己的失败路径另有专门用例。
+    替身不区分前后识别：前识别返回真（页面在），后识别也返回真（已离开），
+    这样用例只验证「点击 + 到达确认」，离开确认自己的失败路径另有专门用例。
     """
-    monkeypatch.setattr(NavigationExecutor, '_confirm_departure', lambda _self: None)
     for page in list(registry._PAGE_CHECKERS):
-        monkeypatch.setitem(registry._PAGE_CHECKERS, page, lambda _ctx: True)
+        monkeypatch.setitem(registry._PAGE_CHECKERS, page, lambda _ctx, **_kwargs: True)
     monkeypatch.setattr(
         home_checker,
         'check_home_news_overlay',
@@ -256,7 +255,11 @@ def test_login_pages_register_arrival_checkers() -> None:
 def test_executor_rejects_failed_departure(monkeypatch: pytest.MonkeyPatch) -> None:
     """旧页标志一直不消失时，执行器抛离开确认失败。"""
     # 只注册一个永远为真的确认入口：离开确认必然轮询到底仍"存在"。
-    monkeypatch.setitem(registry._PAGE_CHECKERS, PageName.SORTIE_MAP, lambda _ctx: True)
+    monkeypatch.setitem(
+        registry._PAGE_CHECKERS,
+        PageName.SORTIE_MAP,
+        lambda _ctx, *, absent=False, **_kwargs: not absent,
+    )
     ctx = _ctx()
     session = SessionState()
     session.push_page(PageName.SORTIE_MAP.value)

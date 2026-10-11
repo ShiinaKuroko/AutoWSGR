@@ -23,16 +23,30 @@ if TYPE_CHECKING:
 # ── 识别入口 ────────────────────────────────────────────────────────────────
 
 
-def check_sortie_page(ctx: ContextHandle) -> bool:
+def check_sortie_page(
+    ctx: ContextHandle,
+    *,
+    absent: bool = False,
+    attempts: int = 1,
+    interval_seconds: float = 0.5,
+) -> bool:
     """确认出征标签是否激活。
 
     Args:
         ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
+        absent: 期望该标签不再激活时为真，默认期望它激活。
+        attempts: 识别次数，默认只探测当前一帧。
+        interval_seconds: 两次识别之间的等待秒数。
 
     Returns:
-        出征标签激活时为真；第一次进入出征页默认落在该标签。
+        断言满足时为真；第一次进入出征页默认落在该标签。
     """
-    return recognition.is_sortie_tab_active(ctx)
+    return recognition.is_sortie_tab_active(
+        ctx,
+        absent=absent,
+        attempts=attempts,
+        interval_seconds=interval_seconds,
+    )
 
 
 def check_exercise_page(ctx: ContextHandle) -> bool:

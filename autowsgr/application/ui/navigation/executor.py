@@ -13,12 +13,10 @@
 
 from __future__ import annotations
 
-import time
 from typing import TYPE_CHECKING
 
 from autowsgr.application.ui.navigation import registry
 from autowsgr.application.ui.navigation.types import NavigationError, PageName
-from autowsgr.common.system.logger import get_logger
 
 
 if TYPE_CHECKING:
@@ -27,15 +25,6 @@ if TYPE_CHECKING:
     from autowsgr.application.ui.navigation.types import NavTarget
     from autowsgr.dispatch.context import ContextHandle
     from autowsgr.dispatch.session import SessionState
-
-
-_log = get_logger('ui.navigation.executor')
-
-
-# 动作之后确认「旧标志消失」「新标志出现」的轮询次数与间隔，单位为秒。
-# 个别页面的确认入口自带更长节奏（如首页等登录动画），会先于这两个上限返回。
-_CONFIRM_ATTEMPTS = 6
-_CONFIRM_INTERVAL_SECONDS = 0.5
 
 
 class NavigationExecutor:
@@ -108,56 +97,32 @@ class NavigationExecutor:
     # ── 前后识别 ────────────────────────────────────────────────────────────
 
     def _confirm_departure(self) -> None:
-        """离开确认（后识别）：轮询确认刚离开的那一页标志已经消失。
+        """离开确认：用后识别确认刚离开的那一页标志已经消失。
 
-        此刻目标页还没压栈，所以栈顶就是出发页。没有确认入口的页面直接放行。
+        此刻目标页还没压栈，所以栈顶就是出发页。识别节奏由该页在注册表里的确认入口
+        自己带（最终透传到 common.vision 的轮询），这里只决定用哪一种识别。
+        没有确认入口的页面直接放行。
 
         Raises:
-            NavigationError: 轮询结束标志仍然存在。
+            NavigationError: 后识别未通过。
         """
         current = self._session.current_page()
         if current is None:
             return
         page = PageName(current)
         confirm = registry.get_checker(page)
-        if confirm is None:
-            return
-        if self._wait_until_absent(page, confirm):
-            return
-        raise NavigationError(f'离开确认失败：{page.value} 仍然存在')
+        if confirm is not None and not confirm(self._ctx, absent=True):
+            raise NavigationError(f'离开确认失败：{page.value} 仍然存在')
 
     def _confirm_arrival(self, edge: NavTarget) -> None:
-        """到达确认（前识别）：轮询确认目标页标志已经出现。
+        """到达确认：用前识别确认目标页标志已经出现。
 
         Raises:
-            NavigationError: 轮询结束标志仍未出现。
+            NavigationError: 前识别未通过。
         """
         confirm = registry.get_checker(edge.target)
-        if confirm is None:
-            return
-        if self._wait_until_present(edge.target, confirm):
-            return
-        raise NavigationError(f'到达确认失败：{edge.description!r}')
-
-    # ── 轮询 ────────────────────────────────────────────────────────────────
-
-    def _wait_until_present(self, page: PageName, confirm: object) -> bool:
-        """轮询等待页面标志出现。"""
-        for _ in range(_CONFIRM_ATTEMPTS):
-            if confirm(self._ctx):  # type: ignore[operator]
-                return True
-            time.sleep(_CONFIRM_INTERVAL_SECONDS)
-        _log.warning('[UI] 导航确认 → 未出现：page={!r}', page.value)
-        return False
-
-    def _wait_until_absent(self, page: PageName, confirm: object) -> bool:
-        """轮询等待页面标志消失。"""
-        for _ in range(_CONFIRM_ATTEMPTS):
-            if not confirm(self._ctx):  # type: ignore[operator]
-                return True
-            time.sleep(_CONFIRM_INTERVAL_SECONDS)
-        _log.warning('[UI] 导航确认 → 未消失：page={!r}', page.value)
-        return False
+        if confirm is not None and not confirm(self._ctx):
+            raise NavigationError(f'到达确认失败：{edge.description!r}')
 
 
 __all__ = ['NavigationExecutor']

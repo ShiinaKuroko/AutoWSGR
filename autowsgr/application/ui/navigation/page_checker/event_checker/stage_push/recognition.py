@@ -96,7 +96,14 @@ def _calculate_mode_from_title(
 # ── 页面事实读取与判断 ─────────────────────────────────────────────────────────────────
 
 
-def is_map_title_present(ctx: ContextHandle, data: Mapping[str, Any]) -> bool:
+def is_map_title_present(
+    ctx: ContextHandle,
+    data: Mapping[str, Any],
+    *,
+    absent: bool = False,
+    attempts: int = 1,
+    interval_seconds: float = 0.5,
+) -> bool:
     """判断活动地图标题是否可读。
 
     地图标题由「地图名」+（可选）「困难」组成，括号形态多变，因此统一断言：
@@ -105,9 +112,12 @@ def is_map_title_present(ctx: ContextHandle, data: Mapping[str, Any]) -> bool:
     Args:
         ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
         data: 本期活动数据。
+        absent: 期望标题消失时为真，默认期望它出现。
+        attempts: 识别次数，默认只探测当前一帧。
+        interval_seconds: 两次识别之间的等待秒数。
 
     Returns:
-        标题区域命中任一候选时为真。
+        断言满足时为真。
     """
     normal_name = str(data['map_name']['normal'])
     result = expect_ocr(
@@ -115,7 +125,9 @@ def is_map_title_present(ctx: ContextHandle, data: Mapping[str, Any]) -> bool:
         expect=(normal_name, _HARD_MARKER),
         roi=constants.MAP_NAME_ROI,
         recognition_profile='single_line',
-        attempts=1,
+        absent=absent,
+        attempts=attempts,
+        interval_seconds=interval_seconds,
     )
     _log.debug('[UI] 活动识别 → 查地图标题：present={!r}', result.satisfied)
     return result.satisfied
@@ -210,8 +222,24 @@ def read_stage_title_texts(ctx: ContextHandle, data: Mapping[str, Any]) -> list[
     return title_texts
 
 
-def wait_sortie_overlay(ctx: ContextHandle) -> bool:
-    """等待节点浮窗出现。"""
+def wait_sortie_overlay(
+    ctx: ContextHandle,
+    *,
+    absent: bool = False,
+    attempts: int = 1,
+    interval_seconds: float = 0.5,
+) -> bool:
+    """确认节点浮窗是否在画面上。
+
+    Args:
+        ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
+        absent: 期望浮窗消失时为真，默认期望它出现。
+        attempts: 识别次数，默认只探测当前一帧。
+        interval_seconds: 两次识别之间的等待秒数。
+
+    Returns:
+        断言满足时为真。
+    """
     result = expect_template(
         ctx,
         template=calibration.load_module_template(
@@ -221,6 +249,9 @@ def wait_sortie_overlay(ctx: ContextHandle) -> bool:
         ),
         roi=constants.SORTIE_PREPARE_ROI,
         confidence=_TEMPLATE_CONFIDENCE,
+        absent=absent,
+        attempts=attempts,
+        interval_seconds=interval_seconds,
     )
     return result.satisfied
 

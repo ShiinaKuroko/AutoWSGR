@@ -41,6 +41,7 @@ _TEMPLATE_CONFIDENCE = 0.85
 def is_home_page_visible(
     ctx: ContextHandle,
     *,
+    absent: bool = False,
     attempts: int = 1,
     interval_seconds: float = 0.5,
 ) -> bool:
@@ -48,11 +49,12 @@ def is_home_page_visible(
 
     Args:
         ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
+        absent: 期望主页标志消失时为真，默认期望它出现。
         attempts: 识别次数，默认只探测当前一帧。
         interval_seconds: 两次识别之间的等待秒数。
 
     Returns:
-        主页模板命中时为真。
+        断言满足时为真。
     """
     result = expect_template(
         ctx,
@@ -63,6 +65,7 @@ def is_home_page_visible(
         ),
         roi=constants.HOME_MAIN_ROI,
         confidence=_TEMPLATE_CONFIDENCE,
+        absent=absent,
         attempts=attempts,
         interval_seconds=interval_seconds,
     )

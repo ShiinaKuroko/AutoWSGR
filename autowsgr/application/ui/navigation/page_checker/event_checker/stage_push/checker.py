@@ -125,7 +125,14 @@ def _stage_number(stage: str) -> int:
 # ── 识别入口 ────────────────────────────────────────────────────────────────
 
 
-def check_event_map_page(ctx: ContextHandle, *, event_type: str | None = None) -> bool:
+def check_event_map_page(
+    ctx: ContextHandle,
+    *,
+    absent: bool = False,
+    attempts: int = 1,
+    interval_seconds: float = 0.5,
+    event_type: str | None = None,
+) -> bool:
     """确认当前是否在活动地图页。
 
     判断标准：地图标题区域识别到本期地图名。章节浮窗态由浮窗入口单独确认。
@@ -133,10 +140,13 @@ def check_event_map_page(ctx: ContextHandle, *, event_type: str | None = None) -
 
     Args:
         ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
+        absent: 期望地图标志消失时为真，默认期望它出现。
+        attempts: 识别次数，默认只探测当前一帧。
+        interval_seconds: 两次识别之间的等待秒数。
         event_type: 活动玩法标识；提供时校验调用方选对了 checker。
 
     Returns:
-        读到地图标题时为真。
+        断言满足时为真。
 
     Raises:
         ValueError: 活动玩法标识与当前 checker 不一致。
@@ -144,7 +154,13 @@ def check_event_map_page(ctx: ContextHandle, *, event_type: str | None = None) -
     if event_type is not None:
         calibration.require_activity(event_type, constants.ACTIVITY)
     data = calibration.load_activity_data(constants.ACTIVITY, constants.PERIOD)
-    return recognition.is_map_title_present(ctx, data)
+    return recognition.is_map_title_present(
+        ctx,
+        data,
+        absent=absent,
+        attempts=attempts,
+        interval_seconds=interval_seconds,
+    )
 
 
 def check_event_entry(ctx: ContextHandle, *, event_type: str) -> bool:
@@ -202,21 +218,27 @@ def read_event_map_state(ctx: ContextHandle, *, event_type: str) -> EventMapStat
 def check_event_sortie_prepare(
     ctx: ContextHandle,
     *,
+    absent: bool = False,
+    attempts: int = 1,
+    interval_seconds: float = 0.5,
     event_type: str | None = None,
     stage: str | None = None,
 ) -> bool:
     """确认节点浮窗是否打开，并在给出章节时校验它指向目标章节。
 
-    三个参数全部可省略：省略 event_type 时不校验调用方选对了 checker，省略 stage 时只判
-    "浮窗已经打开"，供导航器定位当前页使用。
+    参数全部可省略：省略 event_type 时不校验调用方选对了 checker；省略 stage 时只判
+    "浮窗已经打开"，供导航器定位当前页使用；absent 为真时只判浮窗消失。
 
     Args:
         ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
+        absent: 期望浮窗消失时为真，默认期望它出现。
+        attempts: 识别次数，默认只探测当前一帧。
+        interval_seconds: 两次识别之间的等待秒数。
         event_type: 活动玩法标识；提供时校验调用方选对了 checker。
         stage: 目标章节标识，例如 EX7；提供时校验浮窗标题指向该章节。
 
     Returns:
-        浮窗已打开，且（给出章节时）标题指向目标章节时为真。
+        断言满足时为真（给出章节时还要标题指向该章节）。
 
     Raises:
         ValueError: 给出了本期活动数据里没有的章节。
@@ -227,12 +249,17 @@ def check_event_sortie_prepare(
     if stage is not None and stage not in data['stages']:
         raise ValueError(f'本期活动没有该章节: {stage!r}')
 
-    # 1. 先等节点浮窗出现，浮窗没有出现时不需要继续判定标题。
-    if not recognition.wait_sortie_overlay(ctx):
+    # 1. 先判浮窗的出现或消失；断言不满足时不需要继续判定标题。
+    if not recognition.wait_sortie_overlay(
+        ctx,
+        absent=absent,
+        attempts=attempts,
+        interval_seconds=interval_seconds,
+    ):
         return False
 
-    # 2. 没有指定章节时，浮窗打开即算到达。
-    if stage is None:
+    # 2. 只判浮窗、或浮窗已消失时，到此即算满足。
+    if absent or stage is None:
         return True
 
     # 3. 再用关卡标题确认进入的是目标章节。
