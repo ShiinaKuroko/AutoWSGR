@@ -16,6 +16,7 @@ class SessionState:
 
     def __init__(self) -> None:
         self._daily_popup_handled = False
+        self._server_selected = False
         self._pages: list[str] = []
 
     @property
@@ -26,6 +27,15 @@ class SessionState:
     def mark_daily_popup_handled(self) -> None:
         """标记每日弹窗已处理。"""
         self._daily_popup_handled = True
+
+    @property
+    def server_selected(self) -> bool:
+        """本次程序运行是否已处理过区服选择。"""
+        return self._server_selected
+
+    def mark_server_selected(self) -> None:
+        """标记本次运行已完成区服选择。"""
+        self._server_selected = True
 
     def current_page(self) -> str | None:
         """返回导航栈顶的页面值。"""

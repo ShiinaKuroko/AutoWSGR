@@ -11,7 +11,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, ValidationError, field_validator, model_validator
 
-from autowsgr.application.runtime.types import GameAPP
+from autowsgr.application.runtime.types import GameAPP, LoginServer
 from autowsgr.business.combat.types import ShipType
 from autowsgr.business.logistics.types import DestroyShipWorkMode
 from autowsgr.common.device import platform, timing
@@ -32,6 +32,9 @@ class AccountConfig(BaseModel):
 
     game_app: GameAPP = GameAPP.official
     """游戏渠道(决定 Android 包名)"""
+
+    game_server: LoginServer = LoginServer.default
+    """登录区服；默认表示不处理换区。"""
 
     @property
     def package_name(self) -> str:

@@ -5,6 +5,19 @@ from __future__ import annotations
 from autowsgr.common.system.enums import StrEnum
 
 
+class LoginServer(StrEnum):
+    """登录时可选择的区服。
+
+    'default' 表示不处理换区；其余取值与游戏内区服名一致，用于 OCR 定位。
+    """
+
+    default = '默认'
+    hood = '胡德'
+    bismarck = '俾斯麦'
+    quincy = '昆西'
+    changchun = '长春'
+
+
 class GameAPP(StrEnum):
     """游戏渠道服。"""
 
