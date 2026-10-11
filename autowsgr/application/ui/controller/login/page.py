@@ -42,7 +42,7 @@ class LoginPage:
 
     # ── 登录页 ───────────────────────────────────────────────────────────────────
 
-    def enter_game(self, position: tuple[float, float] | None = None) -> None:
+    def click_enter_game(self, position: tuple[float, float] | None = None) -> None:
         """点击"进入游戏"按钮。
 
         Args:

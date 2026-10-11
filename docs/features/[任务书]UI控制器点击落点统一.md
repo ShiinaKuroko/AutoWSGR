@@ -30,7 +30,7 @@
 | 主页 | `HomePage.click_news_checkbox` | `HOME_NEWS_CHECKBOX_*_720P` | `OVERLAY_POSITIONS[news_checkbox]` |
 | 主页 | `HomePage.click_reward_claim` | `HOME_REWARD_CLAIM_BUTTON_720P` | `OVERLAY_POSITIONS[reward_claim]` |
 | 主页 | `HomePage.click_reward_confirm` | `HOME_REWARD_CONFIRM_BUTTON_720P` | `OVERLAY_POSITIONS[reward_confirm]` |
-| 登录页 | `LoginPage.enter_game` | `LOGIN_ENTER_BUTTON_720P` | `CLICK_ENTER_GAME` |
+| 登录页 | `LoginPage.click_enter_game` | `LOGIN_ENTER_BUTTON_720P` | `CLICK_ENTER_GAME` |
 | 登录页 | `LoginPage.click_switch_entry` | `SERVER_SWITCH_ENTRY_720P` | `CLICK_SWITCH_ENTRY` |
 | 出征页 | `SortiePage.go_to` | 五个标签模板 | `TAB_POSITIONS[tab]`（已有） |
 

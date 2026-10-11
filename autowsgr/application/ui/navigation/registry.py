@@ -66,7 +66,7 @@ _NAV_TARGETS: dict[PageName, tuple[NavTarget, ...]] = {
         ),
         NavTarget(
             PageName.HOME,
-            lambda ctx, **_: LoginPage(ctx).enter_game(),
+            lambda ctx, **_: LoginPage(ctx).click_enter_game(),
             '登录页 → 主页',
         ),
     ),

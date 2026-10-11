@@ -34,11 +34,11 @@ def _build() -> tuple[LoginPage, _Ctrl]:
     return LoginPage(ctx), ctrl
 
 
-def test_enter_game_clicks_enter_position() -> None:
+def test_click_enter_game_clicks_enter_position() -> None:
     """进入游戏点击固定落点。"""
     page, ctrl = _build()
 
-    page.enter_game()
+    page.click_enter_game()
 
     assert ctrl.clicks == [constants.CLICK_ENTER_GAME]
 
@@ -52,11 +52,11 @@ def test_switch_entry_clicks_switch_position() -> None:
     assert ctrl.clicks == [constants.CLICK_SWITCH_ENTRY]
 
 
-def test_enter_game_uses_recognized_center() -> None:
+def test_click_enter_game_uses_recognized_center() -> None:
     """传识别中心时点击中心，而不是固定落点。"""
     page, ctrl = _build()
 
-    page.enter_game((0.25, 0.75))
+    page.click_enter_game((0.25, 0.75))
 
     assert ctrl.clicks == [(0.25, 0.75)]
 
