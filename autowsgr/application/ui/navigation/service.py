@@ -18,10 +18,9 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING
 
-from autowsgr.application.ui.controller.home.main_page import HomePage
 from autowsgr.application.ui.navigation import registry
 from autowsgr.application.ui.navigation.executor import NavigationExecutor
-from autowsgr.application.ui.navigation.page_checker import home_checker, login_checker
+from autowsgr.application.ui.navigation.page_checker import login_checker
 from autowsgr.application.ui.navigation.types import (
     ManualUpdateRequiredError,
     NavigationError,
@@ -40,9 +39,6 @@ _log = get_logger('ui.navigation')
 
 # ── 流程参数 ────────────────────────────────────────────────────────────────
 
-# 每日浮窗：每轮等待时长，以及浮窗可能一个接一个出现时的轮询上限。
-_POPUP_SETTLE_SECONDS = 1.5
-_POPUP_ATTEMPTS = 5
 # 启动三信号里「黑屏」「加载中」是宽泛校验，识别不到就等这么久再看下一项。
 _STARTUP_STEP_WAIT_SECONDS = 3.0
 # 确认画面消失、读取更新提示与加载状态时的探测次数。
@@ -64,7 +60,7 @@ class NavigationService:
         """
         self._ctx = ctx
         self._session = session or get_session()
-        self._executor = NavigationExecutor(ctx, self._session, on_arrive=self._on_arrive)
+        self._executor = NavigationExecutor(ctx, self._session)
 
     # ── 公开入口 ────────────────────────────────────────────────────────────
 
@@ -78,18 +74,10 @@ class NavigationService:
         Raises:
             NavigationError: 无法识别当前页面、没有可达路径或到达确认失败。
         """
-        session = self._session
         source = self._current_page()
         if source == target:
             _log.info('[UI] 导航 → 已在目标页面：target={!r}', target.value)
-            # 已在首页时同样要清每日浮窗，否则浮窗会一直留着挡住后续识别。
-            if source is PageName.HOME:
-                self._handle_daily_popup(session)
             return
-
-        # 从主页出发前先清浮窗，避免它挡住主页上的识别。
-        if source is PageName.HOME:
-            self._handle_daily_popup(session)
 
         path = registry.find_path(source, target)
         _log.info('[UI] 导航 → 开始：source={!r}，target={!r}', source.value, target.value)
@@ -158,18 +146,6 @@ class NavigationService:
 
     # ── 内部实现 ────────────────────────────────────────────────────────────
 
-    def _on_arrive(self, page: PageName) -> None:
-        """到达某页后、确认到达前的上层处理。
-
-        到达主页先清每日浮窗再确认：浮窗要进了主页才出现，在登录页那一步处理会把
-        「今日已处理」的标记浪费掉。
-
-        Args:
-            page: 刚刚到达的页面。
-        """
-        if page is PageName.HOME:
-            self._handle_daily_popup(self._session)
-
     def _current_page(self) -> PageName:
         """返回当前页面：优先取导航栈顶，栈空时识别一次。"""
         session = self._session
@@ -192,61 +168,3 @@ class NavigationService:
                 _log.info('[UI] 导航 → 识别当前页面：page={!r}', page.value)
                 return page
         raise NavigationError('无法识别当前页面')
-
-    def _handle_daily_popup(self, session: SessionState) -> None:
-        """到达首页时处理每日弹窗：公告与奖励各自独立检测。
-
-        刚到达时浮窗可能还没加载出来，每轮先等一个短间隔；浮窗也可能一个接一个出现，
-        因此最多轮询若干轮，直到某一轮什么都没发现为止。本能力每天只跑一次。
-        """
-        if session.daily_popup_handled:
-            return
-        for _ in range(_POPUP_ATTEMPTS):
-            time.sleep(_POPUP_SETTLE_SECONDS)
-            if not self._handle_daily_news() and not self._handle_daily_reward():
-                break
-        session.mark_daily_popup_handled()
-
-    def _handle_daily_news(self) -> bool:
-        """处理每日公告：存在则勾选（未勾选才点）、关闭、确认消失。
-
-        Returns:
-            本轮存在公告浮窗时为真。
-
-        Raises:
-            NavigationError: 关闭后公告仍然存在。
-        """
-        state = home_checker.check_home_news_overlay(self._ctx)
-        if not state.matched:
-            return False
-
-        page = HomePage(self._ctx)
-        _log.info('[UI] 导航 → 每日公告：checked={!r}', state.checked)
-        if state.checked is False:
-            page.click_news_checkbox()
-        page.click_news_close()
-        if home_checker.check_home_news_overlay(self._ctx).matched:
-            raise NavigationError('每日公告关闭后仍然存在')
-        return True
-
-    def _handle_daily_reward(self) -> bool:
-        """处理每日奖励：存在则领取、确认、确认消失。
-
-        Returns:
-            本轮存在奖励浮窗时为真。
-
-        Raises:
-            NavigationError: 领取后没有确认浮窗，或确认后浮窗仍然存在。
-        """
-        if not home_checker.check_home_reward_overlay(self._ctx):
-            return False
-
-        page = HomePage(self._ctx)
-        _log.info('[UI] 导航 → 每日奖励：开始')
-        page.click_reward_claim()
-        if not home_checker.check_home_reward_confirm(self._ctx):
-            raise NavigationError('领取每日奖励后未出现确认浮窗')
-        page.click_reward_confirm()
-        if home_checker.check_home_reward_confirm(self._ctx):
-            raise NavigationError('确认后奖励浮窗仍然存在')
-        return True

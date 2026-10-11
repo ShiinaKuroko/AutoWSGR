@@ -56,7 +56,10 @@ def check_home_page(
     attempts: int = _NAV_CONFIRM_ATTEMPTS,
     interval_seconds: float = _NAV_CONFIRM_INTERVAL_SECONDS,
 ) -> bool:
-    """确认当前是否在主页。
+    """确认当前是否在「没有每日浮窗的主页」上。
+
+    主页上有每日浮窗时不算到达主页：三个浮窗各自有页面身份，先走浮窗链把它们清掉，
+    最后回到这里确认。后识别（`absent=True`）只看主页模板，不受浮窗影响。
 
     Args:
         ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
@@ -65,13 +68,24 @@ def check_home_page(
         interval_seconds: 两次识别之间的等待秒数。
 
     Returns:
-        断言满足时为真；浮窗遮挡主页模板时为假，由调用方先处理浮窗。
+        主页模板命中、且前识别时三个每日浮窗都不在时为真。
     """
-    return recognition.is_home_page_visible(
+    if not recognition.is_home_page_visible(
         ctx,
         absent=absent,
         attempts=attempts,
         interval_seconds=interval_seconds,
+    ):
+        return False
+    # 后识别只判模板消失，浮窗无关。
+    if absent:
+        return True
+    # 前识别：还有浮窗就交给浮窗页表达，这里不算到达主页。
+    news_matched, _ = recognition.read_news_overlay(ctx)
+    if news_matched:
+        return False
+    return not (
+        recognition.is_reward_overlay_visible(ctx) or recognition.is_reward_confirm_visible(ctx)
     )
 
 

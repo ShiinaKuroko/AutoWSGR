@@ -24,8 +24,6 @@ _log = get_logger('ui.navigation.executor')
 
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
-
     from autowsgr.application.ui.navigation.registry import NavTarget
     from autowsgr.dispatch.context import ContextHandle
     from autowsgr.dispatch.session import SessionState
@@ -41,20 +39,12 @@ class NavigationExecutor:
     Args:
         ctx: 提供设备服务与截图事实的 dispatch 上下文句柄。
         session: 进程级导航会话状态。
-        on_arrive: 到达某页后、确认到达前要做的上层处理（例如到达首页时清每日浮窗）。
     """
 
-    def __init__(
-        self,
-        ctx: ContextHandle,
-        session: SessionState,
-        *,
-        on_arrive: Callable[[PageName], None] | None = None,
-    ) -> None:
-        """绑定任务上下文、导航会话状态与到达钩子。"""
+    def __init__(self, ctx: ContextHandle, session: SessionState) -> None:
+        """绑定任务上下文与导航会话状态。"""
         self._ctx = ctx
         self._session = session
-        self._on_arrive = on_arrive
 
     # ── 两个方向 ────────────────────────────────────────────────────────────
 
@@ -75,8 +65,6 @@ class NavigationExecutor:
             _log.debug('[UI] 导航执行 → 前进：edge={!r}', edge.description)
             edge.action(self._ctx, **params)
             self._confirm_departure()
-            if self._on_arrive is not None:
-                self._on_arrive(edge.target)
             self._confirm_arrival(edge)
             self._session.push_page(edge.target.value)
 
@@ -96,8 +84,6 @@ class NavigationExecutor:
             _log.debug('[UI] 导航执行 → 后退：edge={!r}', edge.description)
             edge.action(self._ctx)
             self._confirm_departure()
-            if self._on_arrive is not None:
-                self._on_arrive(edge.target)
             self._confirm_arrival(edge)
             self._session.push_page(edge.target.value)
 
@@ -132,7 +118,7 @@ class NavigationExecutor:
             NavigationError: 前识别未通过。
         """
         confirm = registry.get_checker(edge.target)
-        if confirm is None:
+        if confirm is None or not edge.confirm:
             _log.debug('[UI] 导航执行 → 到达确认：page={!r}，结果=跳过', edge.target.value)
             return
         if not confirm(self._ctx):

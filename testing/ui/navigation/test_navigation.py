@@ -1,4 +1,4 @@
-"""模块功能：验证导航器的路径拼接、确认与回退。
+"""模块功能：验证导航器的路径拼接、确认、浮窗链与回退。
 
 直接调用方：项目测试运行器。
 
@@ -9,7 +9,6 @@
 
 from __future__ import annotations
 
-import time
 from types import SimpleNamespace
 from typing import Any
 
@@ -36,12 +35,6 @@ class _Ctrl:
         self.clicks.append((x, y))
 
 
-@pytest.fixture(autouse=True)
-def _no_sleep(monkeypatch: pytest.MonkeyPatch) -> None:
-    """每日浮窗流程里的等待对测试没有意义，直接跳过。"""
-    monkeypatch.setattr(time, 'sleep', lambda _seconds: None)
-
-
 def _ctx() -> Any:
     """构造带活动任务参数的上下文替身。"""
     return SimpleNamespace(
@@ -52,7 +45,7 @@ def _ctx() -> Any:
 
 
 def _accept_all(monkeypatch: pytest.MonkeyPatch) -> None:
-    """让所有已注册页面的确认入口都返回真，并让每日浮窗视为不存在。
+    """让所有已注册页面的确认入口都返回真，并让三个每日浮窗视为不存在。
 
     替身不区分前后识别：前识别返回真（页面在），后识别也返回真（已离开），
     这样用例只验证「点击 + 到达确认」，离开确认自己的失败路径另有专门用例。
@@ -65,16 +58,23 @@ def _accept_all(monkeypatch: pytest.MonkeyPatch) -> None:
         lambda _ctx: SimpleNamespace(matched=False, checked=None),
     )
     monkeypatch.setattr(home_checker, 'check_home_reward_overlay', lambda _ctx: False)
+    monkeypatch.setattr(home_checker, 'check_home_reward_confirm', lambda _ctx: False)
     # 换区入口先识别中心、识别不到才退回固定落点；替身统一走兜底。
     monkeypatch.setattr(login_checker, 'read_switch_entry_center', lambda _ctx: None)
     monkeypatch.setattr(login_checker, 'read_enter_button_center', lambda _ctx: None)
 
 
 def test_find_path_multi_hop() -> None:
-    """多跳路径按广度拼接。"""
+    """跨页路径按广度拼接：回主页必须经过整条每日浮窗链。"""
     path = registry.find_path(PageName.SORTIE_MAP, PageName.EVENT_MAP)
 
-    assert [edge.target for edge in path] == [PageName.HOME, PageName.EVENT_MAP]
+    assert [edge.target for edge in path] == [
+        PageName.HOME_NEWS,
+        PageName.HOME_REWARD,
+        PageName.HOME_REWARD_CONFIRM,
+        PageName.HOME,
+        PageName.EVENT_MAP,
+    ]
 
 
 def test_find_path_same_page() -> None:
@@ -102,46 +102,17 @@ def test_goto_page_clicks_and_confirms(monkeypatch: pytest.MonkeyPatch) -> None:
     assert session.current_page() == PageName.SORTIE_MAP.value
 
 
-def test_goto_page_runs_daily_popup_when_passing_home(monkeypatch: pytest.MonkeyPatch) -> None:
-    """经过首页时先跑一次每日弹窗前置流程。"""
+def test_navigate_from_news_overlay_walks_popup_chain(monkeypatch: pytest.MonkeyPatch) -> None:
+    """停在每日公告上时，回主页会依次走完浮窗链。"""
     _accept_all(monkeypatch)
-    calls: list[str] = []
-    monkeypatch.setattr(NavigationService, '_handle_daily_news', lambda _self: calls.append('news'))
-    monkeypatch.setattr(
-        NavigationService,
-        '_handle_daily_reward',
-        lambda _self: calls.append('reward'),
-    )
     ctx = _ctx()
     session = SessionState()
     service = NavigationService(ctx, session=session)
-    session.push_page(PageName.HOME.value)
+    session.push_page(PageName.HOME_NEWS.value)
 
-    service.navigate_to(PageName.SORTIE_MAP)
+    service.navigate_to(PageName.HOME)
 
-    assert calls == ['news', 'reward']
-    assert session.daily_popup_handled is True
-
-
-def test_goto_page_skips_daily_popup_after_handled(monkeypatch: pytest.MonkeyPatch) -> None:
-    """本次运行已处理过时不再重复前置流程。"""
-    _accept_all(monkeypatch)
-    calls: list[str] = []
-    monkeypatch.setattr(NavigationService, '_handle_daily_news', lambda _self: calls.append('news'))
-    monkeypatch.setattr(
-        NavigationService,
-        '_handle_daily_reward',
-        lambda _self: calls.append('reward'),
-    )
-    ctx = _ctx()
-    session = SessionState()
-    session.mark_daily_popup_handled()
-    service = NavigationService(ctx, session=session)
-    session.push_page(PageName.HOME.value)
-
-    service.navigate_to(PageName.SORTIE_MAP)
-
-    assert calls == []
+    assert session.current_page() == PageName.HOME.value
 
 
 def test_goto_page_rejects_failed_confirmation(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -157,49 +128,50 @@ def test_goto_page_rejects_failed_confirmation(monkeypatch: pytest.MonkeyPatch) 
         service.navigate_to(PageName.SORTIE_MAP)
 
 
-def test_daily_news_clicks_checkbox_then_close(monkeypatch: pytest.MonkeyPatch) -> None:
-    """公告存在且未勾选时，先点勾选框再点关闭。"""
+def test_news_edge_closes_and_ticks_checkbox(monkeypatch: pytest.MonkeyPatch) -> None:
+    """公告边：未勾选时先勾上再关闭。"""
     _accept_all(monkeypatch)
-    states = iter(
-        [
-            SimpleNamespace(matched=True, checked=False),
-            SimpleNamespace(matched=False, checked=None),
-        ]
-    )
     monkeypatch.setattr(
         home_checker,
         'check_home_news_overlay',
-        lambda _ctx: next(states, SimpleNamespace(matched=False, checked=None)),
+        lambda _ctx: SimpleNamespace(matched=True, checked=False),
     )
     ctx = _ctx()
     session = SessionState()
     service = NavigationService(ctx, session=session)
-    session.push_page(PageName.HOME.value)
+    session.push_page(PageName.HOME_NEWS.value)
 
-    service.navigate_to(PageName.SORTIE_MAP)
+    service.navigate_to(PageName.HOME_REWARD)
 
     clicks = ctx.runtime.ctrl.clicks
     assert home_constants.OVERLAY_POSITIONS['news_checkbox'] in clicks
     assert home_constants.OVERLAY_POSITIONS['news_close'] in clicks
 
 
-def test_daily_reward_claims_then_confirms(monkeypatch: pytest.MonkeyPatch) -> None:
-    """奖励浮窗存在时领取并确认。"""
+def test_news_edge_does_nothing_without_overlay(monkeypatch: pytest.MonkeyPatch) -> None:
+    """公告边：没有公告就什么都不做，不空点。"""
     _accept_all(monkeypatch)
-    overlays = iter([True, False])
-    monkeypatch.setattr(
-        home_checker, 'check_home_reward_overlay', lambda _ctx: next(overlays, False)
-    )
-    confirms = iter([True, False])
-    monkeypatch.setattr(
-        home_checker, 'check_home_reward_confirm', lambda _ctx: next(confirms, False)
-    )
     ctx = _ctx()
     session = SessionState()
     service = NavigationService(ctx, session=session)
-    session.push_page(PageName.HOME.value)
+    session.push_page(PageName.HOME_NEWS.value)
 
-    service.navigate_to(PageName.SORTIE_MAP)
+    service.navigate_to(PageName.HOME_REWARD)
+
+    assert ctx.runtime.ctrl.clicks == []
+
+
+def test_reward_edge_claims_then_confirms(monkeypatch: pytest.MonkeyPatch) -> None:
+    """奖励边与确认边：有浮窗时各自点各自的位置。"""
+    _accept_all(monkeypatch)
+    monkeypatch.setattr(home_checker, 'check_home_reward_overlay', lambda _ctx: True)
+    monkeypatch.setattr(home_checker, 'check_home_reward_confirm', lambda _ctx: True)
+    ctx = _ctx()
+    session = SessionState()
+    service = NavigationService(ctx, session=session)
+    session.push_page(PageName.HOME_REWARD.value)
+
+    service.navigate_to(PageName.HOME)
 
     clicks = ctx.runtime.ctrl.clicks
     assert home_constants.OVERLAY_POSITIONS['reward_claim'] in clicks
@@ -212,12 +184,12 @@ def test_go_back_returns_to_previous_page(monkeypatch: pytest.MonkeyPatch) -> No
     ctx = _ctx()
     session = SessionState()
     service = NavigationService(ctx, session=session)
-    session.push_page(PageName.HOME.value)
+    session.push_page(PageName.HOME_NEWS.value)
     session.push_page(PageName.SORTIE_MAP.value)
 
     service.navigate_back()
 
-    assert session.current_page() == PageName.HOME.value
+    assert session.current_page() == PageName.HOME_NEWS.value
 
 
 def test_go_back_rejects_empty_stack(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -237,7 +209,7 @@ def test_login_pages_register_arrival_checkers() -> None:
 
 def test_executor_rejects_failed_departure(monkeypatch: pytest.MonkeyPatch) -> None:
     """旧页标志一直不消失时，执行器抛离开确认失败。"""
-    # 只注册一个永远为真的确认入口：离开确认必然轮询到底仍"存在"。
+    # 只注册一个永远为真的确认入口：离开确认必然轮询到底仍「存在」。
     monkeypatch.setitem(
         registry._PAGE_CHECKERS,
         PageName.SORTIE_MAP,
@@ -251,6 +223,32 @@ def test_executor_rejects_failed_departure(monkeypatch: pytest.MonkeyPatch) -> N
 
     with pytest.raises(NavigationError, match='离开确认失败'):
         executor.walk_forward((edge,), {})
+
+
+def test_executor_skips_arrival_when_edge_does_not_confirm(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """边声明不确认时，到达确认直接跳过（浮窗链的中间步靠这个）。"""
+    _accept_all(monkeypatch)
+
+    def _unexpected(_ctx: Any, **_kwargs: object) -> bool:
+        raise AssertionError('不该调用确认入口')
+
+    monkeypatch.setitem(registry._PAGE_CHECKERS, PageName.HOME_REWARD, _unexpected)
+    ctx = _ctx()
+    session = SessionState()
+    session.push_page(PageName.HOME_NEWS.value)
+    executor = NavigationExecutor(ctx, session)
+    edge = NavTarget(
+        PageName.HOME_REWARD,
+        lambda *_args, **_kwargs: None,
+        '测试边',
+        confirm=False,
+    )
+
+    executor.walk_forward((edge,), {})
+
+    assert session.current_page() == PageName.HOME_REWARD.value
 
 
 def test_login_link_clicks_switch_entry_and_server(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -271,7 +269,7 @@ def test_login_link_clicks_switch_entry_and_server(monkeypatch: pytest.MonkeyPat
 
 
 def test_login_to_home_clicks_enter_game(monkeypatch: pytest.MonkeyPatch) -> None:
-    """登录页 → 主页 点击进入游戏落点。"""
+    """登录页 → 主页 点击进入游戏落点，落点是浮窗链的第一站。"""
     _accept_all(monkeypatch)
     ctx = _ctx()
     session = SessionState()

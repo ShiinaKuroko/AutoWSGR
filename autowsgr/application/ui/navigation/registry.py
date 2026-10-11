@@ -41,6 +41,50 @@ if TYPE_CHECKING:
 _log = get_logger('ui.navigation')
 
 
+# ── 每日浮窗动作 ─────────────────────────────────────────────────────────────
+
+# 浮窗链的每一步都"先问再做"：不在就什么都不做，避免空点；到达确认由边自己关掉。
+
+
+def _close_daily_news(ctx: ContextHandle, **_: object) -> None:
+    """有每日公告就关掉，没有就什么都不做。
+
+    未勾选「今日不再显示」时先勾上，避免第二天又弹。
+
+    Args:
+        ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
+    """
+    state = home_checker.check_home_news_overlay(ctx)
+    if not state.matched:
+        return
+    page = HomePage(ctx)
+    if state.checked is False:
+        page.click_news_checkbox()
+    page.click_news_close()
+
+
+def _claim_daily_reward(ctx: ContextHandle, **_: object) -> None:
+    """有每日奖励就领取，没有就什么都不做。
+
+    Args:
+        ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
+    """
+    if not home_checker.check_home_reward_overlay(ctx):
+        return
+    HomePage(ctx).click_reward_claim()
+
+
+def _confirm_daily_reward(ctx: ContextHandle, **_: object) -> None:
+    """有奖励确认浮窗就点确认，没有就什么都不做。
+
+    Args:
+        ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
+    """
+    if not home_checker.check_home_reward_confirm(ctx):
+        return
+    HomePage(ctx).click_reward_confirm()
+
+
 # ── 导航边 ──────────────────────────────────────────────────────────────────
 
 
@@ -52,11 +96,13 @@ class NavTarget:
         target: 目标页面。
         action: 执行一次点击的动作，可接收调用方透传的参数。
         description: 这条边的说明，供维护与日志使用。
+        confirm: 到达后是否需要确认；浮窗链的中间步判不了"到没到"，置假跳过。
     """
 
     target: PageName
     action: Callable[..., None]
     description: str = ''
+    confirm: bool = True
 
 
 # ── 页面 → 到达确认 ─────────────────────────────────────────────────────────
@@ -68,6 +114,9 @@ _PAGE_CHECKERS: dict[PageName, Callable[..., bool]] = {
     PageName.LOGIN_PAGE: login_checker.check_login_page,
     PageName.SERVER_SELECT: login_checker.check_server_select,
     PageName.HOME: home_checker.check_home_page,
+    PageName.HOME_NEWS: lambda ctx: home_checker.check_home_news_overlay(ctx).matched,
+    PageName.HOME_REWARD: home_checker.check_home_reward_overlay,
+    PageName.HOME_REWARD_CONFIRM: home_checker.check_home_reward_confirm,
     PageName.SORTIE_MAP: sortie_checker.check_sortie_page,
     PageName.EVENT_MAP: stage_push.check_event_map_page,
     PageName.EVENT_STAGE_OVERLAY: stage_push.check_event_sortie_prepare,
@@ -86,11 +135,11 @@ _NAV_TARGETS: dict[PageName, tuple[NavTarget, ...]] = {
             '登录页 → 区服选择页',
         ),
         NavTarget(
-            PageName.HOME,
+            PageName.HOME_NEWS,
             lambda ctx, **_: LoginPage(ctx).click_enter_game(
                 login_checker.read_enter_button_center(ctx)
             ),
-            '登录页 → 主页',
+            '登录页 → 主页（经每日浮窗链）',
         ),
     ),
     PageName.SERVER_SELECT: (
@@ -116,9 +165,32 @@ _NAV_TARGETS: dict[PageName, tuple[NavTarget, ...]] = {
     ),
     PageName.SORTIE_MAP: (
         NavTarget(
-            PageName.HOME,
+            PageName.HOME_NEWS,
             lambda ctx, **_: SortiePage(ctx).go_back(),
-            '出征页 → 首页',
+            '出征页 → 主页（经每日浮窗链）',
+        ),
+    ),
+    PageName.HOME_NEWS: (
+        NavTarget(
+            PageName.HOME_REWARD,
+            _close_daily_news,
+            '每日公告 → 每日奖励',
+            confirm=False,
+        ),
+    ),
+    PageName.HOME_REWARD: (
+        NavTarget(
+            PageName.HOME_REWARD_CONFIRM,
+            _claim_daily_reward,
+            '每日奖励 → 每日奖励确认',
+            confirm=False,
+        ),
+    ),
+    PageName.HOME_REWARD_CONFIRM: (
+        NavTarget(
+            PageName.HOME,
+            _confirm_daily_reward,
+            '每日奖励确认 → 主页',
         ),
     ),
     PageName.EVENT_STAGE_OVERLAY: (
@@ -139,9 +211,9 @@ _NAV_TARGETS: dict[PageName, tuple[NavTarget, ...]] = {
             '活动地图 → 章节浮窗',
         ),
         NavTarget(
-            PageName.HOME,
+            PageName.HOME_NEWS,
             lambda ctx, **_: EventPage(ctx, event_type=_event_type(ctx)).go_back(),
-            '活动地图 → 首页',
+            '活动地图 → 主页（经每日浮窗链）',
         ),
     ),
 }

@@ -117,24 +117,50 @@ NavTarget(
 ```text
 navigate_to(target, **params)
   ① _current_page()      栈顶有就用栈顶；栈空则遍历全部 checker 认出当前页
-  ② 起点即目标 → 短路（当前在主页时顺带清每日浮窗）
+  ② 起点即目标 → 短路（回主页必经浮窗链，见 §6）
   ③ find_path()          BFS 在可达表上找最短路径；到不了就抛 NavigationError
   ④ walk_forward()       逐边执行，每跳顺序见下
 ```
 
-每跳固定五步（`executor.walk_forward`）：
+每跳固定四步（`executor.walk_forward`）：
 
 ```text
 边的 action（一次点击）
   → 离开确认：旧页标志应消失（后识别，absent=True）
-  → 到达前的上层处理（到主页时清每日浮窗）
   → 到达确认：新页标志应出现（前识别）
   → 压栈
 ```
 
 「点一下」天然成对，所以这个判断由执行器统一负责，**边和 checker 都不用各自声明**。
+边可以声明 `confirm=False` 跳过到达确认——见 §6 的浮窗链。
 
-## 6. 写一个 checker 的规矩
+## 6. 每日浮窗：一条固定链
+
+浮窗不是 `service` 里的私有流程，而是几个普通页面 + 几条普通边：
+
+| `PageName` | 画面 |
+| --- | --- |
+| `HOME_NEWS` | 主页 + 每日公告浮窗 |
+| `HOME_REWARD` | 主页 + 每日奖励（签到）浮窗 |
+| `HOME_REWARD_CONFIRM` | 奖励领取后的确认浮窗 |
+
+```text
+每日公告 → 每日奖励 → 每日奖励确认 → 主页
+```
+
+**每一步都「先问 checker 再做」**：浮窗不在就什么都不做，避免空点。
+**中间步不做到达确认**（`confirm=False`）——它们的「到没到」取决于下一个浮窗在不在，
+静态判不了；只有最后一步「→ 主页」做真确认。
+
+`check_home_page` 因此定义为「**没有浮窗的主页**」：主页模板命中，且三个浮窗都不在。
+有浮窗时它返回假，「当前页」会落在对应的浮窗页上，于是 `navigate_to(HOME)` 自然走这条链。
+
+所有原本指向 `HOME` 的边都改成指向 `HOME_NEWS`，这样「从活动页回家」也会顺手把浮窗清掉。
+
+**已知边界**：浮窗目前只弹在主页，所以「有浮窗 ≈ 在主页」这个简化成立；
+哪天非主页也弹浮窗，需要重新设计（例如引入浮窗栈）。
+
+## 7. 写一个 checker 的规矩
 
 **签名固定三件套**（导航图会按需覆盖，不传就用默认）：
 
@@ -160,7 +186,7 @@ def check_xxx_page(
 目录职责（`page_checker/<页面>_checker/`）：`checker.py` 编排识别并返回事实，`recognition.py` 读画面事实，
 `constants.py` 只放静态校准数据（ROI、模板名、文本），`__init__.py` 只导出。
 
-## 7. 常见维护任务速查
+## 8. 常见维护任务速查
 
 | 想做什么 | 改哪里 |
 | --- | --- |
@@ -169,12 +195,14 @@ def check_xxx_page(
 | 改某条边的落点 | 该边 `action` 调用的 `controller` 入口 |
 | 调某页的识别节奏 | 该 checker 的默认参数，或调用方 `navigate_to` 时传参 |
 | 某个页面认不出来了 | 该 checker 的 `recognition.py` 与 `constants.py`（先核对 ROI 是否比模板大 1px） |
-| 改每日浮窗行为 | `service._handle_daily_popup` / `_handle_daily_news` / `_handle_daily_reward` |
+| 加一个每日浮窗 | `PageName` + checker + 在浮窗链里插一条边（`confirm=False`），见 §6 |
+| 改浮窗点击落点 | `controller/home/main_page` 的对应入口 |
+| 改「什么算干净的主页」 | `home_checker.check_home_page` |
 | 改启动段（黑屏/更新/加载） | `service.navigate_to_login` |
 | 加一种导航错误 | `types.py` |
 | 改「什么时候启动、什么时候 SL」 | `dispatch/startup.py`（**不在这里**） |
 
-## 8. 调试与验证
+## 9. 调试与验证
 
 | 手段 | 位置 |
 | --- | --- |
@@ -184,7 +212,7 @@ def check_xxx_page(
 | 算路失败 | 日志 `没有从 X 到 Y 的可达路径`，说明 `_NAV_TARGETS` 缺边 |
 | 到达确认失败 | 日志 `到达确认失败：边说明`，说明目标页 checker 没认出来（先查 ROI） |
 
-## 9. 边界
+## 10. 边界
 
 **不做**：页面坐标与校准数据、OCR 参数、业务流程、进程生死（拉起 / 强杀）、任务恢复决策。
 
@@ -193,8 +221,10 @@ def check_xxx_page(
 **与 dispatch 的分工**：dispatch 决定何时启动、何时 SL、按配置决定是否换区；导航器负责识别与点击。
 因此 **dispatch 的代码里不出现任何 checker 调用**。
 
-## 10. 变更记录
+## 11. 变更记录
 
 | 日期 | 变更 |
 | --- | --- |
 | 2026-10-12 | 重写为维护视角：以注册中心为核心，补「接新页面四步 + 完整示例」与维护速查表 |
+| 2026-10-12 | 新增 §6 每日浮窗链：三个浮窗页 + `confirm=False` 的中间步 + 回主页边改指向公告；
+| | 每跳由五步改为四步（到达前钩子已移除） |
