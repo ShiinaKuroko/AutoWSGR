@@ -100,7 +100,14 @@ def is_sortie_tab_active(
 
 
 def is_exercise_tab_active(ctx: ContextHandle) -> bool:
-    """判断演习标签是否激活。"""
+    """判断演习标签是否激活。
+
+    Args:
+        ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
+
+    Returns:
+        演习标签处于激活态时为真。
+    """
     return _is_tab_active(
         ctx,
         constants.EXERCISE_TAB_TEMPLATE,
@@ -110,7 +117,14 @@ def is_exercise_tab_active(ctx: ContextHandle) -> bool:
 
 
 def is_expedition_tab_active(ctx: ContextHandle) -> bool:
-    """判断远征标签是否激活。"""
+    """判断远征标签是否激活。
+
+    Args:
+        ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
+
+    Returns:
+        远征标签处于激活态时为真。
+    """
     return _is_tab_active(
         ctx,
         constants.EXPEDITION_TAB_TEMPLATE,
@@ -120,7 +134,14 @@ def is_expedition_tab_active(ctx: ContextHandle) -> bool:
 
 
 def is_campaign_tab_active(ctx: ContextHandle) -> bool:
-    """判断战役标签是否激活。"""
+    """判断战役标签是否激活。
+
+    Args:
+        ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
+
+    Returns:
+        战役标签处于激活态时为真。
+    """
     return _is_tab_active(
         ctx,
         constants.CAMPAIGN_TAB_TEMPLATE,
@@ -130,7 +151,14 @@ def is_campaign_tab_active(ctx: ContextHandle) -> bool:
 
 
 def is_decisive_tab_active(ctx: ContextHandle) -> bool:
-    """判断决战标签是否激活。"""
+    """判断决战标签是否激活。
+
+    Args:
+        ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
+
+    Returns:
+        决战标签处于激活态时为真。
+    """
     return _is_tab_active(
         ctx,
         constants.DECISIVE_TAB_TEMPLATE,

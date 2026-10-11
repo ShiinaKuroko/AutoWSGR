@@ -134,7 +134,14 @@ def is_map_title_present(
 
 
 def is_event_entry_visible(ctx: ContextHandle) -> bool:
-    """判断首页活动入口卡片是否可见。"""
+    """判断首页活动入口卡片是否可见。
+
+    Args:
+        ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
+
+    Returns:
+        入口模板命中时为真。
+    """
     result = expect_template(
         ctx,
         template=calibration.load_module_template(
@@ -150,7 +157,14 @@ def is_event_entry_visible(ctx: ContextHandle) -> bool:
 
 
 def read_mode_button(ctx: ContextHandle) -> EventMode | None:
-    """读取模式按钮显示的模式。"""
+    """读取模式按钮显示的模式。
+
+    Args:
+        ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
+
+    Returns:
+        模式按钮指向的难度；两张模板都没命中时为 None。
+    """
     normal_template = calibration.load_module_template(
         constants.TEMPLATE_NAMESPACE,
         constants.MODE_NORMAL_TEMPLATE,
@@ -365,7 +379,15 @@ def calculate_current_mode(
     button_mode: EventMode | None,
     title_mode: EventMode | None,
 ) -> EventMode | None:
-    """由模式按钮和地图标题推出当前难度。"""
+    """由模式按钮和地图标题推出当前难度。
+
+    Args:
+        button_mode: 模式按钮读出的难度。
+        title_mode: 地图标题读出的难度。
+
+    Returns:
+        两者一致指向的难度；证据矛盾或都读不到时为 None。
+    """
     # 1. 按钮和标题互为反向证据时，两者一致指向同一种当前难度。
     if button_mode is EventMode.NORMAL and title_mode is EventMode.HARD:
         return EventMode.HARD

@@ -43,7 +43,11 @@ class Target(enum.Enum):
 
     @property
     def page_name(self) -> PageName:
-        """返回导航器使用的页面名称。"""
+        """返回导航器使用的页面名称。
+
+        Returns:
+            本入口对应的页面名称。
+        """
         return _TARGET_PAGES[self]
 
 

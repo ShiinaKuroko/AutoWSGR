@@ -47,6 +47,7 @@ class NavigationExecutor:
         *,
         on_arrive: Callable[[PageName], None] | None = None,
     ) -> None:
+        """绑定任务上下文、导航会话状态与到达钩子。"""
         self._ctx = ctx
         self._session = session
         self._on_arrive = on_arrive

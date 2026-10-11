@@ -153,12 +153,26 @@ def _event_stage(ctx: ContextHandle) -> str:
 
 
 def get_targets(page: PageName) -> tuple[NavTarget, ...]:
-    """返回某个页面可以直达的目标。"""
+    """返回某个页面可以直达的目标。
+
+    Args:
+        page: 起点页面。
+
+    Returns:
+        该页面的直达边；没有出边时为空元组。
+    """
     return _NAV_TARGETS.get(page, ())
 
 
 def get_checker(page: PageName) -> Callable[[ContextHandle], bool] | None:
-    """返回某个页面的到达确认入口。"""
+    """返回某个页面的到达确认入口。
+
+    Args:
+        page: 目标页面。
+
+    Returns:
+        该页面的确认入口；未注册时为 None。
+    """
     return _PAGE_CHECKERS.get(page)
 
 
