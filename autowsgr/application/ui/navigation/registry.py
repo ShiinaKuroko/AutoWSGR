@@ -142,7 +142,9 @@ _NAV_TARGETS: dict[PageName, tuple[NavTarget, ...]] = {
     PageName.LOGIN_PAGE: (
         NavTarget(
             PageName.SERVER_SELECT,
-            lambda ctx, **_: LoginPage(ctx).click_switch_entry(),
+            lambda ctx, **_: LoginPage(ctx).click_switch_entry(
+                login_checker.read_switch_entry_center(ctx)
+            ),
             '登录页 → 区服选择页',
         ),
         NavTarget(
