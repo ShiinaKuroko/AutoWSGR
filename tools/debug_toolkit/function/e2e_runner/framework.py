@@ -148,6 +148,8 @@ class E2ERunner:
         no_launch: bool = False,
         static_frames: bool = False,
         with_ocr: bool = False,
+        event_type: str | None = None,
+        event_stage: str | None = None,
     ) -> None:
         self.case_name = case_name
         self.args = case_args  # case 自己的参数 namespace (run.py 解析后传入)
@@ -157,6 +159,8 @@ class E2ERunner:
         self.no_launch = no_launch  # True 时跳过游戏就绪 (纯只读验证)
         self.static_frames = static_frames  # True 时用外挂截图离线验证 (不连接设备)
         self.with_ocr = with_ocr  # True 时初始化 OCR 引擎 (编队识别等需要)
+        self.event_type = event_type  # 任务上下文的活动玩法标识 (如 stage_push)
+        self.event_stage = event_stage  # 任务上下文的活动章节标识 (如 EX7)
         self.state = RunnerState()
         self.ctx: Any = None  # 已绑定的 dispatch ContextHandle (prepare() 成功后可用)
         self._runtime: Any = None  # RuntimeBindings: 设备、配置和 OCR 服务引用
@@ -247,7 +251,11 @@ class E2ERunner:
         self._scope_stack.enter_context(
             context.bind(
                 f'e2e:{self.case_name}',
-                template=ContextTemplate.for_task('navigation_checker'),
+                template=ContextTemplate.for_task(
+                    'navigation_checker',
+                    event_type=self.event_type,
+                    event_stage=self.event_stage,
+                ),
                 runtime=self._runtime,
             ),
         )

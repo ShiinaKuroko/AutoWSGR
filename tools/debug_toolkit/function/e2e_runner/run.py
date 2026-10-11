@@ -153,6 +153,8 @@ def main() -> int:
     gp.add_argument('--no-launch', action='store_true', help='跳过游戏就绪 (只读验证)')
     gp.add_argument('--static', action='store_true', help='用外挂截图离线验证 (不连接设备)')
     gp.add_argument('--with-ocr', action='store_true', help='初始化 OCR 引擎')
+    gp.add_argument('--event-type', default=None, help='任务上下文的活动玩法标识 (如 stage_push)')
+    gp.add_argument('--event-stage', default=None, help='任务上下文的活动章节标识 (如 EX7)')
     g = gp.parse_args(global_argv)
 
     # case 参数 (由 case 自己定义; 未定义 add_arguments 时 rest 必须为空)
@@ -183,6 +185,8 @@ def main() -> int:
         no_launch=g.no_launch,
         static_frames=g.static,
         with_ocr=g.with_ocr,
+        event_type=g.event_type,
+        event_stage=g.event_stage,
     )
     if not rt.prepare():
         return rt.finalize(overall=False)
