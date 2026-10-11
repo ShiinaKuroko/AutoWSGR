@@ -77,6 +77,28 @@ class _StaticFrameDevice:
         """静态替身不持有设备资源。"""
 
 
+# ── E2E 替身配置 ────────────────────────────────────────────────────────────
+
+# autowsgr.config 仍在迁移（依赖已删除的模拟器检测与操作延迟 API），而实机链路只需要
+# 账号包名与区服设置，因此这里用最小替身，不让坏掉的配置模块挡住 E2E。
+# TODO: 生产配置模块迁移完成后删除本替身，改回 autowsgr.config 的 UserConfig。
+
+
+@dataclass(frozen=True)
+class _E2EAccount:
+    """E2E 替身配置的账号段。"""
+
+    package_name: str
+    game_server: Any
+
+
+@dataclass(frozen=True)
+class _E2EConfig:
+    """E2E 替身配置，只提供实机链路读取的账号事实。"""
+
+    account: _E2EAccount
+
+
 @dataclass
 class StepRec:
     """单条步骤记录 (action / check 各记一条)。"""
@@ -151,25 +173,38 @@ class E2ERunner:
         """连接设备并准备本次运行的任务上下文。
 
         ``no_launch=True`` 只连接设备并绑定 dispatch Context, 供截图、页面识别和
-        checker 验证使用。完整模式需要启动游戏并回到首页, 依赖尚未迁移完成的
-        ``navigation.goto_page`` 和 ``application.runtime.initialize``。
+        checker 验证使用。完整模式在此基础上调用 ``dispatch.startup.ensure_ready``,
+        把游戏带到首页并清掉浮层。
         """
         if self.static_frames:
             return self._prepare_static_frames()
         if self.no_launch:
             return self._prepare_readonly()
+        return self._prepare_full()
 
-        # TODO: 完整实机链路 (启动游戏 → 回到首页 → 执行 case) 依赖
-        # navigation.goto_page 与 application.runtime.initialize 迁移到新栈。
-        # 影响范围: 所有不使用 --no-launch 的 case。删除条件: 上述两个入口在新栈
-        # 可用后, 按 _prepare_readonly 的方式组装 runtime 并在本分支续接游戏就绪。
-        error = '完整实机链路未接通: 依赖 navigation.goto_page (导航器重写第 2 步)'
-        self._record('准备运行环境', ok=False, error=error)
-        print(f'  [FAIL] {error}; 只读验证请加 --no-launch')
-        return False
+    def _prepare_full(self) -> bool:
+        """连接设备、绑定带替身配置的上下文, 并把游戏带到首页。"""
+        from autowsgr.application.runtime.types import GameAPP, LoginServer
+        from autowsgr.dispatch.startup import ensure_ready
 
-    def _prepare_readonly(self) -> bool:
-        """连接设备并绑定 dispatch 任务上下文 (不启动游戏、不执行页面操作)。"""
+        config = _E2EConfig(
+            account=_E2EAccount(
+                package_name=GameAPP.official.package_name,
+                game_server=LoginServer.default,
+            ),
+        )
+        if not self._prepare_readonly(config=config):
+            return False
+        if self.action('游戏就绪 (启动 → 首页)', ensure_ready, self.ctx) is self.FAILED:
+            return False
+        return True
+
+    def _prepare_readonly(self, *, config: Any = None) -> bool:
+        """连接设备并绑定 dispatch 任务上下文 (不启动游戏、不执行页面操作)。
+
+        Args:
+            config: 运行时配置引用; 只读运行没有生产配置可注入。
+        """
         from autowsgr.common.device.config import DeviceConfig
         from autowsgr.common.device.service import DeviceService
 
@@ -183,9 +218,8 @@ class E2ERunner:
             print(f'  [FAIL] 设备连接失败: {exc}')
             return False
 
-        # 只读模式没有可用的生产配置和 OCR 引擎 (autowsgr.config 与 OCREngine 仍在
-        # 迁移中), 只读 case 只消费设备服务; 需要配置或 OCR 的 case 等其链路迁移后再接。
-        self._bind_task_context(self._launcher)
+        # OCR 引擎仍在迁移中; 需要配置的完整实机链路由 _prepare_full 传入替身配置。
+        self._bind_task_context(self._launcher, config=config)
         if self.with_ocr:
             self.note('只读模式不初始化 OCR: 新栈 OCR 入口迁移中, 该参数当前被忽略')
         print(f'  [OK] 设备已连接: {info.serial} {info.resolution[0]}x{info.resolution[1]}')
@@ -198,16 +232,17 @@ class E2ERunner:
         print('  [OK] 静态帧模式: 使用外挂截图, 不连接设备')
         return True
 
-    def _bind_task_context(self, ctrl: Any) -> None:
+    def _bind_task_context(self, ctrl: Any, *, config: Any = None) -> None:
         """绑定本次运行的 dispatch 任务上下文。
 
         Args:
             ctrl: 已就绪的运行时设备引用。
+            config: 运行时配置引用; 只读运行没有配置可注入。
         """
         from autowsgr.dispatch.context import ContextTemplate, RuntimeBindings, context
 
-        # 只读运行没有生产配置和 OCR 引擎可注入, 只消费设备引用。
-        self._runtime = RuntimeBindings(ctrl=ctrl, config=None, ocr=None, ship_ocr=None)
+        # OCR 引擎仍在迁移中; 只读运行也只消费设备引用。
+        self._runtime = RuntimeBindings(ctrl=ctrl, config=config, ocr=None, ship_ocr=None)
         self._scope_stack = ExitStack()
         self._scope_stack.enter_context(
             context.bind(
