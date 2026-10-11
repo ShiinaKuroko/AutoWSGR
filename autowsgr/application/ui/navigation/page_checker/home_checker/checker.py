@@ -89,6 +89,72 @@ def check_home_page(
     )
 
 
+def check_home_news_page(
+    ctx: ContextHandle,
+    *,
+    absent: bool = False,
+    attempts: int = 1,
+    interval_seconds: float = 0.5,
+) -> bool:
+    """确认主页上是否有每日公告浮窗，供整页身份使用。
+
+    Args:
+        ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
+        absent: 期望公告浮窗不在时为真，默认期望它在。
+        attempts: 识别次数；浮窗识别只看当前一帧，保留参数只为与其他整页入口签名一致。
+        interval_seconds: 两次识别之间的等待秒数，同上。
+
+    Returns:
+        断言满足时为真。
+    """
+    matched = check_home_news_overlay(ctx).matched
+    return (not matched) if absent else matched
+
+
+def check_home_reward_page(
+    ctx: ContextHandle,
+    *,
+    absent: bool = False,
+    attempts: int = 1,
+    interval_seconds: float = 0.5,
+) -> bool:
+    """确认主页上是否有每日奖励浮窗，供整页身份使用。
+
+    Args:
+        ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
+        absent: 期望奖励浮窗不在时为真，默认期望它在。
+        attempts: 识别次数；浮窗识别只看当前一帧，保留参数只为与其他整页入口签名一致。
+        interval_seconds: 两次识别之间的等待秒数，同上。
+
+    Returns:
+        断言满足时为真。
+    """
+    matched = check_home_reward_overlay(ctx)
+    return (not matched) if absent else matched
+
+
+def check_home_reward_confirm_page(
+    ctx: ContextHandle,
+    *,
+    absent: bool = False,
+    attempts: int = 1,
+    interval_seconds: float = 0.5,
+) -> bool:
+    """确认主页上是否有每日奖励确认浮窗，供整页身份使用。
+
+    Args:
+        ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
+        absent: 期望确认浮窗不在时为真，默认期望它在。
+        attempts: 识别次数；浮窗识别只看当前一帧，保留参数只为与其他整页入口签名一致。
+        interval_seconds: 两次识别之间的等待秒数，同上。
+
+    Returns:
+        断言满足时为真。
+    """
+    matched = check_home_reward_confirm(ctx)
+    return (not matched) if absent else matched
+
+
 def check_home_news_overlay(ctx: ContextHandle) -> HomeNewsOverlay:
     """读取每日公告浮窗事实。
 
