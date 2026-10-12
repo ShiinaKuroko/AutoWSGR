@@ -19,14 +19,10 @@ from typing import TYPE_CHECKING
 
 from autowsgr.application.ui.controller.home.event_page import EventPage
 from autowsgr.application.ui.controller.home.main_page import HomePage, Target
-from autowsgr.application.ui.controller.backyard.academy_page import AcademyPage
-from autowsgr.application.ui.controller.backyard.bath_page import BathPage
-from autowsgr.application.ui.controller.backyard.canteen_page import CanteenPage
 from autowsgr.application.ui.controller.backyard.main_page import (
     BackyardPage,
     BackyardTarget,
 )
-from autowsgr.application.ui.controller.backyard.rank_room_page import RankRoomPage
 from autowsgr.application.ui.controller.login import LoginPage
 from autowsgr.application.ui.controller.operations.mission_page import MissionPage
 from autowsgr.application.ui.controller.operations.sortie_page.main_page import (
@@ -297,7 +293,7 @@ _NAV_TARGETS: dict[PageName, tuple[NavTarget, ...]] = {
         NavTarget(PageName.BATH, _enter_backyard_page(BackyardTarget.BATH, backyard.read_bath_entry_center), '后院主页 → 浴室'),
         NavTarget(
             PageName.HOME_NEWS,
-            lambda ctx, **_: BackyardPage(ctx).click_back(),
+            lambda ctx, **_: BackyardPage(ctx).go_back(),
             '后院主页 → 主页（经每日浮窗链）',
             confirm=False,
         ),
@@ -305,52 +301,52 @@ _NAV_TARGETS: dict[PageName, tuple[NavTarget, ...]] = {
     PageName.CANTEEN: (
         NavTarget(
             PageName.HOME_NEWS,
-            lambda ctx, **_: CanteenPage(ctx).go_home(),
+            lambda ctx, **_: BackyardPage(ctx).go_home(),
             '餐厅 → 主页（经每日浮窗链）',
             confirm=False,
         ),
         NavTarget(
             PageName.BACKYARD,
-            lambda ctx, **_: CanteenPage(ctx).go_back(),
+            lambda ctx, **_: BackyardPage(ctx).go_back(),
             '餐厅 → 后院主页',
         ),
     ),
     PageName.ACADEMY: (
         NavTarget(
             PageName.HOME_NEWS,
-            lambda ctx, **_: AcademyPage(ctx).go_home(),
+            lambda ctx, **_: BackyardPage(ctx).go_home(),
             '学院 → 主页（经每日浮窗链）',
             confirm=False,
         ),
         NavTarget(
             PageName.BACKYARD,
-            lambda ctx, **_: AcademyPage(ctx).go_back(),
+            lambda ctx, **_: BackyardPage(ctx).go_back(),
             '学院 → 后院主页',
         ),
     ),
     PageName.RANK_ROOM: (
         NavTarget(
             PageName.HOME_NEWS,
-            lambda ctx, **_: RankRoomPage(ctx).go_home(),
+            lambda ctx, **_: BackyardPage(ctx).go_home(),
             '军阶室 → 主页（经每日浮窗链）',
             confirm=False,
         ),
         NavTarget(
             PageName.BACKYARD,
-            lambda ctx, **_: RankRoomPage(ctx).go_back(),
+            lambda ctx, **_: BackyardPage(ctx).go_back(),
             '军阶室 → 后院主页',
         ),
     ),
     PageName.BATH: (
         NavTarget(
             PageName.HOME_NEWS,
-            lambda ctx, **_: BathPage(ctx).go_home(),
+            lambda ctx, **_: BackyardPage(ctx).go_home(),
             '浴室 → 主页（经每日浮窗链）',
             confirm=False,
         ),
         NavTarget(
             PageName.BACKYARD,
-            lambda ctx, **_: BathPage(ctx).go_back(),
+            lambda ctx, **_: BackyardPage(ctx).go_back(),
             '浴室 → 后院主页',
         ),
     ),

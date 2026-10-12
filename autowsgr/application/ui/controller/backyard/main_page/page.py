@@ -97,13 +97,22 @@ class BackyardPage:
 
     # ── 返回 ────────────────────────────────────────────────────────────────
 
-    def click_back(self) -> None:
-        """点击退回按钮：回到上一级。
+    def go_back(self) -> None:
+        """点击退回按钮，回到上一级。
 
-        后院主页按它回主页面，二级页按它回后院主页——两处是同一个按钮。
+        后院主页按它回主页面，二级页按它回后院主页——两处是同一个按钮，
+        因此二级页不需要各自实现，直接用本方法。
         """
         _log.info('[UI] 后院 → 退回上一级：position={!r}', constants.CLICK_BACK)
         self._ctx.runtime.ctrl.click(*constants.CLICK_BACK)
+
+    def go_home(self) -> None:
+        """点击二级页的通用回首页按钮，直接回主页面。
+
+        这个按钮只在二级页上，四个二级页共用同一个落点，因此在这里实现一次。
+        """
+        _log.info('[UI] 后院 → 回首页：position={!r}', constants.CLICK_HOME)
+        self._ctx.runtime.ctrl.click(*constants.CLICK_HOME)
 
 
 
