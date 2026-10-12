@@ -41,10 +41,6 @@ if TYPE_CHECKING:
 _log = get_logger('ui.navigation')
 
 
-# 任务没绑定活动玩法时使用的默认玩法；与 EventPage 的 event_type 默认值一致。
-_DEFAULT_EVENT_TYPE = 'stage_push'
-
-
 # ── 每日浮窗动作 ─────────────────────────────────────────────────────────────
 
 # 浮窗链的每一步都"先问再做"：不在就什么都不做，避免空点；到达确认由边自己关掉。
@@ -252,18 +248,21 @@ def _server_index(ctx: ContextHandle, name: str) -> int:
 
 
 def _event_type(ctx: ContextHandle) -> str:
-    """读取任务绑定的活动玩法标识；任务没绑定时用默认玩法。
-
-    「返回上一页」这类动作不关心玩法，不该因为任务没绑活动就炸——那会让边还没执行
-    就抛错，白白触发一次 SL。与 `EventPage` 的 `event_type` 默认值保持一致。
+    """读取任务绑定的活动玩法标识。
 
     Args:
         ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
 
     Returns:
-        活动玩法标识；任务未绑定时返回默认玩法。
+        活动玩法标识。
+
+    Raises:
+        NavigationError: 任务没有绑定活动玩法。
     """
-    return ctx.read_event_type() or _DEFAULT_EVENT_TYPE
+    event_type = ctx.read_event_type()
+    if event_type is None:
+        raise NavigationError('活动导航需要任务绑定 event_type')
+    return event_type
 
 
 def _event_stage(ctx: ContextHandle) -> str:
