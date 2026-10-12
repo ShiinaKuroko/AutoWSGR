@@ -17,7 +17,10 @@ from autowsgr.application.ui.navigation.checker.backyard.checker import (
     check_bath_page,
     check_canteen_page,
     check_rank_room_page,
-    read_entry_center,
+    read_academy_entry_center,
+    read_bath_entry_center,
+    read_canteen_entry_center,
+    read_rank_room_entry_center,
 )
 
 
@@ -27,5 +30,8 @@ __all__ = [
     'check_bath_page',
     'check_canteen_page',
     'check_rank_room_page',
-    'read_entry_center',
+    'read_academy_entry_center',
+    'read_bath_entry_center',
+    'read_canteen_entry_center',
+    'read_rank_room_entry_center',
 ]

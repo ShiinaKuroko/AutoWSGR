@@ -109,30 +109,24 @@ def _confirm_daily_reward(ctx: ContextHandle, **_: object) -> None:
     HomePage(ctx).click_reward_confirm()
 
 
-# 后院四个入口：点击落点优先用入口模板中心，读不到中心时由控制器用静态坐标兜底。
-_BACKYARD_TARGETS: dict[str, BackyardTarget] = {
-    'canteen': BackyardTarget.CANTEEN,
-    'academy': BackyardTarget.ACADEMY,
-    'rank_room': BackyardTarget.RANK_ROOM,
-    'bath': BackyardTarget.BATH,
-}
-
-
-def _enter_backyard_page(key: str) -> Callable[..., None]:
+def _enter_backyard_page(
+    target: BackyardTarget,
+    read_center: Callable[[ContextHandle], tuple[float, float] | None],
+) -> Callable[..., None]:
     """构造「进后院某个二级页」的边动作。
 
+    点击落点优先用入口模板中心，读不到中心时由控制器用静态坐标兜底。
+
     Args:
-        key: 入口键，取值 canteen / academy / rank_room / bath。
+        target: 目标二级页。
+        read_center: 该入口模板中心对应的 checker 入口。
 
     Returns:
         接收 ctx 的边动作。
     """
 
     def action(ctx: ContextHandle, **_: object) -> None:
-        BackyardPage(ctx).go_to(
-            _BACKYARD_TARGETS[key],
-            backyard.read_entry_center(ctx, key),
-        )
+        BackyardPage(ctx).go_to(target, read_center(ctx))
 
     return action
 
@@ -289,14 +283,14 @@ _NAV_TARGETS: dict[PageName, tuple[NavTarget, ...]] = {
     # 后院：主页进四个二级页；二级页可以退回后院主页（跨二级页跳转靠它中转），
     # 也可以点通用回首页按钮直接回主页。回主页的边照常走每日浮窗链。
     PageName.BACKYARD: (
-        NavTarget(PageName.CANTEEN, _enter_backyard_page('canteen'), '后院主页 → 餐厅'),
-        NavTarget(PageName.ACADEMY, _enter_backyard_page('academy'), '后院主页 → 学院'),
+        NavTarget(PageName.CANTEEN, _enter_backyard_page(BackyardTarget.CANTEEN, backyard.read_canteen_entry_center), '后院主页 → 餐厅'),
+        NavTarget(PageName.ACADEMY, _enter_backyard_page(BackyardTarget.ACADEMY, backyard.read_academy_entry_center), '后院主页 → 学院'),
         NavTarget(
             PageName.RANK_ROOM,
-            _enter_backyard_page('rank_room'),
+            _enter_backyard_page(BackyardTarget.RANK_ROOM, backyard.read_rank_room_entry_center),
             '后院主页 → 军阶室',
         ),
-        NavTarget(PageName.BATH, _enter_backyard_page('bath'), '后院主页 → 浴室'),
+        NavTarget(PageName.BATH, _enter_backyard_page(BackyardTarget.BATH, backyard.read_bath_entry_center), '后院主页 → 浴室'),
         NavTarget(
             PageName.HOME_NEWS,
             lambda ctx, **_: BackyardPage(ctx).click_back(),

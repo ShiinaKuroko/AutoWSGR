@@ -84,3 +84,21 @@ def test_sub_page_rejects_other_page(monkeypatch: pytest.MonkeyPatch) -> None:
     _install(monkeypatch, (constants.CANTEEN_PAGE_ROI,))
 
     assert backyard.check_academy_page(object()) is False
+
+def test_entry_center_reads_matching_template(monkeypatch: pytest.MonkeyPatch) -> None:
+    """入口模板命中时给出它的归一化中心。"""
+    monkeypatch.setattr(calibration, 'load_module_template', lambda *args, **kwargs: object())
+    monkeypatch.setattr(
+        recognition, 'expect_template_center', lambda _ctx, **_: (0.5, 0.5)
+    )
+
+    assert backyard.read_canteen_entry_center(object()) == (0.5, 0.5)
+
+
+def test_entry_center_returns_none_when_missing(monkeypatch: pytest.MonkeyPatch) -> None:
+    """入口模板未命中时返回 None，由控制器用静态坐标兜底。"""
+    monkeypatch.setattr(calibration, 'load_module_template', lambda *args, **kwargs: object())
+    monkeypatch.setattr(recognition, 'expect_template_center', lambda _ctx, **_: None)
+
+    assert backyard.read_bath_entry_center(object()) is None
+

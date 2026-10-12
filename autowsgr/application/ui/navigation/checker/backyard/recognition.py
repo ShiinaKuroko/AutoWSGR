@@ -168,23 +168,32 @@ def read_bath_page(
 # ── 模板中心（点击落点） ────────────────────────────────────────────────────
 
 
-def read_entry_center(ctx: ContextHandle, key: str) -> tuple[float, float] | None:
-    """读取某个入口模板命中的中心，供导航器点击。
+def read_canteen_entry_center(ctx: ContextHandle) -> tuple[float, float] | None:
+    """读取餐厅入口模板命中的中心，供导航器点击。"""
+    return _read_entry_center(ctx, 'canteen')
 
-    Args:
-        ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
-        key: 入口键，取值见 `_ENTRIES`。
 
-    Returns:
-        命中时的归一化中心；未命中时为 None，调用方用静态坐标兜底。
+def read_academy_entry_center(ctx: ContextHandle) -> tuple[float, float] | None:
+    """读取学院入口模板命中的中心，供导航器点击。"""
+    return _read_entry_center(ctx, 'academy')
 
-    Raises:
-        ValueError: 入口键不在本表内。
-    """
-    entry = _ENTRIES.get(key)
-    if entry is None:
-        raise ValueError(f'未知的后院入口: {key!r}')
-    filename, roi = entry
+
+def read_rank_room_entry_center(ctx: ContextHandle) -> tuple[float, float] | None:
+    """读取军阶室入口模板命中的中心，供导航器点击。"""
+    return _read_entry_center(ctx, 'rank_room')
+
+
+def read_bath_entry_center(ctx: ContextHandle) -> tuple[float, float] | None:
+    """读取浴室入口模板命中的中心，供导航器点击。"""
+    return _read_entry_center(ctx, 'bath')
+
+
+# ── 私有辅助 ────────────────────────────────────────────────────────────────
+
+
+def _read_entry_center(ctx: ContextHandle, key: str) -> tuple[float, float] | None:
+    """读取某个入口模板命中的中心；未命中时为 None，调用方用静态坐标兜底。"""
+    filename, roi = _ENTRIES[key]
     center = expect_template_center(
         ctx,
         template=calibration.load_module_template(
@@ -196,9 +205,6 @@ def read_entry_center(ctx: ContextHandle, key: str) -> tuple[float, float] | Non
     )
     _log.debug('[UI] 后院 → 读入口中心：key={!r}，center={!r}', key, center)
     return center
-
-
-# ── 私有辅助 ────────────────────────────────────────────────────────────────
 
 
 def _read_page(

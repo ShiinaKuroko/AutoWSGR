@@ -127,17 +127,24 @@ def check_bath_page(
 # ── 模板中心 ────────────────────────────────────────────────────────────────
 
 
-def read_entry_center(ctx: ContextHandle, key: str) -> tuple[float, float] | None:
-    """读取后院主页某个入口模板命中的中心，供导航器点击。
+def read_canteen_entry_center(ctx: ContextHandle) -> tuple[float, float] | None:
+    """读取餐厅入口模板命中的中心，供导航器点击。"""
+    return recognition.read_canteen_entry_center(ctx)
 
-    Args:
-        ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
-        key: 入口键，取值 canteen / academy / rank_room / bath。
 
-    Returns:
-        命中时的归一化中心；未命中时为 None，调用方用静态坐标兜底。
-    """
-    return recognition.read_entry_center(ctx, key)
+def read_academy_entry_center(ctx: ContextHandle) -> tuple[float, float] | None:
+    """读取学院入口模板命中的中心，供导航器点击。"""
+    return recognition.read_academy_entry_center(ctx)
+
+
+def read_rank_room_entry_center(ctx: ContextHandle) -> tuple[float, float] | None:
+    """读取军阶室入口模板命中的中心，供导航器点击。"""
+    return recognition.read_rank_room_entry_center(ctx)
+
+
+def read_bath_entry_center(ctx: ContextHandle) -> tuple[float, float] | None:
+    """读取浴室入口模板命中的中心，供导航器点击。"""
+    return recognition.read_bath_entry_center(ctx)
 
 
 __all__ = [
@@ -146,5 +153,8 @@ __all__ = [
     'check_bath_page',
     'check_canteen_page',
     'check_rank_room_page',
-    'read_entry_center',
+    'read_academy_entry_center',
+    'read_bath_entry_center',
+    'read_canteen_entry_center',
+    'read_rank_room_entry_center',
 ]
