@@ -7,7 +7,7 @@
 - common.system.logger：记录识别事实。
 - common.vision：提供识别存在入口与模板中心入口。
 - checker.calibration：加载本模块模板。
-- backyard.constants：提供识别区域与模板文件名。
+- backyard.constants：提供识别区域、模板文件名与命名空间。
 
 边界：只读取识别事实与模板中心，不执行点击、不组装页面结论。
 """
@@ -35,9 +35,9 @@ _log = get_logger('ui')
 _TEMPLATE_CONFIDENCE = 0.85
 
 
-# ── 入口与页面的对应表 ──────────────────────────────────────────────────────
+# ── 入口表（点击落点用） ────────────────────────────────────────────────────
 
-# 键与 BackyardTarget 枚举名一致；四个入口同一时刻出现，四选一即算到达后院主页。
+# 键与 BackyardTarget 枚举名一致；四个入口都在 backyard 根命名空间下。
 _ENTRIES: dict[str, tuple[str, ROI]] = {
     'canteen': (constants.CANTEEN_ENTRY_TEMPLATE, constants.CANTEEN_ENTRY_ROI),
     'academy': (constants.ACADEMY_ENTRY_TEMPLATE, constants.ACADEMY_ENTRY_ROI),
@@ -45,11 +45,31 @@ _ENTRIES: dict[str, tuple[str, ROI]] = {
     'bath': (constants.BATH_ENTRY_TEMPLATE, constants.BATH_ENTRY_ROI),
 }
 
-_PAGES: dict[str, tuple[str, ROI]] = {
-    'canteen': (constants.CANTEEN_PAGE_TEMPLATE, constants.CANTEEN_PAGE_ROI),
-    'academy': (constants.ACADEMY_PAGE_TEMPLATE, constants.ACADEMY_PAGE_ROI),
-    'rank_room': (constants.RANK_ROOM_PAGE_TEMPLATE, constants.RANK_ROOM_PAGE_ROI),
-    'bath': (constants.BATH_PAGE_TEMPLATE, constants.BATH_PAGE_ROI),
+
+# ── 二级页表 ────────────────────────────────────────────────────────────────
+
+# 每项是 (命名空间, 模板文件名, 识别区域)；键与 _ENTRIES 一致。
+_PAGES: dict[str, tuple[str, str, ROI]] = {
+    'canteen': (
+        constants.CANTEEN_PAGE_NAMESPACE,
+        constants.CANTEEN_PAGE_TEMPLATE,
+        constants.CANTEEN_PAGE_ROI,
+    ),
+    'academy': (
+        constants.ACADEMY_PAGE_NAMESPACE,
+        constants.ACADEMY_PAGE_TEMPLATE,
+        constants.ACADEMY_PAGE_ROI,
+    ),
+    'rank_room': (
+        constants.RANK_ROOM_PAGE_NAMESPACE,
+        constants.RANK_ROOM_PAGE_TEMPLATE,
+        constants.RANK_ROOM_PAGE_ROI,
+    ),
+    'bath': (
+        constants.BATH_PAGE_NAMESPACE,
+        constants.BATH_PAGE_TEMPLATE,
+        constants.BATH_PAGE_ROI,
+    ),
 }
 
 
@@ -65,8 +85,8 @@ def read_backyard(
 ) -> bool:
     """读取是否在后院主页。
 
-    后院主页没有专属模板：四个二级页入口同一时刻出现，任一命中即算到达；
-    四个都不在（含进二级页后整页被换掉）即算离开。
+    后院主页没有专属模板，拿四个入口里的任意一个当身份即可；前识别判到达，
+    后识别判离开——进二级页时整页被换掉，入口模板自然消失。
 
     Args:
         ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
@@ -77,24 +97,16 @@ def read_backyard(
     Returns:
         断言满足时为真。
     """
-    result = expect_template(
+    return _read_template(
         ctx,
-        template=tuple(
-            calibration.load_module_template(
-                constants.TEMPLATE_NAMESPACE, filename, name=f'{key}_entry'
-            )
-            for key, (filename, _) in _ENTRIES.items()
-        ),
-        roi=tuple(roi for _, roi in _ENTRIES.values()),
-        confidence=_TEMPLATE_CONFIDENCE,
-        # 四个入口命中任一即说明站在后院主页上。
-        min_matches=1,
+        constants.TEMPLATE_NAMESPACE,
+        constants.BACKYARD_TEMPLATE,
+        constants.BACKYARD_ROI,
+        name='backyard',
         absent=absent,
         attempts=attempts,
         interval_seconds=interval_seconds,
     )
-    _log.debug('[UI] 后院 → 读主页事实：matched={!r}', result.satisfied)
-    return result.satisfied
 
 
 def read_canteen_page(
@@ -191,6 +203,53 @@ def read_bath_entry_center(ctx: ContextHandle) -> tuple[float, float] | None:
 # ── 私有辅助 ────────────────────────────────────────────────────────────────
 
 
+def _read_template(
+    ctx: ContextHandle,
+    namespace: str,
+    filename: str,
+    roi: ROI,
+    *,
+    name: str,
+    absent: bool,
+    attempts: int,
+    interval_seconds: float,
+) -> bool:
+    """按模板读取一个后院事实。"""
+    result = expect_template(
+        ctx,
+        template=calibration.load_module_template(namespace, filename, name=name),
+        roi=roi,
+        confidence=_TEMPLATE_CONFIDENCE,
+        absent=absent,
+        attempts=attempts,
+        interval_seconds=interval_seconds,
+    )
+    _log.debug('[UI] 后院 → 读识别事实：name={!r}，matched={!r}', name, result.satisfied)
+    return result.satisfied
+
+
+def _read_page(
+    ctx: ContextHandle,
+    key: str,
+    *,
+    absent: bool,
+    attempts: int,
+    interval_seconds: float,
+) -> bool:
+    """按模板读取一个二级页的身份事实。"""
+    namespace, filename, roi = _PAGES[key]
+    return _read_template(
+        ctx,
+        namespace,
+        filename,
+        roi,
+        name=f'{key}_page',
+        absent=absent,
+        attempts=attempts,
+        interval_seconds=interval_seconds,
+    )
+
+
 def _read_entry_center(ctx: ContextHandle, key: str) -> tuple[float, float] | None:
     """读取某个入口模板命中的中心；未命中时为 None，调用方用静态坐标兜底。"""
     filename, roi = _ENTRIES[key]
@@ -205,28 +264,3 @@ def _read_entry_center(ctx: ContextHandle, key: str) -> tuple[float, float] | No
     )
     _log.debug('[UI] 后院 → 读入口中心：key={!r}，center={!r}', key, center)
     return center
-
-
-def _read_page(
-    ctx: ContextHandle,
-    key: str,
-    *,
-    absent: bool,
-    attempts: int,
-    interval_seconds: float,
-) -> bool:
-    """按模板读取一个二级页的身份事实。"""
-    filename, roi = _PAGES[key]
-    result = expect_template(
-        ctx,
-        template=calibration.load_module_template(
-            constants.TEMPLATE_NAMESPACE, filename, name=f'{key}_page'
-        ),
-        roi=roi,
-        confidence=_TEMPLATE_CONFIDENCE,
-        absent=absent,
-        attempts=attempts,
-        interval_seconds=interval_seconds,
-    )
-    _log.debug('[UI] 后院 → 读二级页事实：key={!r}，matched={!r}', key, result.satisfied)
-    return result.satisfied

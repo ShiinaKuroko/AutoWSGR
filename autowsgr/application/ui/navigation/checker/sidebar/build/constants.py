@@ -19,8 +19,8 @@ TEMPLATE_NAMESPACE = 'sidebar/build'
 
 # 本模块的模板文件名；目录小写、文件名全大写。
 # 建造页默认落在「建造」标签，因此用它作为页面身份。
-BUILD_TAB_TEMPLATE = 'SIDEBAR_BUILD_TAB_720P.png'
-DISMANTLE_TAB_TEMPLATE = 'SIDEBAR_BUILD_DISMANTLE_TAB_720P.png'
+BUILD_TAB_TEMPLATE = 'BUILD_TAB_720P.png'
+DISMANTLE_TAB_TEMPLATE = 'BUILD_DISMANTLE_TAB_720P.png'
 
 
 # ── 建造页面识别区域 ────────────────────────────────────────────────────────

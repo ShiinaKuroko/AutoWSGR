@@ -44,22 +44,22 @@ def _install(monkeypatch: pytest.MonkeyPatch, hit_rois: tuple[object, ...]) -> N
     monkeypatch.setattr(recognition, 'expect_template', expect_template)
 
 
-def test_backyard_reached_by_any_entry(monkeypatch: pytest.MonkeyPatch) -> None:
-    """四个入口命中任一即算到达后院主页。"""
+def test_backyard_reached_by_entry_template(monkeypatch: pytest.MonkeyPatch) -> None:
+    """入口模板命中即算到达后院主页（身份就是其中一个入口）。"""
     _install(monkeypatch, (constants.BATH_ENTRY_ROI,))
 
     assert backyard.check_backyard_page(object()) is True
 
 
-def test_backyard_absent_when_no_entry(monkeypatch: pytest.MonkeyPatch) -> None:
-    """四个入口都不在时不算在后院主页。"""
+def test_backyard_absent_when_entry_missing(monkeypatch: pytest.MonkeyPatch) -> None:
+    """入口模板不在时不算在后院主页。"""
     _install(monkeypatch, ())
 
     assert backyard.check_backyard_page(object()) is False
 
 
 def test_backyard_absent_flag(monkeypatch: pytest.MonkeyPatch) -> None:
-    """后识别：四个入口全不在，期待离开成立（进二级页后整页被换掉）。"""
+    """后识别：入口模板不在，期待离开成立（进二级页后整页被换掉）。"""
     _install(monkeypatch, ())
 
     assert backyard.check_backyard_page(object(), absent=True) is True
