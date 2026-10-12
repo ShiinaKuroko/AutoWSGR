@@ -19,7 +19,7 @@ from autowsgr.application.ui.controller.login import constants as login_constant
 from autowsgr.application.ui.navigation import registry
 from autowsgr.application.ui.navigation.executor import NavigationExecutor
 from autowsgr.application.ui.navigation.checker import home, login
-from autowsgr.application.ui.navigation.registry import NavTarget
+from autowsgr.application.ui.navigation.types import NavTab, NavTarget
 from autowsgr.application.ui.navigation.service import NavigationService
 from autowsgr.application.ui.navigation.types import NavigationError, PageName
 from autowsgr.dispatch.session import SessionState
@@ -358,7 +358,7 @@ def test_executor_enters_tab_with_tab_checker(monkeypatch: pytest.MonkeyPatch) -
     monkeypatch.setitem(
         registry._TABS,
         PageName.BUILD,
-        {'destroy': registry.NavTab(fake_click, fake_checker, '解体')},
+        {'destroy': NavTab(fake_click, fake_checker, '解体')},
     )
 
     executor = NavigationExecutor(object(), SessionState())
@@ -388,7 +388,7 @@ def test_executor_reports_tab_switch_failure(monkeypatch: pytest.MonkeyPatch) ->
         registry._TABS,
         PageName.BUILD,
         {
-            'destroy': registry.NavTab(
+            'destroy': NavTab(
                 lambda _ctx: None,
                 lambda _ctx, **_: False,
                 '解体',

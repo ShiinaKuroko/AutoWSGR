@@ -32,7 +32,7 @@ _TAB_SETTLE_SECONDS = 2.0
 
 
 if TYPE_CHECKING:
-    from autowsgr.application.ui.navigation.registry import NavTarget
+    from autowsgr.application.ui.navigation.types import NavTarget
     from autowsgr.dispatch.context import ContextHandle
     from autowsgr.dispatch.session import SessionState
 

@@ -15,7 +15,6 @@
 from __future__ import annotations
 
 from collections import deque
-from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from autowsgr.application.ui.controller.home.event_page import EventPage
@@ -43,7 +42,12 @@ from autowsgr.application.ui.navigation.checker import (
 from autowsgr.application.ui.navigation.checker.event import stage_push
 from autowsgr.application.ui.navigation.checker.sidebar import build, intensify
 from autowsgr.application.ui.navigation.checker.sidebar.friend import check_friend_page
-from autowsgr.application.ui.navigation.types import NavigationError, PageName
+from autowsgr.application.ui.navigation.types import (
+    NavTab,
+    NavTarget,
+    NavigationError,
+    PageName,
+)
 from autowsgr.common.system.logger import get_logger
 
 
@@ -113,43 +117,6 @@ def _claim_all_mission_rewards(ctx: ContextHandle, **_: object) -> None:
         return
     MissionPage(ctx).click_claim_all()
 
-
-# ── 导航边 ──────────────────────────────────────────────────────────────────
-
-
-@dataclass(frozen=True, slots=True)
-class NavTarget:
-    """从某个页面可以直达的一个目标。
-
-    Attributes:
-        target: 目标页面。
-        action: 执行一次点击的动作，可接收调用方透传的参数。
-        description: 这条边的说明，供维护与日志使用。
-        confirm: 到达后是否需要确认；浮窗链的中间步判不了"到没到"，置假跳过。
-    """
-
-    target: PageName
-    action: Callable[..., None]
-    description: str = ''
-    confirm: bool = True
-
-
-@dataclass(frozen=True, slots=True)
-class NavTab:
-    """页面内的一个标签：怎么点、怎么确认。
-
-    标签不是页面，不参与路径计算；它只描述"到达这一页之后要落在哪个视图上"。
-    执行器在到达确认处用这里的 checker 替换页面级确认。
-
-    Attributes:
-        click: 点击该标签的动作。
-        checker: 判该标签是否激活的确认入口。
-        description: 标签说明，供维护与日志使用。
-    """
-
-    click: Callable[..., None]
-    checker: Callable[..., bool]
-    description: str = ''
 
 # ── 页面 → 到达确认 ─────────────────────────────────────────────────────────
 
@@ -433,6 +400,10 @@ _NAV_TARGETS: dict[PageName, tuple[NavTarget, ...]] = {
 
 # ── 上下文辅助 ──────────────────────────────────────────────────────────────
 
+# TODO(navigation): 以下三个辅助不属于注册中心——区服定位该回 login，
+# 活动玩法与章节该回 event 或 dispatch 的上下文读取层。等落脚点确定后迁出，
+# 让本模块只剩三张表和查询入口。
+
 
 def _server_index(ctx: ContextHandle, name: str) -> int:
     """把区服名换成它在列表中的固定位置。
@@ -553,4 +524,4 @@ def find_path(source: PageName, target: PageName) -> tuple[NavTarget, ...]:
     raise NavigationError(f'没有从 {source.value!r} 到 {target.value!r} 的可达路径')
 
 
-__all__ = ['NavTab', 'NavTarget', 'find_path', 'get_checker', 'get_tabs', 'get_targets']
+__all__ = ['find_path', 'get_checker', 'get_tabs', 'get_targets']

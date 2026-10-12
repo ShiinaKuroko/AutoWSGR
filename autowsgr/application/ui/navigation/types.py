@@ -8,14 +8,23 @@
 - common.system.enums：提供字符串枚举基类。
 - common.system.errors：提供应用错误基类。
 
-边界：只定义页面名与错误类型，不含导航逻辑、识别或点击；
-它必须保持零依赖，供所有层级（含下层控制器）导入。
+边界：只定义页面名、导航契约与错误类型，不含导航逻辑、识别或点击；
+它必须保持零运行时依赖，供所有层级（含下层控制器）导入。
 """
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+from typing import TYPE_CHECKING
+
 from autowsgr.common.system.enums import StrEnum
 from autowsgr.common.system.errors import ApplicationError
+
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from autowsgr.dispatch.context import ContextHandle
 
 
 class PageName(StrEnum):
@@ -49,6 +58,41 @@ class PageName(StrEnum):
     EVENT_STAGE_OVERLAY = '活动章节浮窗'
 
 
+@dataclass(frozen=True, slots=True)
+class NavTarget:
+    """从某个页面可以直达的一个目标。
+
+    Attributes:
+        target: 目标页面。
+        action: 执行一次点击的动作，可接收调用方透传的参数。
+        description: 这条边的说明，供维护与日志使用。
+        confirm: 到达后是否需要确认；浮窗链的中间步判不了"到没到"，置假跳过。
+    """
+
+    target: PageName
+    action: Callable[..., None]
+    description: str = ''
+    confirm: bool = True
+
+
+@dataclass(frozen=True, slots=True)
+class NavTab:
+    """页面内的一个标签：怎么点、怎么确认。
+
+    标签不是页面，不参与路径计算；它只描述"到达这一页之后要落在哪个视图上"。
+    执行器在到达确认处用这里的 checker 替换页面级确认。
+
+    Attributes:
+        click: 点击该标签的动作。
+        checker: 判该标签是否激活的确认入口。
+        description: 标签说明，供维护与日志使用。
+    """
+
+    click: Callable[..., None]
+    checker: Callable[..., bool]
+    description: str = ''
+
+
 class NavigationError(ApplicationError):
     """导航失败时抛出。"""
 
@@ -60,4 +104,10 @@ class ManualUpdateRequiredError(NavigationError):
     """
 
 
-__all__ = ['ManualUpdateRequiredError', 'NavigationError', 'PageName']
+__all__ = [
+    'ManualUpdateRequiredError',
+    'NavTab',
+    'NavTarget',
+    'NavigationError',
+    'PageName',
+]
