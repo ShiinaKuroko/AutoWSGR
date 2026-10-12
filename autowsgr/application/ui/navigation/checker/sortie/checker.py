@@ -97,7 +97,7 @@ def check_decisive_page(ctx: ContextHandle) -> bool:
     return recognition.is_decisive_tab_active(ctx)
 
 
-def read_tab_center(ctx: ContextHandle, tab: str) -> tuple[float, float] | None:
+def read_tab_center(ctx: ContextHandle, tab: str) -> tuple[float, float]:
     """读取出征页某个标签的中心。
 
     Args:
