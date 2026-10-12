@@ -105,10 +105,6 @@ class BackyardPage:
         _log.info('[UI] 后院 → 退回上一级：position={!r}', constants.CLICK_BACK)
         self._ctx.runtime.ctrl.click(*constants.CLICK_BACK)
 
-    def click_home(self) -> None:
-        """点击二级页的通用回首页按钮，直接回主页面。"""
-        _log.info('[UI] 后院 → 回首页：position={!r}', constants.CLICK_HOME)
-        self._ctx.runtime.ctrl.click(*constants.CLICK_HOME)
 
 
 __all__ = ['BackyardPage', 'BackyardTarget']

@@ -1,23 +1,17 @@
-"""模块功能：导出浴室页面控制器和修理卡片结果契约。
+"""模块功能：提供浴室二级页控制器的模块入口。
 
 上层调用：
-- application.ui.navigation：注册浴室页面检查器并执行页面导航。
-- business.logistics.repair：调用浴室修理页面入口。
+- application.ui.navigation：调用该页控制器执行回首页与退回。
 
 下层依赖：
-- application.ui.controller.backyard.bath_page.page：提供页面流程和导航控制器。
-- application.ui.controller.backyard.bath_page.recognition：提供页面事实实现。
+- bath_page.page：提供页面控制器。
 
-边界：
-本包只提供稳定导出，不执行页面注册、设备操作或 OCR 初始化。
+本模块只导出稳定入口，不放业务实现。
 """
 
 from __future__ import annotations
 
-from autowsgr.application.ui.controller.backyard.bath_page.page import (
-    BathPage,
-    RepairResult,
-)
+from autowsgr.application.ui.controller.backyard.bath_page.page import BathPage
 
 
-__all__ = ['BathPage', 'RepairResult']
+__all__ = ['BathPage']
