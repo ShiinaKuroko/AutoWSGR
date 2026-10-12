@@ -1,14 +1,12 @@
-"""模块功能：导出好友页面控制器。
+"""模块功能：提供好友页面的模块入口。
 
 上层调用：
-- application.ui.navigation：从侧边栏进入好友页面并返回。
-- testing.ui：执行好友页面导航验证。
+- application.ui.navigation：调用好友页面控制器执行返回。
 
 下层依赖：
-- application.ui.controller.sidebar.friend_page.page：提供好友页面操作实现。
+- sidebar.friend_page.page：提供好友页面控制器。
 
-边界：
-只导出好友页面控制器，不执行页面识别、设备操作或导航注册。
+本模块只导出稳定入口，不放业务实现。
 """
 
 from __future__ import annotations

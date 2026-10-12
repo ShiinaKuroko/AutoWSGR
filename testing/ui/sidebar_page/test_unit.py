@@ -1,116 +1,82 @@
-"""模块功能：验证侧边栏主页面的识别和导航边界。
+"""模块功能：验证侧边栏与好友页面控制器的点击落点。
 
-上层调用：
-- pytest：执行侧边栏主页面的无设备单元验证。
+直接调用方：项目测试运行器。
 
-下层依赖：
-- application.ui.controller.sidebar.main_page：提供侧边栏页面控制器。
-- application.ui.controller.sidebar.main_page.recognition：提供页面事实识别。
-- application.ui.controller.sidebar.main_page.operations：提供二级菜单原子点击。
-- common.device.interaction：提供导航配置和异常类型。
+直接依赖：pytest、控制器与常量。
 
-边界：
-本模块只使用 mock 验证侧边栏页面契约，不连接真实设备或执行子页面业务。
+边界：用设备替身记录点击落点，不连接设备、不识别画面。
 """
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock
+from types import SimpleNamespace
+from typing import Any
 
 import pytest
 
-from autowsgr.application.ui.controller.sidebar.main_page import (
-    SidebarPage,
-    SidebarTarget,
-    constants,
-    page,
-    recognition,
+from autowsgr.application.ui.controller.sidebar.friend_page import FriendPage
+from autowsgr.application.ui.controller.sidebar.friend_page import constants as friend_constants
+from autowsgr.application.ui.controller.sidebar.main_page import SidebarPage, SidebarTarget
+from autowsgr.application.ui.controller.sidebar.main_page import constants as sidebar_constants
+from autowsgr.application.ui.navigation.types import PageName
+
+
+class _Ctrl:
+    """设备服务替身，记录点击落点。"""
+
+    def __init__(self) -> None:
+        self.clicks: list[tuple[float, float]] = []
+
+    def click(self, x: float, y: float, *, delay: bool = False) -> None:  # noqa: ARG002
+        self.clicks.append((x, y))
+
+
+def _ctx() -> Any:
+    """构造带设备替身的上下文。"""
+    return SimpleNamespace(runtime=SimpleNamespace(ctrl=_Ctrl()))
+
+
+def test_sidebar_target_page_names() -> None:
+    """三个一级条目各自映射到对应页面。"""
+    assert SidebarTarget.BUILD.page_name is PageName.BUILD
+    assert SidebarTarget.INTENSIFY.page_name is PageName.INTENSIFY
+    assert SidebarTarget.FRIEND.page_name is PageName.FRIEND
+
+
+@pytest.mark.parametrize(
+    ('target', 'position'),
+    [
+        (SidebarTarget.BUILD, (0.1437, 0.3701)),
+        (SidebarTarget.INTENSIFY, (0.1434, 0.5000)),
+        (SidebarTarget.FRIEND, (0.1426, 0.7549)),
+    ],
 )
-from autowsgr.common.types import PageName
-from autowsgr.common.device.interaction import NavConfig, NavigationError
+def test_sidebar_go_to_clicks_entry(target: SidebarTarget, position: tuple[float, float]) -> None:
+    """一级条目按校准落点点击。"""
+    ctx = _ctx()
+    page = SidebarPage(ctx)
+
+    page.go_to(target)
+
+    assert ctx.runtime.ctrl.clicks == [position]
+    assert sidebar_constants.NAV_POSITIONS[target.name.lower()] == position
 
 
-def test_check_current_page_delegates_to_recognition(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """页面检查委托给侧边栏事实识别模块。"""
-    screen = object()
-    result = MagicMock()
-    recognize = MagicMock(return_value=result)
-    monkeypatch.setattr(recognition, 'recognize_sidebar_page', recognize)
+def test_sidebar_go_back_clicks_blank_area() -> None:
+    """关闭侧边栏点中部空白处。"""
+    ctx = _ctx()
+    page = SidebarPage(ctx)
 
-    assert SidebarPage.check_current_page(screen) is result
-    recognize.assert_called_once_with(screen)
+    page.go_back()
+
+    assert ctx.runtime.ctrl.clicks == [sidebar_constants.CLICK_CLOSE]
 
 
-def test_recognize_sidebar_page_returns_miss_without_template(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """未匹配模板时返回明确的侧边栏未命中事实。"""
-    monkeypatch.setattr(recognition.ImageChecker, 'find_template', lambda *_args, **_kwargs: None)
+def test_friend_go_back_clicks_back_button() -> None:
+    """好友页返回点左上角箭头，与出征页共用同一落点。"""
+    ctx = _ctx()
+    page = FriendPage(ctx)
 
-    result = recognition.recognize_sidebar_page(object())
+    page.go_back()
 
-    assert result.name == PageName.SIDEBAR.value
-    assert result.matched is False
-    assert result.score == 0.0
-
-
-def test_navigate_to_rejects_invalid_target() -> None:
-    """无效目标在导入子页面和设备操作前被拒绝。"""
-    ctx = MagicMock()
-
-    with pytest.raises(TypeError, match='侧边栏目标必须为 SidebarTarget'):
-        SidebarPage(ctx).navigate_to(object())
-
-    ctx.ctrl.click.assert_not_called()
-
-
-def test_navigation_uses_single_entry() -> None:
-    """侧边栏目标统一由单一导航入口处理。"""
-    assert hasattr(SidebarPage, 'navigate_to')
-    assert not hasattr(SidebarPage, 'go_to_build')
-    assert not hasattr(SidebarPage, 'go_to_intensify')
-    assert not hasattr(SidebarPage, 'go_to_friend')
-
-
-def test_submenu_navigation_retries_before_returning(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """二级菜单导航在有限重试后返回成功。"""
-    ctx = MagicMock()
-    wait_for_page = MagicMock(side_effect=[NavigationError('页面未到达'), object()])
-    click_sidebar_entry = MagicMock()
-    click_submenu_entry = MagicMock()
-    sleep = MagicMock()
-    monkeypatch.setattr(page, 'wait_for_page', wait_for_page)
-    monkeypatch.setattr(page, 'DEFAULT_NAV_CONFIG', NavConfig(max_retries=2, retry_delay=0.0))
-    monkeypatch.setattr(page.time, 'sleep', sleep)
-    monkeypatch.setattr(page.operations, 'click_sidebar_entry', click_sidebar_entry)
-    monkeypatch.setattr(page.operations, 'click_submenu_entry', click_submenu_entry)
-
-    SidebarPage(ctx)._navigate_with_submenu(SidebarTarget.BUILD, MagicMock())
-
-    assert click_sidebar_entry.call_count == 2
-    assert click_submenu_entry.call_count == 2
-    assert click_sidebar_entry.call_args.args == (ctx.ctrl, constants.CLICK_BUILD)
-    assert click_submenu_entry.call_args.args == (ctx.ctrl, constants.CLICK_BUILD_SUBMENU)
-    assert wait_for_page.call_count == 2
-    assert sleep.call_count == 3
-
-
-def test_go_back_waits_for_home_page(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """返回母港使用返回坐标并等待母港终态。"""
-    ctx = MagicMock()
-    wait_for_page = MagicMock()
-    monkeypatch.setattr(page, 'click_and_wait_for_page', wait_for_page)
-
-    SidebarPage(ctx).go_back()
-
-    wait_for_page.assert_called_once()
-    assert wait_for_page.call_args.args[0] is ctx.ctrl
-    assert wait_for_page.call_args.kwargs['click_coord'] == constants.CLICK_CLOSE
-    assert wait_for_page.call_args.kwargs['source'] == PageName.SIDEBAR
-    assert wait_for_page.call_args.kwargs['target'] == PageName.HOME
+    assert ctx.runtime.ctrl.clicks == [friend_constants.CLICK_BACK]

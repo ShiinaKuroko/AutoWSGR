@@ -1,14 +1,12 @@
-"""模块功能：导出侧边栏主页面导航控制器及其目标类型。
+"""模块功能：提供侧边栏主页面的模块入口。
 
 上层调用：
-- application.ui.navigation：执行侧边栏页面导航。
-- application.ui.controller.home.main_page：从母港打开侧边栏。
+- application.ui.navigation：调用侧边栏页面控制器执行导航。
 
 下层依赖：
-- application.ui.controller.sidebar.main_page.page：提供侧边栏页面导航实现。
+- sidebar.main_page.page：提供侧边栏页面控制器与目标类型。
 
-边界：
-本模块只导出稳定的侧边栏导航入口，不执行页面操作或创建运行时上下文。
+本模块只导出稳定入口，不放业务实现。
 """
 
 from __future__ import annotations

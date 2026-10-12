@@ -21,7 +21,7 @@ from autowsgr.common.vision.adapters.pixel_matching import Color, PixelRule, Pix
 NAV_POSITIONS = {
     'sortie': (0.9430, 0.9069),
     'task': (0.6836, 0.9042),
-    'sidebar': (0.0516, 0.8972),
+    'sidebar': (0.0480, 0.8931),
     'backyard': (0.0484, 0.1556),
     'event': (0.8844, 0.4833),
 }
