@@ -39,7 +39,7 @@ def check_black_screen(
     Returns:
         断言满足时为真。
     """
-    return recognition.is_black_screen_visible(
+    return recognition.read_black_screen(
         ctx,
         absent=absent,
         attempts=attempts,
@@ -65,7 +65,7 @@ def check_update_prompt(
     Returns:
         断言满足时为真。
     """
-    return recognition.is_update_prompt_visible(
+    return recognition.read_update_prompt(
         ctx,
         absent=absent,
         attempts=attempts,
@@ -91,7 +91,7 @@ def check_loading(
     Returns:
         断言满足时为真。
     """
-    return recognition.is_loading_visible(
+    return recognition.read_loading(
         ctx,
         absent=absent,
         attempts=attempts,
@@ -122,7 +122,7 @@ def check_login_page(
     Returns:
         断言满足时为真。
     """
-    return recognition.is_login_page_visible(
+    return recognition.read_login_page(
         ctx,
         absent=absent,
         attempts=attempts,
@@ -148,7 +148,7 @@ def check_server_select(
     Returns:
         断言满足时为真。
     """
-    return recognition.is_server_select_visible(
+    return recognition.read_server_select(
         ctx,
         absent=absent,
         attempts=attempts,

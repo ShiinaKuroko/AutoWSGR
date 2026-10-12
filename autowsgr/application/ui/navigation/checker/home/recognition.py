@@ -38,7 +38,7 @@ _TEMPLATE_CONFIDENCE = 0.85
 # ── 页面事实读取 ────────────────────────────────────────────────────────────────────
 
 
-def is_home_page_visible(
+def read_home_page(
     ctx: ContextHandle,
     *,
     absent: bool = False,
@@ -129,7 +129,7 @@ def read_news_overlay(ctx: ContextHandle) -> tuple[bool, bool | None]:
     return matched, checked
 
 
-def is_reward_overlay_visible(ctx: ContextHandle) -> bool:
+def read_reward_overlay(ctx: ContextHandle) -> bool:
     """判断每日奖励浮窗是否在主页上。
 
     奖励文字或领取按钮任一命中即算浮窗存在。
@@ -163,7 +163,7 @@ def is_reward_overlay_visible(ctx: ContextHandle) -> bool:
     return result.satisfied
 
 
-def is_reward_confirm_visible(ctx: ContextHandle) -> bool:
+def read_reward_confirm(ctx: ContextHandle) -> bool:
     """判断每日奖励确认浮窗是否在主页上。
 
     Args:

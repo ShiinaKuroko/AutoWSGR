@@ -20,11 +20,11 @@ from autowsgr.application.ui.navigation.checker.login import checker, recognitio
 _NAV_CONFIRM_ENTRIES = {'check_login_page', 'check_server_select'}
 
 _SCREEN_ENTRIES = [
-    ('check_black_screen', 'is_black_screen_visible'),
-    ('check_update_prompt', 'is_update_prompt_visible'),
-    ('check_loading', 'is_loading_visible'),
-    ('check_login_page', 'is_login_page_visible'),
-    ('check_server_select', 'is_server_select_visible'),
+    ('check_black_screen', 'read_black_screen'),
+    ('check_update_prompt', 'read_update_prompt'),
+    ('check_loading', 'read_loading'),
+    ('check_login_page', 'read_login_page'),
+    ('check_server_select', 'read_server_select'),
 ]
 
 

@@ -50,7 +50,7 @@ _TAB_TEMPLATES = {
 # ── 标签激活事实读取 ────────────────────────────────────────────────────────
 
 
-def is_sortie_tab_active(
+def read_sortie_tab(
     ctx: ContextHandle,
     *,
     absent: bool = False,
@@ -79,7 +79,7 @@ def is_sortie_tab_active(
     )
 
 
-def is_exercise_tab_active(ctx: ContextHandle) -> bool:
+def read_exercise_tab(ctx: ContextHandle) -> bool:
     """判断演习标签是否激活。
 
     Args:
@@ -96,7 +96,7 @@ def is_exercise_tab_active(ctx: ContextHandle) -> bool:
     )
 
 
-def is_expedition_tab_active(ctx: ContextHandle) -> bool:
+def read_expedition_tab(ctx: ContextHandle) -> bool:
     """判断远征标签是否激活。
 
     Args:
@@ -113,7 +113,7 @@ def is_expedition_tab_active(ctx: ContextHandle) -> bool:
     )
 
 
-def is_campaign_tab_active(ctx: ContextHandle) -> bool:
+def read_campaign_tab(ctx: ContextHandle) -> bool:
     """判断战役标签是否激活。
 
     Args:
@@ -130,7 +130,7 @@ def is_campaign_tab_active(ctx: ContextHandle) -> bool:
     )
 
 
-def is_decisive_tab_active(ctx: ContextHandle) -> bool:
+def read_decisive_tab(ctx: ContextHandle) -> bool:
     """判断决战标签是否激活。
 
     Args:

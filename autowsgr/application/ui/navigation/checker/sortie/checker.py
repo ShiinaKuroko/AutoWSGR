@@ -41,7 +41,7 @@ def check_sortie_page(
     Returns:
         断言满足时为真；第一次进入出征页默认落在该标签。
     """
-    return recognition.is_sortie_tab_active(
+    return recognition.read_sortie_tab(
         ctx,
         absent=absent,
         attempts=attempts,
@@ -58,7 +58,7 @@ def check_exercise_page(ctx: ContextHandle) -> bool:
     Returns:
         演习标签激活时为真。
     """
-    return recognition.is_exercise_tab_active(ctx)
+    return recognition.read_exercise_tab(ctx)
 
 
 def check_expedition_page(ctx: ContextHandle) -> bool:
@@ -70,7 +70,7 @@ def check_expedition_page(ctx: ContextHandle) -> bool:
     Returns:
         远征标签激活时为真。
     """
-    return recognition.is_expedition_tab_active(ctx)
+    return recognition.read_expedition_tab(ctx)
 
 
 def check_campaign_page(ctx: ContextHandle) -> bool:
@@ -82,7 +82,7 @@ def check_campaign_page(ctx: ContextHandle) -> bool:
     Returns:
         战役标签激活时为真。
     """
-    return recognition.is_campaign_tab_active(ctx)
+    return recognition.read_campaign_tab(ctx)
 
 
 def check_decisive_page(ctx: ContextHandle) -> bool:
@@ -94,7 +94,7 @@ def check_decisive_page(ctx: ContextHandle) -> bool:
     Returns:
         决战标签激活时为真。
     """
-    return recognition.is_decisive_tab_active(ctx)
+    return recognition.read_decisive_tab(ctx)
 
 
 def read_tab_center(ctx: ContextHandle, tab: str) -> tuple[float, float]:

@@ -70,7 +70,7 @@ def check_home_page(
     Returns:
         主页模板命中、且前识别时三个每日浮窗都不在时为真。
     """
-    if not recognition.is_home_page_visible(
+    if not recognition.read_home_page(
         ctx,
         absent=absent,
         attempts=attempts,
@@ -85,7 +85,7 @@ def check_home_page(
     if news_matched:
         return False
     return not (
-        recognition.is_reward_overlay_visible(ctx) or recognition.is_reward_confirm_visible(ctx)
+        recognition.read_reward_overlay(ctx) or recognition.read_reward_confirm(ctx)
     )
 
 
@@ -186,7 +186,7 @@ def check_home_reward_overlay(ctx: ContextHandle) -> bool:
     Returns:
         奖励浮窗存在时为真。
     """
-    return recognition.is_reward_overlay_visible(ctx)
+    return recognition.read_reward_overlay(ctx)
 
 
 def check_home_reward_confirm(ctx: ContextHandle) -> bool:
@@ -198,7 +198,7 @@ def check_home_reward_confirm(ctx: ContextHandle) -> bool:
     Returns:
         确认浮窗存在时为真。
     """
-    return recognition.is_reward_confirm_visible(ctx)
+    return recognition.read_reward_confirm(ctx)
 
 
 def read_news_checkbox_center(ctx: ContextHandle) -> tuple[float, float] | None:

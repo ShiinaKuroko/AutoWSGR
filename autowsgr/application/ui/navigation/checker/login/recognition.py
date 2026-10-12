@@ -41,7 +41,7 @@ def _template(filename: str, name: str) -> Template:
     return calibration.load_module_template(constants.TEMPLATE_NAMESPACE, filename, name=name)
 
 
-def is_black_screen_visible(
+def read_black_screen(
     ctx: ContextHandle,
     *,
     absent: bool = False,
@@ -70,7 +70,7 @@ def is_black_screen_visible(
     return result.satisfied
 
 
-def is_update_prompt_visible(
+def read_update_prompt(
     ctx: ContextHandle,
     *,
     absent: bool = False,
@@ -101,7 +101,7 @@ def is_update_prompt_visible(
     return result.satisfied
 
 
-def is_loading_visible(
+def read_loading(
     ctx: ContextHandle,
     *,
     absent: bool = False,
@@ -132,7 +132,7 @@ def is_loading_visible(
     return result.satisfied
 
 
-def is_login_page_visible(
+def read_login_page(
     ctx: ContextHandle,
     *,
     absent: bool = False,
@@ -204,7 +204,7 @@ def read_switch_entry_center(ctx: ContextHandle) -> tuple[float, float] | None:
     return center
 
 
-def is_server_select_visible(
+def read_server_select(
     ctx: ContextHandle,
     *,
     absent: bool = False,
@@ -263,11 +263,11 @@ def find_server_position(ctx: ContextHandle, name: str) -> int | None:
 
 __all__ = [
     'find_server_position',
-    'is_black_screen_visible',
-    'is_loading_visible',
-    'is_login_page_visible',
-    'is_server_select_visible',
-    'is_update_prompt_visible',
+    'read_black_screen',
+    'read_loading',
+    'read_login_page',
+    'read_server_select',
+    'read_update_prompt',
     'read_enter_button_center',
     'read_switch_entry_center',
 ]

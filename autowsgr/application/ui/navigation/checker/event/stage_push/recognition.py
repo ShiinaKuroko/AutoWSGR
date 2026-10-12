@@ -96,7 +96,7 @@ def _calculate_mode_from_title(
 # ── 页面事实读取与判断 ─────────────────────────────────────────────────────────────────
 
 
-def is_map_title_present(
+def read_map_title(
     ctx: ContextHandle,
     data: Mapping[str, Any],
     *,
@@ -133,7 +133,7 @@ def is_map_title_present(
     return result.satisfied
 
 
-def is_event_entry_visible(ctx: ContextHandle) -> bool:
+def read_event_entry(ctx: ContextHandle) -> bool:
     """判断首页活动入口卡片是否可见。
 
     Args:
@@ -325,7 +325,7 @@ def read_sortie_prepare_center(ctx: ContextHandle) -> tuple[float, float] | None
     return center
 
 
-def is_sortie_overlay_open(ctx: ContextHandle, data: Mapping[str, Any]) -> bool:
+def read_sortie_overlay(ctx: ContextHandle, data: Mapping[str, Any]) -> bool:
     """判断节点浮窗当前是否已经打开。
 
     Args:

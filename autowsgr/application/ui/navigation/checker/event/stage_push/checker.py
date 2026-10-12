@@ -160,7 +160,7 @@ def check_event_map_page(
     if event_type is not None:
         calibration.require_activity(event_type, constants.ACTIVITY)
     data = calibration.load_activity_data(constants.ACTIVITY, constants.PERIOD)
-    return recognition.is_map_title_present(
+    return recognition.read_map_title(
         ctx,
         data,
         absent=absent,
@@ -180,7 +180,7 @@ def check_event_entry(ctx: ContextHandle, *, event_type: str) -> bool:
         入口模板命中时为真；读不到时为假，由调用方决定如何处理。
     """
     calibration.require_activity(event_type, constants.ACTIVITY)
-    return recognition.is_event_entry_visible(ctx)
+    return recognition.read_event_entry(ctx)
 
 
 def read_event_map_state(ctx: ContextHandle, *, event_type: str) -> EventMapState:
@@ -201,7 +201,7 @@ def read_event_map_state(ctx: ContextHandle, *, event_type: str) -> EventMapStat
     title_mode = recognition.read_map_title(ctx, data)
 
     # 2. 浮窗会压暗整页并让模式按钮模板失效，因此浮窗态不下难度结论。
-    on_clean_map = not recognition.is_sortie_overlay_open(ctx, data)
+    on_clean_map = not recognition.read_sortie_overlay(ctx, data)
 
     state = EventMapState(
         on_clean_map=on_clean_map,
