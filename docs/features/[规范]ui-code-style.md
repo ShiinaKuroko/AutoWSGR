@@ -355,7 +355,7 @@ common 不是单一职责：
 | 其他页面控制器（有模板） | 传 `TemplateMatchResult.center` | 用传入的中心；中心为空时按静态坐标兜底 |
 | 无模板的页面 | 不传 | 直接按静态坐标点击 |
 
-- 中心坐标的源头是 page_checker 的 `read_*_center` 入口，取值来自
+- 中心坐标的源头是 checker 的 `read_*_center` 入口，取值来自
   `TemplateMatchResult.center`（命中模板的归一化中心）；
 - 静态坐标和兜底位置属于 `constants.py` 的校准数据；
 - 控制器不得为了补中心自行截图或重新识别，落点参数由导航器统一提供。

@@ -10,7 +10,7 @@
 home main page 是 **application 层 UI 控制器**的主页单击控制器。它只负责把"点哪里"变成一次点击，
 并保留主页自己使用的通知红点识别。
 
-它明确不负责：主页画面识别（属于 `home_checker`）、浮窗处理流程与页面确认（属于导航器）、
+它明确不负责：主页画面识别（属于 `home`）、浮窗处理流程与页面确认（属于导航器）、
 任务参数处理（属于业务层执行器）。
 
 模块的所有权：
@@ -53,7 +53,7 @@ main_page.HomePage
 
 禁止方向：
 
-- 不 import `home_checker`（识别归导航器）；
+- 不 import `home`（识别归导航器）；
 - 不等待页面、不重试、不编排浮窗流程；
 - 不在控制器里做主页页面识别（通知识别除外，它是控制器自用的状态判断）。
 
@@ -127,7 +127,7 @@ HomePage.click_reward_confirm(position: tuple[float, float] | None = None) -> No
 ### 5.3 调用示例
 
 ```python
-state = home_checker.check_home_news_overlay(ctx)
+state = home.check_home_news_overlay(ctx)
 if state.matched and state.checked is False:
     page.click_news_checkbox(checkbox_center)
 ```

@@ -3,7 +3,7 @@
 提供 YAML 映射的安全读取与原子写入，以及图像文件的读取与保存。
 
 上层调用：
-- application.ui.navigation.page_checker.calibration：读写识别校准 YAML。
+- application.ui.navigation.checker.calibration：读写识别校准 YAML。
 - dispatch.processor：读写任务数据 YAML。
 - common.vision 和 common.device：保存模板与截图图像。
 

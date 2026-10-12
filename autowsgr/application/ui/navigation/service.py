@@ -7,7 +7,7 @@
 - navigation.registry：查询可达目标、到达确认与路径。
 - navigation.types：页面契约与导航错误。
 - dispatch.session：进程级会话状态。
-- page_checker 与 controller.home.main_page：登录流程识别、主页识别与每日弹窗点击。
+- checker 与 controller.home.main_page：登录流程识别、主页识别与每日弹窗点击。
 
 边界：编排启动流程、识别与算路；路径的执行与前后识别交给 navigation.executor；
 不做页面坐标、业务流程与恢复决策，失败直接抛给调用方。
@@ -20,7 +20,7 @@ from typing import TYPE_CHECKING
 
 from autowsgr.application.ui.navigation import registry
 from autowsgr.application.ui.navigation.executor import NavigationExecutor
-from autowsgr.application.ui.navigation.page_checker import login_checker
+from autowsgr.application.ui.navigation.checker import login
 from autowsgr.application.ui.navigation.types import (
     ManualUpdateRequiredError,
     NavigationError,
@@ -118,8 +118,8 @@ class NavigationService:
             NavigationError: 启动超时，未出现登录页。
         """
         # 1. 健康游戏提示：能不能识别到不重要，识别不到就等一会儿。
-        if login_checker.check_black_screen(self._ctx):
-            login_checker.check_black_screen(
+        if login.check_black_screen(self._ctx):
+            login.check_black_screen(
                 self._ctx,
                 absent=True,
                 attempts=_PROBE_ATTEMPTS,
@@ -129,15 +129,15 @@ class NavigationService:
             time.sleep(_STARTUP_STEP_WAIT_SECONDS)
 
         # 2. 更新提示：唯一硬分支，弹出来游戏就卡在这里，只能人工处理。
-        if login_checker.check_update_prompt(self._ctx):
+        if login.check_update_prompt(self._ctx):
             raise ManualUpdateRequiredError('检测到游戏更新，需要人工处理')
 
         # 3. 加载中：同样是宽泛校验，没在加载就往下走。
-        if login_checker.check_loading(self._ctx):
+        if login.check_loading(self._ctx):
             time.sleep(_STARTUP_STEP_WAIT_SECONDS)
 
         # 4. 等登录页出现；已经在登录页时这里会立刻通过。
-        if not login_checker.check_login_page(
+        if not login.check_login_page(
             self._ctx,
             attempts=_LOGIN_PAGE_ATTEMPTS,
             interval_seconds=_STARTUP_INTERVAL_SECONDS,

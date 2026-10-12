@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from autowsgr.application.ui.navigation.page_checker.home_checker import check_home_page
+from autowsgr.application.ui.navigation.checker.home import check_home_page
 from autowsgr.application.ui.navigation.types import PageName
 
 

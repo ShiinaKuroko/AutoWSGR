@@ -11,7 +11,7 @@
 （出征 / 演习 / 远征 / 战役 / 决战）。
 
 它只负责两件事：把"切到哪个标签"和"离开出征页"变成一次点击。它明确不负责：标签识别
-（属于 `sortie_checker`）、切换确认与等待（属于导航器）、业务页面自身的流程（属于各业务页面）。
+（属于 `sortie`）、切换确认与等待（属于导航器）、业务页面自身的流程（属于各业务页面）。
 
 模块的所有权：
 
@@ -54,7 +54,7 @@ main_page.recognition ──→ common.vision.expect_pixels
 
 禁止方向：
 
-- 不 import `sortie_checker`（标签识别归导航器）；
+- 不 import `sortie`（标签识别归导航器）；
 - 不等待页面、不重试、不判断是否切换成功；
 - 不做标签识别（旧 `PixelChecker` / 二值化那套已删除）。
 
@@ -75,7 +75,7 @@ main_page.recognition ──→ common.vision.expect_pixels
 
 ### 4.1 能力说明
 
-五个标签位置固定，因此 `constants.TAB_POSITIONS` 可作为兜底；导航器若已从 `sortie_checker`
+五个标签位置固定，因此 `constants.TAB_POSITIONS` 可作为兜底；导航器若已从 `sortie`
 拿到标签模板中心，则优先使用中心，保证点得准。
 
 ### 4.2 稳定入口
@@ -100,7 +100,7 @@ page.go_to(SortieTab.EXERCISE, center)      # 用识别中心
 | --- | --- | --- | --- |
 | 传入识别中心 | 按中心点击 | 无 | 导航器 |
 | 未传中心 | 用固定落点 | 无 | 导航器 |
-| 点击后未切换成功 | 控制器不感知 | 无 | 导航器用 `sortie_checker` 确认并决定重试 |
+| 点击后未切换成功 | 控制器不感知 | 无 | 导航器用 `sortie` 确认并决定重试 |
 
 ### 4.5 维护规则
 
@@ -207,7 +207,7 @@ if check_expedition_notification(ctx):
 
 ### 11.1 切换确认归导航器
 
-控制器只点一次；是否切到目标标签由导航器用 `sortie_checker` 的五个入口确认，
+控制器只点一次；是否切到目标标签由导航器用 `sortie` 的五个入口确认，
 失败重试也在导航器。旧 `click_tab` 里的等待、重试与 `NavigationError` 已随本批删除。
 
 ### 11.2 旧通用标签识别已移出
@@ -221,12 +221,12 @@ if check_expedition_notification(ctx):
 
 ## 12. TODO：后续工作（未实现）
 
-1. **标签中心坐标**：`sortie_checker` 目前只返回标签是否激活，不返回标签中心；导航器要拿中心
+1. **标签中心坐标**：`sortie` 目前只返回标签是否激活，不返回标签中心；导航器要拿中心
    就得先给 checker 加一个"读标签中心"的入口（`TemplateMatchResult.center` 已具备该能力）。
 2. **五个业务页面**：远征 / 出征准备 / 决战入口 / 演习 / 战役五个页面控制器曾继承本模块的
    `SortiePage`，本批重写后需要各自按新形状重写。
 3. **活动玩法命名约定**：立体强袭（`dimensional_assault`）、舰队问答（`fleet_quiz`）开工时
-   沿用 `event_checker` 的玩法子包约定。
+   沿用 `event` 的玩法子包约定。
 
 ## 13. 验收门禁
 

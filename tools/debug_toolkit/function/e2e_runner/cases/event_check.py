@@ -11,8 +11,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from autowsgr.application.ui.navigation.page_checker.event_checker import stage_push
-from autowsgr.application.ui.navigation.page_checker.event_checker.stage_push.recognition import (
+from autowsgr.application.ui.navigation.checker.event import stage_push
+from autowsgr.application.ui.navigation.checker.event.stage_push.recognition import (
     EventMode,
 )
 

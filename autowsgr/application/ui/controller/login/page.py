@@ -8,7 +8,7 @@
 - common.device.service：通过 `ctx.runtime.ctrl` 执行点击。
 
 边界：只做**单次点击**，不识别画面、不等待页面、不编排启动流程、不重试。
-画面确认由 login_checker 负责，能否继续的决策由 dispatch 处理器负责。
+画面确认由 login 负责，能否继续的决策由 dispatch 处理器负责。
 """
 
 from __future__ import annotations

@@ -5,7 +5,7 @@
 
 下层依赖：
 - navigation.types：提供页面契约与错误。
-- navigation.page_checker：提供到达确认入口。
+- navigation.checker：提供到达确认入口。
 - application.ui.controller：提供一次点击的动作。
 
 边界：只维护"能去哪、怎么去、到了吗"，不截图、不点击、不判断业务状态。
@@ -22,12 +22,12 @@ from autowsgr.application.ui.controller.home.event_page import EventPage
 from autowsgr.application.ui.controller.home.main_page import HomePage, Target
 from autowsgr.application.ui.controller.login import LoginPage
 from autowsgr.application.ui.controller.operations.sortie_page.main_page import SortiePage
-from autowsgr.application.ui.navigation.page_checker import (
-    home_checker,
-    login_checker,
-    sortie_checker,
+from autowsgr.application.ui.navigation.checker import (
+    home,
+    login,
+    sortie,
 )
-from autowsgr.application.ui.navigation.page_checker.event_checker import stage_push
+from autowsgr.application.ui.navigation.checker.event import stage_push
 from autowsgr.application.ui.navigation.types import NavigationError, PageName
 from autowsgr.common.system.logger import get_logger
 
@@ -54,7 +54,7 @@ def _close_daily_news(ctx: ContextHandle, **_: object) -> None:
     Args:
         ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
     """
-    state = home_checker.check_home_news_overlay(ctx)
+    state = home.check_home_news_overlay(ctx)
     if not state.matched:
         return
     page = HomePage(ctx)
@@ -69,7 +69,7 @@ def _claim_daily_reward(ctx: ContextHandle, **_: object) -> None:
     Args:
         ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
     """
-    if not home_checker.check_home_reward_overlay(ctx):
+    if not home.check_home_reward_overlay(ctx):
         return
     HomePage(ctx).click_reward_claim()
 
@@ -80,7 +80,7 @@ def _confirm_daily_reward(ctx: ContextHandle, **_: object) -> None:
     Args:
         ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
     """
-    if not home_checker.check_home_reward_confirm(ctx):
+    if not home.check_home_reward_confirm(ctx):
         return
     HomePage(ctx).click_reward_confirm()
 
@@ -111,13 +111,13 @@ class NavTarget:
 # （absent=True）判消失。识别节奏是各页面自己的默认值，定义在对应 checker 的签名里；
 # 调用方需要覆盖时直接传参，注册表不再兼职配节奏。
 _PAGE_CHECKERS: dict[PageName, Callable[..., bool]] = {
-    PageName.LOGIN_PAGE: login_checker.check_login_page,
-    PageName.SERVER_SELECT: login_checker.check_server_select,
-    PageName.HOME: home_checker.check_home_page,
-    PageName.HOME_NEWS: home_checker.check_home_news_page,
-    PageName.HOME_REWARD: home_checker.check_home_reward_page,
-    PageName.HOME_REWARD_CONFIRM: home_checker.check_home_reward_confirm_page,
-    PageName.SORTIE_MAP: sortie_checker.check_sortie_page,
+    PageName.LOGIN_PAGE: login.check_login_page,
+    PageName.SERVER_SELECT: login.check_server_select,
+    PageName.HOME: home.check_home_page,
+    PageName.HOME_NEWS: home.check_home_news_page,
+    PageName.HOME_REWARD: home.check_home_reward_page,
+    PageName.HOME_REWARD_CONFIRM: home.check_home_reward_confirm_page,
+    PageName.SORTIE_MAP: sortie.check_sortie_page,
     PageName.EVENT_MAP: stage_push.check_event_map_page,
     PageName.EVENT_STAGE_OVERLAY: stage_push.check_event_sortie_prepare,
 }
@@ -130,14 +130,14 @@ _NAV_TARGETS: dict[PageName, tuple[NavTarget, ...]] = {
         NavTarget(
             PageName.SERVER_SELECT,
             lambda ctx, **_: LoginPage(ctx).click_switch_entry(
-                login_checker.read_switch_entry_center(ctx)
+                login.read_switch_entry_center(ctx)
             ),
             '登录页 → 区服选择页',
         ),
         NavTarget(
             PageName.HOME_NEWS,
             lambda ctx, **_: LoginPage(ctx).click_enter_game(
-                login_checker.read_enter_button_center(ctx)
+                login.read_enter_button_center(ctx)
             ),
             '登录页 → 主页（经每日浮窗链）',
             confirm=False,
@@ -235,14 +235,14 @@ def _server_index(ctx: ContextHandle, name: str) -> int:
 
     Args:
         ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
-        name: 目标区服名，取值见 `login_checker.constants.SERVER_NAMES`。
+        name: 目标区服名，取值见 `login.constants.SERVER_NAMES`。
 
     Returns:
         区服在列表中的位置序号（0 起）。
     """
-    index = login_checker.find_server_position(ctx, name)
+    index = login.find_server_position(ctx, name)
     if index is None:
-        index = login_checker.server_index(name)
+        index = login.server_index(name)
         _log.warning('[UI] 导航 → 区服定位兜底：server={!r}，position={}', name, index)
     return index
 

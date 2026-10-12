@@ -34,6 +34,6 @@
 
 - import smoke：`PageName` 23 个成员；`BATTLE_PREPARATION` / `SHIP_SELECTION` 取值不变；`CHOOSE_REPAIR` 已不存在。
 - `compileall autowsgr/application/ui autowsgr/dispatch` 通过。
-- focused pytest（`testing/ui/navigation`、`testing/dispatch`、`testing/ui/page_checker`、`testing/ui/controller`）
+- focused pytest（`testing/ui/navigation`、`testing/dispatch`、`testing/ui/checker`、`testing/ui/controller`）
   共 136 passed。余下 14 个失败全部在 `testing/dispatch/test_processor.py`，来自旧模块缺口
   （`goto_page`、`CombatPlan`、`common.constants`），与本次改动无关。

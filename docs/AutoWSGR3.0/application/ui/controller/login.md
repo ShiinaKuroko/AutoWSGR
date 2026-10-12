@@ -10,7 +10,7 @@
 login 是 **application 层 UI 控制器**的登录页单击控制器。它只负责把"点哪里"变成一次点击：
 进入游戏、打开区服列表、选择区服。
 
-它明确不负责：登录各画面的识别（属于 `login_checker`）、启动流程的分支与"需要更新"的报错
+它明确不负责：登录各画面的识别（属于 `login`）、启动流程的分支与"需要更新"的报错
 （属于 dispatch 处理器）、页面到达确认（属于导航器）。
 
 模块的所有权：
@@ -31,7 +31,7 @@ autowsgr/application/ui/controller/login/
 └── constants.py       # 进入游戏、换区入口与四个区服条目的落点
 ```
 
-本模块没有 `recognition.py`：登录画面的识别全部归 `login_checker`，控制器不读取画面。
+本模块没有 `recognition.py`：登录画面的识别全部归 `login`，控制器不读取画面。
 
 ### 2.2 文件职责
 
@@ -53,7 +53,7 @@ login.LoginPage
 
 禁止方向：
 
-- 不 import `login_checker`（识别归导航器）；
+- 不 import `login`（识别归导航器）；
 - 不判断是否需要更新、不抛启动阶段错误；
 - 不等待页面、不重试、不编排登录流程。
 
@@ -86,10 +86,10 @@ LoginPage.click_enter_game(position: tuple[float, float] | None = None) -> None
 
 ```python
 from autowsgr.application.ui.controller.login import LoginPage
-from autowsgr.application.ui.navigation.page_checker import login_checker
+from autowsgr.application.ui.navigation.checker import login
 
 page = LoginPage(ctx)
-page.click_enter_game(login_checker.read_enter_button_center(ctx))
+page.click_enter_game(login.read_enter_button_center(ctx))
 ```
 
 ### 4.4 错误和副作用
@@ -103,14 +103,14 @@ page.click_enter_game(login_checker.read_enter_button_center(ctx))
 ### 4.5 维护规则
 
 登录页按钮位置变化时改 `constants.CLICK_ENTER_GAME`；模板位置变化时同时改
-`login_checker.constants.ENTER_BUTTON_ROI`，两者是同一按钮的两种表示。
+`login.constants.ENTER_BUTTON_ROI`，两者是同一按钮的两种表示。
 
 ## 5. 打开区服列表
 
 ### 5.1 能力说明
 
 "点击换区"入口位置固定，落点由 `CLICK_SWITCH_ENTRY` 持有；与进入游戏同样支持识别中心优先、
-固定落点兜底。点击后区服列表出现，是否出现由 `login_checker.check_server_select` 确认。
+固定落点兜底。点击后区服列表出现，是否出现由 `login.check_server_select` 确认。
 
 ### 5.2 稳定入口
 
@@ -121,7 +121,7 @@ LoginPage.click_switch_entry(position: tuple[float, float] | None = None) -> Non
 ### 5.3 调用示例
 
 ```python
-page.click_switch_entry(login_checker.read_switch_entry_center(ctx))
+page.click_switch_entry(login.read_switch_entry_center(ctx))
 ```
 
 ### 5.4 错误和副作用
@@ -134,14 +134,14 @@ page.click_switch_entry(login_checker.read_switch_entry_center(ctx))
 ### 5.5 维护规则
 
 换区入口位置变化时改 `constants.CLICK_SWITCH_ENTRY`；模板位置变化时同时改
-`login_checker.constants.SWITCH_ENTRY_ROI`。
+`login.constants.SWITCH_ENTRY_ROI`。
 
 ## 6. 选择区服
 
 ### 6.1 能力说明
 
 区服列表固定不滚动，四个条目的位置写死在 `SERVER_POSITIONS`，控制器只按序号查表，不接收坐标。
-序号与列表从上到下的顺序一致：0 胡德 / 1 俾斯麦 / 2 昆西 / 3 长春；名称本身由 `login_checker` 用
+序号与列表从上到下的顺序一致：0 胡德 / 1 俾斯麦 / 2 昆西 / 3 长春；名称本身由 `login` 用
 OCR 定位，控制器不读文字。
 
 ### 6.2 稳定入口
@@ -153,7 +153,7 @@ LoginPage.click_server(position: int) -> None
 ### 6.3 调用示例
 
 ```python
-index = login_checker.find_server_position(ctx, "昆西")
+index = login.find_server_position(ctx, "昆西")
 if index is not None:
     page.click_server(index)
 ```
@@ -168,7 +168,7 @@ if index is not None:
 ### 6.5 维护规则
 
 区服列表增删或顺序变化时改 `constants.SERVER_POSITIONS`，并同步
-`login_checker.constants.SERVER_NAME_ROIS` 与 `SERVER_NAMES`。
+`login.constants.SERVER_NAME_ROIS` 与 `SERVER_NAMES`。
 
 ## 7. 统一配置
 
@@ -181,7 +181,7 @@ if index is not None:
 | 区服序号越界 | 拒绝点击 | `ValueError` | 导航器 |
 | 点击本身失败 | 继续向上抛出 | 设备异常 | 启动流程处理器 |
 
-登录阶段的"需要更新"不是本模块的错误：`login_checker.check_update_prompt` 只返回事实，
+登录阶段的"需要更新"不是本模块的错误：`login.check_update_prompt` 只返回事实，
 由 dispatch 处理器决定报错与后续处置。
 
 ## 9. 日志约定
@@ -212,9 +212,9 @@ if index is not None:
 
 ## 11. 模块维护方法
 
-### 11.1 识别归 login_checker
+### 11.1 识别归 login
 
-登录六个画面的识别、区服名 OCR 定位和模板中心读取全在 `login_checker`；控制器只接收算好的
+登录六个画面的识别、区服名 OCR 定位和模板中心读取全在 `login`；控制器只接收算好的
 中心或序号，不 import checker。
 
 ### 11.2 启动流程归 dispatch 处理器

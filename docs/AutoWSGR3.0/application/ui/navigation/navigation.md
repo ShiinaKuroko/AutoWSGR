@@ -32,7 +32,7 @@ class NavTarget:
     description: str = ''                 # 给人看的说明，也进日志
 ```
 
-**注册表只维护「能去哪、怎么去、到了吗」**：坐标与点击细节在 `controller`，识别细节在 `page_checker`，
+**注册表只维护「能去哪、怎么去、到了吗」**：坐标与点击细节在 `controller`，识别细节在 `checker`，
 算路与执行在 `service` / `executor`。一条边就是一行数据，不为边写转发函数。
 
 ## 3. 接一个新页面：照着做
@@ -40,7 +40,7 @@ class NavTarget:
 四步，缺一不可：
 
 1. **`types.py` 的 `PageName` 加一个成员**（值写成中文页面名，跟日志一致）；
-2. **写 checker**：`page_checker/` 下新建或在已有 checker 里加一个入口（写法见 §6）；
+2. **写 checker**：`checker/` 下新建或在已有 checker 里加一个入口（写法见 §6）；
 3. **注册确认**：`_PAGE_CHECKERS[PageName.XXX] = checker 的入口`；
 4. **注册边**：至少一条**入边**（否则永远到不了）和一条**出边**（否则进去出不来）。
 
@@ -52,7 +52,7 @@ class PageName(StrEnum):
     ...
     EXERCISE = '演习页面'          # 已存在，示例里直接复用
 
-# 2) page_checker/sortie_checker/checker.py —— 识别入口
+# 2) checker/sortie/checker.py —— 识别入口
 def check_exercise_page(
     ctx: ContextHandle,
     *,
@@ -68,7 +68,7 @@ def check_exercise_page(
 # 3) registry.py —— 注册确认（注意导出到该 checker 的 __init__）
 _PAGE_CHECKERS: dict[PageName, Callable[..., bool]] = {
     ...
-    PageName.EXERCISE: sortie_checker.check_exercise_page,
+    PageName.EXERCISE: sortie.check_exercise_page,
 }
 
 # 4) registry.py —— 注册边（示例：首页 ⇄ 演习页）
@@ -189,7 +189,7 @@ def check_xxx_page(
 | ROI 的像素尺寸必须比模板**各边大 1px** | 项目硬规范：换算用截断，等于模板时会小 1px 导致匹配直接失败 |
 | 包入口 `__init__.py` 只导出稳定入口 | 上层从包入口导入，不摸 `checker.py` / `recognition.py` |
 
-目录职责（`page_checker/<页面>_checker/`）：`checker.py` 编排识别并返回事实，`recognition.py` 读画面事实，
+目录职责（`checker/<页面>_checker/`）：`checker.py` 编排识别并返回事实，`recognition.py` 读画面事实，
 `constants.py` 只放静态校准数据（ROI、模板名、文本），`__init__.py` 只导出。
 
 ## 8. 常见维护任务速查
@@ -203,7 +203,7 @@ def check_xxx_page(
 | 某个页面认不出来了 | 该 checker 的 `recognition.py` 与 `constants.py`（先核对 ROI 是否比模板大 1px） |
 | 加一个每日浮窗 | `PageName` + checker + 在浮窗链里插一条边（`confirm=False`），见 §6 |
 | 改浮窗点击落点 | `controller/home/main_page` 的对应入口 |
-| 改「什么算干净的主页」 | `home_checker.check_home_page` |
+| 改「什么算干净的主页」 | `home.check_home_page` |
 | 改启动段（黑屏/更新/加载） | `service.navigate_to_login` |
 | 加一种导航错误 | `types.py` |
 | 改「什么时候启动、什么时候 SL」 | `dispatch/startup.py`（**不在这里**） |
@@ -233,13 +233,13 @@ def check_xxx_page(
 
 | 页面 | `PageName` | 识别入口 |
 | --- | --- | --- |
-| 登录页 | `LOGIN_PAGE` | `login_checker.check_login_page` |
-| 区服选择页 | `SERVER_SELECT` | `login_checker.check_server_select` |
-| 主页（**不含浮窗**） | `HOME` | `home_checker.check_home_page` |
-| 每日公告浮窗 | `HOME_NEWS` | `home_checker.check_home_news_page` |
-| 每日奖励浮窗 | `HOME_REWARD` | `home_checker.check_home_reward_page` |
-| 奖励确认浮窗 | `HOME_REWARD_CONFIRM` | `home_checker.check_home_reward_confirm_page` |
-| 出征页 | `SORTIE_MAP` | `sortie_checker.check_sortie_page` |
+| 登录页 | `LOGIN_PAGE` | `login.check_login_page` |
+| 区服选择页 | `SERVER_SELECT` | `login.check_server_select` |
+| 主页（**不含浮窗**） | `HOME` | `home.check_home_page` |
+| 每日公告浮窗 | `HOME_NEWS` | `home.check_home_news_page` |
+| 每日奖励浮窗 | `HOME_REWARD` | `home.check_home_reward_page` |
+| 奖励确认浮窗 | `HOME_REWARD_CONFIRM` | `home.check_home_reward_confirm_page` |
+| 出征页 | `SORTIE_MAP` | `sortie.check_sortie_page` |
 | 活动地图 | `EVENT_MAP` | `stage_push.check_event_map_page` |
 | 活动章节浮窗 | `EVENT_STAGE_OVERLAY` | `stage_push.check_event_sortie_prepare` |
 

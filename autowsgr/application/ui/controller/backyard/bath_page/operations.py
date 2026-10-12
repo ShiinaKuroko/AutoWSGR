@@ -107,7 +107,7 @@ def swipe_repair_list(ctrl: DeviceService) -> None:
 def wait_overlay_closed(
     ctrl: DeviceService,
     *,
-    page_checker: Callable[[np.ndarray], bool],
+    checker: Callable[[np.ndarray], bool],
     overlay_checker: Callable[[np.ndarray], bool],
     timeout: float,
 ) -> bool:
@@ -115,7 +115,7 @@ def wait_overlay_closed(
 
     Args:
         ctrl: 当前设备控制器。
-        page_checker: 判断截图是否仍属于当前页面的检查器。
+        checker: 判断截图是否仍属于当前页面的检查器。
         overlay_checker: 判断选择修理浮层是否仍打开的检查器。
         timeout: 等待终态的最长时间（秒）。
 
@@ -125,7 +125,7 @@ def wait_overlay_closed(
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         screen = ctrl.screenshot()
-        if page_checker(screen) and not overlay_checker(screen):
+        if checker(screen) and not overlay_checker(screen):
             return True
         time.sleep(_OVERLAY_CHECK_INTERVAL)
     return False

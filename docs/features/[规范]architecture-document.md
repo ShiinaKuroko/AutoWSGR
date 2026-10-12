@@ -44,7 +44,7 @@ docs/AutoWSGR3.0/common/system.md                                        # 描�
 docs/AutoWSGR3.0/common/vision.md                                        # 描述 autowsgr/common/vision/
 docs/AutoWSGR3.0/application/ui/controller/home/main_page.md              # 描述 .../controller/home/main_page/
 docs/AutoWSGR3.0/application/ui/controller/operations/sortie_page/main_page.md
-docs/AutoWSGR3.0/application/ui/navigation/page_checker/event_checker.md
+docs/AutoWSGR3.0/application/ui/navigation/checker/event.md
 ```
 
 `<模块名>` 必须与代码目录名一致，不使用宽泛的 `common`、`core`、`utils` 或 `manager`
@@ -96,7 +96,7 @@ docs/AutoWSGR3.0/dispatch/context/context.md
 | `registry.py` | 文件 | [registry](<./registry.md>) | 页面确认与可达边注册 |
 | `service.py` | 文件 | [service](<./service.md>) | 算路、浮窗与启动段 |
 | `types.py` | 数据文件 | 本文件「文件职责表」 | 页面名与导航错误 |
-| `page_checker/` | 子目录 | [page_checker](<./page_checker.md>) | 各页面识别 |
+| `checker/` | 子目录 | [checker](<./checker.md>) | 各页面识别 |
 
 漏项即视为文档缺陷，不允许用“其他文件略”代替。
 

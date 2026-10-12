@@ -9,7 +9,7 @@
 
 1. **识别入口改名**：`common.vision` 的六个入口从"前/后识别"改成**"识别存在 / 识别不存在"**语义；
 2. **PageName 按语义调整**：出征 `MAP → SORTIE_MAP`，新增演习 / 远征 / 战役，决战沿用 `DECISIVE_BATTLE`；
-3. **新建出征页 checker**：`page_checker/sortie_checker/`，五个 `check_XXX_page` 入口（识别 tab 激活）。
+3. **新建出征页 checker**：`checker/sortie/`，五个 `check_XXX_page` 入口（识别 tab 激活）。
 
 **不做**：UI 控制器那份坏的 tab 识别（之后单独修）、导航流程与路由编排、`navigation_old`（只读备份）。
 
@@ -32,13 +32,13 @@
 | 位置 | 数量 |
 | --- | --- |
 | `common/vision/service.py`（定义）与 `common/vision/__init__.py`（门面） | 6 + 导出名单 |
-| `page_checker/event_checker/normal/recognition.py` | 6 |
-| `page_checker/home_checker/recognition.py` | 4 |
+| `checker/event/normal/recognition.py` | 6 |
+| `checker/home/recognition.py` | 4 |
 | `controller/home/main_page/page.py`、`workflow.py`（暂时失效的旧流程） | 7 |
 | `testing/vision/test_recognition_flow.py`、`testing/common/vision/test_service.py` | 全量 |
-| `testing/ui/page_checker/test_{event,home}_checker.py`（monkeypatch 名） | 3 |
+| `testing/ui/checker/test_{event,home}_checker.py`（monkeypatch 名） | 3 |
 | `docs/AutoWSGR-3.0/[架构]common-vision.md`（§2.4、§14 出口表） | 文档 |
-| `page_checker/sortie.py` | 随本批删除而消失 |
+| `checker/sortie.py` | 随本批删除而消失 |
 
 ## 2. PageName 调整
 
@@ -66,7 +66,7 @@ MAP = '地图页面'            →  SORTIE_MAP = '出征页面'
 ### 3.1 结构
 
 ```text
-autowsgr/application/ui/navigation/page_checker/sortie_checker/
+autowsgr/application/ui/navigation/checker/sortie/
 ├── __init__.py        # 导出五个识别入口
 ├── checker.py         # 五个入口：check_sortie_page / check_exercise_page /
 │                      #   check_expedition_page / check_campaign_page / check_decisive_page
@@ -92,10 +92,10 @@ autowsgr/application/ui/navigation/page_checker/sortie_checker/
 
 - 模板：10 个（5 个激活态 `SORTIE_<TAB>_TAB_720P.png` + 5 个未激活态 `..._INACTIVE_720P.png`），
   全部从 `debug/nav/sortie_page.main_page/` 入库到
-  `resources/image/application/ui/navigation/page_checker/sortie/`（目录小写、文件名全大写）；
+  `resources/image/application/ui/navigation/checker/sortie/`（目录小写、文件名全大写）；
 - ROI：使用 `SORTIE_TAB_ROI_REPORT.json` 的重新裁切值（不是旧代码里的旧值），按
   `[规范]python-code-style.md` §6.5 落成四位小数并保证**比模板大**（左/上向下、右/下向上取整）；
-- 旧 `page_checker/SORTIE/` 目录（5 个模板）与旧 `page_checker/sortie.py` 一并删除。
+- 旧 `checker/SORTIE/` 目录（5 个模板）与旧 `checker/sortie.py` 一并删除。
 
 ### 3.4 tab 中心点击坐标（本批只记录）
 
@@ -104,11 +104,11 @@ autowsgr/application/ui/navigation/page_checker/sortie_checker/
 
 ## 4. 验证方案
 
-- **focused 单测** `testing/ui/page_checker/test_sortie_checker.py`：五个入口的命中与未命中；
+- **focused 单测** `testing/ui/checker/test_sortie.py`：五个入口的命中与未命中；
   合成数据 + 替身，不依赖外挂图；
 - **静态帧 case** `cases/sortie_check.py`：用 `debug/nav/静态模板/出征/` 的 5 张整页样本
   （`出征页面.png`、`选择演习 tab.png` 等）验证五个入口各自命中对应 tab；
-- **改名回归**：`testing/common/vision`、`testing/vision`、`testing/ui/page_checker`、
+- **改名回归**：`testing/common/vision`、`testing/vision`、`testing/ui/checker`、
   `testing/dispatch/context`、`testing/tools` 全跑，确认改名没有断链；
 - 换名后两个既有静态 case（`event_check`、`home_check`）仍必须全过。
 
@@ -122,7 +122,7 @@ autowsgr/application/ui/navigation/page_checker/sortie_checker/
 | 4 | tab **中心点击坐标给 UI 控制器用**，本批先记着 |
 | 5 | **UI 控制器的识别不管**，之后单独修 |
 | 6 | 识别入口用 `expect`（存在 / 不存在），所有引用同步改 |
-| 7 | 入口命名用 `check_XXX_page`；包名 `sortie_checker` |
+| 7 | 入口命名用 `check_XXX_page`；包名 `sortie` |
 | 8 | 旧 `sortie.py` 与旧模板不要了，由新包取代 |
 
 ## 6. 执行时由我自定的实现细节
@@ -139,11 +139,11 @@ autowsgr/application/ui/navigation/page_checker/sortie_checker/
 | --- | --- |
 | 识别入口改名 | 6 个入口全部改名；生产代码 + 测试 + `AGENTS.md` + `common-vision.md` + 活动设计稿同步，代码里已无旧名 |
 | PageName | `MAP → SORTIE_MAP`，新增 `EXERCISE` / `EXPEDITION` / `CAMPAIGN`；18 个活文件同步（`navigation_old` 与旧 `game_context.py` 按计划不动） |
-| sortie_checker 包 | 四个文件建成，五个 `check_XXX_page` 入口；旧 `page_checker/sortie.py` 与 `SORTIE/` 目录删除 |
-| 模板 | 10 个（5 激活 + 5 未激活）入库到 `page_checker/sortie/`；ROI 用报告值换算成四位小数并外扩 |
-| 测试 | `test_sortie_checker.py` 6 项（参数化覆盖五个标签 + 全未激活）；相关套件 46 passed |
+| sortie 包 | 四个文件建成，五个 `check_XXX_page` 入口；旧 `checker/sortie.py` 与 `SORTIE/` 目录删除 |
+| 模板 | 10 个（5 激活 + 5 未激活）入库到 `checker/sortie/`；ROI 用报告值换算成四位小数并外扩 |
+| 测试 | `test_sortie.py` 6 项（参数化覆盖五个标签 + 全未激活）；相关套件 46 passed |
 | 静态帧 | `sortie_check` 10 步通过；`event_check` 8 步、`home_check` 12 步回归通过 |
-| 包名对齐 | `event` → `event_checker`、`normal_checker` → `normal`（与 `home_checker`/`sortie_checker` 平级），模板资源同构改名，架构文档与示例同步 |
+| 包名对齐 | `event` → `event`、`normal_checker` → `normal`（与 `home`/`sortie` 平级），模板资源同构改名，架构文档与示例同步 |
 | 顺带 | 删掉 3 个测已删模块的旧测试（`test_home_overlay_flow` / `test_home_popup_samples` / `test_sortie_page`）与 `testing/ui/navigation/test_service.py` |
 
 **已知不在本批范围**：`testing/ui` 下 23 个旧测试仍收集失败（引用 `navigation.interaction`、
@@ -155,4 +155,4 @@ UI 控制器那份走 `common.calibration.tabbed` 的标签识别仍未修；tab
 | 日期 | 变更 |
 | --- | --- |
 | 2026-10-10 | 起草：三件事（识别入口改名、PageName 调整、sortie checker）；记录 8 条已确认结论与影响面清单 |
-| 2026-10-10 | 执行完成：改名 + PageName + sortie_checker + 模板入库 + 单测 + 静态帧，46 passed、三个静态 case 全过；状态改"已执行，待验收" |
+| 2026-10-10 | 执行完成：改名 + PageName + sortie + 模板入库 + 单测 + 静态帧，46 passed、三个静态 case 全过；状态改"已执行，待验收" |

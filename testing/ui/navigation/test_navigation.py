@@ -18,7 +18,7 @@ from autowsgr.application.ui.controller.home.main_page import constants as home_
 from autowsgr.application.ui.controller.login import constants as login_constants
 from autowsgr.application.ui.navigation import registry
 from autowsgr.application.ui.navigation.executor import NavigationExecutor
-from autowsgr.application.ui.navigation.page_checker import home_checker, login_checker
+from autowsgr.application.ui.navigation.checker import home, login
 from autowsgr.application.ui.navigation.registry import NavTarget
 from autowsgr.application.ui.navigation.service import NavigationService
 from autowsgr.application.ui.navigation.types import NavigationError, PageName
@@ -53,15 +53,15 @@ def _accept_all(monkeypatch: pytest.MonkeyPatch) -> None:
     for page in list(registry._PAGE_CHECKERS):
         monkeypatch.setitem(registry._PAGE_CHECKERS, page, lambda _ctx, **_kwargs: True)
     monkeypatch.setattr(
-        home_checker,
+        home,
         'check_home_news_overlay',
         lambda _ctx: SimpleNamespace(matched=False, checked=None),
     )
-    monkeypatch.setattr(home_checker, 'check_home_reward_overlay', lambda _ctx: False)
-    monkeypatch.setattr(home_checker, 'check_home_reward_confirm', lambda _ctx: False)
+    monkeypatch.setattr(home, 'check_home_reward_overlay', lambda _ctx: False)
+    monkeypatch.setattr(home, 'check_home_reward_confirm', lambda _ctx: False)
     # 换区入口先识别中心、识别不到才退回固定落点；替身统一走兜底。
-    monkeypatch.setattr(login_checker, 'read_switch_entry_center', lambda _ctx: None)
-    monkeypatch.setattr(login_checker, 'read_enter_button_center', lambda _ctx: None)
+    monkeypatch.setattr(login, 'read_switch_entry_center', lambda _ctx: None)
+    monkeypatch.setattr(login, 'read_enter_button_center', lambda _ctx: None)
 
 
 def test_find_path_multi_hop() -> None:
@@ -132,7 +132,7 @@ def test_news_edge_closes_and_ticks_checkbox(monkeypatch: pytest.MonkeyPatch) ->
     """公告边：未勾选时先勾上再关闭。"""
     _accept_all(monkeypatch)
     monkeypatch.setattr(
-        home_checker,
+        home,
         'check_home_news_overlay',
         lambda _ctx: SimpleNamespace(matched=True, checked=False),
     )
@@ -164,8 +164,8 @@ def test_news_edge_does_nothing_without_overlay(monkeypatch: pytest.MonkeyPatch)
 def test_reward_edge_claims_then_confirms(monkeypatch: pytest.MonkeyPatch) -> None:
     """奖励边与确认边：有浮窗时各自点各自的位置。"""
     _accept_all(monkeypatch)
-    monkeypatch.setattr(home_checker, 'check_home_reward_overlay', lambda _ctx: True)
-    monkeypatch.setattr(home_checker, 'check_home_reward_confirm', lambda _ctx: True)
+    monkeypatch.setattr(home, 'check_home_reward_overlay', lambda _ctx: True)
+    monkeypatch.setattr(home, 'check_home_reward_confirm', lambda _ctx: True)
     ctx = _ctx()
     session = SessionState()
     service = NavigationService(ctx, session=session)
@@ -203,8 +203,8 @@ def test_go_back_rejects_empty_stack(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def test_login_pages_register_arrival_checkers() -> None:
     """登录页与区服选择页的确认入口就是各自的 checker。"""
-    assert registry.get_checker(PageName.LOGIN_PAGE) is login_checker.check_login_page
-    assert registry.get_checker(PageName.SERVER_SELECT) is login_checker.check_server_select
+    assert registry.get_checker(PageName.LOGIN_PAGE) is login.check_login_page
+    assert registry.get_checker(PageName.SERVER_SELECT) is login.check_server_select
 
 
 def test_executor_rejects_failed_departure(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -263,7 +263,7 @@ def test_login_link_clicks_switch_entry_and_server(monkeypatch: pytest.MonkeyPat
     assert ctx.runtime.ctrl.clicks == [login_constants.CLICK_SWITCH_ENTRY]
 
     # OCR 定位失败时按静态映射兜底，仍要点到目标区服条目。
-    monkeypatch.setattr(login_checker, 'find_server_position', lambda _ctx, _name: None)
+    monkeypatch.setattr(login, 'find_server_position', lambda _ctx, _name: None)
     service.navigate_to(PageName.LOGIN_PAGE, server='昆西')
     assert ctx.runtime.ctrl.clicks[-1] == login_constants.SERVER_POSITIONS[2]
 

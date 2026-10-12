@@ -126,7 +126,7 @@ class BathPage:
                 operations.click_repair_card(ctrl, constants.CLICK_FIRST_REPAIR_SHIP)
                 if not operations.wait_overlay_closed(
                     ctrl,
-                    page_checker=lambda frame: recognition.check_current_page(frame).matched,
+                    checker=lambda frame: recognition.check_current_page(frame).matched,
                     overlay_checker=recognition.check_choose_repair_overlay,
                     timeout=_REPAIR_RESULT_TIMEOUT,
                 ):
@@ -158,7 +158,7 @@ class BathPage:
                     operations.click_close_overlay(ctrl)
                     if not operations.wait_overlay_closed(
                         ctrl,
-                        page_checker=lambda frame: recognition.check_current_page(frame).matched,
+                        checker=lambda frame: recognition.check_current_page(frame).matched,
                         overlay_checker=recognition.check_choose_repair_overlay,
                         timeout=_REPAIR_RESULT_TIMEOUT,
                     ):
@@ -203,7 +203,7 @@ class BathPage:
                 operations.click_repair_card(ctrl, target.position)
                 closed = operations.wait_overlay_closed(
                     ctrl,
-                    page_checker=lambda frame: recognition.check_current_page(frame).matched,
+                    checker=lambda frame: recognition.check_current_page(frame).matched,
                     overlay_checker=recognition.check_choose_repair_overlay,
                     timeout=_REPAIR_RESULT_TIMEOUT,
                 )

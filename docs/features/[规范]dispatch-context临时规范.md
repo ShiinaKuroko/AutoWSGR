@@ -363,7 +363,7 @@ ContextManager 负责作用域内引用访问，不改变服务状态或代替�
 | 事实 | 产生者 | Context 的职责 |
 | --- | --- | --- |
 | 截图 | 设备/调度流程 | 保存最近一次或受控引用 |
-| 页面识别结果 | page_checker / recognition | 保存返回事实，不重新识别 |
+| 页面识别结果 | checker / recognition | 保存返回事实，不重新识别 |
 | 当前页面 | Navigator | 保存导航器确认后的状态 |
 | 目标页面 | 业务入口 / Navigator | 保存任务目标，不修改业务意图 |
 | 路由步骤 | Navigator | 保存步骤和执行结果 |
@@ -416,7 +416,7 @@ context.data['anything'] = value
 ```text
 业务层 ──业务参数──→ dispatch Context / Navigator
 Navigator ──截图与导航事实──→ dispatch Context
-page_checker ──识别结果──→ Navigator
+checker ──识别结果──→ Navigator
 UI Controller ──操作结果/异常──→ Navigator 或 dispatch
 状态机 ──只读取 Context 事实──→ 下一步决策
 ContextManager ──不反向调用任何业务模块
@@ -471,7 +471,7 @@ dispatch Context 的实现与业务模块治理属于同一个交付切片，不
 
 1. runtime composition root 创建服务，再由 dispatch 在任务入口绑定 `Request.request_id`、模板和 RuntimeBindings；
 2. Navigator 首次调用 `context.request()`，验证统一 ContextHandle 和任务状态懒创建；
-3. page_checker 返回页面识别结果，Navigator 记录确认后的页面；
+3. checker 返回页面识别结果，Navigator 记录确认后的页面；
 4. UI Controller 返回操作结果，dispatch 记录结果；
 5. 任务正常、异常、停止三条路径都退出 `context.bind()`，由统一 finally 清理状态和 runtime 引用；
 6. 新模块只接收 ContextHandle，不再单独接收 UIContext、RuntimeContext 或 GameContext；

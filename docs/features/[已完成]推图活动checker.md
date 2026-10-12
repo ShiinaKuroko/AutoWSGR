@@ -23,7 +23,7 @@
 | 12 | **静态验证数据外挂**（`debug/nav/event/`，不入库）；**`tools/` 随时可改** |
 | 13 | OCR 扩展用参数；每期 list = 关卡名称；外挂到 `resources/data/map/event/20260930/stages.yaml` |
 | 14 | "无按钮 + 普通名 = 普通未通关"是兜底逻辑，不需样本截图 |
-| 15 | **checker 是一个文件** `page_checker/event.py`；**入口传入 `event_type`** 激活不同链路 |
+| 15 | **checker 是一个文件** `checker/event.py`；**入口传入 `event_type`** 激活不同链路 |
 | 16 | 用户对前/后识别的理解：**vision 已包一层循环**——前识别反复识别多次，确认**没有**识别到才报错；后识别反复识别多次，确认**还存在**才报错；目的是保证 UI 控制器在**正确页面**点击并得到**正确结果** |
 | 17 | **是否符合架构说明决定做法**（用户授权"符合就做"） |
 | 18 | 不为旧实现做兼容；先重写，跑通后由用户统一清死代码 |
@@ -31,7 +31,7 @@
 
 ## 1. 目标与范围
 
-**本批交付**：`page_checker/event.py`（三个方法，推图 normal 链路）+ focused 单测 + E2E 静态帧入口 +
+**本批交付**：`checker/event.py`（三个方法，推图 normal 链路）+ focused 单测 + E2E 静态帧入口 +
 dispatch 两字段（含回写临时规范）。
 **本批不做**：点击动作、导航器编排、编队页之后的流程、其它活动玩法实现。
 
@@ -76,7 +76,7 @@ OCR：地图名 `最强之舟`(0.98)、`最强之舟（困难）`(0.913 全角)�
 ## 4. checker 契约（单文件 `event.py`）
 
 ```python
-# autowsgr/application/ui/navigation/page_checker/event.py
+# autowsgr/application/ui/navigation/checker/event.py
 
 class EventMode(StrEnum):
     NORMAL = 'normal'
@@ -150,7 +150,7 @@ def check_event_sortie_prepare(ctx: ContextHandle, *, event_type: str, stage: st
 **路径 B（按字面改 common.vision）**：`before_*` / `after_*` 在重试耗尽后抛识别错误。
 
 - 需要新增错误类型（架构说本模块没有自定义错误基类）→ 要改架构文档 §12 + §2.4 + §16 门禁；
-- 需要改全部调用方：`page_checker/home.py`、`page_checker/sortie.py`（两者是另一会话的未提交半成品）、
+- 需要改全部调用方：`checker/home.py`、`checker/sortie.py`（两者是另一会话的未提交半成品）、
   `controller/home/main_page/page.py`、`workflow.py`；
 - 页面身份判定会变成异常驱动（"不是这个页面"要看 try/except）。
 
@@ -158,9 +158,9 @@ def check_event_sortie_prepare(ctx: ContextHandle, *, event_type: str, stage: st
 
 | 内容 | 落点 |
 | --- | --- |
-| 模板（4 张） | `resources/image/application/ui/navigation/page_checker/event/` |
+| 模板（4 张） | `resources/image/application/ui/navigation/checker/event/` |
 | 关卡名称 list + 地图名 | `resources/data/map/event/20260930/stages.yaml` |
-| ROI（5 个） | `page_checker/event.py` 常量 |
+| ROI（5 个） | `checker/event.py` 常量 |
 | 点击坐标 | `controller/home/event_page/constants.py`（本批不用） |
 
 `stages.yaml` 拟稿（模板文件名固定不带期号，换期换内容）：
@@ -210,7 +210,7 @@ stages:
 
 1. [x] 资产入库：4 张模板 + `resources/data/map/event/20260930/stages.yaml`。
 2. [x] `before_ocr` / `after_ocr` 支持候选序列（在既有 def 上扩，不新开 def）。
-3. [x] `page_checker/event.py` 三个方法 + `EventMapState`（后按 §12 拆成 `event/` 包）。
+3. [x] `checker/event.py` 三个方法 + `EventMapState`（后按 §12 拆成 `event/` 包）。
 4. [x] focused 单测（合成数据 + 替身，不依赖外挂图）：12 项通过。
 5. [x] E2E 静态帧入口（`--static` + 截图替身 `use_frame`）+ `event_check` case：真图静态验证 **8 步全过**
    （首页入口命中、普通地图=普通、困难地图=困难、EX7 前置页成立；模板匹配 score=1.000，OCR 真跑）。
@@ -256,7 +256,7 @@ stages:
 **落地结构**：
 
 ```text
-page_checker/event/
+checker/event/
 ├── __init__.py            # 导出各活动 checker，供导航器调用
 ├── calibration.py         # 公共加载：模板（common.vision）+ 活动数据（common.system）
 └── normal_checker/        # 普通推图
@@ -284,23 +284,23 @@ page_checker/event/
 
 | 变化 | 说明 |
 | --- | --- |
-| `event.py` 删除 | 拆入上面的包；`from ...page_checker import event` 导入路径不变 |
+| `event.py` 删除 | 拆入上面的包；`from ...checker import event` 导入路径不变 |
 | 数据文件改名 | `20260930/stages.yaml` → `20260930/normal.yaml`（按期目录内按活动命名，为多活动留位） |
 | 阈值 / 正则 / 归一化 | 从常量区移入 `recognition.py`；`constants.py` 只剩坐标与模板路径 |
 | 单测迁移 | 直连 `normal_checker`；12 项全绿（合计 19 passed） |
 | checker 收敛 | `checker.py` 只剩三个入口：玩法校验走 `calibration.require_activity`，章节校验在入口第一行 fail-fast |
 | recognition 收窄 | 只做识别与文本解析；文件读取与缓存迁出，数据由 checker 传入 |
 | 加载统一 | 模板与活动数据都走 `calibration`（公共层不解释业务语义） |
-| 模板分目录 | 模板移到 `resources/image/.../page_checker/event/normal/`：加载按活动取目录，多活动不会重名 |
+| 模板分目录 | 模板移到 `resources/image/.../checker/event/normal/`：加载按活动取目录，多活动不会重名 |
 | E2E 静态帧 | `--static` 用外挂截图替身离线跑 checker；截图路径由 case 指定，不入库 |
 
 **重构结果**：
 
 | 已有产物 | 状态 |
 | --- | --- |
-| `page_checker/event.py`（373 行，三个入口，单测已通过） | **完成，待拆包** |
-| `testing/ui/page_checker/test_event_page.py`（12 项） | **完成，随包结构微调导入** |
-| `resources/.../page_checker/event/` 模板、`resources/data/map/event/20260930/stages.yaml` | **完成，不受影响** |
+| `checker/event.py`（373 行，三个入口，单测已通过） | **完成，待拆包** |
+| `testing/ui/checker/test_event_page.py`（12 项） | **完成，随包结构微调导入** |
+| `resources/.../checker/event/` 模板、`resources/data/map/event/20260930/stages.yaml` | **完成，不受影响** |
 | `common/vision` 候选集合扩展 + 架构文档同步 | **完成，不受影响** |
 
 ## 13. 变更记录
@@ -314,6 +314,6 @@ page_checker/event/
 | 2026-10-10 | **v12**：`checker.py` 去掉全部私有方法（三个入口零私有）；数据加载与难度结论移入 `recognition.py`，玩法校验移入 `calibration.require_activity`，章节校验提前到入口；19 passed |
 | 2026-10-10 | **v11**：按 §12 落地包结构（`event/calibration.py` + `event/normal_checker/`），删除单文件 `event.py`，数据文件改名 `normal.yaml`，测试迁移后 19 passed |
 | 2026-10-10 | **v10**：登记结构调整方向（三类活动 checker、父包分派、recognition/constants 分工、允许重复）；标记已完成但待重构的产物 |
-| 2026-10-09 | **v9**：实现 `page_checker/event.py` 与 12 项 focused 单测；两个 `check_*` 返回值由 `None` 改为 `bool`（导航器需要事实才能报错）；实施顺序 1–4 完成 |
+| 2026-10-09 | **v9**：实现 `checker/event.py` 与 12 项 focused 单测；两个 `check_*` 返回值由 `None` 改为 `bool`（导航器需要事实才能报错）；实施顺序 1–4 完成 |
 | 2026-10-09 | **v8 定稿**：报错归属定案路径 A（vision 只给结果，导航器报错）；接口形态确认；需求全部对齐，开始执行 |
 | 2026-10-09 | v7：核实 `[架构]common-vision.md` §12——"读不到"在原架构中是**正常事实**，模块无自定义错误基类、恢复策略归上层；据此把"报错归属"收敛为路径 A/B 二选一（推荐 A）；并确认**探测不需要新增 def**（`before_template(attempts=1)` 即可）；用户第 16 条的前/后识别理解已原文记录 |

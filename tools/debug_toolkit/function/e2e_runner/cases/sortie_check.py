@@ -11,7 +11,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from autowsgr.application.ui.navigation.page_checker import sortie_checker
+from autowsgr.application.ui.navigation.checker import sortie
 
 
 DESC = '出征页检查器静态验证: 出征 / 演习 / 远征 / 战役 / 决战标签激活'
@@ -34,7 +34,7 @@ def run(rt: Any) -> bool:
 
     for filename, entry_name in _SAMPLES:
         rt.use_frame(_SHOT_DIR / filename)
-        entry = getattr(sortie_checker, entry_name)
+        entry = getattr(sortie, entry_name)
         matched = rt.action(f'识别 {entry_name}', entry, ctx)
         if matched is rt.FAILED:
             return False
