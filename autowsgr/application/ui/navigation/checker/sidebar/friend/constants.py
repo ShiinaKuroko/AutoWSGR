@@ -19,10 +19,10 @@ TEMPLATE_NAMESPACE = 'sidebar/friend'
 
 # 本模块的模板文件名；目录小写、文件名全大写。
 # 好友页面默认落在「添加」页签，用它作为页面身份。
-ADD_TAB_TEMPLATE = 'FRIEND_ADD_TAB_720P.png'
+FRIEND_TAB_TEMPLATE = 'FRIEND_TAB_720P.png'
 
 
 # ── 好友页面识别区域 ────────────────────────────────────────────────────────
 
 # 「添加」页签的归一化区域，校准基准为 1280x720 截图。
-ADD_TAB_ROI = ROI(0.4024, 0.0209, 0.4766, 0.0806)
+FRIEND_TAB_ROI = ROI(0.4024, 0.0209, 0.4766, 0.0806)

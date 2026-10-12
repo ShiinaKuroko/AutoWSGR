@@ -60,10 +60,10 @@ def read_friend_page(
         ctx,
         template=calibration.load_module_template(
             constants.TEMPLATE_NAMESPACE,
-            constants.ADD_TAB_TEMPLATE,
+            constants.FRIEND_TAB_TEMPLATE,
             name='friend_add_tab',
         ),
-        roi=constants.ADD_TAB_ROI,
+        roi=constants.FRIEND_TAB_ROI,
         confidence=_TEMPLATE_CONFIDENCE,
         absent=absent,
         attempts=attempts,

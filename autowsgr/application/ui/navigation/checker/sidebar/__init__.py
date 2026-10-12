@@ -12,14 +12,14 @@
 from __future__ import annotations
 
 from autowsgr.application.ui.navigation.checker.sidebar.checker import (
-    check_build_page,
-    check_intensify_page,
+    check_build_submenu,
+    check_intensify_submenu,
     check_sidebar_page,
 )
 
 
 __all__ = [
-    'check_build_page',
-    'check_intensify_page',
+    'check_build_submenu',
+    'check_intensify_submenu',
     'check_sidebar_page',
 ]

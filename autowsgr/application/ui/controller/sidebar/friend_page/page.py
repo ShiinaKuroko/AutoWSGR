@@ -38,6 +38,17 @@ class FriendPage:
         """
         self._ctx = ctx
 
+    # ── 标签切换 ────────────────────────────────────────────────────────────
+
+    def go_to_tab(self) -> None:
+        """点击顶部「好友」标签。
+
+        好友页只有一个标签，本方法用于从其它标签切回它；只负责点击，
+        是否真的切过去了由导航器用标签的 checker 确认。
+        """
+        _log.info('[UI] 好友页面 → 切换标签：position={!r}', constants.CLICK_TAB)
+        self._ctx.runtime.ctrl.click(*constants.CLICK_TAB)
+
     # ── 返回 ────────────────────────────────────────────────────────────────
 
     def go_back(self) -> None:

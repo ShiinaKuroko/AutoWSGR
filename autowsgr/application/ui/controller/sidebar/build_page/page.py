@@ -175,6 +175,25 @@ class BuildPage:
             remove_equipment=remove_equipment,
         )
 
+    # ── 标签切换 ──────────────────────────────────────────────────────────────
+
+    def go_to_tab(self, tab: BuildTab) -> None:
+        """点击顶部标签，切到对应内容。
+
+        只负责点击；是否真的切过去了由导航器用标签的 checker 确认。
+
+        Args:
+            tab: 目标标签。
+
+        Raises:
+            ValueError: 标签没有配置落点。
+        """
+        position = constants.TAB_POSITIONS.get(tab.name.lower())
+        if position is None:
+            raise ValueError(f'建造页没有该标签的落点: {tab!r}')
+        _log.info('[UI] 建造页面 → 切换标签：tab={!r}，position={!r}', tab.value, position)
+        self._ctx.ctrl.click(*position)
+
     # ── 页面返回 ──────────────────────────────────────────────────────────────
 
     def go_back(self) -> None:

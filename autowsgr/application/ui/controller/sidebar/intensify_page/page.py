@@ -17,6 +17,7 @@
 
 from __future__ import annotations
 
+import enum
 from typing import TYPE_CHECKING
 
 from autowsgr.application.ui.controller.operations.sortie_page.main_page import (
@@ -37,6 +38,14 @@ if TYPE_CHECKING:
 
 
 _log = get_logger('ui.sidebar.intensify_page')
+
+
+class IntensifyTab(enum.Enum):
+    """改造页面标签组。"""
+
+    INTENSIFY = '强化'
+    REMOLD = '改造'
+    SKILL = '技能'
 
 
 class IntensifyPage:
@@ -61,6 +70,25 @@ class IntensifyPage:
         return check_tabbed_page(screen, TabbedPageType.INTENSIFY)
 
     # TODO(intensify_page): 确认强化业务契约后，再补充强化业务流程入口与测试。
+
+    # ── 标签切换 ──────────────────────────────────────────────────────────
+
+    def go_to_tab(self, tab: IntensifyTab) -> None:
+        """点击顶部标签，切到对应内容。
+
+        只负责点击；是否真的切过去了由导航器用标签的 checker 确认。
+
+        Args:
+            tab: 目标标签。
+
+        Raises:
+            ValueError: 标签没有配置落点。
+        """
+        position = constants.TAB_POSITIONS.get(tab.name.lower())
+        if position is None:
+            raise ValueError(f'改造页没有该标签的落点: {tab!r}')
+        _log.info('[UI] 改造页面 → 切换标签：tab={!r}，position={!r}', tab.value, position)
+        self._ctrl.click(*position)
 
     # ── 回退 ──────────────────────────────────────────────────────────────
 

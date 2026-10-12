@@ -56,7 +56,7 @@ def check_sidebar_page(
     )
 
 
-def check_build_page(
+def check_build_submenu(
     ctx: ContextHandle,
     *,
     absent: bool = False,
@@ -84,7 +84,7 @@ def check_build_page(
     )
 
 
-def check_intensify_page(
+def check_intensify_submenu(
     ctx: ContextHandle,
     *,
     absent: bool = False,
@@ -112,4 +112,4 @@ def check_intensify_page(
     )
 
 
-__all__ = ['check_build_page', 'check_intensify_page', 'check_sidebar_page']
+__all__ = ['check_build_submenu', 'check_intensify_submenu', 'check_sidebar_page']
