@@ -279,3 +279,125 @@ def test_login_to_home_clicks_enter_game(monkeypatch: pytest.MonkeyPatch) -> Non
     service.navigate_to(PageName.HOME)
 
     assert ctx.runtime.ctrl.clicks == [login_constants.CLICK_ENTER_GAME]
+
+# ── 侧边栏域与页面内标签 ──────────────────────────────────────────────────────
+
+
+def test_sidebar_pages_and_edges_are_registered() -> None:
+    """侧边栏域的六个页面都有确认入口，且各自有出边。"""
+    for page in (
+        PageName.SIDEBAR,
+        PageName.BUILD_SUBMENU,
+        PageName.INTENSIFY_SUBMENU,
+        PageName.BUILD,
+        PageName.INTENSIFY,
+        PageName.FRIEND,
+    ):
+        assert registry.get_checker(page) is not None, page
+        assert registry.get_targets(page), page
+
+
+def test_sidebar_submenus_return_home_without_popup_chain() -> None:
+    """侧边栏与两个二级菜单回主页都是一步直达，不经每日浮窗链。"""
+    for page in (PageName.SIDEBAR, PageName.BUILD_SUBMENU, PageName.INTENSIFY_SUBMENU):
+        path = registry.find_path(page, PageName.HOME)
+        assert len(path) == 1, page
+        assert path[0].target is PageName.HOME
+
+
+def test_sub_pages_return_home_through_popup_chain() -> None:
+    """建造页、改造页与好友页回主页要经过每日浮窗链。"""
+    for page in (PageName.BUILD, PageName.INTENSIFY, PageName.FRIEND):
+        path = registry.find_path(page, PageName.HOME)
+        assert [edge.target for edge in path] == [
+            PageName.HOME_NEWS,
+            PageName.HOME_REWARD,
+            PageName.HOME_REWARD_CONFIRM,
+            PageName.HOME,
+        ], page
+
+
+def test_submenus_lead_to_pages() -> None:
+    """两个二级菜单各自通到对应页面。"""
+    build_path = registry.find_path(PageName.BUILD_SUBMENU, PageName.BUILD)
+    intensify_path = registry.find_path(PageName.INTENSIFY_SUBMENU, PageName.INTENSIFY)
+
+    assert len(build_path) == 1 and build_path[0].target is PageName.BUILD
+    assert len(intensify_path) == 1 and intensify_path[0].target is PageName.INTENSIFY
+
+
+def test_tabs_are_registered_without_becoming_pages() -> None:
+    """标签登记在标签表里，不进确认入口表。"""
+    assert set(registry.get_tabs(PageName.SORTIE_MAP)) == {
+        'exercise',
+        'expedition',
+        'campaign',
+        'decisive',
+    }
+    assert set(registry.get_tabs(PageName.BUILD)) == {'destroy'}
+    assert set(registry.get_tabs(PageName.INTENSIFY)) == {'remold', 'skill'}
+    assert registry.get_tabs(PageName.HOME) == {}
+
+
+def test_executor_enters_tab_with_tab_checker(monkeypatch: pytest.MonkeyPatch) -> None:
+    """传了标签时，用标签的 checker 做到达确认。"""
+    from autowsgr.application.ui.navigation import executor as executor_module
+
+    monkeypatch.setattr(executor_module.time, 'sleep', lambda _seconds: None)
+
+    clicks: list[str] = []
+    checked: list[str] = []
+
+    def fake_click(_ctx: object) -> None:
+        clicks.append('click')
+
+    def fake_checker(_ctx: object, **_: object) -> bool:
+        checked.append('check')
+        return True
+
+    monkeypatch.setitem(
+        registry._TABS,
+        PageName.BUILD,
+        {'destroy': registry.NavTab(fake_click, fake_checker, '解体')},
+    )
+
+    executor = NavigationExecutor(object(), SessionState())
+    executor._enter_tab(PageName.BUILD, 'destroy')
+
+    assert clicks == ['click']
+    assert checked == ['check']
+
+
+def test_executor_rejects_unknown_tab(monkeypatch: pytest.MonkeyPatch) -> None:
+    """页面没有该标签时到达确认直接失败。"""
+    from autowsgr.application.ui.navigation import executor as executor_module
+
+    monkeypatch.setattr(executor_module.time, 'sleep', lambda _seconds: None)
+    executor = NavigationExecutor(object(), SessionState())
+
+    with pytest.raises(NavigationError, match='没有标签'):
+        executor._enter_tab(PageName.HOME, 'destroy')
+
+
+def test_executor_reports_tab_switch_failure(monkeypatch: pytest.MonkeyPatch) -> None:
+    """标签点完仍未激活时报标签切换失败。"""
+    from autowsgr.application.ui.navigation import executor as executor_module
+
+    monkeypatch.setattr(executor_module.time, 'sleep', lambda _seconds: None)
+    monkeypatch.setitem(
+        registry._TABS,
+        PageName.BUILD,
+        {
+            'destroy': registry.NavTab(
+                lambda _ctx: None,
+                lambda _ctx, **_: False,
+                '解体',
+            )
+        },
+    )
+
+    executor = NavigationExecutor(object(), SessionState())
+
+    with pytest.raises(NavigationError, match='标签切换失败'):
+        executor._enter_tab(PageName.BUILD, 'destroy')
+

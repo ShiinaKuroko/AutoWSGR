@@ -9,10 +9,12 @@
 - dispatch.session：进程级导航栈。
 
 边界：只执行「已经算好的路径」；不算路、不做入口判断、不处理每日浮窗。
+传了 tab 参数时，最后一跳改用该标签的 checker 做到达确认（见 §标签）。
 """
 
 from __future__ import annotations
 
+import time
 from typing import TYPE_CHECKING
 
 from autowsgr.application.ui.navigation import registry
@@ -21,6 +23,12 @@ from autowsgr.common.system.logger import get_logger
 
 
 _log = get_logger('ui.navigation.executor')
+
+
+# ── 页面内标签参数 ──────────────────────────────────────────────────────────
+
+# 点页面入口后页面本身还在切换动画里，此时点标签会落空；先等它稳定再点、再验。
+_TAB_SETTLE_SECONDS = 2.0
 
 
 if TYPE_CHECKING:
@@ -61,11 +69,16 @@ class NavigationExecutor:
         Raises:
             NavigationError: 离开确认或到达确认失败。
         """
-        for edge in path:
+        tab = params.get('tab') if isinstance(params.get('tab'), str) else None
+        for index, edge in enumerate(path):
             _log.debug('[UI] 导航执行 → 前进：edge={!r}', edge.description)
             edge.action(self._ctx, **params)
             self._confirm_departure()
-            self._confirm_arrival(edge)
+            # 标签只落在最后一跳：中间跳的目标页面没有这个标签，也不该切。
+            if tab is not None and index == len(path) - 1:
+                self._enter_tab(edge.target, tab)
+            else:
+                self._confirm_arrival(edge)
             self._session.push_page(edge.target.value)
 
     def walk_backward(self, path: tuple[NavTarget, ...]) -> None:
@@ -110,6 +123,34 @@ class NavigationExecutor:
         if not confirm(self._ctx, absent=True):
             raise NavigationError(f'离开确认失败：{page.value} 仍然存在')
         _log.debug('[UI] 导航执行 → 离开确认：page={!r}，结果=成功', page.value)
+
+    def _enter_tab(self, page: PageName, tab: str) -> None:
+        """切到目标页内的标签，并用该标签自己的 checker 确认。
+
+        传了标签时页面级确认不参与：切到别的标签之后，认"默认标签激活"的页面级
+        checker 本来就该失败，两者互斥。
+
+        Args:
+            page: 刚到达的页面。
+            tab: 标签键，见 `registry.get_tabs`。
+
+        Raises:
+            NavigationError: 页面没有该标签，或点完标签仍未激活。
+        """
+        entry = registry.get_tabs(page).get(tab)
+        if entry is None:
+            raise NavigationError(f'到达确认失败：{page.value!r} 没有标签 {tab!r}')
+        time.sleep(_TAB_SETTLE_SECONDS)
+        entry.click(self._ctx)
+        if not entry.checker(self._ctx):
+            raise NavigationError(
+                f'标签切换失败：{page.value!r} → {entry.description!r}'
+            )
+        _log.debug(
+            '[UI] 导航执行 → 标签确认：page={!r}，tab={!r}，结果=成功',
+            page.value,
+            entry.description,
+        )
 
     def _confirm_arrival(self, edge: NavTarget) -> None:
         """到达确认：用前识别确认目标页标志已经出现。

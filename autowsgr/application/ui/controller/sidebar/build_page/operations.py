@@ -1,6 +1,6 @@
-"""模块功能：执行建造页面的标签切换和解体、建造原子点击操作。
+"""
 
-上层调用：
+操作层尚未迁移到新链路，当前不被任何模块导入；等第二阶段移植后恢复调用。模块功能：执行建造页面的标签切换和解体、建造原子点击操作。上层调用：
 - application.ui.controller.sidebar.build_page.page：调用标签切换操作。
 - application.ui.controller.sidebar.build_page.workflow：调用建造、收取和解装操作。
 

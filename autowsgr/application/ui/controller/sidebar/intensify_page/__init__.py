@@ -12,7 +12,10 @@
 
 from __future__ import annotations
 
-from autowsgr.application.ui.controller.sidebar.intensify_page.page import IntensifyPage
+from autowsgr.application.ui.controller.sidebar.intensify_page.page import (
+    IntensifyPage,
+    IntensifyTab,
+)
 
 
-__all__ = ['IntensifyPage']
+__all__ = ['IntensifyPage', 'IntensifyTab']

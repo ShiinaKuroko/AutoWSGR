@@ -85,6 +85,24 @@ class SidebarPage:
         _log.info('[UI] 侧边栏 → 进入目标：target={!r}，position={!r}', target.value, position)
         self._ctx.runtime.ctrl.click(*position)
 
+    def go_to_submenu(self, target: SidebarTarget) -> None:
+        """点击二级菜单首项，进入对应的子页面。
+
+        一级条目展开二级菜单后，首项才是真正的入口；只负责点击，
+        是否进入了子页面由导航器用该页面的 checker 确认。
+
+        Args:
+            target: 该二级菜单指向的目标页面，目前支持建造与强化。
+
+        Raises:
+            ValueError: 目标没有配置二级菜单落点。
+        """
+        position = constants.SUBMENU_POSITIONS.get(target.name.lower())
+        if position is None:
+            raise ValueError(f'侧边栏没有该目标的二级菜单落点: {target!r}')
+        _log.info('[UI] 侧边栏 → 进入二级菜单：target={!r}，position={!r}', target.value, position)
+        self._ctx.runtime.ctrl.click(*position)
+
     def go_back(self) -> None:
         """点击空白处收起侧边栏。"""
         _log.info('[UI] 侧边栏 → 收起：position={!r}', constants.CLICK_CLOSE)

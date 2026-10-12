@@ -21,13 +21,26 @@ from typing import TYPE_CHECKING
 from autowsgr.application.ui.controller.home.event_page import EventPage
 from autowsgr.application.ui.controller.home.main_page import HomePage, Target
 from autowsgr.application.ui.controller.login import LoginPage
-from autowsgr.application.ui.controller.operations.sortie_page.main_page import SortiePage
+from autowsgr.application.ui.controller.operations.sortie_page.main_page import (
+    SortiePage,
+    SortieTab,
+)
+from autowsgr.application.ui.controller.sidebar.build_page import BuildPage, BuildTab
+from autowsgr.application.ui.controller.sidebar.friend_page import FriendPage
+from autowsgr.application.ui.controller.sidebar.intensify_page import (
+    IntensifyPage,
+    IntensifyTab,
+)
+from autowsgr.application.ui.controller.sidebar.main_page import SidebarPage, SidebarTarget
 from autowsgr.application.ui.navigation.checker import (
     home,
     login,
+    sidebar,
     sortie,
 )
 from autowsgr.application.ui.navigation.checker.event import stage_push
+from autowsgr.application.ui.navigation.checker.sidebar import build, intensify
+from autowsgr.application.ui.navigation.checker.sidebar.friend import check_friend_page
 from autowsgr.application.ui.navigation.types import NavigationError, PageName
 from autowsgr.common.system.logger import get_logger
 
@@ -105,6 +118,73 @@ class NavTarget:
     confirm: bool = True
 
 
+@dataclass(frozen=True, slots=True)
+class NavTab:
+    """页面内的一个标签：怎么点、怎么确认。
+
+    标签不是页面，不参与路径计算；它只描述"到达这一页之后要落在哪个视图上"。
+    执行器在到达确认处用这里的 checker 替换页面级确认。
+
+    Attributes:
+        click: 点击该标签的动作。
+        checker: 判该标签是否激活的确认入口。
+        description: 标签说明，供维护与日志使用。
+    """
+
+    click: Callable[..., None]
+    checker: Callable[..., bool]
+    description: str = ''
+
+
+# ── 页面 → 标签表 ───────────────────────────────────────────────────────────
+
+# 只登记"非默认标签"：默认标签就是页面本身，页面级 checker 已经认它。
+# 键是 navigate_to 的 tab 入参，与各页面控制器里标签枚举的 name 小写形式一致。
+_TABS: dict[PageName, dict[str, NavTab]] = {
+    PageName.SORTIE_MAP: {
+        'exercise': NavTab(
+            lambda ctx: SortiePage(ctx).go_to(SortieTab.EXERCISE),
+            sortie.check_exercise_page,
+            '演习',
+        ),
+        'expedition': NavTab(
+            lambda ctx: SortiePage(ctx).go_to(SortieTab.EXPEDITION),
+            sortie.check_expedition_page,
+            '远征',
+        ),
+        'campaign': NavTab(
+            lambda ctx: SortiePage(ctx).go_to(SortieTab.CAMPAIGN),
+            sortie.check_campaign_page,
+            '战役',
+        ),
+        'decisive': NavTab(
+            lambda ctx: SortiePage(ctx).go_to(SortieTab.DECISIVE),
+            sortie.check_decisive_page,
+            '决战',
+        ),
+    },
+    PageName.BUILD: {
+        'destroy': NavTab(
+            lambda ctx: BuildPage(ctx).go_to_tab(BuildTab.DESTROY),
+            build.check_dismantle_tab,
+            '解体',
+        ),
+    },
+    PageName.INTENSIFY: {
+        'remold': NavTab(
+            lambda ctx: IntensifyPage(ctx).go_to_tab(IntensifyTab.REMOLD),
+            intensify.check_remold_tab,
+            '改造',
+        ),
+        'skill': NavTab(
+            lambda ctx: IntensifyPage(ctx).go_to_tab(IntensifyTab.SKILL),
+            intensify.check_skill_tab,
+            '技能',
+        ),
+    },
+}
+
+
 # ── 页面 → 到达确认 ─────────────────────────────────────────────────────────
 
 # 值统一收 (ctx, *, absent=False, attempts, interval_seconds)：前识别判出现，后识别
@@ -120,6 +200,12 @@ _PAGE_CHECKERS: dict[PageName, Callable[..., bool]] = {
     PageName.SORTIE_MAP: sortie.check_sortie_page,
     PageName.EVENT_MAP: stage_push.check_event_map_page,
     PageName.EVENT_STAGE_OVERLAY: stage_push.check_event_sortie_prepare,
+    PageName.SIDEBAR: sidebar.check_sidebar_page,
+    PageName.BUILD_SUBMENU: sidebar.check_build_submenu,
+    PageName.INTENSIFY_SUBMENU: sidebar.check_intensify_submenu,
+    PageName.BUILD: build.check_build_page,
+    PageName.INTENSIFY: intensify.check_intensify_page,
+    PageName.FRIEND: check_friend_page,
 }
 
 
@@ -162,6 +248,83 @@ _NAV_TARGETS: dict[PageName, tuple[NavTarget, ...]] = {
             PageName.EVENT_MAP,
             lambda ctx, **_: HomePage(ctx).go_to(Target.EVENT),
             '首页 → 活动地图',
+        ),
+        NavTarget(
+            PageName.SIDEBAR,
+            lambda ctx, **_: HomePage(ctx).go_to(Target.SIDEBAR),
+            '首页 → 侧边栏',
+        ),
+    ),
+    # 侧边栏体系：三个一级条目各进一个域，回主页一律点空白处直连，
+    # 不走每日浮窗链——进侧边栏之前当天的浮窗早已处理过。
+    PageName.SIDEBAR: (
+        NavTarget(
+            PageName.BUILD_SUBMENU,
+            lambda ctx, **_: SidebarPage(ctx).go_to(SidebarTarget.BUILD),
+            '侧边栏 → 建造二级菜单',
+        ),
+        NavTarget(
+            PageName.INTENSIFY_SUBMENU,
+            lambda ctx, **_: SidebarPage(ctx).go_to(SidebarTarget.INTENSIFY),
+            '侧边栏 → 强化二级菜单',
+        ),
+        NavTarget(
+            PageName.FRIEND,
+            lambda ctx, **_: SidebarPage(ctx).go_to(SidebarTarget.FRIEND),
+            '侧边栏 → 好友页面',
+        ),
+        NavTarget(
+            PageName.HOME,
+            lambda ctx, **_: SidebarPage(ctx).go_back(),
+            '侧边栏 → 主页面（不经每日浮窗链）',
+        ),
+    ),
+    PageName.BUILD_SUBMENU: (
+        NavTarget(
+            PageName.BUILD,
+            lambda ctx, **_: SidebarPage(ctx).go_to_submenu(SidebarTarget.BUILD),
+            '建造二级菜单 → 建造页',
+        ),
+        NavTarget(
+            PageName.HOME,
+            lambda ctx, **_: SidebarPage(ctx).go_back(),
+            '建造二级菜单 → 主页面（不经每日浮窗链）',
+        ),
+    ),
+    PageName.INTENSIFY_SUBMENU: (
+        NavTarget(
+            PageName.INTENSIFY,
+            lambda ctx, **_: SidebarPage(ctx).go_to_submenu(SidebarTarget.INTENSIFY),
+            '强化二级菜单 → 改造页',
+        ),
+        NavTarget(
+            PageName.HOME,
+            lambda ctx, **_: SidebarPage(ctx).go_back(),
+            '强化二级菜单 → 主页面（不经每日浮窗链）',
+        ),
+    ),
+    PageName.BUILD: (
+        NavTarget(
+            PageName.HOME_NEWS,
+            lambda ctx, **_: BuildPage(ctx).go_back(),
+            '建造页 → 主页面（经每日浮窗链）',
+            confirm=False,
+        ),
+    ),
+    PageName.INTENSIFY: (
+        NavTarget(
+            PageName.HOME_NEWS,
+            lambda ctx, **_: IntensifyPage(ctx).go_back(),
+            '改造页 → 主页面（经每日浮窗链）',
+            confirm=False,
+        ),
+    ),
+    PageName.FRIEND: (
+        NavTarget(
+            PageName.HOME_NEWS,
+            lambda ctx, **_: FriendPage(ctx).go_back(),
+            '好友页面 → 主页面（经每日浮窗链）',
+            confirm=False,
         ),
     ),
     PageName.SORTIE_MAP: (
@@ -304,6 +467,18 @@ def get_checker(page: PageName) -> Callable[[ContextHandle], bool] | None:
     return _PAGE_CHECKERS.get(page)
 
 
+def get_tabs(page: PageName) -> dict[str, NavTab]:
+    """返回某个页面登记过的非默认标签。
+
+    Args:
+        page: 页面名称。
+
+    Returns:
+        标签键到标签描述的映射；该页面没有标签时为空字典。
+    """
+    return _TABS.get(page, {})
+
+
 def find_path(source: PageName, target: PageName) -> tuple[NavTarget, ...]:
     """在可达列表上广度拼接出从 source 到 target 的路径。
 
@@ -335,4 +510,4 @@ def find_path(source: PageName, target: PageName) -> tuple[NavTarget, ...]:
     raise NavigationError(f'没有从 {source.value!r} 到 {target.value!r} 的可达路径')
 
 
-__all__ = ['find_path', 'get_checker', 'get_targets']
+__all__ = ['NavTab', 'NavTarget', 'find_path', 'get_checker', 'get_tabs', 'get_targets']
