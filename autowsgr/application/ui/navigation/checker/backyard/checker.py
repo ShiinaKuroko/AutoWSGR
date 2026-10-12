@@ -1,12 +1,13 @@
-"""模块功能：编排后院主页与四个二级页的到达确认入口。
+"""模块功能：编排后院主页的确认入口与入口中心读取。
 
 上层调用：
-- application.ui.navigation：确认后院主页与四个二级页是否到达或离开。
+- application.ui.navigation：确认后院主页是否到达或离开，读取四个入口的点击中心。
 
 下层依赖：
-- backyard.recognition：读取后院识别事实与入口模板中心。
+- backyard.recognition：读取后院主页识别事实与入口模板中心。
 
 边界：只编排识别并返回结论，不执行点击、不计算路由、不上报识别错误。
+四个二级页的确认入口各在自己的子包里。
 """
 
 from __future__ import annotations
@@ -22,13 +23,10 @@ if TYPE_CHECKING:
 
 # 进后院有较长的切换动画，到达确认给足重试（等效 8 秒缓冲，用户确认不用 sleep）。
 _BACKYARD_ENTRY_ATTEMPTS = 8
-
-# 二级页之间的切换走同一套动画，节奏与其余页面一致。
-_NAV_CONFIRM_ATTEMPTS = 5
 _NAV_CONFIRM_INTERVAL_SECONDS = 1.0
 
 
-# ── 识别入口 ────────────────────────────────────────────────────────────────
+# ── 页面确认 ────────────────────────────────────────────────────────────────
 
 
 def check_backyard_page(
@@ -60,70 +58,6 @@ def check_backyard_page(
     )
 
 
-def check_canteen_page(
-    ctx: ContextHandle,
-    *,
-    absent: bool = False,
-    attempts: int = _NAV_CONFIRM_ATTEMPTS,
-    interval_seconds: float = _NAV_CONFIRM_INTERVAL_SECONDS,
-) -> bool:
-    """确认是否在餐厅二级页。"""
-    return recognition.read_canteen_page(
-        ctx,
-        absent=absent,
-        attempts=attempts,
-        interval_seconds=interval_seconds,
-    )
-
-
-def check_academy_page(
-    ctx: ContextHandle,
-    *,
-    absent: bool = False,
-    attempts: int = _NAV_CONFIRM_ATTEMPTS,
-    interval_seconds: float = _NAV_CONFIRM_INTERVAL_SECONDS,
-) -> bool:
-    """确认是否在学院二级页。"""
-    return recognition.read_academy_page(
-        ctx,
-        absent=absent,
-        attempts=attempts,
-        interval_seconds=interval_seconds,
-    )
-
-
-def check_rank_room_page(
-    ctx: ContextHandle,
-    *,
-    absent: bool = False,
-    attempts: int = _NAV_CONFIRM_ATTEMPTS,
-    interval_seconds: float = _NAV_CONFIRM_INTERVAL_SECONDS,
-) -> bool:
-    """确认是否在军阶室二级页。"""
-    return recognition.read_rank_room_page(
-        ctx,
-        absent=absent,
-        attempts=attempts,
-        interval_seconds=interval_seconds,
-    )
-
-
-def check_bath_page(
-    ctx: ContextHandle,
-    *,
-    absent: bool = False,
-    attempts: int = _NAV_CONFIRM_ATTEMPTS,
-    interval_seconds: float = _NAV_CONFIRM_INTERVAL_SECONDS,
-) -> bool:
-    """确认是否在浴室二级页。"""
-    return recognition.read_bath_page(
-        ctx,
-        absent=absent,
-        attempts=attempts,
-        interval_seconds=interval_seconds,
-    )
-
-
 # ── 模板中心 ────────────────────────────────────────────────────────────────
 
 
@@ -148,11 +82,7 @@ def read_bath_entry_center(ctx: ContextHandle) -> tuple[float, float] | None:
 
 
 __all__ = [
-    'check_academy_page',
     'check_backyard_page',
-    'check_bath_page',
-    'check_canteen_page',
-    'check_rank_room_page',
     'read_academy_entry_center',
     'read_bath_entry_center',
     'read_canteen_entry_center',

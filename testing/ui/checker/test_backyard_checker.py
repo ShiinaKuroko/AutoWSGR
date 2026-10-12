@@ -13,6 +13,15 @@ import numpy as np
 import pytest
 
 from autowsgr.application.ui.navigation.checker import backyard, calibration
+from autowsgr.application.ui.navigation.checker.backyard import (
+    academy,
+    bath,
+    canteen,
+    rank_room,
+)
+from autowsgr.application.ui.navigation.checker.backyard import (
+    recognition as backyard_recognition,
+)
 from autowsgr.application.ui.navigation.checker.backyard import constants, recognition
 from autowsgr.common.vision import RecognitionResult
 
@@ -41,7 +50,15 @@ def _install(monkeypatch: pytest.MonkeyPatch, hit_rois: tuple[object, ...]) -> N
         satisfied = (not matched) if options.get('absent') else matched
         return RecognitionResult(satisfied, [_Match(f) for f in flags], _SCREEN)
 
-    monkeypatch.setattr(recognition, 'expect_template', expect_template)
+    # 后院主页与四个二级页各有自己的识别模块，替身要一起接管。
+    for module in (
+        backyard_recognition,
+        canteen.recognition,
+        academy.recognition,
+        rank_room.recognition,
+        bath.recognition,
+    ):
+        monkeypatch.setattr(module, 'expect_template', expect_template)
 
 
 def test_backyard_reached_by_entry_template(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -68,10 +85,10 @@ def test_backyard_absent_flag(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_each_sub_page_visible(monkeypatch: pytest.MonkeyPatch) -> None:
     """四个二级页各自被自己的模板确认。"""
     cases = [
-        (backyard.check_canteen_page, constants.CANTEEN_PAGE_ROI),
-        (backyard.check_academy_page, constants.ACADEMY_PAGE_ROI),
-        (backyard.check_rank_room_page, constants.RANK_ROOM_PAGE_ROI),
-        (backyard.check_bath_page, constants.BATH_PAGE_ROI),
+        (backyard.check_canteen_page, canteen.constants.PAGE_ROI),
+        (backyard.check_academy_page, academy.constants.PAGE_ROI),
+        (backyard.check_rank_room_page, rank_room.constants.PAGE_ROI),
+        (backyard.check_bath_page, bath.constants.PAGE_ROI),
     ]
     for checker, roi in cases:
         _install(monkeypatch, (roi,))
@@ -81,7 +98,7 @@ def test_each_sub_page_visible(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def test_sub_page_rejects_other_page(monkeypatch: pytest.MonkeyPatch) -> None:
     """站在餐厅时，学院入口返回假。"""
-    _install(monkeypatch, (constants.CANTEEN_PAGE_ROI,))
+    _install(monkeypatch, (canteen.constants.PAGE_ROI,))
 
     assert backyard.check_academy_page(object()) is False
 
