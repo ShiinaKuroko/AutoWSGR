@@ -20,7 +20,7 @@ from autowsgr.common.vision.adapters.pixel_matching import Color, PixelRule, Pix
 # 坐标为 1280x720 参考画面的归一化值；键与 Target 枚举名一致。
 NAV_POSITIONS = {
     'sortie': (0.9430, 0.9069),
-    'task': (0.6836, 0.9042),
+    'task': (0.6844, 0.9326),
     'sidebar': (0.0480, 0.8931),
     'backyard': (0.0484, 0.1556),
     'event': (0.8844, 0.4833),

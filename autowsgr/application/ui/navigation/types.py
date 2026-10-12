@@ -34,6 +34,7 @@ class PageName(StrEnum):
     BATTLE_PREPARATION = '出征准备'
     SIDEBAR = '侧边栏'
     MISSION = '任务页面'
+    MISSION_REWARD_CONFIRM = '任务奖励确认'
     BACKYARD = '后院页面'
     BATH = '浴室页面'
     CANTEEN = '食堂页面'

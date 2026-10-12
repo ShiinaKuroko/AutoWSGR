@@ -21,6 +21,7 @@ from typing import TYPE_CHECKING
 from autowsgr.application.ui.controller.home.event_page import EventPage
 from autowsgr.application.ui.controller.home.main_page import HomePage, Target
 from autowsgr.application.ui.controller.login import LoginPage
+from autowsgr.application.ui.controller.operations.mission_page import MissionPage
 from autowsgr.application.ui.controller.operations.sortie_page.main_page import (
     SortiePage,
     SortieTab,
@@ -35,6 +36,7 @@ from autowsgr.application.ui.controller.sidebar.main_page import SidebarPage, Si
 from autowsgr.application.ui.navigation.checker import (
     home,
     login,
+    mission,
     sidebar,
     sortie,
 )
@@ -98,6 +100,20 @@ def _confirm_daily_reward(ctx: ContextHandle, **_: object) -> None:
     HomePage(ctx).click_reward_confirm()
 
 
+def _claim_all_mission_rewards(ctx: ContextHandle, **_: object) -> None:
+    """任务页有「全部领取」就点，没有就什么都不做。
+
+    按钮只在有奖励可领时出现，不遮挡任务页，因此不是页面；
+    这一步和浮窗链的每一步一样「先问再做」，避免空点。
+
+    Args:
+        ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
+    """
+    if not mission.check_claim_all_button(ctx):
+        return
+    MissionPage(ctx).click_claim_all()
+
+
 # ── 导航边 ──────────────────────────────────────────────────────────────────
 
 
@@ -135,6 +151,30 @@ class NavTab:
     checker: Callable[..., bool]
     description: str = ''
 
+# ── 页面 → 到达确认 ─────────────────────────────────────────────────────────
+
+# 值统一收 (ctx, *, absent=False, attempts, interval_seconds)：前识别判出现，后识别
+# （absent=True）判消失。识别节奏是各页面自己的默认值，定义在对应 checker 的签名里；
+# 调用方需要覆盖时直接传参，注册表不再兼职配节奏。
+_PAGE_CHECKERS: dict[PageName, Callable[..., bool]] = {
+    PageName.LOGIN_PAGE: login.check_login_page,
+    PageName.SERVER_SELECT: login.check_server_select,
+    PageName.HOME: home.check_home_page,
+    PageName.HOME_NEWS: home.check_home_news_page,
+    PageName.HOME_REWARD: home.check_home_reward_page,
+    PageName.HOME_REWARD_CONFIRM: home.check_home_reward_confirm_page,
+    PageName.SORTIE_MAP: sortie.check_sortie_page,
+    PageName.EVENT_MAP: stage_push.check_event_map_page,
+    PageName.EVENT_STAGE_OVERLAY: stage_push.check_event_sortie_prepare,
+    PageName.SIDEBAR: sidebar.check_sidebar_page,
+    PageName.BUILD_SUBMENU: sidebar.check_build_submenu,
+    PageName.INTENSIFY_SUBMENU: sidebar.check_intensify_submenu,
+    PageName.BUILD: build.check_build_page,
+    PageName.INTENSIFY: intensify.check_intensify_page,
+    PageName.FRIEND: check_friend_page,
+    PageName.MISSION: mission.check_mission_page,
+    PageName.MISSION_REWARD_CONFIRM: mission.check_mission_reward_confirm,
+}
 
 # ── 页面 → 标签表 ───────────────────────────────────────────────────────────
 
@@ -185,30 +225,6 @@ _TABS: dict[PageName, dict[str, NavTab]] = {
 }
 
 
-# ── 页面 → 到达确认 ─────────────────────────────────────────────────────────
-
-# 值统一收 (ctx, *, absent=False, attempts, interval_seconds)：前识别判出现，后识别
-# （absent=True）判消失。识别节奏是各页面自己的默认值，定义在对应 checker 的签名里；
-# 调用方需要覆盖时直接传参，注册表不再兼职配节奏。
-_PAGE_CHECKERS: dict[PageName, Callable[..., bool]] = {
-    PageName.LOGIN_PAGE: login.check_login_page,
-    PageName.SERVER_SELECT: login.check_server_select,
-    PageName.HOME: home.check_home_page,
-    PageName.HOME_NEWS: home.check_home_news_page,
-    PageName.HOME_REWARD: home.check_home_reward_page,
-    PageName.HOME_REWARD_CONFIRM: home.check_home_reward_confirm_page,
-    PageName.SORTIE_MAP: sortie.check_sortie_page,
-    PageName.EVENT_MAP: stage_push.check_event_map_page,
-    PageName.EVENT_STAGE_OVERLAY: stage_push.check_event_sortie_prepare,
-    PageName.SIDEBAR: sidebar.check_sidebar_page,
-    PageName.BUILD_SUBMENU: sidebar.check_build_submenu,
-    PageName.INTENSIFY_SUBMENU: sidebar.check_intensify_submenu,
-    PageName.BUILD: build.check_build_page,
-    PageName.INTENSIFY: intensify.check_intensify_page,
-    PageName.FRIEND: check_friend_page,
-}
-
-
 # ── 页面 → 可达列表 ─────────────────────────────────────────────────────────
 
 _NAV_TARGETS: dict[PageName, tuple[NavTarget, ...]] = {
@@ -253,6 +269,33 @@ _NAV_TARGETS: dict[PageName, tuple[NavTarget, ...]] = {
             PageName.SIDEBAR,
             lambda ctx, **_: HomePage(ctx).go_to(Target.SIDEBAR),
             '首页 → 侧边栏',
+        ),
+        NavTarget(
+            PageName.MISSION,
+            lambda ctx, **_: HomePage(ctx).go_to(Target.TASK),
+            '首页 → 任务页',
+        ),
+    ),
+    # 任务页：领奖按钮在就点，点完弹「获得」浮窗；回主页照常走每日浮窗链。
+    PageName.MISSION: (
+        NavTarget(
+            PageName.MISSION_REWARD_CONFIRM,
+            _claim_all_mission_rewards,
+            '任务页 → 获得浮窗',
+            confirm=False,
+        ),
+        NavTarget(
+            PageName.HOME_NEWS,
+            lambda ctx, **_: MissionPage(ctx).go_back(),
+            '任务页 → 主页（经每日浮窗链）',
+            confirm=False,
+        ),
+    ),
+    PageName.MISSION_REWARD_CONFIRM: (
+        NavTarget(
+            PageName.MISSION,
+            lambda ctx, **_: MissionPage(ctx).click_reward_confirm(),
+            '获得浮窗 → 任务页',
         ),
     ),
     # 侧边栏体系：三个一级条目各进一个域，回主页一律点空白处直连，

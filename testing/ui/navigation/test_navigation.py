@@ -401,3 +401,41 @@ def test_executor_reports_tab_switch_failure(monkeypatch: pytest.MonkeyPatch) ->
     with pytest.raises(NavigationError, match='标签切换失败'):
         executor._enter_tab(PageName.BUILD, 'destroy')
 
+# ── 任务页 ──────────────────────────────────────────────────────────────────
+
+
+def test_mission_pages_are_registered() -> None:
+    """任务页与「获得」浮窗都有确认入口和出边。"""
+    for page in (PageName.MISSION, PageName.MISSION_REWARD_CONFIRM):
+        assert registry.get_checker(page) is not None, page
+        assert registry.get_targets(page), page
+
+
+def test_mission_returns_home_through_popup_chain() -> None:
+    """任务页回主页要经过每日浮窗链。"""
+    path = registry.find_path(PageName.MISSION, PageName.HOME)
+
+    assert [edge.target for edge in path] == [
+        PageName.HOME_NEWS,
+        PageName.HOME_REWARD,
+        PageName.HOME_REWARD_CONFIRM,
+        PageName.HOME,
+    ]
+
+
+def test_home_leads_to_mission() -> None:
+    """主页一步进任务页。"""
+    path = registry.find_path(PageName.HOME, PageName.MISSION)
+
+    assert len(path) == 1 and path[0].target is PageName.MISSION
+
+
+def test_mission_claim_flow_edges() -> None:
+    """任务页 → 获得浮窗 → 任务页，两跳都通了。"""
+    forward = registry.find_path(PageName.MISSION, PageName.MISSION_REWARD_CONFIRM)
+    back = registry.find_path(PageName.MISSION_REWARD_CONFIRM, PageName.MISSION)
+
+    assert len(forward) == 1 and forward[0].confirm is False
+    assert len(back) == 1 and back[0].target is PageName.MISSION
+
+

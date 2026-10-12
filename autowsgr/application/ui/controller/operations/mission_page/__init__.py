@@ -1,25 +1,17 @@
-"""模块功能：导出任务页面控制器和面板类型。
+"""模块功能：提供任务页控制器的模块入口。
 
 上层调用：
-- application.ui.navigation：注册任务页面检查器和回退动作。
-- business：调用任务页面完整奖励流程。
+- application.ui.navigation：调用任务页控制器执行领奖与返回。
 
 下层依赖：
-- application.ui.controller.operations.mission_page.page：提供页面控制器和完整流程入口。
+- mission_page.page：提供任务页控制器。
 
-边界：
-只导出页面稳定入口，不导出识别、原子操作或流程内部实现。
+本模块只导出稳定入口，不放业务实现。
 """
 
 from __future__ import annotations
 
-from autowsgr.application.ui.controller.operations.mission_page.page import (
-    MissionPage,
-    MissionPanel,
-)
+from autowsgr.application.ui.controller.operations.mission_page.page import MissionPage
 
 
-__all__ = [
-    'MissionPage',
-    'MissionPanel',
-]
+__all__ = ['MissionPage']
