@@ -1,18 +1,13 @@
-"""负责后院页面检查、子页面导航和页面回退。
+"""模块功能：在后院主页执行二级页跳转与各个方向的返回。
 
 上层调用：
-- application.ui.navigation.graph.logistics：执行后院页面边动作。
-- application.ui.controller.home.main_page：取得后院页面检查器。
-- testing.ui：执行后院页面导航验证。
+- application.ui.navigation：执行后院与子页面之间的页面边动作。
 
 下层依赖：
-- application.ui.controller.backyard.main_page.constants：提供页面导航坐标。
-- application.ui.controller.backyard.main_page.recognition：提供后院页面识别结果。
-- common.device.interaction：执行点击和页面到达等待。
-- common.types：提供页面名称和匹配结果。
+- application.ui.controller.backyard.main_page.constants：提供后院点击落点。
+- application.ui.navigation.types：提供页面名称。
 
-边界：
-只编排后院页面内动作，不实现视觉识别，不负责跨页面寻路或业务调度。
+边界：只点击入口与返回按钮，不识别画面、不确认终态、不涉及二级页业务。
 """
 
 from __future__ import annotations
@@ -20,114 +15,100 @@ from __future__ import annotations
 import enum
 from typing import TYPE_CHECKING
 
-from autowsgr.application.ui.controller.backyard.main_page import constants, recognition
-from autowsgr.common.system.logger import get_logger
+from autowsgr.application.ui.controller.backyard.main_page import constants
 from autowsgr.application.ui.navigation.types import PageName
-from autowsgr.application.ui.navigation.interaction import click_and_wait_for_page
+from autowsgr.common.system.logger import get_logger
 
 
 if TYPE_CHECKING:
-    import numpy
-
-    from autowsgr.application.ui.controller.context import UIContext
-    from autowsgr.application.ui.navigation.types import PageMatch
+    from autowsgr.dispatch.context import ContextHandle
 
 
-_log = get_logger('ui.backyard.main_page')
+_log = get_logger('ui.backyard')
 
 
-# ── 页面目标 ──────────────────────────────────────────────────────────────────────
+# ── 后院导航目标 ────────────────────────────────────────────────────────────
 
 
 class BackyardTarget(enum.Enum):
-    """后院页面可导航的目标。"""
+    """后院主页支持的四个二级页。"""
 
+    CANTEEN = '餐厅'
+    ACADEMY = '学院'
+    RANK_ROOM = '军阶室'
     BATH = '浴室'
-    CANTEEN = '食堂'
+
+    @property
+    def page_name(self) -> PageName:
+        """返回导航器使用的页面名称。"""
+        return _TARGET_PAGES[self]
 
 
-_NAV_COORDINATES: dict[BackyardTarget, tuple[float, float]] = {
-    BackyardTarget.BATH: constants.CLICK_BATH,
-    BackyardTarget.CANTEEN: constants.CLICK_CANTEEN,
+_TARGET_PAGES: dict[BackyardTarget, PageName] = {
+    BackyardTarget.CANTEEN: PageName.CANTEEN,
+    BackyardTarget.ACADEMY: PageName.ACADEMY,
+    BackyardTarget.RANK_ROOM: PageName.RANK_ROOM,
+    BackyardTarget.BATH: PageName.BATH,
 }
 
 
+# ── 页面控制器 ──────────────────────────────────────────────────────────────
+
+
 class BackyardPage:
-    """后院页面内的 UI 操作控制器。"""
+    """后院主页的单击控制器。"""
 
-    def __init__(self, ctx: UIContext) -> None:
+    def __init__(self, ctx: ContextHandle) -> None:
+        """绑定任务上下文。
+
+        Args:
+            ctx: 提供设备服务的 dispatch 上下文句柄。
+        """
         self._ctx = ctx
-        self._ctrl = ctx.ctrl
 
-    # ── 页面检查 ──────────────────────────────────────────────────────────────────
+    # ── 导航 ────────────────────────────────────────────────────────────────
 
-    @staticmethod
-    def check_current_page(screen: numpy.ndarray) -> PageMatch:
-        """检查截图是否属于后院页面。
-
-        Args:
-            screen: RGB 截图，形状为 ``(H, W, 3)``。
-
-        Returns:
-            后院页面匹配结果。
-        """
-        return recognition.check_current_page(screen)
-
-    # ── 页面导航 ──────────────────────────────────────────────────────────────────
-
-    def navigate_to(self, target: BackyardTarget) -> None:
-        """点击导航按钮，进入指定子页面。
+    def go_to(
+        self,
+        target: BackyardTarget,
+        position: tuple[float, float] | None = None,
+    ) -> None:
+        """点击入口，进入对应的二级页。
 
         Args:
-            target: 导航目标。
+            target: 目标二级页。
+            position: 导航器从入口模板读到的中心；为空时用静态坐标兜底。
 
         Raises:
-            NavigationError: 超时未到达目标页面。
+            ValueError: 目标没有配置落点。
         """
-        # 页面子控制器会回退到当前后院页面，局部导入用于避免页面包初始化循环。
-        from autowsgr.application.ui.controller.backyard.bath_page import BathPage
-        from autowsgr.application.ui.controller.backyard.canteen_page import CanteenPage
-
-        # 1. 确定目标子页面的终态检查器，避免点击后无法确认导航结果。
-        target_checker = {
-            BackyardTarget.BATH: BathPage.check_current_page,
-            BackyardTarget.CANTEEN: CanteenPage.check_current_page,
-        }
-
-        # 2. 点击后院入口并确认目标子页面已经到达。
-        click_and_wait_for_page(
-            self._ctrl,
-            click_coord=_NAV_COORDINATES[target],
-            checker=target_checker[target],
-            source='后院',
-            target=target.value,
+        key = target.name.lower()
+        fallback = constants.NAV_POSITIONS.get(key)
+        if fallback is None:
+            raise ValueError(f'后院没有该入口的落点: {target!r}')
+        landing = position if position is not None else fallback
+        _log.info(
+            '[UI] 后院 → 进入二级页：target={!r}，position={!r}，source={!r}',
+            target.value,
+            landing,
+            'center' if position is not None else 'fallback',
         )
-        _log.info('[UI] 后院 → 进入：目标={!r}，结果=成功', target.value)
+        self._ctx.runtime.ctrl.click(*landing)
 
-    def go_to_bath(self) -> None:
-        """进入浴室页面。"""
-        self.navigate_to(BackyardTarget.BATH)
+    # ── 返回 ────────────────────────────────────────────────────────────────
 
-    def go_to_canteen(self) -> None:
-        """进入食堂页面。"""
-        self.navigate_to(BackyardTarget.CANTEEN)
+    def click_back(self) -> None:
+        """点击退回按钮：回到上一级。
 
-    # ── 页面回退 ──────────────────────────────────────────────────────────────────
-
-    def go_back(self) -> None:
-        """点击返回按钮，离开后院并回到主页面。
-
-        Raises:
-            NavigationError: 超时仍未离开后院页面。
+        后院主页按它回主页面，二级页按它回后院主页——两处是同一个按钮。
         """
-        # 主页控制器也提供后院检查器，局部导入用于保持页面包的延迟互相引用。
-        from autowsgr.application.ui.controller.home.main_page import HomePage
+        _log.info('[UI] 后院 → 退回上一级：position={!r}', constants.CLICK_BACK)
+        self._ctx.runtime.ctrl.click(*constants.CLICK_BACK)
 
-        click_and_wait_for_page(
-            self._ctrl,
-            click_coord=constants.CLICK_BACK,
-            checker=HomePage.check_current_page,
-            source='后院',
-            target=PageName.HOME.value,
-        )
-        _log.info('[UI] 后院 → 返回：目标={!r}，结果=成功', PageName.HOME.value)
+    def click_home(self) -> None:
+        """点击二级页的通用回首页按钮，直接回主页面。"""
+        _log.info('[UI] 后院 → 回首页：position={!r}', constants.CLICK_HOME)
+        self._ctx.runtime.ctrl.click(*constants.CLICK_HOME)
+
+
+__all__ = ['BackyardPage', 'BackyardTarget']

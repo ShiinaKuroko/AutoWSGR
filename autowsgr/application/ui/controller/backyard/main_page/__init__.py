@@ -1,20 +1,20 @@
-"""导出后院主页面控制器和导航目标。
+"""模块功能：提供后院主页控制器的模块入口。
 
 上层调用：
-- application.ui.navigation.graph.logistics：执行后院页面边动作。
-- application.ui.controller.home.main_page：取得后院页面检查器。
-- testing.ui：执行后院页面导航验证。
+- application.ui.navigation：调用后院页面控制器执行二级页跳转与返回。
 
 下层依赖：
-- application.ui.controller.backyard.main_page.page：提供页面控制器和导航目标。
+- backyard.main_page.page：提供后院页面控制器与目标类型。
 
-边界：
-只导出稳定页面入口，不执行页面操作、导航注册或运行时逻辑。
+本模块只导出稳定入口，不放业务实现。
 """
 
 from __future__ import annotations
 
-from autowsgr.application.ui.controller.backyard.main_page.page import BackyardPage, BackyardTarget
+from autowsgr.application.ui.controller.backyard.main_page.page import (
+    BackyardPage,
+    BackyardTarget,
+)
 
 
 __all__ = ['BackyardPage', 'BackyardTarget']

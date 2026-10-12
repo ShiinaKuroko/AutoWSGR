@@ -83,9 +83,12 @@ def test_find_path_same_page() -> None:
 
 
 def test_find_path_rejects_unreachable() -> None:
-    """没有可达路径时抛错。"""
+    """没有可达路径时抛错。
+
+    用选择舰船页——它有页面名但尚未接入导航图。
+    """
     with pytest.raises(NavigationError, match='没有从'):
-        registry.find_path(PageName.HOME, PageName.BATH)
+        registry.find_path(PageName.HOME, PageName.SHIP_SELECTION)
 
 
 def test_goto_page_clicks_and_confirms(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -437,5 +440,56 @@ def test_mission_claim_flow_edges() -> None:
 
     assert len(forward) == 1 and forward[0].confirm is False
     assert len(back) == 1 and back[0].target is PageName.MISSION
+
+# ── 后院 ────────────────────────────────────────────────────────────────────
+
+
+def test_backyard_pages_are_registered() -> None:
+    """后院主页与四个二级页都有确认入口和出边。"""
+    for page in (
+        PageName.BACKYARD,
+        PageName.CANTEEN,
+        PageName.ACADEMY,
+        PageName.RANK_ROOM,
+        PageName.BATH,
+    ):
+        assert registry.get_checker(page) is not None, page
+        assert registry.get_targets(page), page
+
+
+def test_rank_skill_list_has_no_checker() -> None:
+    """RANK_SKILL_LIST 只占名，无确认入口（三级页后续开发）。"""
+    assert registry.get_checker(PageName.RANK_SKILL_LIST) is None
+    assert registry.get_targets(PageName.RANK_SKILL_LIST) == ()
+
+
+def test_home_leads_to_backyard_and_backyard_to_sub_pages() -> None:
+    """主页一步进后院，后院一步进任一二级页。"""
+    assert len(registry.find_path(PageName.HOME, PageName.BACKYARD)) == 1
+    for page in (PageName.CANTEEN, PageName.ACADEMY, PageName.RANK_ROOM, PageName.BATH):
+        path = registry.find_path(PageName.BACKYARD, page)
+        assert len(path) == 1 and path[0].target is page
+
+
+def test_sub_page_cross_visit_goes_through_backyard() -> None:
+    """从军阶室去浴室要经后院主页中转，两跳。"""
+    path = registry.find_path(PageName.RANK_ROOM, PageName.BATH)
+
+    assert [edge.target for edge in path] == [PageName.BACKYARD, PageName.BATH]
+
+
+def test_sub_pages_return_home_through_popup_chain() -> None:
+    """四个二级页回主页都经过每日浮窗链；回后院主页则是一步。"""
+    for page in (PageName.CANTEEN, PageName.ACADEMY, PageName.RANK_ROOM, PageName.BATH):
+        home_path = registry.find_path(page, PageName.HOME)
+        back_path = registry.find_path(page, PageName.BACKYARD)
+        assert [edge.target for edge in home_path] == [
+            PageName.HOME_NEWS,
+            PageName.HOME_REWARD,
+            PageName.HOME_REWARD_CONFIRM,
+            PageName.HOME,
+        ], page
+        assert len(back_path) == 1 and back_path[0].target is PageName.BACKYARD
+
 
 

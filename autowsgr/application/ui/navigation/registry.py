@@ -19,6 +19,10 @@ from typing import TYPE_CHECKING
 
 from autowsgr.application.ui.controller.home.event_page import EventPage
 from autowsgr.application.ui.controller.home.main_page import HomePage, Target
+from autowsgr.application.ui.controller.backyard.main_page import (
+    BackyardPage,
+    BackyardTarget,
+)
 from autowsgr.application.ui.controller.login import LoginPage
 from autowsgr.application.ui.controller.operations.mission_page import MissionPage
 from autowsgr.application.ui.controller.operations.sortie_page.main_page import (
@@ -33,6 +37,7 @@ from autowsgr.application.ui.controller.sidebar.intensify_page import (
 )
 from autowsgr.application.ui.controller.sidebar.main_page import SidebarPage, SidebarTarget
 from autowsgr.application.ui.navigation.checker import (
+    backyard,
     home,
     login,
     mission,
@@ -104,6 +109,34 @@ def _confirm_daily_reward(ctx: ContextHandle, **_: object) -> None:
     HomePage(ctx).click_reward_confirm()
 
 
+# 后院四个入口：点击落点优先用入口模板中心，读不到中心时由控制器用静态坐标兜底。
+_BACKYARD_TARGETS: dict[str, BackyardTarget] = {
+    'canteen': BackyardTarget.CANTEEN,
+    'academy': BackyardTarget.ACADEMY,
+    'rank_room': BackyardTarget.RANK_ROOM,
+    'bath': BackyardTarget.BATH,
+}
+
+
+def _enter_backyard_page(key: str) -> Callable[..., None]:
+    """构造「进后院某个二级页」的边动作。
+
+    Args:
+        key: 入口键，取值 canteen / academy / rank_room / bath。
+
+    Returns:
+        接收 ctx 的边动作。
+    """
+
+    def action(ctx: ContextHandle, **_: object) -> None:
+        BackyardPage(ctx).go_to(
+            _BACKYARD_TARGETS[key],
+            backyard.read_entry_center(ctx, key),
+        )
+
+    return action
+
+
 def _claim_all_mission_rewards(ctx: ContextHandle, **_: object) -> None:
     """任务页有「全部领取」就点，没有就什么都不做。
 
@@ -141,6 +174,11 @@ _PAGE_CHECKERS: dict[PageName, Callable[..., bool]] = {
     PageName.FRIEND: check_friend_page,
     PageName.MISSION: mission.check_mission_page,
     PageName.MISSION_REWARD_CONFIRM: mission.check_mission_reward_confirm,
+    PageName.BACKYARD: backyard.check_backyard_page,
+    PageName.CANTEEN: backyard.check_canteen_page,
+    PageName.ACADEMY: backyard.check_academy_page,
+    PageName.RANK_ROOM: backyard.check_rank_room_page,
+    PageName.BATH: backyard.check_bath_page,
 }
 
 # ── 页面 → 标签表 ───────────────────────────────────────────────────────────
@@ -241,6 +279,81 @@ _NAV_TARGETS: dict[PageName, tuple[NavTarget, ...]] = {
             PageName.MISSION,
             lambda ctx, **_: HomePage(ctx).go_to(Target.TASK),
             '首页 → 任务页',
+        ),
+        NavTarget(
+            PageName.BACKYARD,
+            lambda ctx, **_: HomePage(ctx).go_to(Target.BACKYARD),
+            '首页 → 后院主页',
+        ),
+    ),
+    # 后院：主页进四个二级页；二级页可以退回后院主页（跨二级页跳转靠它中转），
+    # 也可以点通用回首页按钮直接回主页。回主页的边照常走每日浮窗链。
+    PageName.BACKYARD: (
+        NavTarget(PageName.CANTEEN, _enter_backyard_page('canteen'), '后院主页 → 餐厅'),
+        NavTarget(PageName.ACADEMY, _enter_backyard_page('academy'), '后院主页 → 学院'),
+        NavTarget(
+            PageName.RANK_ROOM,
+            _enter_backyard_page('rank_room'),
+            '后院主页 → 军阶室',
+        ),
+        NavTarget(PageName.BATH, _enter_backyard_page('bath'), '后院主页 → 浴室'),
+        NavTarget(
+            PageName.HOME_NEWS,
+            lambda ctx, **_: BackyardPage(ctx).click_back(),
+            '后院主页 → 主页（经每日浮窗链）',
+            confirm=False,
+        ),
+    ),
+    PageName.CANTEEN: (
+        NavTarget(
+            PageName.HOME_NEWS,
+            lambda ctx, **_: BackyardPage(ctx).click_home(),
+            '餐厅 → 主页（经每日浮窗链）',
+            confirm=False,
+        ),
+        NavTarget(
+            PageName.BACKYARD,
+            lambda ctx, **_: BackyardPage(ctx).click_back(),
+            '餐厅 → 后院主页',
+        ),
+    ),
+    PageName.ACADEMY: (
+        NavTarget(
+            PageName.HOME_NEWS,
+            lambda ctx, **_: BackyardPage(ctx).click_home(),
+            '学院 → 主页（经每日浮窗链）',
+            confirm=False,
+        ),
+        NavTarget(
+            PageName.BACKYARD,
+            lambda ctx, **_: BackyardPage(ctx).click_back(),
+            '学院 → 后院主页',
+        ),
+    ),
+    PageName.RANK_ROOM: (
+        NavTarget(
+            PageName.HOME_NEWS,
+            lambda ctx, **_: BackyardPage(ctx).click_home(),
+            '军阶室 → 主页（经每日浮窗链）',
+            confirm=False,
+        ),
+        NavTarget(
+            PageName.BACKYARD,
+            lambda ctx, **_: BackyardPage(ctx).click_back(),
+            '军阶室 → 后院主页',
+        ),
+    ),
+    PageName.BATH: (
+        NavTarget(
+            PageName.HOME_NEWS,
+            lambda ctx, **_: BackyardPage(ctx).click_home(),
+            '浴室 → 主页（经每日浮窗链）',
+            confirm=False,
+        ),
+        NavTarget(
+            PageName.BACKYARD,
+            lambda ctx, **_: BackyardPage(ctx).click_back(),
+            '浴室 → 后院主页',
         ),
     ),
     # 任务页：领奖按钮在就点，点完弹「获得」浮窗；回主页照常走每日浮窗链。
