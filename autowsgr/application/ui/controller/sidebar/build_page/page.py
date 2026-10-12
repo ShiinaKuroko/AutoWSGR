@@ -20,6 +20,7 @@ from autowsgr.common.system.logger import get_logger
 
 
 if TYPE_CHECKING:
+    from autowsgr.business.combat.types import ShipType
     from autowsgr.dispatch.context import ContextHandle
 
 
@@ -51,6 +52,81 @@ class BuildPage:
             ctx: 提供设备服务的 dispatch 上下文句柄。
         """
         self._ctx = ctx
+
+    # ── 建造与解体业务 ────────────────────────────────────────────────────────
+
+    # 建造与解体的流程编排在 workflow.py；本方法是对外入口，只负责切换标签再交给流程。
+    # workflow 依赖的旧模块尚未迁移，因此局部导入，避免拖累导航器导入本模块。
+
+    def build(
+        self,
+        *,
+        build_count: int = 1,
+        collect_completed: bool = True,
+        build_type: str = 'ship',
+        allow_fast_build: bool = False,
+    ) -> int:
+        """切换到对应标签并执行收取、建造流程。
+
+        Args:
+            build_count: 要新建的数量，必须为非负整数。
+            collect_completed: 是否先收取已完成的建造项目。
+            build_type: 建造类型，`ship` 表示舰船，其他值表示装备。
+            allow_fast_build: 是否先处理可快速建造的槽位。
+
+        Returns:
+            实际收取的数量。
+
+        Raises:
+            TypeError: build_count 不是整数。
+            ValueError: build_count 小于零。
+            RuntimeError: 建造队列已满、仓库已满或资源页面未出现。
+        """
+        from autowsgr.application.ui.controller.sidebar.build_page import workflow
+
+        if not isinstance(build_count, int) or isinstance(build_count, bool):
+            _log.error(
+                '[UI] 建造页 → 拒绝建造：建造数量={!r}，期望类型=非负整数，结果=拒绝',
+                build_count,
+            )
+            raise TypeError(f'建造数量必须为整数，收到: {build_count!r}')
+        if build_count < 0:
+            _log.error(
+                '[UI] 建造页 → 拒绝建造：建造数量={!r}，期望范围=>=0，结果=拒绝',
+                build_count,
+            )
+            raise ValueError(f'建造数量不能为负数，收到: {build_count}')
+
+        target_tab = BuildTab.BUILD if build_type == 'ship' else BuildTab.DEVELOP
+        self.go_to_tab(target_tab)
+        return workflow.build(
+            self._ctx.runtime.ctrl,
+            build_count=build_count,
+            collect_completed=collect_completed,
+            build_type=build_type,
+            allow_fast_build=allow_fast_build,
+        )
+
+    def destroy_ships(
+        self,
+        ship_types: list[ShipType] | None = None,
+        *,
+        remove_equipment: bool = True,
+    ) -> None:
+        """切换到解体标签并执行完整解装流程。
+
+        Args:
+            ship_types: 要解体的舰种列表；`None` 表示不过滤舰种。
+            remove_equipment: 是否在解装前卸下装备。
+        """
+        from autowsgr.application.ui.controller.sidebar.build_page import workflow
+
+        self.go_to_tab(BuildTab.DESTROY)
+        workflow.destroy_ships(
+            self._ctx.runtime.ctrl,
+            ship_types=ship_types,
+            remove_equipment=remove_equipment,
+        )
 
     # ── 标签切换 ──────────────────────────────────────────────────────────────
 
