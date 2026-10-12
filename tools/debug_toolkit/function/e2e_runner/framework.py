@@ -224,12 +224,28 @@ class E2ERunner:
             print(f'  [FAIL] 设备连接失败: {exc}')
             return False
 
+        # 多显示器模拟器把应用放在非默认屏上，scrcpy 默认只镜像 0 号屏，
+        # 不跟随就只能截到桌面；完整启动流程里由 startup 调用，这里补上同一步。
+        self._follow_application_display(config)
+
         # OCR 引擎仍在迁移中; 需要配置的完整实机链路由 _prepare_full 传入替身配置。
         self._bind_task_context(self._launcher, config=config)
         if self.with_ocr:
             self.note('只读模式不初始化 OCR: 新栈 OCR 入口迁移中, 该参数当前被忽略')
         print(f'  [OK] 设备已连接: {info.serial} {info.resolution[0]}x{info.resolution[1]}')
         return True
+
+    def _follow_application_display(self, config: Any = None) -> None:
+        """让截图目标跟随游戏所在的显示器 (只读模式跳过启动流程，需要手动补)。"""
+        from autowsgr.application.runtime.types import GameAPP
+
+        package = getattr(getattr(config, 'account', None), 'package_name', None)
+        if not package:
+            package = GameAPP.official.package_name
+        try:
+            self._launcher.follow_display(package)
+        except Exception as exc:  # noqa: BLE001 - 诊断工具，记录后继续
+            self.note(f'显示器跟随失败: {exc}')
 
     def _prepare_static_frames(self) -> bool:
         """用静态截图替身准备离线验证 (不连接设备、不启动游戏)。"""

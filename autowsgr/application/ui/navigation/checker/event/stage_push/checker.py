@@ -160,12 +160,16 @@ def check_event_map_page(
     if event_type is not None:
         calibration.require_activity(event_type, constants.ACTIVITY)
     data = calibration.load_activity_data(constants.ACTIVITY, constants.PERIOD)
-    return recognition.read_map_title(
-        ctx,
-        data,
-        absent=absent,
-        attempts=attempts,
-        interval_seconds=interval_seconds,
+    # 只回答「这一帧是不是活动地图」；章节浮窗盖在地图上时由导航器按页面深度
+    # 判定当前层，checker 不需要排除它。
+    return (
+        recognition.read_map_title(
+            ctx,
+            data,
+            attempts=attempts,
+            interval_seconds=interval_seconds,
+        )
+        is not None
     )
 
 

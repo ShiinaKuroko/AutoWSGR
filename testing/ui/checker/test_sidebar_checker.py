@@ -40,7 +40,12 @@ def _install_sidebar_recognition(
     monkeypatch.setattr(calibration, 'load_module_template', lambda *args, **kwargs: object())
 
     def expect_template(_ctx: object, **options: object) -> RecognitionResult[list[object]]:
-        matched = options['roi'] is visible_roi
+        # 页面身份可能同时给多个候选区域（如好友页的两个页签），任一命中即可。
+        roi = options['roi']
+        if isinstance(roi, tuple):
+            matched = any(candidate is visible_roi for candidate in roi)
+        else:
+            matched = roi is visible_roi
         # 与真实入口一致：absent 为真时，模板没命中才算满足预期。
         satisfied = (not matched) if options.get('absent') else matched
         return RecognitionResult(satisfied, [_Match(matched)], _SCREEN)
@@ -106,7 +111,11 @@ def _install_friend_recognition(
     monkeypatch.setattr(calibration, 'load_module_template', lambda *args, **kwargs: object())
 
     def expect_template(_ctx: object, **options: object) -> RecognitionResult[list[object]]:
-        assert options['roi'] is friend_constants.FRIEND_TAB_ROI
+        # 好友页用两个页签做页面身份，识别入口收到的是一组候选区域。
+        assert options['roi'] == (
+            friend_constants.FRIEND_TAB_ROI,
+            friend_constants.FRIEND_ADD_TAB_ROI,
+        )
         satisfied = (not visible) if options.get('absent') else visible
         return RecognitionResult(satisfied, [_Match(visible)], _SCREEN)
 

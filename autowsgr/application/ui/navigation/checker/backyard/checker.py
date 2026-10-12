@@ -21,8 +21,8 @@ if TYPE_CHECKING:
     from autowsgr.dispatch.context import ContextHandle
 
 
-# 进后院有较长的切换动画，到达确认给足重试（等效 8 秒缓冲，用户确认不用 sleep）。
-_BACKYARD_ENTRY_ATTEMPTS = 8
+# 进后院有较长的切换动画，到达确认给足重试（等效 5 秒缓冲，用户确认不用 sleep）。
+_BACKYARD_ENTRY_ATTEMPTS = 5
 _NAV_CONFIRM_INTERVAL_SECONDS = 1.0
 
 

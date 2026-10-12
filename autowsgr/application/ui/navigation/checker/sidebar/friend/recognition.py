@@ -56,14 +56,24 @@ def read_friend_page(
     Returns:
         断言满足时为真。
     """
-    result = expect_template(
-        ctx,
-        template=calibration.load_module_template(
+    # 两个页签同属好友页：任一可见即算在好友页。
+    templates = (
+        calibration.load_module_template(
             constants.TEMPLATE_NAMESPACE,
             constants.FRIEND_TAB_TEMPLATE,
+            name='friend_tab',
+        ),
+        calibration.load_module_template(
+            constants.TEMPLATE_NAMESPACE,
+            constants.FRIEND_ADD_TAB_TEMPLATE,
             name='friend_add_tab',
         ),
-        roi=constants.FRIEND_TAB_ROI,
+    )
+    rois = (constants.FRIEND_TAB_ROI, constants.FRIEND_ADD_TAB_ROI)
+    result = expect_template(
+        ctx,
+        template=templates,
+        roi=rois,
         confidence=_TEMPLATE_CONFIDENCE,
         absent=absent,
         attempts=attempts,

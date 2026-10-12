@@ -14,6 +14,7 @@
 
 from __future__ import annotations
 
+import functools
 from collections import deque
 from typing import TYPE_CHECKING
 
@@ -601,6 +602,29 @@ def get_tabs(page: PageName) -> dict[str, NavTab]:
         标签键到标签描述的映射；该页面没有标签时为空字典。
     """
     return _TABS.get(page, {})
+
+
+# 不可达页面在深度排序里排最后：它们不该盖住任何可达页面。
+_UNREACHABLE_DEPTH = 1 << 30
+
+
+@functools.cache
+def depth_of(page: PageName) -> int:
+    """页面在导航图里的深度：从主页出发的最短跳数。
+
+    图写在代码里、运行期不变，所以结果可以跨调用记忆；进程重启后重算，
+    值完全一样，没有正确性影响。不可达的页面排在最深处。
+
+    Args:
+        page: 待查询的页面。
+
+    Returns:
+        最短跳数；主页为 0，不可达返回 `_UNREACHABLE_DEPTH`。
+    """
+    try:
+        return len(find_path(PageName.HOME, page))
+    except NavigationError:
+        return _UNREACHABLE_DEPTH
 
 
 def find_path(source: PageName, target: PageName) -> tuple[NavTarget, ...]:

@@ -18,6 +18,8 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING
 
+from loguru import logger
+
 from autowsgr.application.ui.navigation import registry
 from autowsgr.application.ui.navigation.executor import NavigationExecutor
 from autowsgr.application.ui.navigation.checker import login
@@ -43,9 +45,18 @@ _log = get_logger('ui.navigation')
 _STARTUP_STEP_WAIT_SECONDS = 3.0
 # 确认画面消失、读取更新提示与加载状态时的探测次数。
 _PROBE_ATTEMPTS = 3
+
 # 等登录页出现的最大识别次数，以及相邻两次识别的间隔秒数。
 _LOGIN_PAGE_ATTEMPTS = 60
 _STARTUP_INTERVAL_SECONDS = 1.0
+
+
+# 遍历识别期间静默的模块：识别细节与每个检查器的读事实日志，
+# 一次扫描会刷出上百条，只保留本次扫描的汇总结果。
+_QUIET_DURING_PROBE = (
+    'autowsgr.common.vision',
+    'autowsgr.application.ui.navigation.checker',
+)
 
 
 class NavigationService:
@@ -91,6 +102,9 @@ class NavigationService:
             NavigationError: 导航栈为空或回退确认失败。
         """
         session = self._session
+        # 先判空栈：栈里什么都没有时无可回退，也不需要识别当前页。
+        if session.current_page() is None:
+            raise NavigationError('导航栈为空，无法回退')
         current = self._current_page()
         session.pop_page()
         previous = session.current_page()
@@ -158,10 +172,30 @@ class NavigationService:
         current = session.current_page()
         if current is not None:
             return PageName(current)
-        for page in PageName:
-            confirm = registry.get_checker(page)
-            if confirm is not None and confirm(self._ctx):
-                _log.info('[UI] 导航 → 识别当前页面：page={!r}', page.value)
-                session.push_page(page.value)
-                return page
-        raise NavigationError('无法识别当前页面')
+
+        # 栈空：交给执行器按页面深度扫一遍（覆盖层更深，会先被认出来）。
+        # 扫描期间的识别细节日志整体静默，结束后只留一条汇总。
+        started = time.monotonic()
+        for name in _QUIET_DURING_PROBE:
+            logger.disable(name)
+        try:
+            hit = self._executor.detect_layer()
+        finally:
+            for name in _QUIET_DURING_PROBE:
+                logger.enable(name)
+        elapsed_ms = int((time.monotonic() - started) * 1000)
+
+        if hit is None:
+            _log.warning(
+                '[UI] 导航 → 遍历识别当前页：耗时={}ms，结果=未识别到',
+                elapsed_ms,
+            )
+            raise NavigationError('无法识别当前页面')
+
+        _log.info(
+            '[UI] 导航 → 遍历识别当前页：page={!r}，耗时={}ms',
+            hit.value,
+            elapsed_ms,
+        )
+        session.push_page(hit.value)
+        return hit

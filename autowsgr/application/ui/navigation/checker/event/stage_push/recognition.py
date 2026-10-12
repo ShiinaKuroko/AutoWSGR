@@ -96,43 +96,6 @@ def _calculate_mode_from_title(
 # ── 页面事实读取与判断 ─────────────────────────────────────────────────────────────────
 
 
-def read_map_title(
-    ctx: ContextHandle,
-    data: Mapping[str, Any],
-    *,
-    absent: bool = False,
-    attempts: int = 1,
-    interval_seconds: float = 0.5,
-) -> bool:
-    """判断活动地图标题是否可读。
-
-    地图标题由「地图名」+（可选）「困难」组成，括号形态多变，因此统一断言：
-    标题区域识别到普通地图名、或出现"困难"二字，即认为标题可读。
-
-    Args:
-        ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
-        data: 本期活动数据。
-        absent: 期望标题消失时为真，默认期望它出现。
-        attempts: 识别次数，默认只探测当前一帧。
-        interval_seconds: 两次识别之间的等待秒数。
-
-    Returns:
-        断言满足时为真。
-    """
-    normal_name = str(data['map_name']['normal'])
-    result = expect_ocr(
-        ctx,
-        expect=(normal_name, _HARD_MARKER),
-        roi=constants.MAP_NAME_ROI,
-        recognition_profile='single_line',
-        absent=absent,
-        attempts=attempts,
-        interval_seconds=interval_seconds,
-    )
-    _log.debug('[UI] 活动识别 → 查地图标题：present={!r}', result.satisfied)
-    return result.satisfied
-
-
 def read_event_entry(ctx: ContextHandle) -> bool:
     """判断首页活动入口卡片是否可见。
 
@@ -192,12 +155,20 @@ def read_mode_button(ctx: ContextHandle) -> EventMode | None:
     return button_mode
 
 
-def read_map_title(ctx: ContextHandle, data: Mapping[str, Any]) -> EventMode | None:
+def read_map_title(
+    ctx: ContextHandle,
+    data: Mapping[str, Any],
+    *,
+    attempts: int = _PROBE_ATTEMPTS,
+    interval_seconds: float = 0.5,
+) -> EventMode | None:
     """读取地图标题并判断难度。
 
     Args:
         ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
         data: 本期活动数据，提供两种难度的地图名。
+        attempts: 识别次数，默认只探测当前一帧。
+        interval_seconds: 两次识别之间的等待秒数。
 
     Returns:
         地图标题对应的难度；读不到时为 None。
@@ -206,7 +177,8 @@ def read_map_title(ctx: ContextHandle, data: Mapping[str, Any]) -> EventMode | N
         ctx,
         expect=(data['map_name']['normal'], data['map_name']['hard']),
         roi=constants.MAP_NAME_ROI,
-        attempts=_PROBE_ATTEMPTS,
+        attempts=attempts,
+        interval_seconds=interval_seconds,
     )
     title_texts = [detection.recognized_text for detection in result.observation]
     title_mode = _calculate_mode_from_title(title_texts, data)

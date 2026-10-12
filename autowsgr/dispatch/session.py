@@ -2,6 +2,7 @@
 
 上层调用：
 - application.ui.navigation.service：记录导航栈与区服选择标记。
+- application.ui.navigation.checker 与 registry：读写每日浮窗的处理标记。
 
 下层依赖：无，只保存进程内状态。
 
@@ -20,6 +21,8 @@ class SessionState:
 
     def __init__(self) -> None:
         self._server_selected = False
+        self._news_handled = False
+        self._reward_handled = False
         self._pages: list[str] = []
 
     @property
@@ -30,6 +33,24 @@ class SessionState:
     def mark_server_selected(self) -> None:
         """标记本次运行已完成区服选择。"""
         self._server_selected = True
+
+    @property
+    def news_handled(self) -> bool:
+        """本次运行是否已处理过每日公告浮窗。"""
+        return self._news_handled
+
+    def mark_news_handled(self) -> None:
+        """标记每日公告浮窗已处理干净；处理失败时不调用。"""
+        self._news_handled = True
+
+    @property
+    def reward_handled(self) -> bool:
+        """本次运行是否已处理过每日奖励浮窗与它的确认浮窗。"""
+        return self._reward_handled
+
+    def mark_reward_handled(self) -> None:
+        """标记每日奖励浮窗已处理干净；处理失败时不调用。"""
+        self._reward_handled = True
 
     def current_page(self) -> str | None:
         """返回导航栈顶的页面值。"""
