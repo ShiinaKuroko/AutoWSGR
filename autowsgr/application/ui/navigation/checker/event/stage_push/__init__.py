@@ -23,6 +23,7 @@ from autowsgr.application.ui.navigation.checker.event.stage_push.checker import 
     read_event_map_state,
     read_mode_button_center,
     read_sortie_prepare_center,
+    wait_event_mode,
 )
 from autowsgr.application.ui.navigation.checker.event.stage_push.recognition import (
     EventMode,
@@ -40,4 +41,5 @@ __all__ = [
     'read_event_map_state',
     'read_mode_button_center',
     'read_sortie_prepare_center',
+    'wait_event_mode',
 ]

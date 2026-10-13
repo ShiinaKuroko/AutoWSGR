@@ -83,6 +83,34 @@ def test_event_rejects_other_activity() -> None:
         stage_push.check_event_entry(object(), event_type='assault')
 
 
+def test_wait_event_mode_returns_once_mode_settled(monkeypatch: pytest.MonkeyPatch) -> None:
+    """当前难度已经是目标难度时立刻返回。"""
+    _install_recognition(monkeypatch, button_matches=(False, True), map_texts=('最强之舟',))
+
+    assert (
+        stage_push.wait_event_mode(
+            object(), event_type='stage_push', mode=stage_push.EventMode.NORMAL, attempts=1
+        )
+        is True
+    )
+
+
+def test_wait_event_mode_gives_up_on_other_mode(monkeypatch: pytest.MonkeyPatch) -> None:
+    """难度没切到目标值时重读用尽后放弃。"""
+    _install_recognition(monkeypatch, button_matches=(False, True), map_texts=('最强之舟',))
+
+    assert (
+        stage_push.wait_event_mode(
+            object(),
+            event_type='stage_push',
+            mode=stage_push.EventMode.HARD,
+            attempts=1,
+            interval_seconds=0.0,
+        )
+        is False
+    )
+
+
 def test_map_page_accepts_visible_mode_button(monkeypatch: pytest.MonkeyPatch) -> None:
     """模式按钮还亮着 = 干净地图页。"""
     _install_recognition(monkeypatch, button_matches=(True, False))

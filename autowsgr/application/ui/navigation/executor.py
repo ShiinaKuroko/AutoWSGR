@@ -26,9 +26,7 @@ _log = get_logger('ui.navigation.executor')
 
 
 # 覆盖层页面：每日三个浮窗。它们盖在底层页面上，不参与「我在哪一页」的探测。
-_OVERLAY_PAGES = frozenset(
-    {PageName.HOME_NEWS, PageName.HOME_REWARD, PageName.HOME_REWARD_CONFIRM}
-)
+_OVERLAY_PAGES = frozenset({PageName.HOME_NEWS, PageName.HOME_REWARD, PageName.HOME_REWARD_CONFIRM})
 
 
 # ── 页面内标签参数 ──────────────────────────────────────────────────────────
@@ -94,8 +92,9 @@ class NavigationExecutor:
     def walk_backward(self, path: tuple[NavTarget, ...]) -> None:
         """后退：按路径从当前页退回上一页。
 
-        与前进的差别只有两点：回退不接受调用方参数；栈由调用方先退一格，这里把
-        走到的页面重新压回去。
+        与前进的差别只有两点：回退不接受调用方参数；栈的记账由调用方完成
+        （`navigate_back` 已经弹掉一层），这里只走路径、点、确认，不再动栈。
+        回退一个「锚点」跟路径上有几步无关，所以不能按步数记账。
 
         Args:
             path: 已经算好的回退路径。
@@ -108,7 +107,6 @@ class NavigationExecutor:
             source = self._session.current_page()
             edge.action(self._ctx)
             self._confirm_arrival(edge, source)
-            self._session.push_page(edge.target.value)
 
     # ── 页面层识别 ──────────────────────────────────────────────────────────
 
@@ -139,7 +137,7 @@ class NavigationExecutor:
                 continue
             try:
                 matched = confirm(self._ctx, attempts=1, interval_seconds=0.2)
-            except Exception:  # noqa: BLE001 - 探测：入口报错等同于没命中
+            except Exception:
                 # 某些入口需要任务额外提供上下文（如活动玩法），探测时没有，
                 # 报错就当它不匹配，继续看下一层。
                 matched = False
@@ -166,9 +164,7 @@ class NavigationExecutor:
         time.sleep(_TAB_SETTLE_SECONDS)
         entry.click(self._ctx)
         if not entry.checker(self._ctx):
-            raise NavigationError(
-                f'标签切换失败：{page.value!r} → {entry.description!r}'
-            )
+            raise NavigationError(f'标签切换失败：{page.value!r} → {entry.description!r}')
         _log.debug(
             '[UI] 导航执行 → 标签确认：page={!r}，tab={!r}，结果=成功',
             page.value,
@@ -213,9 +209,7 @@ class NavigationExecutor:
         # 这类覆盖层会盖住它，按深度降序扫一遍就能分辨出真正的当前层。
         layer = self.detect_layer()
         if layer is not None and layer is not edge.target:
-            raise NavigationError(
-                f'到达确认失败：{edge.description!r}，当前层是 {layer.value!r}'
-            )
+            raise NavigationError(f'到达确认失败：{edge.description!r}，当前层是 {layer.value!r}')
         _log.debug('[UI] 导航执行 → 到达确认：page={!r}，结果=成功', edge.target.value)
 
 

@@ -39,7 +39,10 @@ def check_mission_page(
     """确认是否在任务页。
 
     任务页默认落在「全部」页签，因此页面身份用它表达；前识别判到达，后识别判离开。
-    浮窗弹出时任务页仍在背后，页签可见，因此这个判断在浮窗期间同样成立。
+
+    领奖浮窗弹出时「全部」页签仍在背后可见，只看页签会在浮窗期间误判到达：
+    前识别补一道「领奖浮窗不在」，交给浮窗页表达这一层；后识别只判页签，
+    因为「离开任务页」跟浮窗无关。
 
     Args:
         ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
@@ -50,12 +53,18 @@ def check_mission_page(
     Returns:
         断言满足时为真。
     """
-    return recognition.read_mission_page(
+    if not recognition.read_mission_page(
         ctx,
         absent=absent,
         attempts=attempts,
         interval_seconds=interval_seconds,
-    )
+    ):
+        return False
+    # 后识别只判页签消失，浮窗无关。
+    if absent:
+        return True
+    # 前识别：领奖浮窗还盖着就不算到达任务页。
+    return not recognition.read_reward_confirm_button(ctx)
 
 
 def check_claim_all_button(
