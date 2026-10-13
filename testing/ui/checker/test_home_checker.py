@@ -13,8 +13,10 @@ import numpy as np
 import pytest
 
 from autowsgr.application.ui.navigation.checker import calibration, home
+from autowsgr.application.ui.navigation.checker.home import checker as home_checker
 from autowsgr.application.ui.navigation.checker.home import constants, recognition
 from autowsgr.common.vision import RecognitionResult
+from autowsgr.dispatch.session import SessionState
 
 
 class _Match:
@@ -51,10 +53,37 @@ def _install_recognition(
     monkeypatch.setattr(recognition, 'expect_template', expect_template)
 
 
+def _fresh_session(monkeypatch: pytest.MonkeyPatch) -> SessionState:
+    """每个用例用一份干净的会话状态，避免「今天不会再弹」标记跨用例串味。"""
+    session = SessionState()
+    monkeypatch.setattr(home_checker, 'get_session', lambda: session)
+    return session
+
+
 def test_home_page_visible(monkeypatch: pytest.MonkeyPatch) -> None:
     """主页模板命中时确认在主页。"""
     _install_recognition(monkeypatch, home_visible=True)
+    _fresh_session(monkeypatch)
 
+    assert home.check_home_page(object()) is True
+
+
+def test_home_page_marks_popups_settled(monkeypatch: pytest.MonkeyPatch) -> None:
+    """确认干净主页后记下「今天不会再弹浮窗」。"""
+    _install_recognition(monkeypatch, home_visible=True)
+    session = _fresh_session(monkeypatch)
+
+    assert home.check_home_page(object()) is True
+    assert session.daily_popups_settled is True
+
+
+def test_home_page_skips_overlays_when_settled(monkeypatch: pytest.MonkeyPatch) -> None:
+    """今天已确认过不再弹时，浮窗识别整个跳过。"""
+    _install_recognition(monkeypatch, home_visible=True, news_matches=(True, True, False))
+    session = _fresh_session(monkeypatch)
+    session.mark_daily_popups_settled()
+
+    # 公告浮窗模板明明命中，但今天已确认过不会再弹，仍然直接判主页干净。
     assert home.check_home_page(object()) is True
 
 

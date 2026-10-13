@@ -15,8 +15,8 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from autowsgr.application.ui.navigation.checker.home import recognition
-from autowsgr.dispatch.session import get_session
 from autowsgr.common.system.logger import get_logger
+from autowsgr.dispatch.session import get_session
 
 
 if TYPE_CHECKING:
@@ -65,7 +65,7 @@ def check_home_page(
     Args:
         ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
         absent: 期望主页标志消失时为真，默认期望它出现。
-        attempts: 识别次数，默认只探测当前一帧。
+        attempts: 识别次数，默认按导航确认节奏（从登录页进入要等加载）。
         interval_seconds: 两次识别之间的等待秒数。
 
     Returns:
@@ -81,16 +81,20 @@ def check_home_page(
     # 后识别只判模板消失，浮窗无关。
     if absent:
         return True
+    session = get_session()
+    # 今天已确认过不会再弹：整段浮窗识别直接跳过。
+    if session.daily_popups_settled:
+        return True
     # 前识别：还有浮窗就交给浮窗页表达，这里不算到达主页。
     news_matched, _ = recognition.read_news_overlay(ctx)
     if news_matched:
         return False
-    # 处理过的浮窗不会再出现，跳过对它的检查。
-    if get_session().reward_handled:
-        return True
-    return not (
-        recognition.read_reward_overlay(ctx) or recognition.read_reward_confirm(ctx)
-    )
+    reward_visible = recognition.read_reward_overlay(ctx) or recognition.read_reward_confirm(ctx)
+    if reward_visible:
+        return False
+    # 主页干净：游戏每天第一次进主页必定弹一次，这次没弹说明今天不会再弹。
+    session.mark_daily_popups_settled()
+    return True
 
 
 def check_home_news_page(
@@ -105,16 +109,20 @@ def check_home_news_page(
     Args:
         ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
         absent: 期望公告浮窗不在时为真，默认期望它在。
-        attempts: 识别次数；浮窗识别只看当前一帧，保留参数只为与其他整页入口签名一致。
-        interval_seconds: 两次识别之间的等待秒数，同上。
+        attempts: 识别次数，默认只探测当前一帧。
+        interval_seconds: 两次识别之间的等待秒数。
 
     Returns:
         断言满足时为真。
     """
-    # 本次运行已把公告处理干净：这一步不用再干活，直接放行。
-    if get_session().news_handled:
+    # 今天已确认过不会再弹：这一步不用再干活，直接放行。
+    if get_session().daily_popups_settled:
         return True
-    matched = check_home_news_overlay(ctx).matched
+    matched = check_home_news_overlay(
+        ctx,
+        attempts=attempts,
+        interval_seconds=interval_seconds,
+    ).matched
     return (not matched) if absent else matched
 
 
@@ -133,16 +141,24 @@ def check_home_reward_page(
     Args:
         ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
         absent: 期望奖励浮窗不在当前层时为真，默认期望这一层就是它。
-        attempts: 识别次数；浮窗识别只看当前一帧，保留参数只为与其他整页入口签名一致。
-        interval_seconds: 两次识别之间的等待秒数，同上。
+        attempts: 识别次数，默认只探测当前一帧。
+        interval_seconds: 两次识别之间的等待秒数。
 
     Returns:
         断言满足时为真。
     """
-    # 本次运行已把奖励领完：这一步不用再干活，直接放行。
-    if get_session().reward_handled:
+    # 今天已确认过不会再弹：这一步不用再干活，直接放行。
+    if get_session().daily_popups_settled:
         return True
-    matched = check_home_reward_overlay(ctx) and not check_home_reward_confirm(ctx)
+    matched = check_home_reward_overlay(
+        ctx,
+        attempts=attempts,
+        interval_seconds=interval_seconds,
+    ) and not check_home_reward_confirm(
+        ctx,
+        attempts=attempts,
+        interval_seconds=interval_seconds,
+    )
     return (not matched) if absent else matched
 
 
@@ -158,29 +174,44 @@ def check_home_reward_confirm_page(
     Args:
         ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
         absent: 期望确认浮窗不在时为真，默认期望它在。
-        attempts: 识别次数；浮窗识别只看当前一帧，保留参数只为与其他整页入口签名一致。
-        interval_seconds: 两次识别之间的等待秒数，同上。
+        attempts: 识别次数，默认只探测当前一帧。
+        interval_seconds: 两次识别之间的等待秒数。
 
     Returns:
         断言满足时为真。
     """
-    # 奖励浮窗都处理完了，确认这一步也没活干，直接放行。
-    if get_session().reward_handled:
+    # 今天已确认过不会再弹：确认这一步也没活干，直接放行。
+    if get_session().daily_popups_settled:
         return True
-    matched = check_home_reward_confirm(ctx)
+    matched = check_home_reward_confirm(
+        ctx,
+        attempts=attempts,
+        interval_seconds=interval_seconds,
+    )
     return (not matched) if absent else matched
 
 
-def check_home_news_overlay(ctx: ContextHandle) -> HomeNewsOverlay:
+def check_home_news_overlay(
+    ctx: ContextHandle,
+    *,
+    attempts: int = 1,
+    interval_seconds: float = 0.5,
+) -> HomeNewsOverlay:
     """读取每日公告浮窗事实。
 
     Args:
         ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
+        attempts: 识别次数，默认只探测当前一帧。
+        interval_seconds: 两次识别之间的等待秒数。
 
     Returns:
         公告浮窗事实：是否在主页上、勾选框状态。
     """
-    matched, checked = recognition.read_news_overlay(ctx)
+    matched, checked = recognition.read_news_overlay(
+        ctx,
+        attempts=attempts,
+        interval_seconds=interval_seconds,
+    )
     state = HomeNewsOverlay(matched=matched, checked=checked)
     _log.debug(
         '[UI] 主页浮窗 → 读公告事实：matched={!r}，checked={!r}',
@@ -190,28 +221,50 @@ def check_home_news_overlay(ctx: ContextHandle) -> HomeNewsOverlay:
     return state
 
 
-def check_home_reward_overlay(ctx: ContextHandle) -> bool:
+def check_home_reward_overlay(
+    ctx: ContextHandle,
+    *,
+    attempts: int = 1,
+    interval_seconds: float = 0.5,
+) -> bool:
     """确认每日奖励浮窗是否在主页上。
 
     Args:
         ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
+        attempts: 识别次数，默认只探测当前一帧。
+        interval_seconds: 两次识别之间的等待秒数。
 
     Returns:
         奖励浮窗存在时为真。
     """
-    return recognition.read_reward_overlay(ctx)
+    return recognition.read_reward_overlay(
+        ctx,
+        attempts=attempts,
+        interval_seconds=interval_seconds,
+    )
 
 
-def check_home_reward_confirm(ctx: ContextHandle) -> bool:
+def check_home_reward_confirm(
+    ctx: ContextHandle,
+    *,
+    attempts: int = 1,
+    interval_seconds: float = 0.5,
+) -> bool:
     """确认每日奖励确认浮窗是否在主页上。
 
     Args:
         ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
+        attempts: 识别次数，默认只探测当前一帧。
+        interval_seconds: 两次识别之间的等待秒数。
 
     Returns:
         确认浮窗存在时为真。
     """
-    return recognition.read_reward_confirm(ctx)
+    return recognition.read_reward_confirm(
+        ctx,
+        attempts=attempts,
+        interval_seconds=interval_seconds,
+    )
 
 
 def read_news_checkbox_center(ctx: ContextHandle) -> tuple[float, float] | None:

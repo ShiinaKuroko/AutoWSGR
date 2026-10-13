@@ -99,6 +99,12 @@ def _settle_to_sidebar(ctx: ContextHandle, **_: object) -> None:
     HomePage(ctx).go_to(Target.SIDEBAR)
 
 
+# 从别的页面退回主页时画面还在切换；给侧边栏几帧时间稳定下来再判，
+# 否则会拍到还没渲染出来的侧边栏，漏掉"该把它收起来"这一步。
+_SIDEBAR_SETTLE_ATTEMPTS = 3
+_SIDEBAR_SETTLE_INTERVAL_SECONDS = 0.3
+
+
 def _settle_to_home(ctx: ContextHandle, **_: object) -> None:
     """清完浮窗后回主页：奖励确认浮窗还在就点掉，停在侧边栏就关掉它。
 
@@ -108,8 +114,14 @@ def _settle_to_home(ctx: ContextHandle, **_: object) -> None:
         ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
     """
     _confirm_daily_reward(ctx)
-    if sidebar.check_sidebar_page(ctx, attempts=1):
+    if sidebar.check_sidebar_page(
+        ctx,
+        attempts=_SIDEBAR_SETTLE_ATTEMPTS,
+        interval_seconds=_SIDEBAR_SETTLE_INTERVAL_SECONDS,
+    ):
         SidebarPage(ctx).go_back()
+        # 收起同样有动画，等它真的让开再交给到达确认。
+        sidebar.check_sidebar_page(ctx, absent=True)
 
 
 def _claim_daily_reward(ctx: ContextHandle, **_: object) -> None:

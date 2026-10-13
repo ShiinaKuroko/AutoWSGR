@@ -11,6 +11,8 @@
 
 from __future__ import annotations
 
+from datetime import date
+
 
 class SessionState:
     """程序运行期内的导航会话状态。"""
@@ -21,8 +23,7 @@ class SessionState:
 
     def __init__(self) -> None:
         self._server_selected = False
-        self._news_handled = False
-        self._reward_handled = False
+        self._popups_settled_on: date | None = None
         self._pages: list[str] = []
 
     @property
@@ -35,22 +36,17 @@ class SessionState:
         self._server_selected = True
 
     @property
-    def news_handled(self) -> bool:
-        """本次运行是否已处理过每日公告浮窗。"""
-        return self._news_handled
+    def daily_popups_settled(self) -> bool:
+        """今天是否已经确认过「不会再弹每日浮窗」。
 
-    def mark_news_handled(self) -> None:
-        """标记每日公告浮窗已处理干净；处理失败时不调用。"""
-        self._news_handled = True
+        游戏每天第一次进主页必定弹一次，确认过之后当天不会再弹。标记带日期，
+        跨过零点后自动失效，第二天重新确认——不需要定时清除。
+        """
+        return self._popups_settled_on == date.today()  # noqa: DTZ011  # 本地墙上时钟
 
-    @property
-    def reward_handled(self) -> bool:
-        """本次运行是否已处理过每日奖励浮窗与它的确认浮窗。"""
-        return self._reward_handled
-
-    def mark_reward_handled(self) -> None:
-        """标记每日奖励浮窗已处理干净；处理失败时不调用。"""
-        self._reward_handled = True
+    def mark_daily_popups_settled(self) -> None:
+        """记下今天已经确认过不会再弹每日浮窗。"""
+        self._popups_settled_on = date.today()  # noqa: DTZ011  # 本地墙上时钟
 
     def current_page(self) -> str | None:
         """返回导航栈顶的页面值。"""

@@ -38,6 +38,10 @@ _TEMPLATE_CONFIDENCE = 0.85
 # ── 页面事实读取 ────────────────────────────────────────────────────────────────────
 
 
+# 浮窗模板一帧就能判；多读只会让每次经过主页都白等。
+_PROBE_ATTEMPTS = 1
+
+
 def read_home_page(
     ctx: ContextHandle,
     *,
@@ -73,13 +77,20 @@ def read_home_page(
     return result.satisfied
 
 
-def read_news_overlay(ctx: ContextHandle) -> tuple[bool, bool | None]:
+def read_news_overlay(
+    ctx: ContextHandle,
+    *,
+    attempts: int = _PROBE_ATTEMPTS,
+    interval_seconds: float = 0.5,
+) -> tuple[bool, bool | None]:
     """读取每日公告浮窗事实。
 
     一次识别同时匹配公告文字与勾选框，因此浮窗状态和勾选状态来自同一帧。
 
     Args:
         ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
+        attempts: 识别次数，默认只探测当前一帧。
+        interval_seconds: 两次识别之间的等待秒数。
 
     Returns:
         二元组：公告浮窗是否在；勾选框状态（已勾选为真、未勾选为假、没读到为空）。
@@ -111,6 +122,8 @@ def read_news_overlay(ctx: ContextHandle) -> tuple[bool, bool | None]:
         template=templates,
         roi=rois,
         confidence=_TEMPLATE_CONFIDENCE,
+        attempts=attempts,
+        interval_seconds=interval_seconds,
     )
     text_match, checked_match, unchecked_match = result.observation
     # 勾选框只属于公告浮窗，因此任一模板命中都说明公告浮窗仍在主页上。
@@ -129,13 +142,20 @@ def read_news_overlay(ctx: ContextHandle) -> tuple[bool, bool | None]:
     return matched, checked
 
 
-def read_reward_overlay(ctx: ContextHandle) -> bool:
+def read_reward_overlay(
+    ctx: ContextHandle,
+    *,
+    attempts: int = _PROBE_ATTEMPTS,
+    interval_seconds: float = 0.5,
+) -> bool:
     """判断每日奖励浮窗是否在主页上。
 
     奖励文字或领取按钮任一命中即算浮窗存在。
 
     Args:
         ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
+        attempts: 识别次数，默认只探测当前一帧。
+        interval_seconds: 两次识别之间的等待秒数。
 
     Returns:
         浮窗存在时为真。
@@ -158,16 +178,25 @@ def read_reward_overlay(ctx: ContextHandle) -> bool:
         template=templates,
         roi=rois,
         confidence=_TEMPLATE_CONFIDENCE,
+        attempts=attempts,
+        interval_seconds=interval_seconds,
     )
     _log.debug('[UI] 主页识别 → 读奖励浮窗：visible={!r}', result.satisfied)
     return result.satisfied
 
 
-def read_reward_confirm(ctx: ContextHandle) -> bool:
+def read_reward_confirm(
+    ctx: ContextHandle,
+    *,
+    attempts: int = _PROBE_ATTEMPTS,
+    interval_seconds: float = 0.5,
+) -> bool:
     """判断每日奖励确认浮窗是否在主页上。
 
     Args:
         ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
+        attempts: 识别次数，默认只探测当前一帧。
+        interval_seconds: 两次识别之间的等待秒数。
 
     Returns:
         确认浮窗存在时为真。
@@ -181,6 +210,8 @@ def read_reward_confirm(ctx: ContextHandle) -> bool:
         ),
         roi=constants.REWARD_CONFIRM_BUTTON_ROI,
         confidence=_TEMPLATE_CONFIDENCE,
+        attempts=attempts,
+        interval_seconds=interval_seconds,
     )
     _log.debug('[UI] 主页识别 → 读奖励确认浮窗：visible={!r}', result.satisfied)
     return result.satisfied

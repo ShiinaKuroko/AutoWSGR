@@ -27,7 +27,7 @@ DESC = '导航链路: 建栈后一条长链路串起全部边，统计覆盖率'
 # 回主页统一经过每日浮窗链（公告 → 奖励 → 奖励确认 → 主页），因此链路上
 # 按需要插入 HOME，让"回主页"成为真实的一步而不是隐含行为。
 CHAIN = (
-    'HOME',                 # 起点（建栈后）
+    'HOME',  # 起点（建栈后）
     # ── 后院域：主页进出 + 四个二级页互跳（跨二级页经后院主页中转）──
     'BACKYARD',
     'CANTEEN',
@@ -84,11 +84,10 @@ def add_arguments(parser: Any) -> None:
         help='从登录页开始（需要游戏停在登录页或 --cold 冷启动）',
     )
     parser.add_argument(
-        '--reward-handled',
+        '--popups-settled',
         action='store_true',
-        help='注入「每日奖励本次运行已处理」标记（今天已领过时用）',
+        help='注入「今天已确认不会再弹每日浮窗」标记（今天已处理过时用）',
     )
-
 
 
 def run(rt: Any) -> bool:
@@ -102,11 +101,10 @@ def run(rt: Any) -> bool:
     session = get_session()
     navigator = NavigationService(ctx, session=session)
 
-    if rt.args.reward_handled:
-        # 注入生产同款标记：每日奖励今天已经领过，回主页时这一段不会再出现。
-        session.mark_reward_handled()
-        rt.note('已注入每日奖励处理标记')
-
+    if rt.args.popups_settled:
+        # 注入生产同款标记：今天已确认不会再弹，回主页时整段浮窗识别会被跳过。
+        session.mark_daily_popups_settled()
+        rt.note('已注入每日浮窗处理标记')
 
     nodes = [p for p in PageName if registry.get_checker(p) is not None]
     all_edges = {edge.description for p in nodes for edge in registry.get_targets(p)}
@@ -133,9 +131,14 @@ def run(rt: Any) -> bool:
             for desc in edges:
                 walked[desc] = walked.get(desc, 0) + 1
             label = source if source is not None else '(栈空)'
-            records.append({'from': label, 'to': name, 'steps': len(path), 'ok': True, 'ms': elapsed})
-            print(f'PASS [{index}/{len(chain)}] {label} -> {name} ({len(path)}步)  {elapsed}ms', flush=True)
-        except Exception as exc:  # noqa: BLE001 - 记录后中断链路
+            records.append(
+                {'from': label, 'to': name, 'steps': len(path), 'ok': True, 'ms': elapsed}
+            )
+            print(
+                f'PASS [{index}/{len(chain)}] {label} -> {name} ({len(path)}步)  {elapsed}ms',
+                flush=True,
+            )
+        except Exception as exc:
             elapsed = int((time.monotonic() - t0) * 1000)
             detail = {
                 'from': source,
@@ -148,7 +151,10 @@ def run(rt: Any) -> bool:
             }
             failures.append(detail)
             records.append(detail)
-            print(f'FAIL [{index}/{len(chain)}] {source} -> {name}  {elapsed}ms  {detail["error"]}', flush=True)
+            print(
+                f'FAIL [{index}/{len(chain)}] {source} -> {name}  {elapsed}ms  {detail["error"]}',
+                flush=True,
+            )
             print(f'     路径: {edges}', flush=True)
             # 链路断在这里：栈已经不可信，继续走只会带病往下，直接停。
             break
@@ -156,9 +162,12 @@ def run(rt: Any) -> bool:
     total_ms = int((time.monotonic() - started) * 1000)
     missed = sorted(all_edges - set(walked))
 
-    print('', flush=True)
+    print(flush=True)
     print('=' * 72, flush=True)
-    print(f'链路 {len(chain)} 步  完成 {len(records) - len(failures)}  失败 {len(failures)}', flush=True)
+    print(
+        f'链路 {len(chain)} 步  完成 {len(records) - len(failures)}  失败 {len(failures)}',
+        flush=True,
+    )
     print(f'边覆盖 {len(walked)} / {len(all_edges)}', flush=True)
     if missed:
         print('未走到的边:', flush=True)
