@@ -142,7 +142,8 @@ def check_event_map_page(
 ) -> bool:
     """确认当前是否在活动地图页。
 
-    判断标准：地图标题区域识别到本期地图名。章节浮窗态由浮窗入口单独确认。
+    判断标准：模式按钮模板命中任意一张。浮窗会压暗整页、让两张按钮模板一起失效，
+    因此"按钮还亮着"同时说明页面干净；地图标题只作参考，读不到不算失败。
     省略 event_type 时只判页面身份，供导航器定位当前页使用（此时任务可能没绑活动）。
 
     Args:
@@ -160,17 +161,18 @@ def check_event_map_page(
     """
     if event_type is not None:
         calibration.require_activity(event_type, constants.ACTIVITY)
-    # 只回答「这一帧是不是活动地图」；章节浮窗盖在地图上时由导航器按页面深度
-    # 判定当前层，checker 不需要排除它。
-    present = (
-        recognition.read_map_title(
-            ctx,
-            attempts=attempts,
-            interval_seconds=interval_seconds,
-        )
-        is not None
+    button_mode = recognition.read_mode_button(
+        ctx,
+        attempts=attempts,
+        interval_seconds=interval_seconds,
     )
-    return present != absent
+    # 按钮不命中时，要么是浮窗压着，要么是困难尚未开放——只有后者还是活动地图页，
+    # 用"没有浮窗 + 地图名是普通名"补上这一种。
+    open_map = button_mode is not None or (
+        recognition.read_map_title(ctx) is recognition.EventMode.NORMAL
+        and not recognition.wait_sortie_overlay(ctx)
+    )
+    return open_map != absent
 
 
 def check_event_entry(ctx: ContextHandle, *, event_type: str) -> bool:

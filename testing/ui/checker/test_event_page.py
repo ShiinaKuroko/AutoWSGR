@@ -83,6 +83,38 @@ def test_event_rejects_other_activity() -> None:
         stage_push.check_event_entry(object(), event_type='assault')
 
 
+def test_map_page_accepts_visible_mode_button(monkeypatch: pytest.MonkeyPatch) -> None:
+    """模式按钮还亮着 = 干净地图页。"""
+    _install_recognition(monkeypatch, button_matches=(True, False))
+
+    assert stage_push.check_event_map_page(object()) is True
+
+
+def test_map_page_rejects_overlay_even_with_readable_title(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """浮窗压暗按钮时，读得到地图名也不算干净地图页。"""
+    _install_recognition(monkeypatch, overlay_open=True, map_texts=('最强之舟',))
+
+    assert stage_push.check_event_map_page(object()) is False
+
+
+def test_map_page_accepts_normal_title_without_button(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """按钮不命中且没有浮窗时，普通地图名说明困难尚未开放。"""
+    _install_recognition(monkeypatch, map_texts=('最强之舟',))
+
+    assert stage_push.check_event_map_page(object()) is True
+
+
+def test_map_page_honours_absent(monkeypatch: pytest.MonkeyPatch) -> None:
+    """absent 翻转断言方向。"""
+    _install_recognition(monkeypatch, button_matches=(True, False))
+
+    assert stage_push.check_event_map_page(object(), absent=True) is False
+
+
 def test_map_state_resolves_hard_map_from_opposite_evidence(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

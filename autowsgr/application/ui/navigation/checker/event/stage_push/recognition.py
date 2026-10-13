@@ -121,11 +121,18 @@ def read_event_entry(ctx: ContextHandle) -> bool:
     return result.satisfied
 
 
-def read_mode_button(ctx: ContextHandle) -> EventMode | None:
+def read_mode_button(
+    ctx: ContextHandle,
+    *,
+    attempts: int = _PROBE_ATTEMPTS,
+    interval_seconds: float = 0.5,
+) -> EventMode | None:
     """读取模式按钮显示的模式。
 
     Args:
         ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
+        attempts: 识别次数，默认只探测当前一帧。
+        interval_seconds: 两次识别之间的等待秒数。
 
     Returns:
         模式按钮指向的难度；两张模板都没命中时为 None。
@@ -145,7 +152,8 @@ def read_mode_button(ctx: ContextHandle) -> EventMode | None:
         template=(normal_template, hard_template),
         roi=constants.MODE_ROI,
         confidence=_TEMPLATE_CONFIDENCE,
-        attempts=_PROBE_ATTEMPTS,
+        attempts=attempts,
+        interval_seconds=interval_seconds,
     )
     normal_match, hard_match = result.observation
     button_mode = None
