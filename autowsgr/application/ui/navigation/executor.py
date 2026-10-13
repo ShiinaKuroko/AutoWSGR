@@ -64,7 +64,6 @@ class NavigationExecutor:
         """前进：按路径从当前页走向目标页。
 
         每跳依次执行：边的动作 → 到达确认，最后把目标页压进导航栈。
-        出发页由栈顶给出，到达确认据此判断这次跳转的方向。
 
         Args:
             path: 已经算好的路径。
@@ -80,13 +79,12 @@ class NavigationExecutor:
             tab = path[0].tab
         for index, edge in enumerate(path):
             _log.debug('[UI] 导航执行 → 前进：edge={!r}', edge.description)
-            source = self._session.current_page()
             edge.action(self._ctx, **params)
             # 标签只落在最后一跳：中间跳的目标页面没有这个标签，也不该切。
             if tab is not None and index == len(path) - 1:
                 self._enter_tab(edge.target, tab)
             else:
-                self._confirm_arrival(edge, source)
+                self._confirm_arrival(edge)
             self._session.push_page(edge.target.value)
 
     def walk_backward(self, path: tuple[NavTarget, ...]) -> None:
@@ -104,9 +102,8 @@ class NavigationExecutor:
         """
         for edge in path:
             _log.debug('[UI] 导航执行 → 后退：edge={!r}', edge.description)
-            source = self._session.current_page()
             edge.action(self._ctx)
-            self._confirm_arrival(edge, source)
+            self._confirm_arrival(edge)
 
     # ── 页面层识别 ──────────────────────────────────────────────────────────
 
@@ -171,33 +168,18 @@ class NavigationExecutor:
             entry.description,
         )
 
-    def _confirm_arrival(self, edge: NavTarget, source: str | None) -> None:
-        """到达确认：目标页出现；从更深的层退回时，额外确认出发页已经收起。
+    def _confirm_arrival(self, edge: NavTarget) -> None:
+        """到达确认：目标页出现，且它确实在最上面。
 
-        栈顶给出出发页，比一比两侧的深度就知道这次跳转的方向：
-
-        - **进入覆盖层**（浅 → 深）：目标盖住出发页，出发页的模板仍在是正常的，
-          所以只确认目标出现，不去问出发页；
-        - **退回更浅的层**（深 → 浅）：出发页理应收起，它没有消失就说明没退出来；
-        - 同层换页与上面第一种一样，只确认目标出现。
-
-        两个确认入口各自带重试（最终透传到 common.vision 的轮询），负责等切换完成。
+        目标页的识别入口自带重试（最终透传到 common.vision 的轮询），负责等切换完成；
+        随后按页面深度扫一遍，确认没有别的覆盖层还盖在目标页上面。
 
         Args:
             edge: 刚执行完的边。
-            source: 出发页的页面值；栈空时为 None。
 
         Raises:
-            NavigationError: 前识别未通过，或未退出发出页。
+            NavigationError: 目标页没出现，或当前层不是目标页。
         """
-        if source is not None:
-            source_page = PageName(source)
-            if registry.depth_of(source_page) > registry.depth_of(edge.target):
-                source_confirm = registry.get_checker(source_page)
-                if source_confirm is not None and not source_confirm(self._ctx, absent=True):
-                    raise NavigationError(
-                        f'到达确认失败：{edge.description!r}，仍未离开 {source_page.value!r}'
-                    )
         confirm = registry.get_checker(edge.target)
         if confirm is None or not edge.confirm:
             _log.debug('[UI] 导航执行 → 到达确认：page={!r}，结果=跳过', edge.target.value)
