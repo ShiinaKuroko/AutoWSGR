@@ -17,12 +17,22 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING
 
+from loguru import logger
+
 from autowsgr.application.ui.navigation import registry
 from autowsgr.application.ui.navigation.types import NavigationError, PageName
 from autowsgr.common.system.logger import get_logger
 
 
 _log = get_logger('ui.navigation.executor')
+
+
+# 全层扫描是「试问」：一次要问遍所有页面，绝大多数不会命中。识别细节与各检查器的
+# 读事实日志在扫描期间整体静默，只由调用方保留一条汇总。
+_QUIET_DURING_PROBE = (
+    'autowsgr.common.vision',
+    'autowsgr.application.ui.navigation.checker',
+)
 
 
 # 覆盖层页面：每日三个浮窗。它们盖在底层页面上，不参与「我在哪一页」的探测。
@@ -128,19 +138,25 @@ class NavigationExecutor:
             key=registry.depth_of,
             reverse=True,
         )
-        for page in by_depth:
-            confirm = registry.get_checker(page)
-            if confirm is None:
-                continue
-            try:
-                matched = confirm(self._ctx, attempts=1, interval_seconds=0.2)
-            except Exception:
-                # 某些入口需要任务额外提供上下文（如活动玩法），探测时没有，
-                # 报错就当它不匹配，继续看下一层。
-                matched = False
-            if matched:
-                return page
-        return None
+        for name in _QUIET_DURING_PROBE:
+            logger.disable(name)
+        try:
+            for page in by_depth:
+                confirm = registry.get_checker(page)
+                if confirm is None:
+                    continue
+                try:
+                    matched = confirm(self._ctx, attempts=1, interval_seconds=0.2)
+                except Exception:
+                    # 某些入口需要任务额外提供上下文（如活动玩法），探测时没有，
+                    # 报错就当它不匹配，继续看下一层。
+                    matched = False
+                if matched:
+                    return page
+            return None
+        finally:
+            for name in _QUIET_DURING_PROBE:
+                logger.enable(name)
 
     def _enter_tab(self, page: PageName, tab: str) -> None:
         """切到目标页内的标签，并用该标签自己的 checker 确认。

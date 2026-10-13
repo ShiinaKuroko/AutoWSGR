@@ -281,22 +281,17 @@ def _retry[T](
         # 2. 按调用方预期判定本次识别，满足即返回。
         observation = observe(screenshot)
         if accept(observation):
-            _log.debug(
-                '[VISION] 识别流程 → 确认结果：task={!r}，attempt={}，result={!r}',
-                task,
-                attempt,
-                'satisfied',
-            )
+            # 一次就过是常态，不记；只有等过重试才留一行。
+            if attempt > 1:
+                _log.debug(
+                    '[VISION] 识别流程 → 重试后满足：task={!r}，attempt={}，result={!r}',
+                    task,
+                    attempt,
+                    'satisfied',
+                )
             return RecognitionResult(True, observation, screenshot)
         # 3. 未满足且仍有剩余次数时等待后重试，最终结果交给调用方处理。
         if attempt < attempts:
-            _log.debug(
-                '[VISION] 识别流程 → 重试：task={!r}，attempt={}，max_attempts={}，reason={!r}',
-                task,
-                attempt,
-                attempts,
-                'expectation_not_met',
-            )
             time.sleep(interval_seconds)
     _log.debug(
         '[VISION] 识别流程 → 确认结果：task={!r}，max_attempts={}，result={!r}',

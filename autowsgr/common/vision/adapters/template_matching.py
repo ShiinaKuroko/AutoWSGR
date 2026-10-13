@@ -270,12 +270,13 @@ def match_template(
         模板匹配结果。
     """
     match_result = _MATCHER.match(image, template, roi=roi, confidence=confidence)
-    _log.debug(
-        '[VISION] 模板匹配 → 匹配结果：template_path={!r}, score={:.3f}, matched={}',
-        match_result.template_path,
-        match_result.score,
-        match_result.matched,
-    )
+    # 未命中是常态（一次扫描要问遍所有页面），只记命中，避免每次经过页面都刷屏。
+    if match_result.matched:
+        _log.debug(
+            '[VISION] 模板匹配 → 命中：template_path={!r}, score={:.3f}',
+            match_result.template_path,
+            match_result.score,
+        )
     return match_result
 
 

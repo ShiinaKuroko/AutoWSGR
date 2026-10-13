@@ -18,11 +18,9 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING
 
-from loguru import logger
-
 from autowsgr.application.ui.navigation import registry
-from autowsgr.application.ui.navigation.executor import NavigationExecutor
 from autowsgr.application.ui.navigation.checker import login
+from autowsgr.application.ui.navigation.executor import NavigationExecutor
 from autowsgr.application.ui.navigation.types import (
     ManualUpdateRequiredError,
     NavigationError,
@@ -49,14 +47,6 @@ _PROBE_ATTEMPTS = 3
 # 等登录页出现的最大识别次数，以及相邻两次识别的间隔秒数。
 _LOGIN_PAGE_ATTEMPTS = 60
 _STARTUP_INTERVAL_SECONDS = 1.0
-
-
-# 遍历识别期间静默的模块：识别细节与每个检查器的读事实日志，
-# 一次扫描会刷出上百条，只保留本次扫描的汇总结果。
-_QUIET_DURING_PROBE = (
-    'autowsgr.common.vision',
-    'autowsgr.application.ui.navigation.checker',
-)
 
 
 class NavigationService:
@@ -160,7 +150,6 @@ class NavigationService:
 
     # ── 内部实现 ────────────────────────────────────────────────────────────
 
-
     def _current_page(self) -> PageName:
         """返回当前页面：优先取导航栈顶，栈空时遍历确认入口识别一次。
 
@@ -177,13 +166,7 @@ class NavigationService:
         # 栈空：交给执行器按页面深度扫一遍（覆盖层更深，会先被认出来）。
         # 扫描期间的识别细节日志整体静默，结束后只留一条汇总。
         started = time.monotonic()
-        for name in _QUIET_DURING_PROBE:
-            logger.disable(name)
-        try:
-            hit = self._executor.detect_layer()
-        finally:
-            for name in _QUIET_DURING_PROBE:
-                logger.enable(name)
+        hit = self._executor.detect_layer()
         elapsed_ms = int((time.monotonic() - started) * 1000)
 
         if hit is None:
