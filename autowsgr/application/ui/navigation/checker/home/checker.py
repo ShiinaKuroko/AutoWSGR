@@ -15,6 +15,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from autowsgr.application.ui.navigation.checker.home import recognition
+from autowsgr.dispatch.session import get_session
 from autowsgr.common.system.logger import get_logger
 
 
@@ -84,6 +85,9 @@ def check_home_page(
     news_matched, _ = recognition.read_news_overlay(ctx)
     if news_matched:
         return False
+    # 处理过的浮窗不会再出现，跳过对它的检查。
+    if get_session().reward_handled:
+        return True
     return not (
         recognition.read_reward_overlay(ctx) or recognition.read_reward_confirm(ctx)
     )
@@ -107,6 +111,9 @@ def check_home_news_page(
     Returns:
         断言满足时为真。
     """
+    # 本次运行已把公告处理干净：这一步不用再干活，直接放行。
+    if get_session().news_handled:
+        return True
     matched = check_home_news_overlay(ctx).matched
     return (not matched) if absent else matched
 
@@ -132,6 +139,9 @@ def check_home_reward_page(
     Returns:
         断言满足时为真。
     """
+    # 本次运行已把奖励领完：这一步不用再干活，直接放行。
+    if get_session().reward_handled:
+        return True
     matched = check_home_reward_overlay(ctx) and not check_home_reward_confirm(ctx)
     return (not matched) if absent else matched
 
@@ -154,6 +164,9 @@ def check_home_reward_confirm_page(
     Returns:
         断言满足时为真。
     """
+    # 奖励浮窗都处理完了，确认这一步也没活干，直接放行。
+    if get_session().reward_handled:
+        return True
     matched = check_home_reward_confirm(ctx)
     return (not matched) if absent else matched
 

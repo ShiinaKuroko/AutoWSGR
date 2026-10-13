@@ -8,7 +8,7 @@
 - event.calibration：加载本活动的模板。
 - event.stage_push.constants：提供活动标识、识别坐标与模板文件名。
 
-边界：只把画面读成事实并解析识别文本；活动数据由调用方传入，本模块不读文件、不组装页面结论。
+边界：只把画面读成事实并解析识别文本；本期活动的识别期望文本留在本模块，不读文件、不组装页面结论。
 """
 
 from __future__ import annotations
@@ -24,8 +24,7 @@ from autowsgr.common.vision import expect_ocr, expect_template, expect_template_
 
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping, Sequence
-    from typing import Any
+    from collections.abc import Sequence
 
     from autowsgr.dispatch.context import ContextHandle
 
@@ -43,6 +42,21 @@ class EventMode(StrEnum):
     HARD = 'hard'
 
 
+# ── 本期活动识别期望 ────────────────────────────────────────────────────────────────
+
+# 地图名与关卡名，换期只改这一段。困难模式的标题在本名后追加"困难"二字；
+# 括号形态不稳定，因此不参与比对，只判"标题 + 困难"。
+_MAP_NAME = '最强之舟'
+_STAGE_NAMES = {
+    1: '天降火雨',
+    2: '鹰群出击',
+    3: '追逐跳跃',
+    4: '火力全开',
+    5: '四面合围',
+    6: '海空鏖战',
+}
+
+
 # ── 识别判定参数 ────────────────────────────────────────────────────────────────────
 
 # 模板匹配命中阈值。
@@ -54,7 +68,7 @@ _HARD_MARKER = '困难'
 # 标题归一化时丢弃的装饰字符，保留数字、字母和汉字。
 _TITLE_DECORATION = re.compile(r'[^0-9a-zA-Z一-鿿]+')
 # 归一化标题里的关卡编号形式，大小写不敏感。
-_STAGE_TITLE_PATTERN = re.compile(r'ex(d+)')
+_STAGE_TITLE_PATTERN = re.compile(r'ex(\d+)')
 
 
 # ── 识别文本解析 ────────────────────────────────────────────────────────────────────
@@ -65,30 +79,18 @@ def _normalize_title(text: str) -> str:
     return _TITLE_DECORATION.sub('', text).lower()
 
 
-def _parse_stage_number(stage: str) -> int:
-    """从章节标识里取出编号。"""
-    digits = ''.join(char for char in stage if char.isdigit())
-    if not digits:
-        raise ValueError(f'章节标识缺少编号: {stage!r}')
-    return int(digits)
-
-
 def _parse_title_stage_number(title: str) -> int | None:
     """从归一化标题里取出关卡编号。"""
     matched = _STAGE_TITLE_PATTERN.match(title)
     return int(matched.group(1)) if matched else None
 
 
-def _calculate_mode_from_title(
-    title_texts: Sequence[str],
-    data: Mapping[str, Any],
-) -> EventMode | None:
+def _calculate_mode_from_title(title_texts: Sequence[str]) -> EventMode | None:
     """由地图标题文本判断难度。"""
-    normal_name = str(data['map_name']['normal'])
     # 困难标记是困难模式独有的文字，先判它，避免名称前缀被普通地图名抢先命中。
     if any(_HARD_MARKER in text for text in title_texts):
         return EventMode.HARD
-    if any(normal_name in text for text in title_texts):
+    if any(_MAP_NAME in text for text in title_texts):
         return EventMode.NORMAL
     return None
 
@@ -157,7 +159,6 @@ def read_mode_button(ctx: ContextHandle) -> EventMode | None:
 
 def read_map_title(
     ctx: ContextHandle,
-    data: Mapping[str, Any],
     *,
     attempts: int = _PROBE_ATTEMPTS,
     interval_seconds: float = 0.5,
@@ -166,7 +167,6 @@ def read_map_title(
 
     Args:
         ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
-        data: 本期活动数据，提供两种难度的地图名。
         attempts: 识别次数，默认只探测当前一帧。
         interval_seconds: 两次识别之间的等待秒数。
 
@@ -175,23 +175,22 @@ def read_map_title(
     """
     result = expect_ocr(
         ctx,
-        expect=(data['map_name']['normal'], data['map_name']['hard']),
+        expect=(_MAP_NAME, f'{_MAP_NAME}（困难）'),
         roi=constants.MAP_NAME_ROI,
         attempts=attempts,
         interval_seconds=interval_seconds,
     )
     title_texts = [detection.recognized_text for detection in result.observation]
-    title_mode = _calculate_mode_from_title(title_texts, data)
+    title_mode = _calculate_mode_from_title(title_texts)
     _log.debug('[UI] 活动识别 → 读地图标题：title_mode={!r}，texts={!r}', title_mode, title_texts)
     return title_mode
 
 
-def read_stage_title_texts(ctx: ContextHandle, data: Mapping[str, Any]) -> list[str]:
+def read_stage_title_texts(ctx: ContextHandle) -> list[str]:
     """读取关卡标题文本。
 
     Args:
         ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
-        data: 本期活动数据，提供关卡名称候选。
 
     Returns:
         关卡标题的识别文本。
@@ -199,7 +198,7 @@ def read_stage_title_texts(ctx: ContextHandle, data: Mapping[str, Any]) -> list[
     # 标题由"EX+编号+名称"组成，无法用固定文本等待，因此用候选集合触发一次读取后自行判定。
     result = expect_ocr(
         ctx,
-        expect=tuple(data['stages'].values()),
+        expect=tuple(_STAGE_NAMES.values()),
         roi=constants.STAGE_TITLE_ROI,
         attempts=_PROBE_ATTEMPTS,
     )
@@ -297,12 +296,11 @@ def read_sortie_prepare_center(ctx: ContextHandle) -> tuple[float, float] | None
     return center
 
 
-def read_sortie_overlay(ctx: ContextHandle, data: Mapping[str, Any]) -> bool:
+def read_sortie_overlay(ctx: ContextHandle) -> bool:
     """判断节点浮窗当前是否已经打开。
 
     Args:
         ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
-        data: 本期活动数据，用于补强浮窗判据。
 
     Returns:
         浮窗已经打开时为真。
@@ -319,30 +317,34 @@ def read_sortie_overlay(ctx: ContextHandle, data: Mapping[str, Any]) -> bool:
         attempts=_PROBE_ATTEMPTS,
     )
     # 浮窗打开时关卡标题才出现，用标题文字补强模板判据。
-    overlay_open = result.satisfied or bool(read_stage_title_texts(ctx, data))
+    overlay_open = result.satisfied or bool(read_stage_title_texts(ctx))
     _log.debug('[UI] 活动识别 → 判节点浮窗：overlay_open={!r}', overlay_open)
     return overlay_open
 
 
-def is_stage_title_matched(title_texts: Sequence[str], stage: str, data: Mapping[str, Any]) -> bool:
+def is_stage_title_matched(title_texts: Sequence[str], *, node: int, hard: bool) -> bool:
     """判断关卡标题是否指向目标章节。
 
     Args:
         title_texts: 关卡标题的识别文本。
-        stage: 目标章节标识，例如 EX7。
-        data: 本期活动数据，提供章节名称。
+        node: 目标章节在地图上的落点序号，1 到 6。
+        hard: 目标章节是否属于困难模式。
 
     Returns:
-        标题命中目标章节的编号或名称时为真。
+        标题命中目标章节时为真：模式一致，且编号或名称任一命中。
     """
-    stage_number = _parse_stage_number(stage)
-    stage_name = _normalize_title(str(data['stages'][stage]))
+    stage_name = _STAGE_NAMES[node]
+    stage_number = node + (len(_STAGE_NAMES) if hard else 0)
     for text in title_texts:
         normalized = _normalize_title(text)
-        # 关卡编号和章节名称任一命中即算匹配，兼容标题括号被 OCR 截断的情况。
+        # 普通与困难共用同一批章节名，只有 "困难" 二字能区分两者：模式不符直接排除，
+        # 否则同名困难章节会被普通章节的判据抢先命中。
+        if (_HARD_MARKER in normalized) != hard:
+            continue
+        # 关卡编号和章节名称任一命中即算匹配，兼容标题编号被 OCR 丢字的情况。
         if _parse_title_stage_number(normalized) == stage_number:
             return True
-        if stage_name and stage_name in normalized:
+        if stage_name in normalized:
             return True
     return False
 

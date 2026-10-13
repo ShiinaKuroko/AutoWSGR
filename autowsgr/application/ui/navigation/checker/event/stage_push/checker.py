@@ -13,6 +13,7 @@
 
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -159,18 +160,17 @@ def check_event_map_page(
     """
     if event_type is not None:
         calibration.require_activity(event_type, constants.ACTIVITY)
-    data = calibration.load_activity_data(constants.ACTIVITY, constants.PERIOD)
     # 只回答「这一帧是不是活动地图」；章节浮窗盖在地图上时由导航器按页面深度
     # 判定当前层，checker 不需要排除它。
-    return (
+    present = (
         recognition.read_map_title(
             ctx,
-            data,
             attempts=attempts,
             interval_seconds=interval_seconds,
         )
         is not None
     )
+    return present != absent
 
 
 def check_event_entry(ctx: ContextHandle, *, event_type: str) -> bool:
@@ -198,14 +198,13 @@ def read_event_map_state(ctx: ContextHandle, *, event_type: str) -> EventMapStat
         活动地图页面事实；浮窗态、矛盾或读不到时结论为空。
     """
     calibration.require_activity(event_type, constants.ACTIVITY)
-    data = calibration.load_activity_data(constants.ACTIVITY, constants.PERIOD)
 
     # 1. 分别读取模式按钮和地图标题，两者都是当前难度的独立证据。
     button_mode = recognition.read_mode_button(ctx)
-    title_mode = recognition.read_map_title(ctx, data)
+    title_mode = recognition.read_map_title(ctx)
 
     # 2. 浮窗会压暗整页并让模式按钮模板失效，因此浮窗态不下难度结论。
-    on_clean_map = not recognition.read_sortie_overlay(ctx, data)
+    on_clean_map = not recognition.read_sortie_overlay(ctx)
 
     state = EventMapState(
         on_clean_map=on_clean_map,
@@ -225,6 +224,37 @@ def read_event_map_state(ctx: ContextHandle, *, event_type: str) -> EventMapStat
     return state
 
 
+def wait_event_mode(
+    ctx: ContextHandle,
+    *,
+    event_type: str,
+    mode: EventMode,
+    attempts: int = _NAV_CONFIRM_ATTEMPTS,
+    interval_seconds: float = _NAV_CONFIRM_INTERVAL_SECONDS,
+) -> bool:
+    """等地图难度变成目标难度。
+
+    切换本身很快，但画面稳定之前模式按钮和地图标题读不出新结论，因此按导航确认
+    节奏重读，读到目标难度即算成功。
+
+    Args:
+        ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
+        event_type: 活动玩法标识，用于确认调用方选对了 checker。
+        mode: 期望的难度。
+        attempts: 最大重读次数。
+        interval_seconds: 两次重读之间的等待秒数。
+
+    Returns:
+        读到目标难度时为真。
+    """
+    for _ in range(attempts):
+        state = read_event_map_state(ctx, event_type=event_type)
+        if state.current_mode is mode:
+            return True
+        time.sleep(interval_seconds)
+    return False
+
+
 def check_event_sortie_prepare(
     ctx: ContextHandle,
     *,
@@ -242,7 +272,7 @@ def check_event_sortie_prepare(
     Args:
         ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
         absent: 期望浮窗消失时为真，默认期望它出现。
-        attempts: 识别次数，默认只探测当前一帧。
+        attempts: 识别次数，默认按导航确认节奏（关浮窗要等动画走完）。
         interval_seconds: 两次识别之间的等待秒数。
         event_type: 活动玩法标识；提供时校验调用方选对了 checker。
         stage: 目标章节标识，例如 EX7；提供时校验浮窗标题指向该章节。
@@ -251,13 +281,12 @@ def check_event_sortie_prepare(
         断言满足时为真（给出章节时还要标题指向该章节）。
 
     Raises:
-        ValueError: 给出了本期活动数据里没有的章节。
+        ValueError: 章节标识格式非法或超出本期范围。
     """
     if event_type is not None:
         calibration.require_activity(event_type, constants.ACTIVITY)
-    data = calibration.load_activity_data(constants.ACTIVITY, constants.PERIOD)
-    if stage is not None and stage not in data['stages']:
-        raise ValueError(f'本期活动没有该章节: {stage!r}')
+    # 章节标识同时给出难度和落点序号；格式非法或超出本期范围时在这里就抛错。
+    parsed = parse_stage(stage) if stage is not None else None
 
     # 1. 先判浮窗的出现或消失；断言不满足时不需要继续判定标题。
     if not recognition.wait_sortie_overlay(
@@ -269,12 +298,16 @@ def check_event_sortie_prepare(
         return False
 
     # 2. 只判浮窗、或浮窗已消失时，到此即算满足。
-    if absent or stage is None:
+    if absent or parsed is None:
         return True
 
     # 3. 再用关卡标题确认进入的是目标章节。
-    title_texts = recognition.read_stage_title_texts(ctx, data)
-    matched = recognition.is_stage_title_matched(title_texts, stage, data)
+    title_texts = recognition.read_stage_title_texts(ctx)
+    matched = recognition.is_stage_title_matched(
+        title_texts,
+        node=parsed.node,
+        hard=parsed.difficulty is recognition.EventMode.HARD,
+    )
     _log.debug('[UI] 出征准备前置页 → 校验章节：stage={!r}，matched={!r}', stage, matched)
     return matched
 

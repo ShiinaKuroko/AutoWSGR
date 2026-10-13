@@ -18,12 +18,12 @@ import functools
 from collections import deque
 from typing import TYPE_CHECKING
 
-from autowsgr.application.ui.controller.home.event_page import EventPage
-from autowsgr.application.ui.controller.home.main_page import HomePage, Target
 from autowsgr.application.ui.controller.backyard.main_page import (
     BackyardPage,
     BackyardTarget,
 )
+from autowsgr.application.ui.controller.home.event_page import EventPage
+from autowsgr.application.ui.controller.home.main_page import HomePage, Target
 from autowsgr.application.ui.controller.login import LoginPage
 from autowsgr.application.ui.controller.operations.mission_page import MissionPage
 from autowsgr.application.ui.controller.operations.sortie_page.main_page import (
@@ -49,9 +49,9 @@ from autowsgr.application.ui.navigation.checker.event import stage_push
 from autowsgr.application.ui.navigation.checker.sidebar import build, intensify
 from autowsgr.application.ui.navigation.checker.sidebar.friend import check_friend_page
 from autowsgr.application.ui.navigation.types import (
+    NavigationError,
     NavTab,
     NavTarget,
-    NavigationError,
     PageName,
 )
 from autowsgr.common.system.logger import get_logger
@@ -88,6 +88,30 @@ def _close_daily_news(ctx: ContextHandle, **_: object) -> None:
     page.click_news_close()
 
 
+def _settle_to_sidebar(ctx: ContextHandle, **_: object) -> None:
+    """清完浮窗后落到侧边栏：已经在侧边栏就不动，还在主页就点入口进去。
+
+    Args:
+        ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
+    """
+    if sidebar.check_sidebar_page(ctx, attempts=1):
+        return
+    HomePage(ctx).go_to(Target.SIDEBAR)
+
+
+def _settle_to_home(ctx: ContextHandle, **_: object) -> None:
+    """清完浮窗后回主页：奖励确认浮窗还在就点掉，停在侧边栏就关掉它。
+
+    浮窗盖在主页上时（从任务、出征、后来）这一段什么都不用做，直接确认主页即可。
+
+    Args:
+        ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
+    """
+    _confirm_daily_reward(ctx)
+    if sidebar.check_sidebar_page(ctx, attempts=1):
+        SidebarPage(ctx).go_back()
+
+
 def _claim_daily_reward(ctx: ContextHandle, **_: object) -> None:
     """有每日奖励就领取，没有就什么都不做。
 
@@ -108,7 +132,6 @@ def _confirm_daily_reward(ctx: ContextHandle, **_: object) -> None:
     if not home.check_home_reward_confirm(ctx):
         return
     HomePage(ctx).click_reward_confirm()
-
 
 
 def _claim_all_mission_rewards(ctx: ContextHandle, **_: object) -> None:
@@ -161,6 +184,12 @@ _PAGE_CHECKERS: dict[PageName, Callable[..., bool]] = {
 # 键是 navigate_to 的 tab 入参，与各页面控制器里标签枚举的 name 小写形式一致。
 _TABS: dict[PageName, dict[str, NavTab]] = {
     PageName.SORTIE_MAP: {
+        # 出征是默认标签，但远征可收时进入会停在远征，注册一个用于切回来。
+        'sortie': NavTab(
+            lambda ctx: SortiePage(ctx).go_to(SortieTab.SORTIE),
+            sortie.check_sortie_page,
+            '出征',
+        ),
         'exercise': NavTab(
             lambda ctx: SortiePage(ctx).go_to(SortieTab.EXERCISE),
             sortie.check_exercise_page,
@@ -204,22 +233,51 @@ _TABS: dict[PageName, dict[str, NavTab]] = {
 }
 
 
+# ── 活动地图动作 ─────────────────────────────────────────────────────────────
+
+
+def _event_map_to_overlay(ctx: ContextHandle, **params: object) -> None:
+    """把地图切到目标章节的难度，再点开该章节的浮窗。
+
+    普通与困难共用同一批落点，难度不对就会点开"同名但错误的"章节；因此进浮窗之前
+    先对齐难度。难度是否切到位由 checker 按导航确认节奏判定，这里不自己配节奏。
+
+    Args:
+        ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
+        **params: 可选的 `stage`（章节标识，例如 EX7）；缺省取任务绑定的 event_stage。
+
+    Raises:
+        NavigationError: 读不到模式按钮中心，或难度没有切到目标值。
+    """
+    event_type = _event_type(ctx)
+    parsed = stage_push.parse_stage(
+        str(params['stage']) if 'stage' in params else _event_stage(ctx)
+    )
+
+    state = stage_push.read_event_map_state(ctx, event_type=event_type)
+    if state.current_mode is not parsed.difficulty:
+        center = stage_push.read_mode_button_center(ctx, event_type=event_type)
+        if center is None:
+            raise NavigationError('切换活动难度失败：读不到模式按钮中心')
+        EventPage(ctx, event_type=event_type).switch_difficulty(center)
+        if not stage_push.wait_event_mode(ctx, event_type=event_type, mode=parsed.difficulty):
+            raise NavigationError(f'切换活动难度失败：未切到 {parsed.difficulty.value!r}')
+
+    EventPage(ctx, event_type=event_type).go_to_overlay(parsed.node)
+
+
 # ── 页面 → 可达列表 ─────────────────────────────────────────────────────────
 
 _NAV_TARGETS: dict[PageName, tuple[NavTarget, ...]] = {
     PageName.LOGIN_PAGE: (
         NavTarget(
             PageName.SERVER_SELECT,
-            lambda ctx, **_: LoginPage(ctx).click_switch_entry(
-                login.read_switch_entry_center(ctx)
-            ),
+            lambda ctx, **_: LoginPage(ctx).click_switch_entry(login.read_switch_entry_center(ctx)),
             '登录页 → 区服选择页',
         ),
         NavTarget(
             PageName.HOME_NEWS,
-            lambda ctx, **_: LoginPage(ctx).click_enter_game(
-                login.read_enter_button_center(ctx)
-            ),
+            lambda ctx, **_: LoginPage(ctx).click_enter_game(login.read_enter_button_center(ctx)),
             '登录页 → 主页（经每日浮窗链）',
             confirm=False,
         ),
@@ -238,6 +296,7 @@ _NAV_TARGETS: dict[PageName, tuple[NavTarget, ...]] = {
             PageName.SORTIE_MAP,
             lambda ctx, **_: HomePage(ctx).go_to(Target.SORTIE),
             '首页 → 出征页',
+            tab='sortie',
         ),
         NavTarget(
             PageName.EVENT_MAP,
@@ -475,10 +534,18 @@ _NAV_TARGETS: dict[PageName, tuple[NavTarget, ...]] = {
             confirm=False,
         ),
     ),
+    # 浮窗插在侧边栏（从好友、建造、改造来）或主页（从任务、出征、后来）上面，
+    # 清完浮窗后落点因此有两种：已在侧边栏、或仍在主页。两条出边各自先判断，
+    # 已经在目标层就什么都不点，避免点到别的东西。
     PageName.HOME_REWARD_CONFIRM: (
         NavTarget(
+            PageName.SIDEBAR,
+            _settle_to_sidebar,
+            '每日奖励确认 → 侧边栏',
+        ),
+        NavTarget(
             PageName.HOME,
-            _confirm_daily_reward,
+            _settle_to_home,
             '每日奖励确认 → 主页',
         ),
     ),
@@ -492,11 +559,7 @@ _NAV_TARGETS: dict[PageName, tuple[NavTarget, ...]] = {
     PageName.EVENT_MAP: (
         NavTarget(
             PageName.EVENT_STAGE_OVERLAY,
-            lambda ctx, **params: EventPage(ctx, event_type=_event_type(ctx)).go_to_overlay(
-                int(params['node'])
-                if 'node' in params
-                else stage_push.parse_stage(_event_stage(ctx)).node
-            ),
+            _event_map_to_overlay,
             '活动地图 → 章节浮窗',
         ),
         NavTarget(
@@ -627,12 +690,19 @@ def depth_of(page: PageName) -> int:
         return _UNREACHABLE_DEPTH
 
 
-def find_path(source: PageName, target: PageName) -> tuple[NavTarget, ...]:
+def find_path(
+    source: PageName,
+    target: PageName,
+    *,
+    exclude: frozenset[PageName] = frozenset(),
+) -> tuple[NavTarget, ...]:
     """在可达列表上广度拼接出从 source 到 target 的路径。
 
     Args:
         source: 起点页面。
         target: 目标页面。
+        exclude: 本次算路不经过的页面；用于跳过已经处理过的每日浮窗，
+            让路径改走它们的直连边。
 
     Returns:
         依次执行的边；起点即目标时返回空元组。
@@ -648,7 +718,7 @@ def find_path(source: PageName, target: PageName) -> tuple[NavTarget, ...]:
     while queue:
         page, path = queue.popleft()
         for edge in get_targets(page):
-            if edge.target in visited:
+            if edge.target in visited or edge.target in exclude:
                 continue
             next_path = (*path, edge)
             if edge.target == target:

@@ -93,13 +93,12 @@ def _click_stage(rt: Any, ctx: Any, navigator: Any, stage: str) -> bool:
     from autowsgr.application.ui.navigation.checker.event import stage_push
     from autowsgr.application.ui.navigation.types import PageName
 
-    node = stage_push.parse_stage(stage).node
     if (
         rt.action(
             f'点击 {stage}',
             navigator.navigate_to,
             PageName.EVENT_STAGE_OVERLAY,
-            node=node,
+            stage=stage,
         )
         is rt.FAILED
     ):

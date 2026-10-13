@@ -83,6 +83,11 @@ def add_arguments(parser: Any) -> None:
         action='store_true',
         help='从登录页开始（需要游戏停在登录页或 --cold 冷启动）',
     )
+    parser.add_argument(
+        '--reward-handled',
+        action='store_true',
+        help='注入「每日奖励本次运行已处理」标记（今天已领过时用）',
+    )
 
 
 
@@ -96,6 +101,11 @@ def run(rt: Any) -> bool:
     ctx = rt.ctx
     session = get_session()
     navigator = NavigationService(ctx, session=session)
+
+    if rt.args.reward_handled:
+        # 注入生产同款标记：每日奖励今天已经领过，回主页时这一段不会再出现。
+        session.mark_reward_handled()
+        rt.note('已注入每日奖励处理标记')
 
 
     nodes = [p for p in PageName if registry.get_checker(p) is not None]

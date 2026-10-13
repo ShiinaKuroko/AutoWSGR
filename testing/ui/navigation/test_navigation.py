@@ -18,7 +18,11 @@ from autowsgr.application.ui.controller.home.main_page import constants as home_
 from autowsgr.application.ui.controller.login import constants as login_constants
 from autowsgr.application.ui.navigation import registry
 from autowsgr.application.ui.navigation.executor import NavigationExecutor
-from autowsgr.application.ui.navigation.checker import home, login
+from autowsgr.application.ui.controller.operations.sortie_page.main_page import (
+    constants as sortie_constants,
+)
+from autowsgr.application.ui.navigation.checker import home, login, sidebar
+from autowsgr.application.ui.navigation import executor as executor_module
 from autowsgr.application.ui.navigation.types import NavTab, NavTarget
 from autowsgr.application.ui.navigation.service import NavigationService
 from autowsgr.application.ui.navigation.types import NavigationError, PageName
@@ -65,6 +69,20 @@ def _accept_path(monkeypatch: pytest.MonkeyPatch, target: PageName) -> None:
     )
     monkeypatch.setattr(home, 'check_home_reward_overlay', lambda _ctx: False)
     monkeypatch.setattr(home, 'check_home_reward_confirm', lambda _ctx: False)
+    # 浮窗链收尾要判断「是不是已经停在侧边栏」，替身一律当作不在，走点击那条路。
+    monkeypatch.setattr(
+        sidebar, 'check_sidebar_page', lambda _ctx, **_options: False
+    )
+    # 「首页 → 出征页」会切回出征标签。标签项是 frozen dataclass，注册时已绑定
+    # checker 引用，因此整项替换而不是改模块属性；点击保留真实现（它只点击、
+    # 不识别），只把 checker 换成替身；稳定等待在单测里没有意义。
+    sortie_tab = registry.get_tabs(PageName.SORTIE_MAP)['sortie']
+    monkeypatch.setitem(
+        registry._TABS[PageName.SORTIE_MAP],
+        'sortie',
+        NavTab(sortie_tab.click, lambda _ctx, **_options: True, '出征'),
+    )
+    monkeypatch.setattr(executor_module.time, 'sleep', lambda _seconds: None)
 
     # 换区入口先识别中心、识别不到才退回固定落点；替身统一走兜底。
     monkeypatch.setattr(login, 'read_switch_entry_center', lambda _ctx: None)
@@ -108,7 +126,11 @@ def test_goto_page_clicks_and_confirms(monkeypatch: pytest.MonkeyPatch) -> None:
 
     service.navigate_to(PageName.SORTIE_MAP)
 
-    assert ctx.runtime.ctrl.clicks == [(0.9430, 0.9069)]
+    # 首页点出征入口，进入后再点一次「出征」标签（远征可收时页面会先停在远征）。
+    assert ctx.runtime.ctrl.clicks == [
+        (0.9430, 0.9069),
+        sortie_constants.TAB_POSITIONS['sortie'],
+    ]
     assert session.current_page() == PageName.SORTIE_MAP.value
 
 
@@ -126,15 +148,24 @@ def test_navigate_from_news_overlay_walks_popup_chain(monkeypatch: pytest.Monkey
 
 
 def test_goto_page_rejects_failed_confirmation(monkeypatch: pytest.MonkeyPatch) -> None:
-    """到达确认失败时抛错。"""
+    """到达确认失败时抛错。
+
+    出征页这条边声明了标签，因此到达确认由标签的 checker 负责，
+    页面级确认不参与；这里让标签的 checker 判失败。
+    """
     _accept_path(monkeypatch, PageName.SORTIE_MAP)
-    monkeypatch.setitem(registry._PAGE_CHECKERS, PageName.SORTIE_MAP, lambda _ctx: False)
+    sortie_tab = registry.get_tabs(PageName.SORTIE_MAP)['sortie']
+    monkeypatch.setitem(
+        registry._TABS[PageName.SORTIE_MAP],
+        'sortie',
+        NavTab(sortie_tab.click, lambda _ctx, **_options: False, '出征'),
+    )
     ctx = _ctx()
     session = SessionState()
     service = NavigationService(ctx, session=session)
     session.push_page(PageName.HOME.value)
 
-    with pytest.raises(NavigationError, match='到达确认失败'):
+    with pytest.raises(NavigationError, match='标签切换失败'):
         service.navigate_to(PageName.SORTIE_MAP)
 
 
@@ -323,6 +354,7 @@ def test_submenus_lead_to_pages() -> None:
 def test_tabs_are_registered_without_becoming_pages() -> None:
     """标签登记在标签表里，不进确认入口表。"""
     assert set(registry.get_tabs(PageName.SORTIE_MAP)) == {
+        'sortie',
         'exercise',
         'expedition',
         'campaign',

@@ -43,7 +43,7 @@ def _install_recognition(
 ) -> None:
     """用替身接管识别入口，按识别区域返回预设事实。"""
     screen = np.zeros((4, 4, 3), dtype=np.uint8)
-    monkeypatch.setattr(calibration, 'load_module_template', lambda *args, **kwargs: object())
+    monkeypatch.setattr(calibration, 'load_module_template', lambda *_args, **_kwargs: object())
 
     def expect_template(_ctx: object, **options: object) -> RecognitionResult[list[object]]:
         roi = options['roi']
@@ -185,7 +185,10 @@ def test_sortie_prepare_matches_stage_number(monkeypatch: pytest.MonkeyPatch) ->
         stage_title_texts=('Ex-7 天降火雨(困难)',),
     )
 
-    assert stage_push.check_event_sortie_prepare(object(), event_type='stage_push', stage='EX7') is True
+    assert (
+        stage_push.check_event_sortie_prepare(object(), event_type='stage_push', stage='EX7')
+        is True
+    )
 
 
 def test_sortie_prepare_matches_stage_name_when_number_is_lost(
@@ -198,7 +201,10 @@ def test_sortie_prepare_matches_stage_name_when_number_is_lost(
         stage_title_texts=('Ex 天降火雨（困难）',),
     )
 
-    assert stage_push.check_event_sortie_prepare(object(), event_type='stage_push', stage='EX7') is True
+    assert (
+        stage_push.check_event_sortie_prepare(object(), event_type='stage_push', stage='EX7')
+        is True
+    )
 
 
 def test_sortie_prepare_rejects_other_stage(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -209,12 +215,33 @@ def test_sortie_prepare_rejects_other_stage(monkeypatch: pytest.MonkeyPatch) -> 
         stage_title_texts=('Ex-1 天降火雨',),
     )
 
-    assert stage_push.check_event_sortie_prepare(object(), event_type='stage_push', stage='EX7') is False
+    assert (
+        stage_push.check_event_sortie_prepare(object(), event_type='stage_push', stage='EX7')
+        is False
+    )
+
+
+def test_sortie_prepare_keeps_modes_apart(monkeypatch: pytest.MonkeyPatch) -> None:
+    """同一格的两个难度靠"困难"二字区分：普通判据不认困难浮窗，困难判据认。"""
+    _install_recognition(
+        monkeypatch,
+        overlay_open=True,
+        stage_title_texts=('Ex-7 天降火雨（困难）',),
+    )
+
+    assert (
+        stage_push.check_event_sortie_prepare(object(), event_type='stage_push', stage='EX1')
+        is False
+    )
+    assert (
+        stage_push.check_event_sortie_prepare(object(), event_type='stage_push', stage='EX7')
+        is True
+    )
 
 
 def test_sortie_prepare_rejects_unknown_stage(monkeypatch: pytest.MonkeyPatch) -> None:
     """本期数据里没有的章节属于入参错误。"""
     _install_recognition(monkeypatch)
 
-    with pytest.raises(ValueError, match='本期活动没有该章节'):
+    with pytest.raises(ValueError, match='章节标识超出范围'):
         stage_push.check_event_sortie_prepare(object(), event_type='stage_push', stage='EX99')

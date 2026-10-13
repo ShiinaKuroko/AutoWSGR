@@ -23,19 +23,25 @@ if TYPE_CHECKING:
 # ── 识别入口 ────────────────────────────────────────────────────────────────
 
 
+# 切到这个标签后页面要走一段切换动画；执行器点完标签只确认一次，
+# 因此默认给足重试（7 次 × 0.5 秒 ≈ 3.5 秒），动画没走完时继续等。
+_TAB_SWITCH_ATTEMPTS = 7
+_TAB_SWITCH_INTERVAL_SECONDS = 0.5
+
+
 def check_sortie_page(
     ctx: ContextHandle,
     *,
     absent: bool = False,
-    attempts: int = 1,
-    interval_seconds: float = 0.5,
+    attempts: int = _TAB_SWITCH_ATTEMPTS,
+    interval_seconds: float = _TAB_SWITCH_INTERVAL_SECONDS,
 ) -> bool:
     """确认出征标签是否激活。
 
     Args:
         ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
         absent: 期望该标签不再激活时为真，默认期望它激活。
-        attempts: 识别次数，默认只探测当前一帧。
+        attempts: 识别次数，默认按标签切换节奏。
         interval_seconds: 两次识别之间的等待秒数。
 
     Returns:

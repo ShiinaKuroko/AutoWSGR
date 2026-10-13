@@ -70,12 +70,15 @@ class NavTarget:
         action: 执行一次点击的动作，可接收调用方透传的参数。
         description: 这条边的说明，供维护与日志使用。
         confirm: 到达后是否需要确认；浮窗链的中间步判不了"到没到"，置假跳过。
+        tab: 到达后要落到的页面内标签；进入这一页会停在别的标签时用它
+            （如远征可收时进出征页会自动停在远征）。缺省表示不需要强制切换。
     """
 
     target: PageName
     action: Callable[..., None]
     description: str = ''
     confirm: bool = True
+    tab: str | None = None
 
 
 @dataclass(frozen=True, slots=True)

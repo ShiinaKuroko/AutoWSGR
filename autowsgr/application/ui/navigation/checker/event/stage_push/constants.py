@@ -14,12 +14,12 @@ from __future__ import annotations
 from autowsgr.common.vision import ROI
 
 
-# 活动标识与本期期号；换期只改期号，并补 resources/data/map/event 下的数据文件。
+# 活动标识与本期期号；换期改期号，并按 <活动>_<期号> 补一份模板目录。
 ACTIVITY = 'stage_push'
 PERIOD = '20260930'
 
-# 本活动在模板根下的命名空间，完整路径由公共校准模块拼接。
-TEMPLATE_NAMESPACE = 'event/stage_push'
+# 本活动在模板根下的命名空间：一期一个目录，完整路径由公共校准模块拼接。
+TEMPLATE_NAMESPACE = f'event/{ACTIVITY}_{PERIOD}'
 
 # 本活动的模板文件名。
 HOME_ENTRY_TEMPLATE = 'EVENT_HOME_ENTRY_720P.png'
