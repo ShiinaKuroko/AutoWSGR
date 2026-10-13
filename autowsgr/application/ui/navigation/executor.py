@@ -206,8 +206,11 @@ class NavigationExecutor:
         # 再确认「当前层就是目标」：目标出现不代表它就在最上面——浮窗、侧边栏
         # 这类覆盖层会盖住它，按深度降序扫一遍就能分辨出真正的当前层。
         layer = self.detect_layer()
-        if layer is not None and layer is not edge.target:
-            raise NavigationError(f'到达确认失败：{edge.description!r}，当前层是 {layer.value!r}')
+        if layer is not edge.target:
+            # 一个页面都没认出来同样算异常：扫不到任何层说明识别链路本身出了问题，
+            # 不能当成「无法判断所以放行」。
+            detail = '未识别到任何页面' if layer is None else f'当前层是 {layer.value!r}'
+            raise NavigationError(f'到达确认失败：{edge.description!r}，{detail}')
         _log.debug('[UI] 导航执行 → 到达确认：page={!r}，结果=成功', edge.target.value)
 
 

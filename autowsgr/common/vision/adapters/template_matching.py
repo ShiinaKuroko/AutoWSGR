@@ -35,6 +35,11 @@ if TYPE_CHECKING:
 _log = get_logger('vision.template')
 
 
+# 「差一点就中」的界线：命中阈值的一定比例。低于它说明画面里压根没这个东西，
+# 属于正常噪声；落在它和阈值之间说明画面像但没够，是排查识别失败的关键线索。
+_NEAR_MISS_RATIO = 0.9
+
+
 # ── 模板识别结果模型 ────────────────────────────────────────────────────────
 
 
@@ -270,12 +275,16 @@ def match_template(
         模板匹配结果。
     """
     match_result = _MATCHER.match(image, template, roi=roi, confidence=confidence)
-    # 未命中是常态（一次扫描要问遍所有页面），只记命中，避免每次经过页面都刷屏。
-    if match_result.matched:
+    # 未命中是常态（一次扫描要问遍所有页面），只记「有事发生」的两种：命中，
+    # 以及差一点就中——排查识别失败时，要能看出是画面真的变了，还是分数卡在
+    # 阈值下面。
+    if match_result.matched or match_result.score >= confidence * _NEAR_MISS_RATIO:
         _log.debug(
-            '[VISION] 模板匹配 → 命中：template_path={!r}, score={:.3f}',
+            '[VISION] 模板匹配 → {}：template_path={!r}, score={:.3f}, confidence={:.3f}',
+            '命中' if match_result.matched else '差一点',
             match_result.template_path,
             match_result.score,
+            confidence,
         )
     return match_result
 
