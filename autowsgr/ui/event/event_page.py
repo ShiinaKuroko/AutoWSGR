@@ -180,6 +180,27 @@ CLICK_CLOSE_NODE_OVERLAY: tuple[float, float] = (0.95, 0.14)
 关闭浮层, 再点返回箭头逐层退出 (照搬 classic ``go_main_page`` 循环点返回键)。
 坐标按活动地图布局校准: 浮层右下角出击按钮约在 (0.83, 0.84), 红色 X 在浮层
 右上角 (屏幕右上, y 略低于顶部)。
+
+⚠️ **并非所有活动浮层都能用红 X 关闭**: 实机观察到「活动浮层」(战斗回港落到
+活动入口浮层时) 的红色 X 点不动 (连点 3000+ 次无效, 导航只能靠人手动恢复),
+那种浮层只能靠左上角返回箭头关闭 — 见 :data:`OVERLAY_CLOSE_ACTIONS`。
+"""
+
+
+OVERLAY_CLOSE_ACTIONS: tuple[tuple[str, tuple[float, float]], ...] = (
+    ('左上角返回箭头', CLICK_BACK),
+    ('红色 X', CLICK_CLOSE_NODE_OVERLAY),
+)
+"""活动浮层的两种关闭方式 (按顺序尝试, 逐个验证)。
+
+活动浮层有两种形态, 关闭方式互不相同:
+
+* **关卡详情浮层** (点地图节点后弹出): 右上角**红色 X** 有效。
+* **活动浮层** (战斗回港落到活动入口浮层): 红色 X 点不动 (实机连点 3000+ 次
+  无效), 需点**左上角返回箭头**。
+
+两种方式都保留: 先点左上角返回箭头 (被模态浮层吸收时代价仅一次点击),
+若浮层仍在则点红色 X 兜底 (关卡详情浮层即靠这一路关闭)。
 """
 
 CLICK_DIFFICULTY: tuple[float, float] = (0.12, 0.90)
@@ -407,21 +428,60 @@ class BaseEventPage:
         准备页直接回浮层)。浮层是模态, 会拦截难度切换/节点选择的点击, 需先
         关闭才能继续选关。
 
-        判定与清理: **出击按钮可见 = 浮层在** (模态浮层在按钮必在) → 点红色
-        X 关闭, 以按钮消失确认; 按钮不可见 → 已是干净态, 直接返回。
+        判定与清理: **出击按钮可见 = 浮层在** (模态浮层在按钮必在) → 按
+        :data:`OVERLAY_CLOSE_ACTIONS` 依次尝试两种关闭方式 (左上角返回箭头 /
+        红色 X), 以按钮消失确认; 按钮不可见 → 已是干净态, 直接返回。
         """
         self._dismiss_quiz()
         screen = self._ctrl.screenshot()
         if self._fight_button_detail(screen) is None:
             return
         for _ in range(3):
-            self._ctrl.click(*CLICK_CLOSE_NODE_OVERLAY)
+            if self._close_event_overlay(screen):
+                self._ensure_still_on_event_map()
+                return
+        _log.warning('[UI] 活动地图: 关卡浮层点击 3 次未关闭')
+
+    def _close_event_overlay(self, screen: np.ndarray) -> bool:
+        """关闭活动浮层 (两种关闭方式都保留, 逐个尝试并验证)。
+
+        活动浮层有两种形态, 关闭方式互不相同:
+
+        * **关卡详情浮层** (点地图节点后弹出): 右上角**红色 X** 有效。
+        * **活动浮层** (战斗回港落到活动入口浮层): 红色 X 点不动 (实机连点
+          3000+ 次无效, 导航只能靠人手动恢复), 需点**左上角返回箭头**。
+
+        因此两种方式都尝试: 先左上角返回箭头 (被模态浮层吸收时代价仅一次
+        点击), 仍不在则点红色 X 兜底。判据统一为**出击按钮消失** (= 浮层关闭)。
+
+        Parameters
+        ----------
+        screen:
+            当前截图 (每次点击后重新截图判定)。
+
+        Returns
+        -------
+        bool
+            ``True`` 表示浮层已关闭。
+        """
+        for label, coord in OVERLAY_CLOSE_ACTIONS:
+            _log.info('[UI] 活动地图: 检测到关卡浮层, 点击{}关闭', label)
+            self._ctrl.click(*coord)
             time.sleep(0.6)
             screen = self._ctrl.screenshot()
             if self._fight_button_detail(screen) is None:
-                _log.info('[UI] 活动地图: 已关闭残留关卡浮层')
-                return
-        _log.warning('[UI] 活动地图: 关卡浮层点击 3 次未关闭')
+                _log.info('[UI] 活动地图: 已关闭活动浮层 ({})', label)
+                return True
+        return False
+
+    def _ensure_still_on_event_map(self) -> None:
+        """关闭浮层后校验仍在活动页 (返回箭头可能把页面带离活动页)。"""
+        if BaseEventPage.is_current_page(self._ctrl.screenshot()).matched:
+            return
+        _log.warning('[UI] 活动地图: 关闭浮层后已离开活动页, 重新导航回活动页')
+        from autowsgr.ops.navigate import goto_page
+
+        goto_page(self._ctx, PageName.EVENT_MAP)
 
     def _change_difficulty(self, target: str) -> None:
         """切换难度到目标。
@@ -480,11 +540,16 @@ class BaseEventPage:
         """返回主页面。
 
         循环点击返回箭头逐层退出直到主页面。战斗结束回港后, 活动地图页上常浮着
-        关卡详情浮层 (红色 X 关闭), 该浮层为模态, 会拦截左上返回箭头的点击——
-        直接点 ``CLICK_BACK`` 会被浮层吸收而无效。
+        关卡详情浮层 (模态, 会拦截左上返回箭头的点击 — 直接点 ``CLICK_BACK``
+        会被浮层吸收而无效)。
 
         纯模板驱动判定 (与页面识别同一套锚点): **出击按钮可见 = 浮层在** (模态
-        浮层在按钮必在) → 点红色 X 关闭; 按钮不可见 → 点返回。
+        浮层在按钮必在) → 按 :data:`OVERLAY_CLOSE_ACTIONS` 依次尝试两种关闭
+        方式 (左上角返回箭头 / 红色 X); 按钮不可见 → 点返回。
+
+        注: 活动浮层 (非关卡详情) 的红色 X 点不动 (实机连点 3000+ 次无效),
+        靠左上角返回箭头才能关闭 — 两种方式都保留, 详见
+        :data:`OVERLAY_CLOSE_ACTIONS`。
 
         **防连点过冲**: 点一次返回后用一个轮询窗口 (~3s) 等主页出现, 期间**不重复
         点返回**。画面切换有滞后, 若点完立即下一轮再点, 第二次返回会落到已切到的
@@ -502,9 +567,8 @@ class BaseEventPage:
                 _log.info('[UI] 活动地图 -> 已到达主页面')
                 return
             if self._fight_button_detail(screen) is not None:
-                _log.info('[UI] 活动地图: 检测到关卡浮层, 点击红色 X 关闭')
-                self._ctrl.click(*CLICK_CLOSE_NODE_OVERLAY)
-                time.sleep(0.5)
+                # 浮层两种形态, 关闭方式不同 → 两种都尝试 (箭头优先, 红 X 兜底)
+                self._close_event_overlay(screen)
                 continue
             self._ctrl.click(*CLICK_BACK)
             # 点一次返回后轮询等主页——期间不重复点返回, 防滞后连点过冲 (见 docstring)
