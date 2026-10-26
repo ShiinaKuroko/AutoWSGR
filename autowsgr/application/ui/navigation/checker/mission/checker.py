@@ -1,32 +1,55 @@
-"""模块功能：编排任务页与其领奖浮窗的到达确认入口。
+"""模块功能：确认任务页与其领奖浮窗的到达状态。
 
 上层调用：
 - application.ui.navigation：确认任务页与「获得」浮窗是否到达或离开，
   以及「全部领取」按钮是否出现。
 
 下层依赖：
-- mission.recognition：读取任务页与领奖相关事实。
+- application.vision：读取模板事实。
 
-边界：只编排识别并返回结论，不执行点击、不计算路由、不上报识别错误。
+边界：只做识别并返回结论，不执行点击、不计算路由、不上报识别错误。
 """
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from autowsgr.application.ui.navigation.checker.mission import recognition
+from autowsgr.application.ui.template import load_ui_template
+from autowsgr.common.vision import ROI, Template, expect_template
 
 
 if TYPE_CHECKING:
     from autowsgr.dispatch.context import ContextHandle
 
 
+# ── 识别数据 ────────────────────────────────────────────────────────────────
+
+# 本模块在 UI 模板根下的命名空间。
+TEMPLATE_NAMESPACE = 'navigation/checker/mission'
+
+# 本模块的模板文件名；目录小写、文件名全大写。
+# 任务页默认落在「全部」页签，因此用它作为页面身份。
+ALL_TAB_TEMPLATE = 'MISSION_ALL_TAB_720P.png'
+CLAIM_ALL_BUTTON_TEMPLATE = 'MISSION_CLAIM_ALL_720P.png'
+REWARD_CONFIRM_BUTTON_TEMPLATE = 'MISSION_REWARD_CONFIRM_720P.png'
+
+
+# ── 任务页识别区域 ──────────────────────────────────────────────────────────
+
+# 顶部「全部」页签的归一化区域，校准基准为 1280x720 截图。
+ALL_TAB_ROI = ROI(0.1477, 0.0223, 0.2204, 0.0848)
+
+
+# ── 领奖与确认区域 ──────────────────────────────────────────────────────────
+
+# 右下角「全部领取」按钮与「获得」浮窗里的「确认」按钮，同一校准基准。
+CLAIM_ALL_BUTTON_ROI = ROI(0.8157, 0.9181, 0.9243, 0.9848)
+REWARD_CONFIRM_BUTTON_ROI = ROI(0.4399, 0.6098, 0.554, 0.6889)
+
+
 # 导航确认节奏：进任务页和弹浮窗都要走完转场，识别不到就重试。
 _NAV_CONFIRM_ATTEMPTS = 5
 _NAV_CONFIRM_INTERVAL_SECONDS = 1.0
-
-
-# ── 识别入口 ────────────────────────────────────────────────────────────────
 
 
 def check_mission_page(
@@ -53,18 +76,26 @@ def check_mission_page(
     Returns:
         断言满足时为真。
     """
-    if not recognition.read_mission_page(
+    if not expect_template(
         ctx,
+        template=_load_template(ALL_TAB_TEMPLATE),
+        roi=ALL_TAB_ROI,
         absent=absent,
         attempts=attempts,
         interval_seconds=interval_seconds,
-    ):
+    ).satisfied:
         return False
     # 后识别只判页签消失，浮窗无关。
     if absent:
         return True
-    # 前识别：领奖浮窗还盖着就不算到达任务页。
-    return not recognition.read_reward_confirm_button(ctx)
+    # 前识别：领奖浮窗还盖着就不算到达任务页。浮窗判定只探当前一帧。
+    return not expect_template(
+        ctx,
+        template=_load_template(REWARD_CONFIRM_BUTTON_TEMPLATE),
+        roi=REWARD_CONFIRM_BUTTON_ROI,
+        attempts=1,
+        interval_seconds=0.5,
+    ).satisfied
 
 
 def check_claim_all_button(
@@ -88,12 +119,14 @@ def check_claim_all_button(
     Returns:
         断言满足时为真。
     """
-    return recognition.read_claim_all_button(
+    return expect_template(
         ctx,
+        template=_load_template(CLAIM_ALL_BUTTON_TEMPLATE),
+        roi=CLAIM_ALL_BUTTON_ROI,
         absent=absent,
         attempts=attempts,
         interval_seconds=interval_seconds,
-    )
+    ).satisfied
 
 
 def check_mission_reward_confirm(
@@ -114,12 +147,22 @@ def check_mission_reward_confirm(
     Returns:
         断言满足时为真。
     """
-    return recognition.read_reward_confirm_button(
+    return expect_template(
         ctx,
+        template=_load_template(REWARD_CONFIRM_BUTTON_TEMPLATE),
+        roi=REWARD_CONFIRM_BUTTON_ROI,
         absent=absent,
         attempts=attempts,
         interval_seconds=interval_seconds,
-    )
+    ).satisfied
+
+
+# ── 私有辅助 ────────────────────────────────────────────────────────────────
+
+
+def _load_template(filename: str) -> Template:
+    """加载本模块模板。"""
+    return load_ui_template(TEMPLATE_NAMESPACE, filename)
 
 
 __all__ = [

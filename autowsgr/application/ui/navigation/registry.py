@@ -54,7 +54,7 @@ from autowsgr.application.ui.navigation.types import (
     NavTarget,
     PageName,
 )
-from autowsgr.common.system.logger import get_logger
+from autowsgr.dispatch.session import DailyPopup, get_session
 
 
 if TYPE_CHECKING:
@@ -63,10 +63,7 @@ if TYPE_CHECKING:
     from autowsgr.dispatch.context import ContextHandle
 
 
-_log = get_logger('ui.navigation')
-
-
-# ── 每日浮窗动作 ─────────────────────────────────────────────────────────────
+# ── 每日浮窗动作 ────────────────────────────────────────────────────────────
 
 # 浮窗链的每一步都"先问再做"：不在就什么都不做，避免空点；到达确认由边自己关掉。
 
@@ -79,13 +76,20 @@ def _close_daily_news(ctx: ContextHandle, **_: object) -> None:
     Args:
         ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
     """
-    state = home.check_home_news_overlay(ctx)
+    state = home.read_news_overlay(ctx)
     if not state.matched:
         return
     page = HomePage(ctx)
     if state.checked is False:
         page.click_news_checkbox()
+        # 勾选有反馈：等它真的勾上再关闭，没勾上就不关，留给下次。
+        if not home.check_news_checked(ctx):
+            return
     page.click_news_close()
+    # 关闭有动画：确认它真的让开了再记标记——记下就意味着后续不再识别这个浮窗。
+    if home.read_news_overlay(ctx).matched:
+        return
+    get_session().mark_popup_settled(DailyPopup.NEWS)
 
 
 def _settle_to_sidebar(ctx: ContextHandle, **_: object) -> None:
@@ -94,15 +98,19 @@ def _settle_to_sidebar(ctx: ContextHandle, **_: object) -> None:
     Args:
         ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
     """
-    if sidebar.check_sidebar_page(ctx, attempts=1):
+    if sidebar.check_sidebar_page(
+        ctx,
+        attempts=_SIDEBAR_SETTLE_ATTEMPTS,
+        interval_seconds=_SIDEBAR_SETTLE_INTERVAL_SECONDS,
+    ):
         return
     HomePage(ctx).go_to(Target.SIDEBAR)
 
 
-# 从别的页面退回主页时画面还在切换；给侧边栏几帧时间稳定下来再判，
-# 否则会拍到还没渲染出来的侧边栏，漏掉"该把它收起来"这一步。
-_SIDEBAR_SETTLE_ATTEMPTS = 3
-_SIDEBAR_SETTLE_INTERVAL_SECONDS = 0.3
+# 侧边栏展开与收起都有动画（约 1.5 秒）。判断「在不在」和等它「让没让开」都要给足窗口：
+# 5 次 x 0.4 秒，约 2 秒，留出余量。命中即返回，侧边栏真在时不会白等。
+_SIDEBAR_SETTLE_ATTEMPTS = 5
+_SIDEBAR_SETTLE_INTERVAL_SECONDS = 0.4
 
 
 def _settle_to_home(ctx: ContextHandle, **_: object) -> None:
@@ -121,7 +129,16 @@ def _settle_to_home(ctx: ContextHandle, **_: object) -> None:
     ):
         SidebarPage(ctx).go_back()
         # 收起同样有动画，等它真的让开再交给到达确认。
-        sidebar.check_sidebar_page(ctx, absent=True)
+        sidebar.check_sidebar_page(
+            ctx,
+            absent=True,
+            attempts=_SIDEBAR_SETTLE_ATTEMPTS,
+            interval_seconds=_SIDEBAR_SETTLE_INTERVAL_SECONDS,
+        )
+
+
+# 领取后确认浮窗出现要走动画和网络，窗口比普通浮窗长一些。
+_CLAIM_CONFIRM_ATTEMPTS = 8
 
 
 def _claim_daily_reward(ctx: ContextHandle, **_: object) -> None:
@@ -133,6 +150,10 @@ def _claim_daily_reward(ctx: ContextHandle, **_: object) -> None:
     if not home.check_home_reward_overlay(ctx):
         return
     HomePage(ctx).click_reward_claim()
+    # 领取后确认浮窗会盖上来，领取按钮仍在画面里；等确认浮窗出现才算领取完成。
+    if not home.check_home_reward_confirm(ctx, attempts=_CLAIM_CONFIRM_ATTEMPTS):
+        return
+    get_session().mark_popup_settled(DailyPopup.REWARD)
 
 
 def _confirm_daily_reward(ctx: ContextHandle, **_: object) -> None:
@@ -144,6 +165,10 @@ def _confirm_daily_reward(ctx: ContextHandle, **_: object) -> None:
     if not home.check_home_reward_confirm(ctx):
         return
     HomePage(ctx).click_reward_confirm()
+    # 确认后有动画：确认浮窗真的让开了再记标记。
+    if home.check_home_reward_confirm(ctx):
+        return
+    get_session().mark_popup_settled(DailyPopup.REWARD_CONFIRM)
 
 
 def _claim_all_mission_rewards(ctx: ContextHandle, **_: object) -> None:
@@ -165,13 +190,26 @@ def _claim_all_mission_rewards(ctx: ContextHandle, **_: object) -> None:
 # 值统一收 (ctx, *, absent=False, attempts, interval_seconds)：前识别判出现，后识别
 # （absent=True）判消失。识别节奏是各页面自己的默认值，定义在对应 checker 的签名里；
 # 调用方需要覆盖时直接传参，注册表不再兼职配节奏。
+# ── 域探针 ─────────────────────────────────────────────────────────────────
+
+# 一个域一次读一帧，直接返回本域当前命中的层。home 的四个页面共享同一组模板，
+# 逐页调用会把同一帧读四遍，因此按域聚合。
+_DOMAIN_PROBERS: tuple[Callable[[ContextHandle], PageName | None], ...] = (home.read_home_layer,)
+
+# 由域探针负责的页面；它们不再登记到逐页注册表。
+_DOMAIN_PAGES: frozenset[PageName] = frozenset(
+    {
+        PageName.HOME,
+        PageName.HOME_NEWS,
+        PageName.HOME_REWARD,
+        PageName.HOME_REWARD_CONFIRM,
+    }
+)
+
+
 _PAGE_CHECKERS: dict[PageName, Callable[..., bool]] = {
     PageName.LOGIN_PAGE: login.check_login_page,
     PageName.SERVER_SELECT: login.check_server_select,
-    PageName.HOME: home.check_home_page,
-    PageName.HOME_NEWS: home.check_home_news_page,
-    PageName.HOME_REWARD: home.check_home_reward_page,
-    PageName.HOME_REWARD_CONFIRM: home.check_home_reward_confirm_page,
     PageName.SORTIE_MAP: sortie.check_sortie_page,
     PageName.EVENT_MAP: stage_push.check_event_map_page,
     PageName.EVENT_STAGE_OVERLAY: stage_push.check_event_sortie_prepare,
@@ -245,7 +283,7 @@ _TABS: dict[PageName, dict[str, NavTab]] = {
 }
 
 
-# ── 活动地图动作 ─────────────────────────────────────────────────────────────
+# ── 活动地图动作 ────────────────────────────────────────────────────────────
 
 
 def _event_map_to_overlay(ctx: ContextHandle, **params: object) -> None:
@@ -261,9 +299,9 @@ def _event_map_to_overlay(ctx: ContextHandle, **params: object) -> None:
     Raises:
         NavigationError: 读不到模式按钮中心，或难度没有切到目标值。
     """
-    event_type = _event_type(ctx)
+    event_type = stage_push.read_event_type(ctx)
     parsed = stage_push.parse_stage(
-        str(params['stage']) if 'stage' in params else _event_stage(ctx)
+        str(params['stage']) if 'stage' in params else stage_push.read_event_stage(ctx)
     )
 
     state = stage_push.read_event_map_state(ctx, event_type=event_type)
@@ -298,7 +336,7 @@ _NAV_TARGETS: dict[PageName, tuple[NavTarget, ...]] = {
         NavTarget(
             PageName.LOGIN_PAGE,
             lambda ctx, **params: LoginPage(ctx).click_server(
-                _server_index(ctx, str(params['server']))
+                login.read_server_index(ctx, str(params['server']))
             ),
             '区服选择页 → 登录页',
         ),
@@ -564,7 +602,9 @@ _NAV_TARGETS: dict[PageName, tuple[NavTarget, ...]] = {
     PageName.EVENT_STAGE_OVERLAY: (
         NavTarget(
             PageName.EVENT_MAP,
-            lambda ctx, **_: EventPage(ctx, event_type=_event_type(ctx)).click_overlay_close(),
+            lambda ctx, **_: EventPage(
+                ctx, event_type=stage_push.read_event_type(ctx)
+            ).click_overlay_close(),
             '活动章节浮窗 → 活动地图',
         ),
     ),
@@ -576,7 +616,7 @@ _NAV_TARGETS: dict[PageName, tuple[NavTarget, ...]] = {
         ),
         NavTarget(
             PageName.HOME_NEWS,
-            lambda ctx, **_: EventPage(ctx, event_type=_event_type(ctx)).go_back(),
+            lambda ctx, **_: EventPage(ctx, event_type=stage_push.read_event_type(ctx)).go_back(),
             '活动地图 → 主页（经每日浮窗链）',
             confirm=False,
         ),
@@ -584,63 +624,23 @@ _NAV_TARGETS: dict[PageName, tuple[NavTarget, ...]] = {
 }
 
 
-# ── 上下文辅助 ──────────────────────────────────────────────────────────────
-
-# TODO(navigation): 以下三个辅助不属于注册中心——区服定位该回 login，
-# 活动玩法与章节该回 event 或 dispatch 的上下文读取层。等落脚点确定后迁出，
-# 让本模块只剩三张表和查询入口。
-
-
-def _server_index(ctx: ContextHandle, name: str) -> int:
-    """把区服名换成它在列表中的固定位置。
-
-    位置由 OCR 逐条比对得出；读不到时退回静态映射，保证换区链路不会因为一次识别失败而中断。
-
-    Args:
-        ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
-        name: 目标区服名，取值见 `login.constants.SERVER_NAMES`。
-
-    Returns:
-        区服在列表中的位置序号（0 起）。
-    """
-    index = login.find_server_position(ctx, name)
-    if index is None:
-        index = login.server_index(name)
-        _log.warning('[UI] 导航 → 区服定位兜底：server={!r}，position={}', name, index)
-    return index
-
-
-def _event_type(ctx: ContextHandle) -> str:
-    """读取任务绑定的活动玩法标识。
-
-    Args:
-        ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
-
-    Returns:
-        活动玩法标识。
-
-    Raises:
-        NavigationError: 任务没有绑定活动玩法。
-    """
-    event_type = ctx.read_event_type()
-    if event_type is None:
-        raise NavigationError('活动导航需要任务绑定 event_type')
-    return event_type
-
-
-def _event_stage(ctx: ContextHandle) -> str:
-    """读取任务绑定的活动章节标识。
-
-    Raises:
-        NavigationError: 任务没有绑定活动章节。
-    """
-    stage = ctx.read_event_stage()
-    if stage is None:
-        raise NavigationError('活动导航需要任务绑定 event_stage')
-    return stage
-
-
 # ── 查询入口 ────────────────────────────────────────────────────────────────
+
+
+def popups_all_settled() -> bool:
+    """今天的三个每日浮窗是否都已处理。"""
+    return home.popups_all_settled()
+
+
+def on_arrival(ctx: ContextHandle, page: PageName) -> None:
+    """到达某个页面后刷新会话记账。
+
+    Args:
+        ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
+        page: 刚确认到达的页面。
+    """
+    if page is PageName.HOME:
+        home.mark_popups_settled(ctx)
 
 
 def get_targets(page: PageName) -> tuple[NavTarget, ...]:
@@ -665,6 +665,35 @@ def get_checker(page: PageName) -> Callable[[ContextHandle], bool] | None:
         该页面的确认入口；未注册时为 None。
     """
     return _PAGE_CHECKERS.get(page)
+
+
+def probe_domains(ctx: ContextHandle) -> tuple[PageName, ...]:
+    """探测所有域，返回本帧命中的页面。
+
+    Args:
+        ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
+
+    Returns:
+        域探针命中的页面；一个都没命中时为空元组。
+    """
+    hits: list[PageName] = []
+    for prober in _DOMAIN_PROBERS:
+        layer = prober(ctx)
+        if layer is not None:
+            hits.append(layer)
+    return tuple(hits)
+
+
+def is_domain_page(page: PageName) -> bool:
+    """判断页面是否由域探针负责。
+
+    Args:
+        page: 待查询的页面。
+
+    Returns:
+        该页面由域探针负责时为真。
+    """
+    return page in _DOMAIN_PAGES
 
 
 def get_tabs(page: PageName) -> dict[str, NavTab]:
@@ -740,4 +769,14 @@ def find_path(
     raise NavigationError(f'没有从 {source.value!r} 到 {target.value!r} 的可达路径')
 
 
-__all__ = ['find_path', 'get_checker', 'get_tabs', 'get_targets']
+__all__ = [
+    'depth_of',
+    'find_path',
+    'get_checker',
+    'get_tabs',
+    'get_targets',
+    'is_domain_page',
+    'on_arrival',
+    'popups_all_settled',
+    'probe_domains',
+]

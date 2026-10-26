@@ -148,7 +148,7 @@ class NavigationService:
         ):
             raise NavigationError('启动超时：未出现登录页')
 
-    # ── 内部实现 ────────────────────────────────────────────────────────────
+    # ── 当前页识别 ──────────────────────────────────────────────────────────
 
     def _current_page(self) -> PageName:
         """返回当前页面：优先取导航栈顶，栈空时遍历确认入口识别一次。
@@ -166,20 +166,24 @@ class NavigationService:
         # 栈空：交给执行器按页面深度扫一遍（覆盖层更深，会先被认出来）。
         # 扫描期间的识别细节日志整体静默，结束后只留一条汇总。
         started = time.monotonic()
-        hit = self._executor.detect_layer()
+        layers = self._executor.detect_layer()
         elapsed_ms = int((time.monotonic() - started) * 1000)
 
-        if hit is None:
+        if not layers:
             _log.warning(
                 '[UI] 导航 → 遍历识别当前页：耗时={}ms，结果=未识别到',
                 elapsed_ms,
             )
             raise NavigationError('无法识别当前页面')
 
+        # 按层级压栈：浅的在下、深的在上，栈顶就是当前层。
+        # 多层同时可见时（浮窗盖在侧边栏上）都要记进来，回退才有层次可退。
+        for page in reversed(layers):
+            session.push_page(page.value)
         _log.info(
-            '[UI] 导航 → 遍历识别当前页：page={!r}，耗时={}ms',
-            hit.value,
+            '[UI] 导航 → 遍历识别当前页：page={!r}，层数={}，耗时={}ms',
+            layers[0].value,
+            len(layers),
             elapsed_ms,
         )
-        session.push_page(hit.value)
-        return hit
+        return layers[0]

@@ -110,6 +110,9 @@ def split_argv(argv: list[str]) -> tuple[list[str], str | None, list[str]]:
         '--event-type',
         '--event-stage',
         '--server',
+        '--scripted-frames',
+        '--frame-interval',
+        '--static-clicks',
     }
     i = 0
     while i < len(argv):
@@ -163,6 +166,13 @@ def main() -> int:
     gp.add_argument('--event-type', default=None, help='任务上下文的活动玩法标识 (如 stage_push)')
     gp.add_argument('--event-stage', default=None, help='任务上下文的活动章节标识 (如 EX7)')
     gp.add_argument('--server', default='默认', help='换区目标：默认/胡德/俾斯麦/昆西/长春')
+    gp.add_argument(
+        '--scripted-frames',
+        default=None,
+        help='脚本化静态帧：逗号分隔的截图路径，用完后交回真机',
+    )
+    gp.add_argument('--frame-interval', type=float, default=1.5, help='静态帧推进间隔秒数')
+    gp.add_argument('--static-clicks', type=int, default=0, help='前几次点击只记录不落地')
     g = gp.parse_args(global_argv)
 
     # case 参数 (由 case 自己定义; 未定义 add_arguments 时 rest 必须为空)
@@ -196,6 +206,9 @@ def main() -> int:
         event_type=g.event_type,
         event_stage=g.event_stage,
         game_server=g.server,
+        scripted_frames=[p for p in (g.scripted_frames or '').split(',') if p] or None,
+        frame_interval_seconds=g.frame_interval,
+        static_clicks=g.static_clicks,
     )
     if not rt.prepare():
         return rt.finalize(overall=False)

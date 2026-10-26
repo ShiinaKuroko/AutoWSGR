@@ -44,7 +44,7 @@ docs/AutoWSGR3.0/common/system.md                                        # 描�
 docs/AutoWSGR3.0/common/vision.md                                        # 描述 autowsgr/common/vision/
 docs/AutoWSGR3.0/application/ui/controller/home/main_page.md              # 描述 .../controller/home/main_page/
 docs/AutoWSGR3.0/application/ui/controller/operations/sortie_page/main_page.md
-docs/AutoWSGR3.0/application/ui/navigation/checker/event.md
+docs/AutoWSGR3.0/application/ui/navigation/registry.md             # 描述 .../navigation/registry.py
 ```
 
 `<模块名>` 必须与代码目录名一致，不使用宽泛的 `common`、`core`、`utils` 或 `manager`
@@ -87,7 +87,12 @@ docs/AutoWSGR3.0/dispatch/context/context.md
 
 - `__init__.py`：只做导出，写进父文档的「公开出口」；
 - 纯数据文件：`types.py`、`constants.py`、`errors.py`、`models.py`、`config.py`
-  这类只有声明、没有编排的文件，写进父文档的「文件职责表」。
+  这类只有声明、没有编排的文件，写进父文档的「文件职责表」；
+- 结构同质的页面子包：例如 `application/ui/navigation/checker/<页面>/`，它们职责同构——
+  同一套文件职责（`constants` / `recognition` / `checker` / `__init__`）、同一套签名契约、
+  同一套依赖方向，差别只在校准数据与识别规则。这类子包统一登记在所属包文档的「能力总览」，
+  不单独建文档，避免「统一配置 / 错误约定 / 日志约定 / 公开出口 / 模块维护方法 / 验收门禁」
+  等公共章节重复多份。子包若长出**不同构**的职责（独立流程、独立状态所有权），才单独建文档。
 
 **父文档必须完整列出它的全部直接子项**（直接子目录 + 直接文件），一项一行：
 

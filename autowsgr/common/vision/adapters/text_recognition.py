@@ -8,7 +8,7 @@
 - OpenCV：提供文本预处理算子。
 - FastOCR：提供文字检测和识别。
 - common.vision.adapters.template_matching：提供 ROI 模型。
-- common.vision.config、ocr_engine 和 opencv_engine：提供识别参数与执行器。
+- common.vision.config、ocr 和 opencv：提供识别参数与执行器。
 
 边界：不负责设备截图、领域文本修正、页面状态或业务候选规则的定义。
 """
@@ -21,8 +21,8 @@ from typing import TYPE_CHECKING
 from autowsgr.common.system.enums import StrEnum
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.vision.config import OPENCV_TEXT_BLUR_KERNEL, OPENCV_TEXT_SCALE
-from autowsgr.common.vision.ocr_engine.executor import OCRExecutor, TextDetection
-from autowsgr.common.vision.opencv_engine.executor import OpenCVExecutor
+from autowsgr.common.vision.ocr.executor import OCRExecutor, TextDetection
+from autowsgr.common.vision.opencv.executor import OpenCVExecutor
 
 
 if TYPE_CHECKING:

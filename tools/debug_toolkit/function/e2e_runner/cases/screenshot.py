@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from autowsgr.application.ui.navigation.checker.home import check_home_page
+from autowsgr.application.ui.navigation.checker import home
 from autowsgr.application.ui.navigation.types import PageName
 
 
@@ -24,7 +24,11 @@ def run(rt: Any) -> bool:
         return False
     ctx.record_screenshot(screen)
 
-    page = rt.action('检查首页并处理浮窗', check_home_page, ctx)
+    page = rt.action(
+        '检查首页并处理浮窗',
+        lambda _ctx: home.read_home_layer(_ctx) is PageName.HOME,
+        ctx,
+    )
     if page is rt.FAILED:
         return False
     if page:

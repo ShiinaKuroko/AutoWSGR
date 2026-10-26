@@ -18,10 +18,11 @@ from autowsgr.application.ui.navigation.checker.login.checker import (
     check_login_page,
     check_server_select,
     check_update_prompt,
-    find_server_position,
+    get_server_index,
     read_enter_button_center,
+    read_server_index,
+    read_server_position,
     read_switch_entry_center,
-    server_index,
 )
 
 
@@ -31,8 +32,9 @@ __all__ = [
     'check_login_page',
     'check_server_select',
     'check_update_prompt',
-    'find_server_position',
+    'get_server_index',
     'read_enter_button_center',
+    'read_server_index',
+    'read_server_position',
     'read_switch_entry_center',
-    'server_index',
 ]

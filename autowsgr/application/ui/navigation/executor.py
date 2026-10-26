@@ -35,13 +35,12 @@ _QUIET_DURING_PROBE = (
 )
 
 
-# 覆盖层页面：每日三个浮窗。它们盖在底层页面上，不参与「我在哪一页」的探测。
-_OVERLAY_PAGES = frozenset({PageName.HOME_NEWS, PageName.HOME_REWARD, PageName.HOME_REWARD_CONFIRM})
-
-
 # ── 页面内标签参数 ──────────────────────────────────────────────────────────
 
 # 点页面入口后页面本身还在切换动画里，此时点标签会落空；先等它稳定再点、再验。
+# 到达首页或侧边栏后，浮窗可能延迟弹出；先停一会儿再记账。
+_ARRIVAL_SETTLE_SECONDS = 3.0
+
 _TAB_SETTLE_SECONDS = 2.0
 
 
@@ -117,30 +116,28 @@ class NavigationExecutor:
 
     # ── 页面层识别 ──────────────────────────────────────────────────────────
 
-    def detect_layer(self) -> PageName | None:
-        """返回当前最上面那一层：按页面深度降序扫一遍，命中即停。
+    def detect_layer(self) -> tuple[PageName, ...]:
+        """返回当前命中的全部层，按深度降序（最上面那层在最前）。
 
-        覆盖层（浮窗、侧边栏、二级菜单）总是比被盖住的页面更深，因此排在最前的
-        命中者就是当前层——不需要任何页面去「排除」别的页面。
-        每个入口只看当前一帧；等待页面切换由调用方决定。
+        覆盖层（浮窗、侧边栏、二级菜单）总是比被盖住的页面更深，所以命中的页面里
+        深度最大的那个就是当前层。**不能命中即停**：深度排序只保证「更深的排在前面」，
+        而单个入口可能因为画面过渡或识别偏差给出假阳性，必须拿全部结果再比较。
+        返回全部层而不是只返回最上面那层，是为了让调用方能按层级建栈。
 
         Returns:
-            当前层；一个确认入口都没命中时为 None。
+            命中的全部层，按深度降序；一个确认入口都没命中时返回空元组。
         """
-        # 浮窗是覆盖层：问「我在哪一页」问的是底层页面，把浮窗排除在外，
-        # 否则「处理过的浮窗直接放行」会把当前页认成浮窗，路径就从错的起点算。
         by_depth = sorted(
-            (
-                page
-                for page in PageName
-                if registry.get_checker(page) is not None and page not in _OVERLAY_PAGES
-            ),
+            (page for page in PageName if registry.get_checker(page) is not None),
             key=registry.depth_of,
             reverse=True,
         )
+        hits: list[PageName] = []
         for name in _QUIET_DURING_PROBE:
             logger.disable(name)
         try:
+            # 先问域探针：一个域一帧只读一次，避免同组页面重复截图。
+            hits.extend(registry.probe_domains(self._ctx))
             for page in by_depth:
                 confirm = registry.get_checker(page)
                 if confirm is None:
@@ -152,11 +149,16 @@ class NavigationExecutor:
                     # 报错就当它不匹配，继续看下一层。
                     matched = False
                 if matched:
-                    return page
-            return None
+                    hits.append(page)
         finally:
             for name in _QUIET_DURING_PROBE:
                 logger.enable(name)
+        if not hits:
+            _log.debug('[UI] 导航执行 → 全层扫描：hits=[]，result=未识别到')
+            return ()
+        ordered = tuple(sorted(hits, key=registry.depth_of, reverse=True))
+        _log.debug('[UI] 导航执行 → 全层扫描：hits={!r}', [page.value for page in ordered])
+        return ordered
 
     def _enter_tab(self, page: PageName, tab: str) -> None:
         """切到目标页内的标签，并用该标签自己的 checker 确认。
@@ -196,21 +198,40 @@ class NavigationExecutor:
         Raises:
             NavigationError: 目标页没出现，或当前层不是目标页。
         """
+        if not edge.confirm:
+            _log.debug('[UI] 导航执行 → 到达确认：page={!r}，结果=跳过', edge.target.value)
+            return
+        # 首页和侧边栏上会弹每日浮窗；标记不齐说明今天还没处理完，先等过弹出动画再判层。
+        if edge.target in (PageName.HOME, PageName.SIDEBAR) and not registry.popups_all_settled():
+            time.sleep(_ARRIVAL_SETTLE_SECONDS)
+        # 域页面由探针一次判层；到达确认仍要扫全层，别的覆盖层可能盖在目标上面。
+        if registry.is_domain_page(edge.target):
+            layers = self.detect_layer()
+            layer = layers[0] if layers else None
+            if layer is not edge.target:
+                detail = '未识别到任何页面' if layer is None else f'当前层是 {layer.value!r}'
+                raise NavigationError(f'到达确认失败：{edge.description!r}，{detail}')
+            registry.on_arrival(self._ctx, edge.target)
+            _log.debug('[UI] 导航执行 → 到达确认：page={!r}，结果=成功', edge.target.value)
+            return
         confirm = registry.get_checker(edge.target)
-        if confirm is None or not edge.confirm:
+        if confirm is None:
             _log.debug('[UI] 导航执行 → 到达确认：page={!r}，结果=跳过', edge.target.value)
             return
         # 先等目标页出现（它的入口自带重试，负责等切换动画走完）。
-        if not confirm(self._ctx):
+        confirm_result = confirm(self._ctx)
+        if not confirm_result:
             raise NavigationError(f'到达确认失败：{edge.description!r}')
         # 再确认「当前层就是目标」：目标出现不代表它就在最上面——浮窗、侧边栏
         # 这类覆盖层会盖住它，按深度降序扫一遍就能分辨出真正的当前层。
-        layer = self.detect_layer()
+        layers = self.detect_layer()
+        layer = layers[0] if layers else None
         if layer is not edge.target:
             # 一个页面都没认出来同样算异常：扫不到任何层说明识别链路本身出了问题，
             # 不能当成「无法判断所以放行」。
             detail = '未识别到任何页面' if layer is None else f'当前层是 {layer.value!r}'
             raise NavigationError(f'到达确认失败：{edge.description!r}，{detail}')
+        registry.on_arrival(self._ctx, edge.target)
         _log.debug('[UI] 导航执行 → 到达确认：page={!r}，结果=成功', edge.target.value)
 
 

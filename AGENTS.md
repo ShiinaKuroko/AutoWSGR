@@ -108,8 +108,9 @@ worktree 项目偏好；只有在超级用户模式已按全局协议被用户�
 - `common-system` 负责系统错误、日志、文件和公共基础类型；
 - `common-device` 负责设备连接、截图、输入和设备错误；
 - `common-vision` 负责 ROI、像素、模板、OpenCV 和 OCR 基础能力；
-- 视觉调用统一走 `common.vision` 的公共入口：`shot`、`expect_template`/`expect_ocr`/`expect_pixels`
-  （`absent=False` 识别存在、`absent=True` 识别不存在）和 `expect_template_center`（返回命中模板中心）；
+- 视觉调用统一走 `common.vision` 的公共入口：`screenshot`、`expect_template`/`expect_ocr`/`expect_pixels`
+  （`absent=False` 识别存在、`absent=True` 识别不存在）和 `expect_template_center`/`expect_ocr_center`/
+  `expect_pixel_center`（返回命中中心）；
   调用方只提供识别数据、识别规则和预期，`ContextHandle` 由 dispatch 统一提供，任何层级都可以调用它；
 - 页面语义、业务状态、路由、任务恢复和模板缓存归各自上层所有者；
 - 现有公开能力无法满足明确业务时，只在真实所有者模块增加最小能力，并同步对应架构文档

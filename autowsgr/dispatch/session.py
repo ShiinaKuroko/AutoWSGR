@@ -4,7 +4,8 @@
 - application.ui.navigation.service：记录导航栈与区服选择标记。
 - application.ui.navigation.checker 与 registry：读写每日浮窗的处理标记。
 
-下层依赖：无，只保存进程内状态。
+下层依赖：
+- common.system.enums：提供字符串枚举基类。
 
 边界：只保存程序运行期内的状态，重启即消失；不保存任务级事实、不访问设备、不做业务判断。
 """
@@ -12,6 +13,20 @@
 from __future__ import annotations
 
 from datetime import date
+
+from autowsgr.common.system.enums import StrEnum
+
+
+class DailyPopup(StrEnum):
+    """每日浮窗标识。
+
+    三个每日浮窗彼此**解耦**：各自处理成功后记录自己的标记，各自的确认入口在读到
+    自己的标记时跳过识别——处理过一个不影响另外两个。
+    """
+
+    NEWS = 'daily_news'
+    REWARD = 'daily_reward'
+    REWARD_CONFIRM = 'daily_reward_confirm'
 
 
 class SessionState:
@@ -23,7 +38,7 @@ class SessionState:
 
     def __init__(self) -> None:
         self._server_selected = False
-        self._popups_settled_on: date | None = None
+        self._popup_settled_on: dict[DailyPopup, date] = {}
         self._pages: list[str] = []
 
     @property
@@ -35,18 +50,17 @@ class SessionState:
         """标记本次运行已完成区服选择。"""
         self._server_selected = True
 
-    @property
-    def daily_popups_settled(self) -> bool:
-        """今天是否已经确认过「不会再弹每日浮窗」。
+    def popup_settled(self, popup: DailyPopup) -> bool:
+        """今天是否已经处理过某个每日浮窗。
 
-        游戏每天第一次进主页必定弹一次，确认过之后当天不会再弹。标记带日期，
-        跨过零点后自动失效，第二天重新确认——不需要定时清除。
+        游戏每天第一次进主页会弹浮窗，处理过的当天不会再弹。标记带日期，
+        跨过零点自动失效，第二天重新确认——不需要定时清除。
         """
-        return self._popups_settled_on == date.today()  # noqa: DTZ011  # 本地墙上时钟
+        return self._popup_settled_on.get(popup) == date.today()  # noqa: DTZ011  # 本地墙上时钟
 
-    def mark_daily_popups_settled(self) -> None:
-        """记下今天已经确认过不会再弹每日浮窗。"""
-        self._popups_settled_on = date.today()  # noqa: DTZ011  # 本地墙上时钟
+    def mark_popup_settled(self, popup: DailyPopup) -> None:
+        """记下今天已经处理过某个每日浮窗。"""
+        self._popup_settled_on[popup] = date.today()  # noqa: DTZ011  # 本地墙上时钟
 
     def current_page(self) -> str | None:
         """返回导航栈顶的页面值。"""
@@ -74,4 +88,4 @@ def get_session() -> SessionState:
     return _SESSION
 
 
-__all__ = ['SessionState', 'get_session']
+__all__ = ['DailyPopup', 'SessionState', 'get_session']

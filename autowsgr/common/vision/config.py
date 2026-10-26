@@ -2,7 +2,7 @@
 
 上层调用：
 - common.vision.service：取用识别重试默认参数和模板匹配置信度。
-- common.vision.adapters、numpy_engine、opencv_engine 和 ocr_engine：取用模板根目录、
+- common.vision.adapters、numpy、opencv 和 ocr：取用模板根目录、
   像素容差和 OCR 参数。
 
 下层依赖：

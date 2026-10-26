@@ -34,8 +34,9 @@ CHAIN = (
     'BACKYARD',
     'BATH',
     'BACKYARD',
-    'ACADEMY',
-    'BACKYARD',
+    # 学院：新号未解锁，先注释掉；解锁后恢复下面两步。
+    # 'ACADEMY',
+    # 'BACKYARD',
     'RANK_ROOM',
     'BACKYARD',
     'HOME',
@@ -56,13 +57,15 @@ CHAIN = (
     'MISSION_REWARD_CONFIRM',
     'MISSION',
     'HOME',
-    # ── 出征域与活动域 ──
+    # ── 出征域 ──
     'SORTIE_MAP',
     'HOME',
-    'EVENT_MAP',
-    'EVENT_STAGE_OVERLAY',
-    'EVENT_MAP',
-    'HOME',
+    # ── 活动域 ──
+    # 活动未开放期间先注释掉；开放后恢复下面三步（末行 HOME 是活动回主页）。
+    # 'EVENT_MAP',
+    # 'EVENT_STAGE_OVERLAY',
+    # 'EVENT_MAP',
+    # 'HOME',
 )
 
 # 登录段：游戏冷启动后才能跑（登录页 ↔ 区服选择页 ↔ 主页）。
@@ -95,18 +98,20 @@ def run(rt: Any) -> bool:
     from autowsgr.application.ui.navigation import registry
     from autowsgr.application.ui.navigation.service import NavigationService
     from autowsgr.application.ui.navigation.types import PageName
-    from autowsgr.dispatch.session import get_session
+    from autowsgr.dispatch.session import DailyPopup, get_session
 
     ctx = rt.ctx
     session = get_session()
     navigator = NavigationService(ctx, session=session)
 
     if rt.args.popups_settled:
-        # 注入生产同款标记：今天已确认不会再弹，回主页时整段浮窗识别会被跳过。
-        session.mark_daily_popups_settled()
-        rt.note('已注入每日浮窗处理标记')
+        # 注入生产同款标记：三个浮窗都当作今天已处理，回主页时各自跳过识别。
+        for popup in DailyPopup:
+            session.mark_popup_settled(popup)
+        rt.note('已注入每日浮窗处理标记（三个浮窗）')
 
-    nodes = [p for p in PageName if registry.get_checker(p) is not None]
+    # 域探针负责的页面不登记到逐页注册表，统计边覆盖时要一并算上。
+    nodes = list(PageName)
     all_edges = {edge.description for p in nodes for edge in registry.get_targets(p)}
 
     # 导航栈由 navigate_to 自己维护：第一次调用识别当前页并压栈，之后每跳接着压。

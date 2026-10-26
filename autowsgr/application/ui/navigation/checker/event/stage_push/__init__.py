@@ -6,7 +6,6 @@
 
 下层依赖：
 - event.stage_push.checker：提供页面识别入口与页面事实模型。
-- event.stage_push.recognition：提供活动难度事实。
 
 本模块只导出稳定入口与事实模型，不放业务实现。
 """
@@ -15,18 +14,18 @@ from __future__ import annotations
 
 from autowsgr.application.ui.navigation.checker.event.stage_push.checker import (
     EventMapState,
+    EventMode,
     EventStage,
     check_event_entry,
     check_event_map_page,
     check_event_sortie_prepare,
     parse_stage,
     read_event_map_state,
+    read_event_stage,
+    read_event_type,
     read_mode_button_center,
     read_sortie_prepare_center,
     wait_event_mode,
-)
-from autowsgr.application.ui.navigation.checker.event.stage_push.recognition import (
-    EventMode,
 )
 
 
@@ -39,6 +38,8 @@ __all__ = [
     'check_event_sortie_prepare',
     'parse_stage',
     'read_event_map_state',
+    'read_event_stage',
+    'read_event_type',
     'read_mode_button_center',
     'read_sortie_prepare_center',
     'wait_event_mode',

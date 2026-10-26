@@ -12,9 +12,7 @@ from pathlib import Path
 from typing import Any
 
 from autowsgr.application.ui.navigation.checker.event import stage_push
-from autowsgr.application.ui.navigation.checker.event.stage_push.recognition import (
-    EventMode,
-)
+from autowsgr.application.ui.navigation.checker.event.stage_push import EventMode
 
 
 DESC = '推图活动 checker 静态验证: 首页入口 / 地图难度 / 出征准备'
@@ -29,7 +27,9 @@ def run(rt: Any) -> bool:
 
     # 1. 首页活动入口：有入口的首页应当命中。
     rt.use_frame(_SHOT_DIR / '活动首页.png')
-    entry = rt.action('检查首页活动入口', stage_push.check_event_entry, ctx, event_type='stage_push')
+    entry = rt.action(
+        '检查首页活动入口', stage_push.check_event_entry, ctx, event_type='stage_push'
+    )
     if entry is rt.FAILED:
         return False
     if not rt.check('首页活动入口命中', lambda: entry):

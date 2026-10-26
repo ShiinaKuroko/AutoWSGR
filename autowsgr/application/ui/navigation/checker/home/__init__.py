@@ -13,14 +13,14 @@ from __future__ import annotations
 
 from autowsgr.application.ui.navigation.checker.home.checker import (
     HomeNewsOverlay,
-    check_home_news_overlay,
-    check_home_news_page,
-    check_home_page,
     check_home_reward_confirm,
-    check_home_reward_confirm_page,
     check_home_reward_overlay,
-    check_home_reward_page,
+    check_news_checked,
+    mark_popups_settled,
+    popups_all_settled,
+    read_home_layer,
     read_news_checkbox_center,
+    read_news_overlay,
     read_reward_claim_center,
     read_reward_confirm_center,
 )
@@ -28,14 +28,14 @@ from autowsgr.application.ui.navigation.checker.home.checker import (
 
 __all__ = [
     'HomeNewsOverlay',
-    'check_home_news_overlay',
-    'check_home_news_page',
-    'check_home_page',
     'check_home_reward_confirm',
-    'check_home_reward_confirm_page',
     'check_home_reward_overlay',
-    'check_home_reward_page',
+    'check_news_checked',
+    'mark_popups_settled',
+    'popups_all_settled',
+    'read_home_layer',
     'read_news_checkbox_center',
+    'read_news_overlay',
     'read_reward_claim_center',
     'read_reward_confirm_center',
 ]

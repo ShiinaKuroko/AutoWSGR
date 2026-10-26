@@ -6,7 +6,7 @@
 
 下层依赖：
 - NumPy：提供数组运算。
-- common.vision.numpy_engine.executor：提供像素采样和坐标换算。
+- common.vision.numpy.executor：提供像素采样和坐标换算。
 - common.vision.adapters.template_matching：提供 ROI 模型。
 - common.vision.config 和 common.system.logger：提供容差默认值和日志对象。
 
@@ -24,7 +24,7 @@ import numpy
 
 from autowsgr.common.system.logger import get_logger
 from autowsgr.common.vision.config import NUMPY_DEFAULT_PIXEL_TOLERANCE
-from autowsgr.common.vision.numpy_engine.executor import NumpyExecutor
+from autowsgr.common.vision.numpy.executor import NumpyExecutor
 
 
 if TYPE_CHECKING:

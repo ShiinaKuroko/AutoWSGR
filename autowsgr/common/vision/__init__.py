@@ -6,7 +6,7 @@
 下层依赖：
 - common.vision.service：提供截图、前识别和后识别的公共入口。
 - common.vision.adapters：识别数据模型和匹配结果模型。
-- common.vision.ocr_engine：提供 OCR 文本检测结果模型。
+- common.vision.ocr：提供 OCR 文本检测结果模型。
 
 边界：只做稳定导出；识别数据、识别规则和预期由调用方提供，不实现业务识别规则或页面流程。
 """
@@ -28,14 +28,16 @@ from autowsgr.common.vision.adapters.template_matching import (
     TemplateMatchResult,
 )
 from autowsgr.common.vision.adapters.text_recognition import RecognitionProfile
-from autowsgr.common.vision.ocr_engine import TextDetection
+from autowsgr.common.vision.ocr import TextDetection
 from autowsgr.common.vision.service import (
     RecognitionResult,
     expect_ocr,
+    expect_ocr_center,
+    expect_pixel_center,
     expect_pixels,
     expect_template,
     expect_template_center,
-    shot,
+    screenshot,
 )
 
 
@@ -54,8 +56,10 @@ __all__ = [
     'TemplateMatchResult',
     'TextDetection',
     'expect_ocr',
+    'expect_ocr_center',
+    'expect_pixel_center',
     'expect_pixels',
     'expect_template',
     'expect_template_center',
-    'shot',
+    'screenshot',
 ]

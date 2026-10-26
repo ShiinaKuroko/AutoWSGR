@@ -1,12 +1,16 @@
-"""模块功能：编排主页与每日浮窗的识别入口。
+"""模块功能：确认主页与每日浮窗的当前层。
 
 上层调用：
 - application.ui.navigation：识别当前是否在主页，以及主页上存在的每日浮窗。
+- application.ui.navigation.registry：读取浮窗事实与点击落点。
 
 下层依赖：
-- home.recognition：读取页面与浮窗识别事实。
+- common.vision：读取模板事实与模板中心。
+- application.ui.template：加载本模块模板。
+- application.ui.navigation.types：提供页面契约。
+- dispatch.session：读写每日浮窗的处理标记。
 
-边界：只编排识别并组装事实，不执行点击、不计算路由、不上报识别错误。
+边界：只读取一帧、按梯次判层并返回事实，不执行点击、不计算路由、不上报识别错误。
 """
 
 from __future__ import annotations
@@ -14,19 +18,57 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from autowsgr.application.ui.navigation.checker.home import recognition
-from autowsgr.common.system.logger import get_logger
-from autowsgr.dispatch.session import get_session
+from autowsgr.application.ui.navigation.types import PageName
+from autowsgr.application.ui.template import load_ui_template
+from autowsgr.common.vision import ROI, Template, expect_template, expect_template_center
+from autowsgr.dispatch.session import DailyPopup, get_session
 
 
 if TYPE_CHECKING:
     from autowsgr.dispatch.context import ContextHandle
 
 
-_log = get_logger('ui')
+# ── 识别数据 ────────────────────────────────────────────────────────────────
+
+# 本模块在 UI 模板根下的命名空间。
+TEMPLATE_NAMESPACE = 'navigation/checker/home'
+
+# 本模块的模板文件名；目录小写、文件名全大写。
+HOME_MAIN_TEMPLATE = 'HOME_MAIN_720P.png'
+NEWS_TEXT_TEMPLATE = 'HOME_NEWS_TEXT_720P.png'
+NEWS_CHECKED_TEMPLATE = 'HOME_NEWS_CHECKBOX_CHECKED_720P.png'
+NEWS_UNCHECKED_TEMPLATE = 'HOME_NEWS_CHECKBOX_UNCHECKED_720P.png'
+REWARD_TEXT_TEMPLATE = 'HOME_REWARD_TEXT_720P.png'
+REWARD_CLAIM_TEMPLATE = 'HOME_REWARD_CLAIM_BUTTON_720P.png'
+REWARD_CONFIRM_TEMPLATE = 'HOME_REWARD_CONFIRM_BUTTON_720P.png'
+
+# 主页入口图标的归一化区域，校准基准为 1280x720 截图。
+HOME_MAIN_ROI = ROI(0.9109, 0.8681, 0.9758, 0.9139)
+
+# 公告浮窗文字区域与勾选框区域。
+NEWS_TEXT_ROI = ROI(0.0867, 0.8763, 0.2125, 0.9403)
+NEWS_CHECKBOX_ROI = ROI(0.0382, 0.8652, 0.0875, 0.9459)
+
+# 每日奖励浮窗的文字区域与领取按钮区域。
+REWARD_TEXT_ROI = ROI(0.1015, 0.268, 0.3313, 0.3362)
+REWARD_CLAIM_BUTTON_ROI = ROI(0.4406, 0.6291, 0.5594, 0.7028)
+
+# 每日奖励确认浮窗的确认按钮区域。
+REWARD_CONFIRM_BUTTON_ROI = ROI(0.4351, 0.5194, 0.5696, 0.6209)
+
+# 一帧要读的七个模板，顺序固定；解包时的下标顺序以这里为准。
+_PROBES: tuple[tuple[str, ROI], ...] = (
+    (HOME_MAIN_TEMPLATE, HOME_MAIN_ROI),
+    (NEWS_TEXT_TEMPLATE, NEWS_TEXT_ROI),
+    (NEWS_CHECKED_TEMPLATE, NEWS_CHECKBOX_ROI),
+    (NEWS_UNCHECKED_TEMPLATE, NEWS_CHECKBOX_ROI),
+    (REWARD_TEXT_TEMPLATE, REWARD_TEXT_ROI),
+    (REWARD_CLAIM_TEMPLATE, REWARD_CLAIM_BUTTON_ROI),
+    (REWARD_CONFIRM_TEMPLATE, REWARD_CONFIRM_BUTTON_ROI),
+)
 
 
-# ── 主页浮窗事实模型 ──────────────────────────────────────────────────────────────────
+# ── 浮窗事实 ────────────────────────────────────────────────────────────────
 
 
 @dataclass(frozen=True, slots=True)
@@ -42,229 +84,209 @@ class HomeNewsOverlay:
     checked: bool | None
 
 
-# ── 识别入口 ──────────────────────────────────────────────────────────────────────
-
+# ── 识别节奏 ────────────────────────────────────────────────────────────────
 
 # 导航确认节奏：从登录页进入要等登录动画与加载，因此给足重试。
 _NAV_CONFIRM_ATTEMPTS = 30
 _NAV_CONFIRM_INTERVAL_SECONDS = 1.0
 
+# 浮窗识别节奏：浮窗弹出有动画（约 1.5 秒），窗口不够会把「还没弹出来」读成「不在」。
+# 5 次 x 0.5 秒，约 2.5 秒，留出余量；命中即返回，浮窗真在时不会白等。
+# 回到主页后浮窗可能延迟弹出；等过这段动画再确认主页是干净的。
+_POPUP_SETTLE_SECONDS = 2.0
 
-def check_home_page(
+_OVERLAY_ATTEMPTS = 5
+_OVERLAY_INTERVAL_SECONDS = 0.5
+
+
+# ── 当前层 ──────────────────────────────────────────────────────────────────
+
+
+def read_home_layer(
     ctx: ContextHandle,
     *,
-    absent: bool = False,
-    attempts: int = _NAV_CONFIRM_ATTEMPTS,
-    interval_seconds: float = _NAV_CONFIRM_INTERVAL_SECONDS,
-) -> bool:
-    """确认当前是否在「没有每日浮窗的主页」上。
+    attempts: int = _OVERLAY_ATTEMPTS,
+    interval_seconds: float = _OVERLAY_INTERVAL_SECONDS,
+) -> PageName | None:
+    """读取当前停在主页的哪一层。
 
-    主页上有每日浮窗时不算到达主页：三个浮窗各自有页面身份，先走浮窗链把它们清掉，
-    最后回到这里确认。后识别（`absent=True`）只看主页模板，不受浮窗影响。
+    命中组合是互斥的：确认浮窗盖在奖励上、奖励盖在主页上、公告盖住整页。
+    今天已经处理过的浮窗直接跳过，不再参与判定。
 
     Args:
         ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
-        absent: 期望主页标志消失时为真，默认期望它出现。
-        attempts: 识别次数，默认按导航确认节奏（从登录页进入要等加载）。
+        attempts: 识别次数，默认给足浮窗弹出动画的窗口。
         interval_seconds: 两次识别之间的等待秒数。
 
     Returns:
-        主页模板命中、且前识别时三个每日浮窗都不在时为真。
+        当前层；一个都没命中时为空。
     """
-    if not recognition.read_home_page(
-        ctx,
-        absent=absent,
-        attempts=attempts,
-        interval_seconds=interval_seconds,
-    ):
-        return False
-    # 后识别只判模板消失，浮窗无关。
-    if absent:
-        return True
+    home, news_text, news_checked, news_unchecked, reward_text, reward_claim, reward_confirm = (
+        _read_home_hits(ctx, attempts=attempts, interval_seconds=interval_seconds)
+    )
     session = get_session()
-    # 今天已确认过不会再弹：整段浮窗识别直接跳过。
-    if session.daily_popups_settled:
-        return True
-    # 前识别：还有浮窗就交给浮窗页表达，这里不算到达主页。
-    news_matched, _ = recognition.read_news_overlay(ctx)
-    if news_matched:
-        return False
-    reward_visible = recognition.read_reward_overlay(ctx) or recognition.read_reward_confirm(ctx)
-    if reward_visible:
-        return False
-    # 主页干净：游戏每天第一次进主页必定弹一次，这次没弹说明今天不会再弹。
-    session.mark_daily_popups_settled()
-    return True
+    if reward_confirm and not session.popup_settled(DailyPopup.REWARD_CONFIRM):
+        return PageName.HOME_REWARD_CONFIRM
+    if (reward_text or reward_claim) and not session.popup_settled(DailyPopup.REWARD):
+        return PageName.HOME_REWARD
+    if (news_text or news_checked or news_unchecked) and not session.popup_settled(DailyPopup.NEWS):
+        return PageName.HOME_NEWS
+    if home:
+        return PageName.HOME
+    return None
 
 
-def check_home_news_page(
-    ctx: ContextHandle,
-    *,
-    absent: bool = False,
-    attempts: int = 1,
-    interval_seconds: float = 0.5,
-) -> bool:
-    """确认主页上是否有每日公告浮窗，供整页身份使用。
-
-    Args:
-        ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
-        absent: 期望公告浮窗不在时为真，默认期望它在。
-        attempts: 识别次数，默认只探测当前一帧。
-        interval_seconds: 两次识别之间的等待秒数。
-
-    Returns:
-        断言满足时为真。
-    """
-    # 今天已确认过不会再弹：这一步不用再干活，直接放行。
-    if get_session().daily_popups_settled:
-        return True
-    matched = check_home_news_overlay(
-        ctx,
-        attempts=attempts,
-        interval_seconds=interval_seconds,
-    ).matched
-    return (not matched) if absent else matched
+# ── 页面确认 ────────────────────────────────────────────────────────────────
 
 
-def check_home_reward_page(
-    ctx: ContextHandle,
-    *,
-    absent: bool = False,
-    attempts: int = 1,
-    interval_seconds: float = 0.5,
-) -> bool:
-    """确认主页上「当前这一层」是每日奖励浮窗，供整页身份使用。
+def popups_all_settled() -> bool:
+    """今天的三个每日浮窗是否都已处理。"""
+    session = get_session()
+    return all(session.popup_settled(popup) for popup in DailyPopup)
 
-    领取后确认浮窗会叠在奖励浮窗上面，此时这一层已经是确认浮窗，奖励浮窗不再算作当前页；
-    不排除的话「每日奖励 → 每日奖励确认」这一步的离开确认永远不成立。
+
+def mark_popups_settled(ctx: ContextHandle) -> None:
+    """从别的页面回到干净主页时，记下三个浮窗今天都已处理。
+
+    浮窗可能延迟弹出，调用方负责先等过弹出动画；这里只确认主页确实干净后写标记。
 
     Args:
         ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
-        absent: 期望奖励浮窗不在当前层时为真，默认期望这一层就是它。
-        attempts: 识别次数，默认只探测当前一帧。
-        interval_seconds: 两次识别之间的等待秒数。
-
-    Returns:
-        断言满足时为真。
     """
-    # 今天已确认过不会再弹：这一步不用再干活，直接放行。
-    if get_session().daily_popups_settled:
-        return True
-    matched = check_home_reward_overlay(
-        ctx,
-        attempts=attempts,
-        interval_seconds=interval_seconds,
-    ) and not check_home_reward_confirm(
-        ctx,
-        attempts=attempts,
-        interval_seconds=interval_seconds,
-    )
-    return (not matched) if absent else matched
+    session = get_session()
+    previous = session.current_page()
+    if previous is None or previous == PageName.HOME.value:
+        return
+    if all(session.popup_settled(popup) for popup in DailyPopup):
+        return
+    if read_home_layer(ctx, attempts=1) is not PageName.HOME:
+        return
+    for popup in DailyPopup:
+        session.mark_popup_settled(popup)
 
 
-def check_home_reward_confirm_page(
+# ── 浮窗事实读取 ────────────────────────────────────────────────────────────
+
+
+def read_news_overlay(
     ctx: ContextHandle,
     *,
-    absent: bool = False,
-    attempts: int = 1,
-    interval_seconds: float = 0.5,
-) -> bool:
-    """确认主页上是否有每日奖励确认浮窗，供整页身份使用。
-
-    Args:
-        ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
-        absent: 期望确认浮窗不在时为真，默认期望它在。
-        attempts: 识别次数，默认只探测当前一帧。
-        interval_seconds: 两次识别之间的等待秒数。
-
-    Returns:
-        断言满足时为真。
-    """
-    # 今天已确认过不会再弹：确认这一步也没活干，直接放行。
-    if get_session().daily_popups_settled:
-        return True
-    matched = check_home_reward_confirm(
-        ctx,
-        attempts=attempts,
-        interval_seconds=interval_seconds,
-    )
-    return (not matched) if absent else matched
-
-
-def check_home_news_overlay(
-    ctx: ContextHandle,
-    *,
-    attempts: int = 1,
-    interval_seconds: float = 0.5,
+    attempts: int = _OVERLAY_ATTEMPTS,
+    interval_seconds: float = _OVERLAY_INTERVAL_SECONDS,
 ) -> HomeNewsOverlay:
     """读取每日公告浮窗事实。
 
+    今天已经处理过每日公告时不再识别，直接当它不在。
+
     Args:
         ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
-        attempts: 识别次数，默认只探测当前一帧。
+        attempts: 识别次数，默认给足浮窗弹出动画的窗口。
         interval_seconds: 两次识别之间的等待秒数。
 
     Returns:
         公告浮窗事实：是否在主页上、勾选框状态。
     """
-    matched, checked = recognition.read_news_overlay(
+    if get_session().popup_settled(DailyPopup.NEWS):
+        return HomeNewsOverlay(matched=False, checked=None)
+    _, news_text, news_checked, news_unchecked, _, _, _ = _read_home_hits(
         ctx,
         attempts=attempts,
         interval_seconds=interval_seconds,
     )
-    state = HomeNewsOverlay(matched=matched, checked=checked)
-    _log.debug(
-        '[UI] 主页浮窗 → 读公告事实：matched={!r}，checked={!r}',
-        state.matched,
-        state.checked,
-    )
-    return state
+    matched = news_text or news_checked or news_unchecked
+    checked = True if news_checked else (False if news_unchecked else None)
+    return HomeNewsOverlay(matched=matched, checked=checked)
+
+
+def check_news_checked(
+    ctx: ContextHandle,
+    *,
+    attempts: int = _OVERLAY_ATTEMPTS,
+    interval_seconds: float = _OVERLAY_INTERVAL_SECONDS,
+) -> bool:
+    """确认每日公告的勾选框是否已经勾上。
+
+    点击勾选框后游戏要过一会儿才更新状态，这里单独读已勾选模板并等它出现。
+
+    Args:
+        ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
+        attempts: 识别次数，默认给足点击反馈的窗口。
+        interval_seconds: 两次识别之间的等待秒数。
+
+    Returns:
+        勾选框处于已勾选状态时为真。
+    """
+    return expect_template(
+        ctx,
+        template=_load_template(NEWS_CHECKED_TEMPLATE),
+        roi=NEWS_CHECKBOX_ROI,
+        attempts=attempts,
+        interval_seconds=interval_seconds,
+    ).satisfied
 
 
 def check_home_reward_overlay(
     ctx: ContextHandle,
     *,
-    attempts: int = 1,
-    interval_seconds: float = 0.5,
+    attempts: int = _OVERLAY_ATTEMPTS,
+    interval_seconds: float = _OVERLAY_INTERVAL_SECONDS,
 ) -> bool:
     """确认每日奖励浮窗是否在主页上。
 
     Args:
         ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
-        attempts: 识别次数，默认只探测当前一帧。
+        attempts: 识别次数，默认给足浮窗弹出动画的窗口。
         interval_seconds: 两次识别之间的等待秒数。
 
     Returns:
-        奖励浮窗存在时为真。
-    """
-    return recognition.read_reward_overlay(
+        奖励浮窗存在时为真。"""
+    if get_session().popup_settled(DailyPopup.REWARD):
+        return False
+    # 只等奖励文字或领取按钮出现，范围小，重试才不会被无关模板提前打断。
+    result = expect_template(
         ctx,
+        template=(
+            _load_template(REWARD_TEXT_TEMPLATE),
+            _load_template(REWARD_CLAIM_TEMPLATE),
+        ),
+        roi=(REWARD_TEXT_ROI, REWARD_CLAIM_BUTTON_ROI),
         attempts=attempts,
         interval_seconds=interval_seconds,
     )
+    if not result.satisfied:
+        return False
+    # 确认浮窗盖上来后领取按钮仍在画面里，但当前层已经是确认；奖励层不再算当前。
+    return not check_home_reward_confirm(ctx, attempts=1, interval_seconds=0.2)
 
 
 def check_home_reward_confirm(
     ctx: ContextHandle,
     *,
-    attempts: int = 1,
-    interval_seconds: float = 0.5,
+    attempts: int = _OVERLAY_ATTEMPTS,
+    interval_seconds: float = _OVERLAY_INTERVAL_SECONDS,
 ) -> bool:
     """确认每日奖励确认浮窗是否在主页上。
 
     Args:
         ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
-        attempts: 识别次数，默认只探测当前一帧。
+        attempts: 识别次数，默认给足浮窗弹出动画的窗口。
         interval_seconds: 两次识别之间的等待秒数。
 
     Returns:
-        确认浮窗存在时为真。
-    """
-    return recognition.read_reward_confirm(
+        确认浮窗存在时为真。"""
+    if get_session().popup_settled(DailyPopup.REWARD_CONFIRM):
+        return False
+    # 只读确认按钮：和别的模板混在一起时，任一命中会提前返回，等待窗口就失效了。
+    return expect_template(
         ctx,
+        template=_load_template(REWARD_CONFIRM_TEMPLATE),
+        roi=REWARD_CONFIRM_BUTTON_ROI,
         attempts=attempts,
         interval_seconds=interval_seconds,
-    )
+    ).satisfied
+
+
+# ── 模板中心 ────────────────────────────────────────────────────────────────
 
 
 def read_news_checkbox_center(ctx: ContextHandle) -> tuple[float, float] | None:
@@ -274,9 +296,17 @@ def read_news_checkbox_center(ctx: ContextHandle) -> tuple[float, float] | None:
         ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
 
     Returns:
-        勾选框模板命中时的归一化中心；未命中时为 None。
+        勾选框模板命中时的归一化中心；未命中时为空。
     """
-    return recognition.read_news_checkbox_center(ctx)
+    return expect_template_center(
+        ctx,
+        template=(
+            _load_template(NEWS_CHECKED_TEMPLATE),
+            _load_template(NEWS_UNCHECKED_TEMPLATE),
+        ),
+        roi=NEWS_CHECKBOX_ROI,
+        attempts=1,
+    )
 
 
 def read_reward_claim_center(ctx: ContextHandle) -> tuple[float, float] | None:
@@ -286,9 +316,14 @@ def read_reward_claim_center(ctx: ContextHandle) -> tuple[float, float] | None:
         ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
 
     Returns:
-        领取按钮模板命中时的归一化中心；未命中时为 None。
+        领取按钮模板命中时的归一化中心；未命中时为空。
     """
-    return recognition.read_reward_claim_center(ctx)
+    return expect_template_center(
+        ctx,
+        template=_load_template(REWARD_CLAIM_TEMPLATE),
+        roi=REWARD_CLAIM_BUTTON_ROI,
+        attempts=1,
+    )
 
 
 def read_reward_confirm_center(ctx: ContextHandle) -> tuple[float, float] | None:
@@ -298,6 +333,50 @@ def read_reward_confirm_center(ctx: ContextHandle) -> tuple[float, float] | None
         ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
 
     Returns:
-        确认按钮模板命中时的归一化中心；未命中时为 None。
+        确认按钮模板命中时的归一化中心；未命中时为空。
     """
-    return recognition.read_reward_confirm_center(ctx)
+    return expect_template_center(
+        ctx,
+        template=_load_template(REWARD_CONFIRM_TEMPLATE),
+        roi=REWARD_CONFIRM_BUTTON_ROI,
+        attempts=1,
+    )
+
+
+# ── 私有辅助 ────────────────────────────────────────────────────────────────
+
+
+def _read_home_hits(
+    ctx: ContextHandle,
+    *,
+    attempts: int,
+    interval_seconds: float,
+) -> tuple[bool, ...]:
+    """读一帧，返回七个模板各自的命中状态，顺序与 _PROBES 一致。"""
+    result = expect_template(
+        ctx,
+        template=tuple(_load_template(filename) for filename, _ in _PROBES),
+        roi=tuple(roi for _, roi in _PROBES),
+        attempts=attempts,
+        interval_seconds=interval_seconds,
+    )
+    return tuple(match.matched for match in result.observation)
+
+
+def _load_template(filename: str) -> Template:
+    """加载本模块模板。"""
+    return load_ui_template(TEMPLATE_NAMESPACE, filename)
+
+
+__all__ = [
+    'check_home_reward_confirm',
+    'check_home_reward_overlay',
+    'check_news_checked',
+    'mark_popups_settled',
+    'popups_all_settled',
+    'read_home_layer',
+    'read_news_checkbox_center',
+    'read_news_overlay',
+    'read_reward_claim_center',
+    'read_reward_confirm_center',
+]

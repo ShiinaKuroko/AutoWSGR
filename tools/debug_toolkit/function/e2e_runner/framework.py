@@ -39,6 +39,28 @@ except Exception:  # noqa: S110
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
+def _load_frame(path: str | Path) -> Any:
+    """把一张外挂截图读进内存（BGR 转 RGB）。
+
+    Args:
+        path: 截图路径，允许位于仓库之外。
+
+    Returns:
+        RGB 图像数组。
+
+    Raises:
+        FileNotFoundError: 截图无法读取或解码。
+    """
+    # 外挂截图必须用 cv2 直接读；仓库的文件读取接口只允许仓库内路径。
+    import cv2
+    import numpy
+
+    frame = cv2.imdecode(numpy.fromfile(str(path), dtype=numpy.uint8), cv2.IMREAD_COLOR)
+    if frame is None:
+        raise FileNotFoundError(f'静态截图无法读取: {path}')
+    return cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+
 class _StaticFrameDevice:
     """静态截图设备替身：按调用方选定的截图返回画面。"""
 
@@ -54,14 +76,7 @@ class _StaticFrameDevice:
         Raises:
             FileNotFoundError: 截图无法读取或解码。
         """
-        # 外挂截图必须用 cv2 直接读；仓库的文件读取接口只允许仓库内路径。
-        import cv2
-        import numpy
-
-        frame = cv2.imdecode(numpy.fromfile(str(path), dtype=numpy.uint8), cv2.IMREAD_COLOR)
-        if frame is None:
-            raise FileNotFoundError(f'静态截图无法读取: {path}')
-        self._frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        self._frame = _load_frame(path)
 
     def screenshot(self) -> Any:
         """返回当前帧。
@@ -75,6 +90,65 @@ class _StaticFrameDevice:
 
     def disconnect(self) -> None:
         """静态替身不持有设备资源。"""
+
+
+class _ScriptedFrameDevice:
+    """脚本化静态帧设备（混合模式）。
+
+    前 ``static_clicks`` 次点击只记录、不落到设备上，并按 ``interval_seconds`` 把画面
+    推进到脚本的下一张；脚本用完后，截图与点击都交回真机。未被覆盖的方法转发真机。
+
+    Attributes:
+        clicks: 静态阶段收到的点击坐标，供 case 核对点击内容。
+    """
+
+    def __init__(
+        self,
+        real: Any,
+        frames: list[str | Path],
+        *,
+        interval_seconds: float = 1.5,
+        static_clicks: int = 0,
+    ) -> None:
+        self._real = real
+        self._frames = [_load_frame(path) for path in frames]
+        self._interval_seconds = interval_seconds
+        self._remaining_static_clicks = static_clicks
+        self._index = 0
+        self._pending_at: float | None = None
+        self._live = False
+        self.clicks: list[tuple[float, float]] = []
+
+    def screenshot(self) -> Any:
+        """返回当前帧；距上次点击已满推进间隔就换到脚本的下一张。"""
+        if self._live:
+            return self._real.screenshot()
+        # 只做一次时间比较：到点就换帧，不 sleep、不阻塞调用方。
+        if (
+            self._pending_at is not None
+            and time.monotonic() - self._pending_at >= self._interval_seconds
+        ):
+            self._index = min(self._index + 1, len(self._frames) - 1)
+            self._pending_at = None
+        return self._frames[self._index]
+
+    def click(self, x: float, y: float, *, delay: bool = False) -> None:
+        """静态阶段只记录点击并起推进计时；脚本用完后点击真的落到设备上。"""
+        if self._live:
+            self._real.click(x, y, delay=delay)
+            return
+        self.clicks.append((x, y))
+        self._remaining_static_clicks -= 1
+        self._pending_at = time.monotonic()
+        if self._remaining_static_clicks <= 0:
+            self._live = True
+
+    def disconnect(self) -> None:
+        """无论脚本是否用完，都断开真机。"""
+        self._real.disconnect()
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._real, name)
 
 
 # ── E2E 替身配置 ────────────────────────────────────────────────────────────
@@ -151,6 +225,9 @@ class E2ERunner:
         event_type: str | None = None,
         event_stage: str | None = None,
         game_server: str = '默认',
+        scripted_frames: list[str | Path] | None = None,
+        frame_interval_seconds: float = 1.5,
+        static_clicks: int = 0,
     ) -> None:
         self.case_name = case_name
         self.args = case_args  # case 自己的参数 namespace (run.py 解析后传入)
@@ -163,6 +240,9 @@ class E2ERunner:
         self.event_type = event_type  # 任务上下文的活动玩法标识 (如 stage_push)
         self.event_stage = event_stage  # 任务上下文的活动章节标识 (如 EX7)
         self.game_server = game_server  # 换区目标，取值同 LoginServer
+        self.scripted_frames = scripted_frames or []  # 脚本化静态帧路径（混合模式）
+        self.frame_interval_seconds = frame_interval_seconds  # 静态帧推进间隔
+        self.static_clicks = static_clicks  # 前几次点击只记录不落地
         self.state = RunnerState()
         self.ctx: Any = None  # 已绑定的 dispatch ContextHandle (prepare() 成功后可用)
         self._runtime: Any = None  # RuntimeBindings: 设备、配置和 OCR 服务引用
@@ -228,8 +308,22 @@ class E2ERunner:
         # 不跟随就只能截到桌面；完整启动流程里由 startup 调用，这里补上同一步。
         self._follow_application_display(config)
 
+        # 脚本化静态帧：先用外挂截图跑前几步（点击不落地），之后交回真机。
+        ctrl: Any = self._launcher
+        if self.scripted_frames:
+            ctrl = _ScriptedFrameDevice(
+                self._launcher,
+                self.scripted_frames,
+                interval_seconds=self.frame_interval_seconds,
+                static_clicks=self.static_clicks,
+            )
+            self.note(
+                f'脚本化静态帧: {len(self.scripted_frames)} 张，'
+                f'前 {self.static_clicks} 次点击不落地，间隔 {self.frame_interval_seconds} 秒',
+            )
+
         # OCR 引擎仍在迁移中; 需要配置的完整实机链路由 _prepare_full 传入替身配置。
-        self._bind_task_context(self._launcher, config=config)
+        self._bind_task_context(ctrl, config=config)
         if self.with_ocr:
             self.note('只读模式不初始化 OCR: 新栈 OCR 入口迁移中, 该参数当前被忽略')
         print(f'  [OK] 设备已连接: {info.serial} {info.resolution[0]}x{info.resolution[1]}')
@@ -244,7 +338,7 @@ class E2ERunner:
             package = GameAPP.official.package_name
         try:
             self._launcher.follow_display(package)
-        except Exception as exc:  # noqa: BLE001 - 诊断工具，记录后继续
+        except Exception as exc:
             self.note(f'显示器跟随失败: {exc}')
 
     def _prepare_static_frames(self) -> bool:

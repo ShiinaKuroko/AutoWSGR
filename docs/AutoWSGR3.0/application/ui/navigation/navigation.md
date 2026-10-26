@@ -1,325 +1,325 @@
-# [架构] 导航器
+# application-ui-navigation 架构说明
 
-> 状态：2026-10-12 重写（面向维护）｜对应提交 `cf1955b`
-> 关联：`[任务书]导航器重写.md`｜`[任务书]初始化重写.md` §8｜`[规范]ui-code-style.md`
+版本：AutoWSGR-3.0 第 2 版（第 1 版为 2026-10-12 的维护视角版本，本次按架构文档规范重写）
+状态：生效
+适用范围：`autowsgr/application/ui/navigation`
+实现基线：`codex/20260913-shiinaskuya-upgrade-7b3e`，2026-10-13
 
-## 1. 这个模块干什么
+## 1. 模块定位
 
-把「游戏现在在哪个页面」变成「走到哪个页面」，并且**每走一步都能确认走成了**。
+navigation 是 **application 层**的 UI 导航器。它把「游戏现在在哪个页面」变成「走到哪个页面」，
+并且每走一步都能确认走成了。
 
-一句话概括分界：**它只处理"页面到页面"**。启动画面（黑屏 / 更新 / 加载）不是页面，由
-`navigate_to_login` 单独处理；进程生死由 dispatch 处理。
+一句话划边界：**它只处理「页面到页面」**。启动画面（黑屏 / 更新 / 加载）不是页面，由启动段单独处理；
+进程生死、何时 SL、是否换区由 dispatch 决定。
 
-## 2. 注册中心是整个框架的核心
+它明确不负责：页面坐标与校准数据、OCR 参数、业务流程、进程生死、任务恢复决策。
 
-框架已经完备。**要接一个新页面，需要动的只有注册表 + 一个 checker**，别的代码一行都不用改。
+所有权：
 
-注册表在 `registry.py`，配一张页面名表（`types.py`）共三处：
+- 导航栈与进程级标记由 `dispatch.session.SessionState` 持有，导航器只读写它；
+- 页面确认与可达边由 [registry](<./registry.md>) 独占持有，运行期只读；
+- 路径执行与逐跳确认由 [executor](<./executor.md>) 负责；
+- 画面识别规则由 [checker](<./checker.md>) 负责；
+- 模板加载由 [application.ui.template](<../template.md>) 负责并缓存。
 
-| 位置 | 形状 | 作用 |
-| --- | --- | --- |
-| `types.py` 的 `PageName` | `StrEnum` | 页面的唯一标识，全局共用 |
-| `registry._PAGE_CHECKERS` | `PageName → Callable` | 这一页怎么确认"到了" |
-| `registry._NAV_TARGETS` | `PageName → tuple[NavTarget, ...]` | 从这一页能去哪儿、怎么去 |
+## 2. 模块架构
 
-边是一个不可变数据类：
+### 2.1 目录树
 
-```python
-@dataclass(frozen=True, slots=True)
-class NavTarget:
-    target: PageName                      # 去哪
-    action: Callable[..., None]           # 怎么去：一次点击，签名 action(ctx, **params)
-    description: str = ''                 # 给人看的说明，也进日志
-```
+~~~text
+autowsgr/application/ui/navigation/
+├── __init__.py      # 包入口，刻意不导出实现（避免与控制器循环导入）
+├── checker/         # 各页面识别模块
+├── executor.py      # 逐边执行与前后识别
+├── registry.py      # 三张注册表与算路
+├── service.py       # 对外入口：导航、回退、启动段
+└── types.py         # 页面名、边模型与导航错误
+~~~
 
-**注册表只维护「能去哪、怎么去、到了吗」**：坐标与点击细节在 `controller`，识别细节在 `checker`，
-算路与执行在 `service` / `executor`。一条边就是一行数据，不为边写转发函数。
+### 2.2 文件职责
 
-## 3. 接一个新页面：照着做
+| 子项 | 文档 | 负责内容 | 不负责内容 |
+| --- | --- | --- | --- |
+| `__init__.py` | 本表说明 | 包归属声明；`__all__` 为空 | 导出实现、隐式初始化 |
+| `checker/` | [checker](<./checker.md>) | 各页面识别入口 | 点击、算路、流程编排 |
+| `executor.py` | [executor](<./executor.md>) | 执行已算好的路径，逐跳做前后识别 | 算路、编排、启动段 |
+| `registry.py` | [registry](<./registry.md>) | 页面确认表、可达边表、标签表与算路 | 识别、点击、执行 |
+| `service.py` | 本文件「能力」章节 | 对外入口：`navigate_to` / `navigate_back` / `navigate_to_login` | 路径执行、识别细节 |
+| `types.py` | 本表说明 | 页面名 `PageName`、`NavTarget` / `NavTab` 模型、`NavigationError` / `ManualUpdateRequiredError` | 导航逻辑、识别、点击 |
 
-四步，缺一不可：
+`service.py` 与 `types.py` 没有独立子文档：`types.py` 是纯数据文件，写进本表；
+`service.py` 的三个入口就是本模块的对外能力，写进本文件的第 4–6 章。
 
-1. **`types.py` 的 `PageName` 加一个成员**（值写成中文页面名，跟日志一致）；
-2. **写 checker**：`checker/` 下新建或在已有 checker 里加一个入口（写法见 §8）；
-3. **注册确认**：`_PAGE_CHECKERS[PageName.XXX] = checker 的入口`；
-4. **注册边**：至少一条**入边**（否则永远到不了）和一条**出边**（否则进去出不来）。
+### 2.3 依赖方向
 
-### 完整示例：把「演习页」接进来
+~~~text
+dispatch / business（调用方）
+        ↓
+navigation.service（对外入口）
+        ↓
+navigation.executor（执行） → navigation.registry（算路与确认入口） → checker（识别）
+        ↓
+application.ui.controller（点击落点）
+        ↓
+common.vision（识别算法） / dispatch.session（导航栈）
+~~~
 
-```python
-# 1) types.py
-class PageName(StrEnum):
-    ...
-    EXERCISE = '演习页面'          # 已存在，示例里直接复用
+禁止方向：
 
-# 2) checker/sortie/checker.py —— 识别入口
-def check_exercise_page(
-    ctx: ContextHandle,
-    *,
-    absent: bool = False,
-    attempts: int = 1,
-    interval_seconds: float = 0.5,
-) -> bool:
-    """确认演习标签是否激活。"""
-    return recognition.is_exercise_tab_active(
-        ctx, absent=absent, attempts=attempts, interval_seconds=interval_seconds
-    )
+- `__init__.py` 不导出实现：控制器需要 `navigation.types`，若包入口顺带加载 `service` 会形成循环导入；
+- registry 不导入 service 或 executor；
+- checker 不点击、不算路、不依赖 registry；
+- 页面控制器不得反向导入 navigation（只允许导入 `navigation.types`）；
+- dispatch 的代码里不出现任何 checker 调用（识别与点击全部由 UI 层编排）。
 
-# 3) registry.py —— 注册确认（注意导出到该 checker 的 __init__）
-_PAGE_CHECKERS: dict[PageName, Callable[..., bool]] = {
-    ...
-    PageName.EXERCISE: sortie.check_exercise_page,
-}
+### 2.4 公开出口策略
 
-# 4) registry.py —— 注册边（示例：首页 ⇄ 演习页）
-_NAV_TARGETS: dict[PageName, tuple[NavTarget, ...]] = {
-    PageName.HOME: (
-        ...,
-        NavTarget(
-            PageName.EXERCISE,
-            lambda ctx, **_: HomePage(ctx).go_to(Target.EXERCISE),
-            '首页 → 演习页',
-        ),
-    ),
-    PageName.EXERCISE: (
-        NavTarget(
-            PageName.HOME,
-            lambda ctx, **_: SortiePage(ctx).go_back(),
-            '演习页 → 首页',
-        ),
-    ),
-}
-```
+稳定出口是 `service.NavigationService` 与 `types` 的公开类型；`registry` 与 `executor` 供导航器内部
+与测试使用；`checker` 只通过各子包入口被 registry 引用。
 
-做完这四步，`navigate_to(PageName.EXERCISE)` 立刻可用——算路、点击、前后确认、压栈全都是现成的。
+## 3. 能力总览
 
-## 4. 加一条边
+| 能力 | 对外入口 | 所在文件 | 输入 | 输出/副作用 | 负责内容 | 不负责内容 |
+| --- | --- | --- | --- | --- | --- | --- |
+| 导航到目标页面 | `NavigationService.navigate_to` | `service.py` | 目标页、透传参数 | 点击、确认、压栈 | 算路并执行 | 业务动作、恢复决策 |
+| 回退上一页 | `NavigationService.navigate_back` | `service.py` | 无 | 弹栈、点击、确认 | 按栈回退一层 | 跨多层回退 |
+| 启动段 | `NavigationService.navigate_to_login` | `service.py` | 无 | 识别启动信号 | 把游戏带到登录页 | 拉起进程、换区 |
 
-只要起点终点都能被认出来，就只是往 `_NAV_TARGETS` 里加一行。两条约定：
+模块当前规模：**22 个已接入页面、43 条可达边、3 个页面共 8 个标签**；
+`PageName` 共 29 个成员，其余 7 个是尚未接入导航图的预留页面（演习、远征、战役、出征准备、
+军阶室技能列表、决战、选择舰船）。对未接入页面调用 `navigate_to` 会抛「没有可达路径」，这是预期行为。
 
-- **有来有回**：加了 `A → B`，通常也要有 `B → A`，否则进去出不来（`navigate_back` 也走它）；
-- **参数靠 `**params` 透传**：边的 `action` 收 `**params`，`navigate_to(target, **params)` 原样传下去。
+## 4. 导航到目标页面：navigate_to
 
-需要参数时不要在调用方算好再传结果，而要在**边内部现算**：调用方（dispatch）不能做 OCR。
-例如区服那条边收的是**区服名**，位置由 `_server_index` 在边内部定位：
+### 4.1 能力说明
 
-```python
-NavTarget(
-    PageName.LOGIN_PAGE,
-    lambda ctx, **params: LoginPage(ctx).click_server(_server_index(ctx, str(params['server']))),
-    '区服选择页 → 登录页',
-)
-# 调用方：navigate_to(PageName.LOGIN_PAGE, server='胡德')
-```
+把游戏从当前页带到目标页。当前页优先取导航栈顶；栈空时遍历全部确认入口识别一次并压栈。
 
-## 5. 一次 navigate_to 怎么跑
+### 4.2 稳定入口
 
-```text
+~~~text
+NavigationService.navigate_to(target: PageName, **params: object) -> None
+~~~
+
+- `target`：目标页面；
+- `**params`：透传给边动作的参数（例如活动章节的 `stage`、区服的 `server`、页面标签的 `tab`）；
+- 副作用：执行点击、按确认结果压栈；起点即目标时直接返回（只记一条 INFO 日志）。
+
+### 4.3 调用示例
+
+~~~python
+from autowsgr.application.ui.navigation.service import NavigationService
+from autowsgr.application.ui.navigation.types import PageName
+
+navigator = NavigationService(ctx)
+navigator.navigate_to(PageName.HOME)
+navigator.navigate_to(PageName.SORTIE_MAP, tab='exercise')
+navigator.navigate_to(PageName.LOGIN_PAGE, server='昆西')
+~~~
+
+### 4.4 一次调用怎么跑
+
+~~~text
 navigate_to(target, **params)
-  ① _current_page()      栈顶有就用栈顶；栈空则遍历全部 checker 认出当前页
-  ② 起点即目标 → 短路（回主页必经浮窗链，见 §7）
-  ③ find_path()          BFS 在可达表上找最短路径；到不了就抛 NavigationError
-  ④ walk_forward()       逐边执行，每跳顺序见下
-```
+  ① _current_page()   栈顶有就用栈顶；栈空则按页面深度遍历全部 checker 认出当前页
+  ② 起点即目标        → 短路返回
+  ③ registry.find_path()  BFS 在可达表上找最短路径；到不了抛 NavigationError
+  ④ executor.walk_forward()  逐边执行：边的动作 → 到达确认（或标签确认）→ 压栈
+~~~
 
-每跳的固定动作（`executor.walk_forward`）：
+### 4.5 错误和副作用
 
-```text
-边的 action（一次点击）
-  → 离开确认：旧页标志应消失（后识别，absent=True）
-  → 到达确认：新页标志应出现（前识别）；这一跳带了 tab 时改走 §6 的分支
-  → 压栈
-```
+| 场景 | 行为 | 异常/结果 | 处理者 |
+| --- | --- | --- | --- |
+| 栈空且认不出当前页 | 停止 | `NavigationError` | dispatch（可 SL） |
+| 没有可达路径 | 停止 | `NavigationError` | 调用方修正目标或补边 |
+| 到达确认失败 | 停止 | `NavigationError` | dispatch（可 SL） |
 
-「点一下」天然成对，所以这个判断由执行器统一负责，**边和 checker 都不用各自声明**。
-边可以声明 `confirm=False` 跳过到达确认——见 §7 的浮窗链。
+## 5. 回退上一页：navigate_back
 
-## 6. 页面内标签（tab）
+### 5.1 能力说明
 
-有些页面内部用标签切换视图：出征页 5 个（出征 / 演习 / 远征 / 战役 / 决战）、
-建造页 4 个、升级页 3 个。**标签不是页面。**
+回到导航栈里的上一个页面。栈为空时直接抛错，不识别当前页。
 
-### 6.1 建模
+### 5.2 稳定入口
 
-- **`PageName` 只表达页面本身**（如 `SORTIE_MAP`），不拆到标签；
-- **标签是「到达这一页之后落在哪个视图上」**，作为 `navigate_to` 的入参传入：
-  `navigate_to(PageName.SORTIE_MAP, tab='exercise')`；
-- **标签的「怎么点、怎么确认」登记在 `registry._TABS`**，每项三个字段：点击动作、确认入口、说明。
+~~~text
+NavigationService.navigate_back() -> None
+~~~
 
-### 6.2 到达确认的分支
+### 5.3 记账规则
 
-| 这一跳 | 到达确认 |
+`navigate_back` 先弹一层栈，再用 `registry.find_path(current, previous)` 算回退路径交给
+[executor](<./executor.md>) 的 `walk_backward`；执行器不再动栈。
+回退一个「锚点」跟路径上有几步无关，因此不能按步数记账。
+
+## 6. 启动段：navigate_to_login
+
+### 6.1 能力说明
+
+把处于启动阶段的游戏带到「登录页」。启动三信号由游戏特性决定：
+
+| 信号 | 处理 |
 | --- | --- |
-| **没传 tab** | 用目标页面自己的 checker |
-| **传了 tab** | ① 等页面加载（`_TAB_SETTLE_SECONDS`）② 点该标签 ③ 用**标签的 checker** 确认（带重试） |
+| 健康游戏提示（黑屏） | 宽泛校验：识别不到就等一会儿再看下一项 |
+| 更新提示 | 唯一硬分支：弹出即抛 `ManualUpdateRequiredError`，交人工处理 |
+| 加载中 | 宽泛校验：没在加载就往下走 |
 
-**传了 tab 时页面级 checker 不参与**——切到别的标签之后，认「默认标签激活」的页面级 checker
-本来就该失败，两者互斥。
+调用方负责在游戏没运行时拉起 App；本方法不碰进程，也不做换区。
 
-### 6.3 为什么点标签前要等一下
+### 6.2 稳定入口
 
-点页面入口之后，页面本身还在切换动画里；此时点标签会落空。
-执行器在**离开确认通过之后、点标签之前**等 `_TAB_SETTLE_SECONDS`（2 秒），再点、再验。
+~~~text
+NavigationService.navigate_to_login() -> None
+~~~
 
-这样不必「点空就重试点击」，也不必因为点早了白白触发一次 SL。
-等待时长放在执行器（流程时序），不放 `constants.py`（校准数据）。
+### 6.3 流程参数
 
-### 6.4 为什么不是「标签当页面」
+| 常量 | 值 | 作用 |
+| --- | --- | --- |
+| `_STARTUP_STEP_WAIT_SECONDS` | `3.0` | 宽泛校验不成立时的等待秒数 |
+| `_PROBE_ATTEMPTS` | `3` | 确认画面消失、读取更新提示与加载状态的探测次数 |
+| `_LOGIN_PAGE_ATTEMPTS` | `60` | 等登录页出现的最大识别次数 |
+| `_STARTUP_INTERVAL_SECONDS` | `1.0` | 相邻两次识别的间隔秒数 |
 
-标签当页面会让边变成 O(n²)：四个标签就多出 12 条互切边加 4 条回边，三个页面接近 21 条。
-而「每步都要确认」又不允许把标签降级成纯参数——切完无从验证。
+### 6.4 错误和副作用
 
-`_TABS` 把两者都保住：**边只有「进页 + 回页」两条，标签的确认一点不少。**
+| 场景 | 行为 | 异常/结果 | 处理者 |
+| --- | --- | --- | --- |
+| 检测到游戏更新 | 停止 | `ManualUpdateRequiredError` | dispatch 转成人工处理 |
+| 启动超时 | 停止 | `NavigationError` | dispatch（可 SL） |
 
-## 7. 每日浮窗：一条固定链
+## 7. 当前页识别（service 内部）
 
-浮窗不是 `service` 里的私有流程，而是几个普通页面 + 几条普通边：
+`_current_page` 是 `service.py` 的私有实现：栈顶有页面就直接用；栈空时调
+[executor](<./executor.md>).detect_layer 按页面深度扫一遍，命中即压栈。
+扫描期间识别细节日志整体静默，结束后只留一条汇总（耗时 + 结果）。
 
-| `PageName` | 画面 |
+## 8. 统一配置
+
+本模块无运行时配置。第 6 章的四个常量是启动段流程参数，不是配置；
+识别节奏属于各 checker 的签名默认值（见 [checker](<./checker.md>)）。
+
+## 9. 错误约定
+
+~~~text
+ApplicationError
+└── NavigationError
+    └── ManualUpdateRequiredError
+~~~
+
+| 错误 | 定义位置 | 触发条件 | 处理者 | 是否可重试 |
+| --- | --- | --- | --- | --- |
+| `NavigationError` | `types.py` | 认不出当前页、没有可达路径、到达确认失败、标签切换失败、启动超时 | dispatch（`startup.ensure_ready`） | 是（可 SL 一次） |
+| `ManualUpdateRequiredError` | `types.py` | 检测到游戏更新 | dispatch 转 `ManualRepairRequiredError` | 否，重启无效 |
+
+导航器不吞异常、不静默降级；失败一律抛给调用方。
+
+## 10. 日志约定
+
+通道为 `ui.navigation`（service）、`ui.navigation.executor`（executor）。
+
+| 级别 | 记录内容 |
 | --- | --- |
-| `HOME_NEWS` | 主页 + 每日公告浮窗 |
-| `HOME_REWARD` | 主页 + 每日奖励（签到）浮窗 |
-| `HOME_REWARD_CONFIRM` | 奖励领取后的确认浮窗 |
+| `INFO` | 跨页面路径的开始与完成、回退、遍历识别当前页的结果 |
+| `WARNING` | 遍历识别不到任何页面 |
+| `DEBUG` | 逐边前进/后退、到达确认与标签确认（见 [executor](<./executor.md>)） |
+| `ERROR` | 本模块不记录（失败以异常交给上层） |
 
-```text
+导航 service 记录跨多个页面的完整路径；单页的边动作由页面方法记录，service 不重复记录同一条边。
+
+## 11. 公开出口和调用边界
+
+### 11.1 稳定出口
+
+| 出口 | 来源 | 调用者可以做什么 | 调用者不能做什么 |
+| --- | --- | --- | --- |
+| `service.NavigationService` | `service.py` | 构造导航器，调用三个公开入口 | 调用 `_current_page` 等私有实现 |
+| `types.PageName` | `types.py` | 表达目标页面 | 把未接入页面当作可用目标 |
+| `types.NavigationError` / `ManualUpdateRequiredError` | `types.py` | 捕获并决定恢复 | 依赖错误消息文本 |
+| `types.NavTarget` / `NavTab` | `types.py` | 构造边与标签数据 | 在调用方拼装导航路径 |
+
+`navigation/__init__.py` 的 `__all__` 为空：调用方直接从 `service` 导入（见 2.3 的循环导入说明）。
+
+### 11.2 内部内容
+
+`registry` 的三张注册表、`executor` 的私有方法与模块级常量、`service._current_page`、
+各 checker 子包的 `checker.py` 及其内部辅助都是内部内容。
+
+## 12. 模块维护方法
+
+### 12.1 接一个新页面（四步）
+
+1. `types.PageName` 加成员（值写中文页面名，与日志一致）；
+2. 按 [checker](<./checker.md>) 的规矩写识别入口并从子包入口导出；
+3. 在 [registry](<./registry.md>) 的 `_PAGE_CHECKERS` 注册确认；
+4. 在 `_NAV_TARGETS` 至少补一条入边与一条出边。
+
+做完这四步，`navigate_to(PageName.XXX)` 立即可用：算路、点击、前后确认、压栈都是现成的。
+
+### 12.2 加一条边 / 一个标签
+
+只改 [registry](<./registry.md>) 的数据表，不写转发函数。加边记得补反方向。
+
+### 12.3 加一个每日浮窗
+
+`PageName` 加成员 → 写 checker → 注册确认 → 在浮窗链里插一条 `confirm=False` 的边 →
+把原本指向主页的边改指向新浮窗。
+
+### 12.4 每日浮窗链（设计说明）
+
+浮窗不是 service 里的私有流程，而是几个普通页面 + 几条普通边：
+
+~~~text
 每日公告 → 每日奖励 → 每日奖励确认 → 主页
-```
+~~~
 
-**每一步都「先问 checker 再做」**：浮窗不在就什么都不做，避免空点。
+- 每一步都「先问 checker 再做」：浮窗不在就什么都不做，避免空点；
+- 除链尾外所有边 `confirm=False`：中间步的「到没到」取决于下一个浮窗在不在，静态判不了；
+- `home.read_home_layer` 一帧读七个模板判当前层：有浮窗就返回浮窗层，因此 `navigate_to(HOME)` 会自然走这条链；
+- 到达首页或侧边栏时，若三个每日浮窗标记不齐，执行器先停 3 秒等浮窗弹出，再做判层与
+  `on_arrival` 记账；标记齐了直接跳过等待；
+- 浮窗标记只在真正处理掉（关闭/领取/确认并确认消失）后写入，不做「回到主页就当作已处理」的推断。
 
-**除了链尾，所有边都 `confirm=False`**，分两种：
+已知边界：浮窗目前只弹在主页，所以「有浮窗 ≈ 在主页」这个简化成立；非主页也弹浮窗时需要重新设计。
 
-- **进链的边**（登录页 / 出征页 / 活动地图 → 主页）：不管有没有浮窗，进了主页就算到；
-- **链内的中间步**：它们的「到没到」取决于下一个浮窗在不在，静态判不了。
+### 12.5 页面内标签
 
-只有链尾「每日奖励确认 → 主页」做真确认——那里才知道主页是否真的干净了。
-（实测踩过：进链的边若照常确认，当天公告已关时会直接失败并触发 SL。）
+标签不是页面，不参与算路。建模、到达确认分支与「为什么不把标签当页面」见
+[registry](<./registry.md>) 第 6 章与 [executor](<./executor.md>) 第 7 章。
 
-`check_home_page` 因此定义为「**没有浮窗的主页**」：主页模板命中，且三个浮窗都不在。
-有浮窗时它返回假，「当前页」会落在对应的浮窗页上，于是 `navigate_to(HOME)` 自然走这条链。
+### 12.6 改某页的识别节奏
 
-所有原本指向 `HOME` 的边都改成指向 `HOME_NEWS`，这样「从活动页回家」也会顺手把浮窗清掉。
+改该 checker 的签名默认值，或由调用方在 `navigate_to` 时传参覆盖；注册表不参与配节奏。
 
-**已知边界**：浮窗目前只弹在主页，所以「有浮窗 ≈ 在主页」这个简化成立；
-哪天非主页也弹浮窗，需要重新设计（例如引入浮窗栈）。
+### 12.7 参数传入与穿透规则
 
-## 8. 写一个 checker 的规矩
-
-**签名固定三件套**（导航图会按需覆盖，不传就用默认）：
-
-```python
-def check_xxx_page(
-    ctx: ContextHandle,
-    *,
-    absent: bool = False,        # False 判出现（前识别），True 判消失（后识别）
-    attempts: int = 1,           # 识别次数，默认只探当前一帧
-    interval_seconds: float = 0.5,
-) -> bool:
-```
-
-**四条硬要求**：
-
-| 要求 | 原因 |
-| --- | --- |
-| 只读事实，不点击、不导航、不抛业务错误 | 动作归 `controller`，流程归 `service` |
-| 节奏默认值写在 checker 签名里 | 注册表不兼职配节奏；特殊调用方自己传参覆盖 |
-| ROI 的像素尺寸必须比模板**各边大 1px** | 项目硬规范：换算用截断，等于模板时会小 1px 导致匹配直接失败 |
-| 包入口 `__init__.py` 只导出稳定入口 | 上层从包入口导入，不摸 `checker.py` / `recognition.py` |
-
-目录职责（`checker/<页面>_checker/`）：`checker.py` 编排识别并返回事实，`recognition.py` 读画面事实，
-`constants.py` 只放静态校准数据（ROI、模板名、文本），`__init__.py` 只导出。
-
-## 9. 常见维护任务速查
-
-| 想做什么 | 改哪里 |
-| --- | --- |
-| 接一个新页面 | `PageName` + checker + `_PAGE_CHECKERS` + `_NAV_TARGETS`（§3 四步） |
-| 加一条路径 | `_NAV_TARGETS`（记得补反方向） |
-| 改某条边的落点 | 该边 `action` 调用的 `controller` 入口 |
-| 调某页的识别节奏 | 该 checker 的默认参数，或调用方 `navigate_to` 时传参 |
-| 某个页面认不出来了 | 该 checker 的 `recognition.py` 与 `constants.py`（先核对 ROI 是否比模板大 1px） |
-| 加一个每日浮窗 | `PageName` + checker + 在浮窗链里插一条边（`confirm=False`），见 §7 |
-| 改浮窗点击落点 | `controller/home/main_page` 的对应入口 |
-| 改「什么算干净的主页」 | `home.check_home_page` |
-| 改启动段（黑屏/更新/加载） | `service.navigate_to_login` |
-| 加一种导航错误 | `types.py` |
-| 改「什么时候启动、什么时候 SL」 | `dispatch/startup.py`（**不在这里**） |
-
-## 10. 调试与验证
-
-| 手段 | 位置 |
-| --- | --- |
-| 单测（替身接管点击与确认） | `testing/ui/navigation/test_navigation.py` |
-| 实机 E2E | `python tools/debug_toolkit/main.py e2e <case>` |
-| 逐边日志 | `[UI] 导航执行 → 前进/后退：edge=...`，以及离开/到达确认结果 |
-| 算路失败 | 日志 `没有从 X 到 Y 的可达路径`，说明 `_NAV_TARGETS` 缺边 |
-| 到达确认失败 | 日志 `到达确认失败：边说明`，说明目标页 checker 没认出来（先查 ROI） |
-
-## 11. 边界
-
-**不做**：页面坐标与校准数据、OCR 参数、业务流程、进程生死（拉起 / 强杀）、任务恢复决策。
-
-**不依赖**：dispatch 的处理器与任务队列、任何业务域；设备能力只经 `ctx.runtime.ctrl` 的公开入口。
-
-**与 dispatch 的分工**：dispatch 决定何时启动、何时 SL、按配置决定是否换区；导航器负责识别与点击。
-因此 **dispatch 的代码里不出现任何 checker 调用**。
-
-## 12. 当前导航图（2026-10-12）
-
-**已接入**：9 个页面、12 条边（`PageName` 有成员 + `_PAGE_CHECKERS` 有注册 + `_NAV_TARGETS` 有边）。
-
-| 页面 | `PageName` | 识别入口 |
+| 参数 | 来源 | 规则 |
 | --- | --- | --- |
-| 登录页 | `LOGIN_PAGE` | `login.check_login_page` |
-| 区服选择页 | `SERVER_SELECT` | `login.check_server_select` |
-| 主页（**不含浮窗**） | `HOME` | `home.check_home_page` |
-| 每日公告浮窗 | `HOME_NEWS` | `home.check_home_news_page` |
-| 每日奖励浮窗 | `HOME_REWARD` | `home.check_home_reward_page` |
-| 奖励确认浮窗 | `HOME_REWARD_CONFIRM` | `home.check_home_reward_confirm_page` |
-| 出征页 | `SORTIE_MAP` | `sortie.check_sortie_page` |
-| 活动地图 | `EVENT_MAP` | `stage_push.check_event_map_page` |
-| 活动章节浮窗 | `EVENT_STAGE_OVERLAY` | `stage_push.check_event_sortie_prepare` |
+| `**params` | 调用方经 `navigate_to` 传入 | 由 [executor](<./executor.md>) 原样透传给边动作 |
+| `tab` | `params` 或边的 `tab` 字段 | 只作用于最后一跳 |
+| `server` / `stage` | 调用方传业务值 | 位置与落点由边内部现算，调用方不预计算 |
+| 活动玩法与章节绑定 | `ctx.read_event_type` / `read_event_stage` | 由 checker 读取，调用方不预先算好再传 |
 
-```text
-登录页面 → 区服选择页面
-登录页面 → 每日公告弹窗        confirm=False
-区服选择页面 → 登录页面        收区服名，位置内部现算
-主页面 → 出征页面
-主页面 → 活动页面
-出征页面 → 每日公告弹窗        confirm=False
-活动页面 → 每日公告弹窗        confirm=False
-活动页面 → 活动章节浮窗
-活动章节浮窗 → 活动页面
-每日公告弹窗 → 每日奖励弹窗     confirm=False
-每日奖励弹窗 → 每日奖励确认     confirm=False
-每日奖励确认 → 主页面          链尾做真确认
-```
+### 12.8 删减能力或文件
 
-**尚未接入**（`PageName` 里有名字，但没进门）：
+先 grep 确认没有调用方（含测试、工具与文档），再删实现、删注册项、修正父子文档引用，最后跑门禁。
 
-| 情况 | 页面 |
-| --- | --- |
-| checker 已存在、只是没注册 | `EXERCISE`、`EXPEDITION`、`CAMPAIGN`、`DECISIVE_BATTLE` |
-| 连 checker 都还没有 | `SIDEBAR`、`MISSION`、`BACKYARD`、`BATH`、`CANTEEN`、`BUILD`、`INTENSIFY`、`FRIEND`、`SHIP_SELECTION`、`BATTLE_PREPARATION` |
+### 12.9 与 dispatch 的分工
 
-对未接入的页面调 `navigate_to` 会抛「没有可达路径」——**不是坏了，是还没接**，按 §3 四步补上即可。
+dispatch 决定何时启动、何时 SL、按配置决定是否换区；导航器负责识别与点击。
+因此 dispatch 的代码里不出现任何 checker 调用。
 
-**程序运行期状态**（`dispatch/session.py`）：
+## 13. 验收门禁
 
-| 字段 | 用途 | 生命周期 |
+| 检查 | 手段 | 最近结果 |
 | --- | --- | --- |
-| `_pages` | 导航栈，只保留最近 8 层（`_MAX_PAGES`） | 进程级；SL 后清空 |
-| `_server_selected` | 本次运行是否已换过区 | 进程级；SL 后**保留** |
-
-## 13. 变更记录
-
-| 日期 | 变更 |
-| --- | --- |
-| 2026-10-12 | 新增 §6 页面内标签：标签不是页面，作为 `navigate_to` 入参；执行器到达确认分两支
-| | （没传 tab 用页面 checker，传了 tab 先等 2 秒、点标签、再用标签的 checker 确认）；
-| | 说明为什么不用「标签当页面」（O(n²) 条边）以及为什么点标签前要等 |
-| 2026-10-12 | 重写为维护视角：以注册中心为核心，补「接新页面四步 + 完整示例」与维护速查表 |
-| 2026-10-12 | 新增当前导航图：9 个已接入页面、12 条边、未接入清单与进程级状态字段；
-| | 记录 `PageName` 语义统一（`BATTLE_PREP`→`BATTLE_PREPARATION`、`CHOOSE_SHIP`→`SHIP_SELECTION`、删 `CHOOSE_REPAIR`） |
-| 2026-10-12 | 新增每日浮窗链：三个浮窗页 + `confirm=False` 的中间步 + 回主页边改指向公告；
-| | 每跳由五步改为四步（到达前钩子已移除） |
+| 公共入口 import smoke | `python -c "from autowsgr.application.ui.navigation.service import NavigationService"` | 通过 |
+| 静态检查 | `ruff check autowsgr/application/ui/navigation` | 无新增问题 |
+| 导航器单测 | `pytest testing/application/ui/navigation testing/common` | 160 passed |
+| checker 单测 | `pytest testing/application/ui/navigation/checker` | 全绿 |
+| 消费者回归 | `pytest testing/dispatch/test_startup.py testing/dispatch/context` | 全绿 |
+| 实机链路 | `python tools/debug_toolkit/main.py e2e --no-launch nav_chain` | 26/26 通过，边覆盖 26/43（学院未解锁、活动未开放） |
+| 文档树与代码树对齐 | 本文件的子项表与 `navigation/` 目录一致 | 通过 |
+| `git diff --check` | 无空白错误 | 通过 |

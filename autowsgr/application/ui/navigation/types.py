@@ -24,8 +24,6 @@ from autowsgr.common.system.errors import ApplicationError
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from autowsgr.dispatch.context import ContextHandle
-
 
 class PageName(StrEnum):
     """游戏页面名称。"""

@@ -37,7 +37,7 @@ if TYPE_CHECKING:
         Template,
         TemplateMatchResult,
     )
-    from autowsgr.common.vision.ocr_engine import TextDetection
+    from autowsgr.common.vision.ocr import TextDetection
     from autowsgr.dispatch.context import ContextHandle
 
 
@@ -65,7 +65,7 @@ class RecognitionResult[T]:
 # ── 公共识别入口 ────────────────────────────────────────────────────────────
 
 
-def shot(ctx: ContextHandle) -> numpy.ndarray:
+def screenshot(ctx: ContextHandle) -> numpy.ndarray:
     """截取当前画面并把这一帧登记为任务上下文的最新截图。
 
     Args:
@@ -109,7 +109,8 @@ def expect_template(
     Returns:
         satisfied 表示断言是否满足；observation 是最后一次匹配结果列表。
     """
-    required = _required_matches(min_matches)
+    if isinstance(min_matches, bool) or not isinstance(min_matches, int) or min_matches < 1:
+        raise ValueError('min_matches 必须是大于零的整数')
     return _retry(
         ctx,
         task='模板识别',
@@ -119,7 +120,9 @@ def expect_template(
             roi=roi,
             confidence=confidence,
         ),
-        accept=lambda matches: (_matched_count(matches) >= required) != absent,
+        accept=lambda matches: (
+            (sum(1 for match in matches if match.matched) >= min_matches) != absent
+        ),
         attempts=attempts,
         interval_seconds=interval_seconds,
     )
@@ -192,6 +195,9 @@ def expect_ocr(
     Returns:
         satisfied 表示断言是否满足；observation 是最后一次 OCR 结果。
     """
+    expected = (expect,) if isinstance(expect, str) else tuple(expect)
+    if not expected:
+        raise ValueError('expect 候选集合不能为空')
     return _retry(
         ctx,
         task='OCR 识别',
@@ -202,7 +208,9 @@ def expect_ocr(
             recognition_profile=recognition_profile,
             candidates=candidates,
         ),
-        accept=lambda detections: _text_found(detections, expect) != absent,
+        accept=lambda detections: (
+            any(detection.recognized_text in expected for detection in detections) != absent
+        ),
         attempts=attempts,
         interval_seconds=interval_seconds,
     )
@@ -252,6 +260,68 @@ def expect_pixels(
 # ── 识别重试和判定 ──────────────────────────────────────────────────────────
 
 
+def expect_ocr_center(
+    ctx: ContextHandle,
+    *,
+    expect: str | Sequence[str],
+    roi: ROI | None = None,
+    allowlist: str = '',
+    recognition_profile: str = 'full',
+    candidates: Sequence[str] | None = None,
+    attempts: int = config.DEFAULT_RECOGNITION_ATTEMPTS,
+    interval_seconds: float = config.DEFAULT_RECOGNITION_INTERVAL_SECONDS,
+) -> tuple[float, float] | None:
+    """读取期望文本命中区域的归一化中心，供点击使用。"""
+    result = expect_ocr(
+        ctx,
+        expect=expect,
+        roi=roi,
+        allowlist=allowlist,
+        recognition_profile=recognition_profile,
+        candidates=candidates,
+        attempts=attempts,
+        interval_seconds=interval_seconds,
+    )
+    if not result.satisfied or result.screenshot is None:
+        return None
+    expected = (expect,) if isinstance(expect, str) else tuple(expect)
+    height, width = result.screenshot.shape[:2]
+    for detection in result.observation:
+        region = detection.text_region
+        if detection.recognized_text in expected and region is not None:
+            left, top, region_width, region_height = region
+            return (
+                (left + region_width / 2) / width,
+                (top + region_height / 2) / height,
+            )
+    return None
+
+
+def expect_pixel_center(
+    ctx: ContextHandle,
+    *,
+    signature: PixelSignature | CompositePixelSignature,
+    roi: ROI | None = None,
+    attempts: int = config.DEFAULT_RECOGNITION_ATTEMPTS,
+    interval_seconds: float = config.DEFAULT_RECOGNITION_INTERVAL_SECONDS,
+) -> tuple[float, float] | None:
+    """读取像素签名中第一个命中规则的归一化位置，供点击使用。"""
+    result = expect_pixels(
+        ctx,
+        signature=signature,
+        roi=roi,
+        with_details=True,
+        attempts=attempts,
+        interval_seconds=interval_seconds,
+    )
+    if not result.satisfied or result.observation is None:
+        return None
+    for detail in result.observation.details:
+        if detail.matched:
+            return (detail.rule.x, detail.rule.y)
+    return None
+
+
 def _retry[T](
     ctx: ContextHandle,
     *,
@@ -274,12 +344,15 @@ def _retry[T](
     Returns:
         最近一次识别的结果；satisfied 表示是否满足预期。
     """
-    _validate_retry_options(attempts, interval_seconds)
+    if isinstance(attempts, bool) or not isinstance(attempts, int) or attempts < 1:
+        raise ValueError('attempts 必须是大于零的整数')
+    if isinstance(interval_seconds, bool) or interval_seconds < 0:
+        raise ValueError('interval_seconds 不能小于零')
     for attempt in range(1, attempts + 1):
         # 1. 取当前画面并在识别前登记，保证记录与判定使用同一帧。
-        screenshot = shot(ctx)
+        frame = screenshot(ctx)
         # 2. 按调用方预期判定本次识别，满足即返回。
-        observation = observe(screenshot)
+        observation = observe(frame)
         if accept(observation):
             # 一次就过是常态，不记；只有等过重试才留一行。
             if attempt > 1:
@@ -289,7 +362,7 @@ def _retry[T](
                     attempt,
                     'satisfied',
                 )
-            return RecognitionResult(True, observation, screenshot)
+            return RecognitionResult(True, observation, frame)
         # 3. 未满足且仍有剩余次数时等待后重试，最终结果交给调用方处理。
         if attempt < attempts:
             time.sleep(interval_seconds)
@@ -299,78 +372,19 @@ def _retry[T](
         attempts,
         'not_satisfied',
     )
-    return RecognitionResult(False, observation, screenshot)
+    return RecognitionResult(False, observation, frame)
 
 
-def _matched_count(matches: list[TemplateMatchResult]) -> int:
-    """统计模板匹配结果中的命中数量。"""
-    return sum(1 for match in matches if match.matched)
-
-
-def _expected_texts(expect: str | Sequence[str]) -> tuple[str, ...]:
-    """把期望文本归一化为非空候选元组。
-
-    Args:
-        expect: 单个期望文本，或候选集合。
-
-    Returns:
-        非空的期望文本元组。
-
-    Raises:
-        ValueError: 候选集合为空。
-    """
-    if isinstance(expect, str):
-        return (expect,)
-    candidates = tuple(expect)
-    if not candidates:
-        raise ValueError('expect 候选集合不能为空')
-    return candidates
-
-
-def _text_found(detections: list[TextDetection], expect: str | Sequence[str]) -> bool:
-    """判断 OCR 结果中是否存在与任一期望候选完全一致的文本。"""
-    expected = _expected_texts(expect)
-    return any(detection.recognized_text in expected for detection in detections)
-
-
-def _required_matches(min_matches: int) -> int:
-    """校验调用方给出的期望命中数量。
-
-    Args:
-        min_matches: 调用方要求的最小命中数量。
-
-    Returns:
-        通过校验的命中数量。
-
-    Raises:
-        ValueError: 数量不是大于零的整数。
-    """
-    if isinstance(min_matches, bool) or not isinstance(min_matches, int) or min_matches < 1:
-        raise ValueError('min_matches 必须是大于零的整数')
-    return min_matches
-
-
-def _validate_retry_options(attempts: int, interval_seconds: float) -> None:
-    """校验重试次数和等待间隔。
-
-    Args:
-        attempts: 最大识别次数。
-        interval_seconds: 两次识别之间的等待秒数。
-
-    Raises:
-        ValueError: 次数不是大于零的整数，或间隔为负数。
-    """
-    if isinstance(attempts, bool) or not isinstance(attempts, int) or attempts < 1:
-        raise ValueError('attempts 必须是大于零的整数')
-    if isinstance(interval_seconds, bool) or interval_seconds < 0:
-        raise ValueError('interval_seconds 不能小于零')
+# ── 业务友好入口 ────────────────────────────────────────────────────────────
 
 
 __all__ = [
     'RecognitionResult',
     'expect_ocr',
+    'expect_ocr_center',
+    'expect_pixel_center',
     'expect_pixels',
     'expect_template',
     'expect_template_center',
-    'shot',
+    'screenshot',
 ]

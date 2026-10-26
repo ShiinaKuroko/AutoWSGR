@@ -8,7 +8,7 @@
 - OpenCV：提供模板匹配算子。
 - NumPy：提供数组类型。
 - common.vision.config：提供模板置信度和来源分辨率。
-- common.vision.opencv_engine.executor：提供图片加载和匹配执行器。
+- common.vision.opencv.executor：提供图片加载和匹配执行器。
 
 边界：不负责设备截图、模板缓存、页面状态或业务领域识别规则。
 """
@@ -25,7 +25,7 @@ from autowsgr.common.vision.config import (
     OPENCV_TEMPLATE_CONFIDENCE,
     OPENCV_TEMPLATE_SOURCE_RESOLUTION,
 )
-from autowsgr.common.vision.opencv_engine.executor import OpenCVExecutor
+from autowsgr.common.vision.opencv.executor import OpenCVExecutor
 
 
 if TYPE_CHECKING:

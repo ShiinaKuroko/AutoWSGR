@@ -17,17 +17,19 @@ from autowsgr.common.vision import service
 from autowsgr.common.vision.adapters import match_pixels, match_template, text_recognition
 from autowsgr.common.vision.adapters.pixel_matching import Color, PixelRule, PixelSignature
 from autowsgr.common.vision.adapters.template_matching import ROI, Template
-from autowsgr.common.vision.ocr_engine import TextDetection
+from autowsgr.common.vision.ocr import TextDetection
 
 
 def test_public_service_exports_are_stable() -> None:
     """公共入口只暴露识别功能与识别数据模型。"""
     entries = (
-        'shot',
+        'screenshot',
         'expect_template',
         'expect_ocr',
         'expect_pixels',
         'expect_template_center',
+        'expect_ocr_center',
+        'expect_pixel_center',
     )
     for entry in entries:
         assert callable(getattr(vision, entry))
@@ -121,16 +123,24 @@ def test_ocr_entry_uses_profile_and_candidate_constraint(monkeypatch: pytest.Mon
     assert result == [TextDetection('123', 0.95, (0, 0, 12, 10))]
 
 
-def test_ocr_expect_accepts_candidate_collection() -> None:
+def test_ocr_expect_accepts_candidate_collection(monkeypatch: pytest.MonkeyPatch) -> None:
     """OCR 期望支持候选集合：命中任一即算找到。"""
     detections = [TextDetection('最强之舟（困难）', 0.91, (0, 0, 20, 10))]
+    monkeypatch.setattr(service.adapters, 'recognize_text', lambda *_args, **_kwargs: detections)
+    monkeypatch.setattr(
+        service,
+        '_retry',
+        lambda _ctx, *, observe, accept, **_kwargs: service.RecognitionResult(
+            accept(observe(None)), detections, None
+        ),
+    )
 
-    assert service._text_found(detections, '最强之舟（困难）')
-    assert service._text_found(detections, ('最强之舟', '最强之舟（困难）'))
-    assert not service._text_found(detections, ('最强之舟',))
+    assert service.expect_ocr(object(), expect='最强之舟（困难）').satisfied is True
+    assert service.expect_ocr(object(), expect=('最强之舟', '最强之舟（困难）')).satisfied is True
+    assert service.expect_ocr(object(), expect=('最强之舟',)).satisfied is False
 
 
 def test_ocr_expect_rejects_empty_candidate_collection() -> None:
     """空候选集合属于非法期望，必须显式失败。"""
     with pytest.raises(ValueError, match='候选集合不能为空'):
-        service._expected_texts(())
+        service.expect_ocr(object(), expect=())

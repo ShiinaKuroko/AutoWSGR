@@ -31,7 +31,7 @@ from pathlib import Path
 from autowsgr.application.runtime.context import GameContext
 from autowsgr.common.device import AndroidController, ScrcpyController
 from autowsgr.common.system.logger import get_logger, setup_logger
-from autowsgr.common.vision.ocr_engine.executor import OCRExecutor
+from autowsgr.common.vision.ocr.executor import OCRExecutor
 from autowsgr.config import ConfigManager, UserConfig
 
 
