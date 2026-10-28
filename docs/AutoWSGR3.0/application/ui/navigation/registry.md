@@ -31,32 +31,36 @@ registry 是单文件模块，没有子目录，因此不拆分子文档：
 
 ~~~text
 autowsgr/application/ui/navigation/
-└── registry.py      # 三张注册表 + 域探针 + 边动作 + 九个查询入口
+└── registry.py      # 常量 + 九个查询入口 + 边动作 + 五张表
 ~~~
 
 ### 2.2 文件内部结构
 
-文件按「数据表 → 查询入口」排列，功能分区与代码中的分割线一致：
+文件按「常量 → 公开入口 → 边动作 → 数据表」排列，功能分区与代码中的分割线一致：
 
 | 分区 | 内容 |
 | --- | --- |
+| 常量 | 五个模块级常量：动作用 3 个、标签用 1 个、查询用 1 个 |
+| 查询入口 | 九个公开查询函数，模块统一出口 |
 | 边动作 | 一行数据写不下的边才写，共 8 个：每日浮窗 5 个、任务 1 个、活动地图 1 个、出征 1 个 |
-| 域探针 | `_DOMAIN_PROBERS` / `_DOMAIN_PAGES`，每个域一帧一次判层（主页浮窗、出征标签、出征准备页） |
-| 页面 → 到达确认 | `_PAGE_CHECKERS` 表（只放逐页确认的普通页面） |
-| 页面 → 标签表 | `_TABS` 表 |
-| 页面 → 可达列表 | `_NAV_TARGETS` 表 |
-| 查询入口 | `get_targets`、`get_checker`、`get_tabs`、`depth_of`、`find_path`、`probe_domains`、`is_domain_page`、`on_arrival`、`popups_all_settled` |
+| 识别表 | `_DOMAIN_PROBERS` / `_DOMAIN_PAGES`（一域一帧一次判层）与 `_PAGE_CHECKERS`（只放逐页确认的普通页面） |
+| 导航表 | `_TABS`（页面内标签）与 `_NAV_TARGETS`（可达边） |
+
+表和边动作的顺序不能互换：表项要在定义时拿到现成的可调用对象，所以边动作必须写在表前面。
+公开入口不受这个约束——函数体在调用时才解析模块全局，因此可以提到最前面。
 
 ### 2.3 依赖方向
 
 ~~~text
 service / executor / checker 测试
         ↓
-registry 的查询入口
+registry 的九个查询入口
         ↓
-types（页面名与边模型）
+五张表（读 registry 的模块全局）
         ↓
-application.ui.controller 各页面对象（仅作为边动作被引用）
+边动作
+        ↓
+types / checker / application.ui.controller
 ~~~
 
 禁止方向：
