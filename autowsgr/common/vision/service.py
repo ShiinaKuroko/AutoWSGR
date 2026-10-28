@@ -1,4 +1,4 @@
-"""模块功能：提供 common.vision 的五个公共识别能力。
+"""模块功能：提供 common.vision 的公共识别能力。
 
 上层调用：
 - application、business、dispatch 和 server：确认当前状态或操作结果。
@@ -8,7 +8,7 @@
 - common.vision.config：提供识别重试参数和模板匹配置信度。
 - dispatch.context：提供设备服务和截图事实写入（仅类型注解使用）。
 
-边界：只提供截图、模板识别、OCR 识别、像素识别与模板中心五个功能；识别数据、规则和预期由调用方
+边界：只提供截图、模板识别、OCR 识别、像素识别与三类中心识别；识别数据、规则和预期由调用方
 提供，service 不决定识别什么、不执行点击、不解析页面语义。
 """
 
@@ -167,24 +167,28 @@ def expect_template_center(
 def expect_ocr(
     ctx: ContextHandle,
     *,
-    expect: str | Sequence[str],
-    roi: ROI | None = None,
+    expect: str | Sequence[str] | None = None,
+    roi: ROI | Sequence[ROI | None] | None = None,
     allowlist: str = '',
     recognition_profile: str = 'full',
     candidates: Sequence[str] | None = None,
     attempts: int = config.DEFAULT_RECOGNITION_ATTEMPTS,
     interval_seconds: float = config.DEFAULT_RECOGNITION_INTERVAL_SECONDS,
     absent: bool = False,
-) -> RecognitionResult[list[TextDetection]]:
+) -> RecognitionResult[list[TextDetection] | list[list[TextDetection]]]:
     """重试 OCR，直到实际文本满足调用方预期。
 
     OCR 实际文本与 expect 直接相等比对；模糊匹配、去噪和纠错属于调用方的后处理规则。
     absent 决定断言方向：默认期望文本出现，为真时期望文本消失。
 
+    expect 省略时只读取文本、不做断言；roi 传序列时同一帧内逐个区域识别，observation
+    按区域分组返回，与 roi 顺序一致。
+
     Args:
         ctx: 提供设备服务和截图事实写入的统一 ContextHandle。
         expect: 期望识别到的完整文本，或候选集合；候选集合命中任一即算符合预期。
-        roi: OCR 识别区域。
+            省略时只读取文本，不做断言。
+        roi: OCR 识别区域，或需要逐个识别的一组区域。
         allowlist: 允许识别的字符集合。
         recognition_profile: OCR 识别配置名称。
         candidates: OCR 完整文本候选集合。
@@ -193,11 +197,32 @@ def expect_ocr(
         absent: 期望文本消失时为真，此时文本不再命中才算满足。
 
     Returns:
-        satisfied 表示断言是否满足；observation 是最后一次 OCR 结果。
+        satisfied 表示断言是否满足；observation 是最后一次 OCR 结果。roi 为序列时每个
+        区域一组，单区域时是检测列表。
     """
-    expected = (expect,) if isinstance(expect, str) else tuple(expect)
-    if not expected:
-        raise ValueError('expect 候选集合不能为空')
+    expected: tuple[str, ...] | None = None
+    if expect is not None:
+        expected = (expect,) if isinstance(expect, str) else tuple(expect)
+        if not expected:
+            raise ValueError('expect 候选集合不能为空')
+    if isinstance(roi, (list, tuple)):
+        return _retry(
+            ctx,
+            task='OCR 识别',
+            observe=lambda frame: [
+                adapters.recognize_text(
+                    frame,
+                    roi=region,
+                    allowlist=allowlist,
+                    recognition_profile=recognition_profile,
+                    candidates=candidates,
+                )
+                for region in roi
+            ],
+            accept=lambda groups: _is_text_matched(groups, expected, absent),
+            attempts=attempts,
+            interval_seconds=interval_seconds,
+        )
     return _retry(
         ctx,
         task='OCR 识别',
@@ -208,9 +233,7 @@ def expect_ocr(
             recognition_profile=recognition_profile,
             candidates=candidates,
         ),
-        accept=lambda detections: (
-            any(detection.recognized_text in expected for detection in detections) != absent
-        ),
+        accept=lambda detections: _is_text_matched((detections,), expected, absent),
         attempts=attempts,
         interval_seconds=interval_seconds,
     )
@@ -322,6 +345,9 @@ def expect_pixel_center(
     return None
 
 
+# ── 内部实现 ────────────────────────────────────────────────────────────────
+
+
 def _retry[T](
     ctx: ContextHandle,
     *,
@@ -375,7 +401,25 @@ def _retry[T](
     return RecognitionResult(False, observation, frame)
 
 
-# ── 业务友好入口 ────────────────────────────────────────────────────────────
+def _is_text_matched(
+    groups: Sequence[Sequence[TextDetection]],
+    expected: tuple[str, ...] | None,
+    absent: bool,
+) -> bool:
+    """判断按区域分组的 OCR 结果是否满足调用方预期。
+
+    Args:
+        groups: 每个区域一组检测结果。
+        expected: 期望文本元组；为 None 时不做断言。
+        absent: 期望文本消失时为真。
+
+    Returns:
+        满足预期时为真；未给出期望时恒为真。
+    """
+    if expected is None:
+        return True
+    matched = any(detection.recognized_text in expected for group in groups for detection in group)
+    return matched != absent
 
 
 __all__ = [

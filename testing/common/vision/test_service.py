@@ -9,6 +9,8 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import numpy as np
 import pytest
 
@@ -18,6 +20,10 @@ from autowsgr.common.vision.adapters import match_pixels, match_template, text_r
 from autowsgr.common.vision.adapters.pixel_matching import Color, PixelRule, PixelSignature
 from autowsgr.common.vision.adapters.template_matching import ROI, Template
 from autowsgr.common.vision.ocr import TextDetection
+
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 
 def test_public_service_exports_are_stable() -> None:
@@ -144,3 +150,60 @@ def test_ocr_expect_rejects_empty_candidate_collection() -> None:
     """空候选集合属于非法期望，必须显式失败。"""
     with pytest.raises(ValueError, match='候选集合不能为空'):
         service.expect_ocr(object(), expect=())
+
+
+def test_ocr_expect_reads_multiple_regions_in_one_frame(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """roi 传序列时应在同一帧上逐个区域识别，观测按区域分组返回。"""
+    sentinel = object()
+    frames: list[object] = []
+
+    def fake_recognize(frame: object, **_kwargs: object) -> list[TextDetection]:
+        frames.append(frame)
+        return [TextDetection(f'text-{len(frames)}', 0.9, (0, 0, 5, 5))]
+
+    def fake_retry(
+        _ctx: object,
+        *,
+        observe: Callable[[object], object],
+        accept: Callable[[object], bool],
+        **_kwargs: object,
+    ) -> service.RecognitionResult[object]:
+        observation = observe(sentinel)
+        return service.RecognitionResult(accept(observation), observation, sentinel)
+
+    monkeypatch.setattr(service.adapters, 'recognize_text', fake_recognize)
+    monkeypatch.setattr(service, '_retry', fake_retry)
+
+    result = service.expect_ocr(
+        object(),
+        roi=(ROI(0.0, 0.0, 0.5, 0.5), ROI(0.5, 0.5, 1.0, 1.0)),
+    )
+
+    assert frames == [sentinel, sentinel]
+    assert result.satisfied is True
+    assert [group[0].recognized_text for group in result.observation] == ['text-1', 'text-2']
+
+
+def test_ocr_expect_without_expect_only_reads(monkeypatch: pytest.MonkeyPatch) -> None:
+    """省略 expect 时只读取文本，不做断言。"""
+    sentinel = object()
+
+    def fake_retry(
+        _ctx: object,
+        *,
+        observe: Callable[[object], object],
+        accept: Callable[[object], bool],
+        **_kwargs: object,
+    ) -> service.RecognitionResult[object]:
+        observation = observe(sentinel)
+        return service.RecognitionResult(accept(observation), observation, sentinel)
+
+    monkeypatch.setattr(service.adapters, 'recognize_text', lambda *_args, **_kwargs: [])
+    monkeypatch.setattr(service, '_retry', fake_retry)
+
+    result = service.expect_ocr(object(), roi=ROI(0.0, 0.0, 1.0, 1.0))
+
+    assert result.satisfied is True
+    assert result.observation == []
