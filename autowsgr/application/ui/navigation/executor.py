@@ -41,10 +41,9 @@ _QUIET_DURING_PROBE = (
 # 到达首页或侧边栏后，浮窗可能延迟弹出；先停一会儿再记账。
 _ARRIVAL_SETTLE_SECONDS = 3.0
 
-# 域探针一次只读一帧，页面切换动画没走完时会先读到旧页；到达域页面时按这个
-# 节奏重扫全层。命中即返回，页面真到位时不会白等。
-_ARRIVAL_PROBE_ATTEMPTS = 3
-_ARRIVAL_PROBE_INTERVAL_SECONDS = 0.8
+# 动作点下去之后画面还在切换，这段时间里域探针读到的是旧页。先等稳定再读一帧，
+# 域探针一帧就能判完整族页面，不需要扫全层确认「当前层是谁」。
+_DOMAIN_ARRIVAL_SETTLE_SECONDS = 2.0
 
 # 「到达」只说明目标页的标志已经出现在画面里，入场动画往往还没走完；这段动画期间
 # 的触摸会被游戏丢掉。留一段稳定窗口，让调用方拿到页面时它是真的可点的。
@@ -191,28 +190,6 @@ class NavigationExecutor:
         _log.debug('[UI] 导航执行 → 全层扫描：hits={!r}', [page.value for page in ordered])
         return ordered
 
-    def _wait_for_layer(self, page: PageName) -> PageName | None:
-        """等目标页成为当前层。
-
-        域探针一次只读一帧，页面切换动画没走完时会先读到旧页；这里按固定节奏
-        重扫全层，直到目标页浮到最上面或用完次数。
-
-        Args:
-            page: 期望成为当前层的页面。
-
-        Returns:
-            最后一次扫描到的当前层；一次都没识别到时为 None。
-        """
-        layer: PageName | None = None
-        for index in range(_ARRIVAL_PROBE_ATTEMPTS):
-            if index:
-                time.sleep(_ARRIVAL_PROBE_INTERVAL_SECONDS)
-            layers = self.detect_layer()
-            layer = layers[0] if layers else None
-            if layer is page:
-                return layer
-        return layer
-
     def _enter_tab(self, page: PageName, tab: str) -> None:
         """切到目标页内的标签，并用该标签自己的 checker 确认。
 
@@ -247,8 +224,8 @@ class NavigationExecutor:
     def _confirm_arrival(self, edge: NavTarget) -> None:
         """到达确认：目标页出现，且它确实在最上面。
 
-        目标页的识别入口自带重试（最终透传到 common.vision 的轮询），负责等切换完成；
-        随后按页面深度扫一遍，确认没有别的覆盖层还盖在目标页上面。
+        逐页页面先等目标页识别入口命中，再按页面深度扫一遍，确认没有别的覆盖层还盖在
+        目标页上面；域页面改问域探针，一帧判完整族，不必扫全层。
 
         Args:
             edge: 刚执行完的边。
@@ -262,14 +239,14 @@ class NavigationExecutor:
         # 首页和侧边栏上会弹每日浮窗；标记不齐说明今天还没处理完，先等过弹出动画再判层。
         if edge.target in (PageName.HOME, PageName.SIDEBAR) and not registry.popups_all_settled():
             time.sleep(_ARRIVAL_SETTLE_SECONDS)
-        # 域页面由探针一次判层；到达确认仍要扫全层，别的覆盖层可能盖在目标上面。
+        # 域页面由探针一次判完整族：动作刚点下去画面还在切换，先等稳定再读一帧。
         if registry.is_domain_page(edge.target):
-            layer = self._wait_for_layer(edge.target)
-            if layer is not edge.target:
-                detail = '未识别到任何页面' if layer is None else f'当前层是 {layer.value!r}'
-                raise NavigationError(f'到达确认失败：{edge.description!r}，{detail}')
+            time.sleep(_DOMAIN_ARRIVAL_SETTLE_SECONDS)
+            if edge.target not in registry.probe_domains(self._ctx):
+                raise NavigationError(
+                    f'到达确认失败：{edge.description!r}，未识别到 {edge.target.value!r}'
+                )
             registry.on_arrival(self._ctx, edge.target)
-            time.sleep(_ARRIVAL_REST_SECONDS)
             _log.debug('[UI] 导航执行 → 到达确认：page={!r}，结果=成功', edge.target.value)
             return
         confirm = registry.get_checker(edge.target)

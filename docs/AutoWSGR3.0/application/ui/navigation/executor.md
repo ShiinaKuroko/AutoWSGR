@@ -34,9 +34,9 @@ autowsgr/application/ui/navigation/
 | --- | --- |
 | 页面内标签参数 | `_TAB_SETTLE_SECONDS`、`_TAB_CLICK_ATTEMPTS`、`_TAB_RETRY_INTERVAL_SECONDS` |
 | 两个方向 | `walk_forward`、`walk_backward` |
-| 页面层识别 | `detect_layer`、`_wait_for_layer`、`_enter_tab`、`_confirm_arrival` |
+| 页面层识别 | `detect_layer`、`_enter_tab`、`_confirm_arrival` |
 
-文件顶部共有八个模块级常量，都是流程时序、不是配置，取值见 [§9](#9-统一配置)。
+文件顶部共有七个模块级常量，都是流程时序、不是配置，取值见 [§9](#9-统一配置)。
 
 ### 2.3 依赖方向
 
@@ -58,7 +58,7 @@ dispatch.session（导航栈）
 
 ### 2.4 出口策略
 
-唯一稳定出口是 `NavigationExecutor`；`_wait_for_layer`、`_enter_tab`、`_confirm_arrival` 与全部模块级常量都是内部实现。
+唯一稳定出口是 `NavigationExecutor`；`_enter_tab`、`_confirm_arrival` 与全部模块级常量都是内部实现。
 
 ## 3. 能力总览
 
@@ -186,14 +186,18 @@ NavigationExecutor._confirm_arrival(edge: NavTarget) -> None
 到达首页或侧边栏且三个每日浮窗标记不齐时，先等 `_ARRIVAL_SETTLE_SECONDS`（3 秒），
 让延迟弹出的浮窗露出来，再做判层。
 
-1. **目标页出现**：域页面由 `detect_layer` 的域探针直接判层（等 `_ARRIVAL_PROBE_ATTEMPTS` 次，
-   间隔 `_ARRIVAL_PROBE_INTERVAL_SECONDS`）；其余页面调用 registry.get_checker(edge.target) 的入口。
-   边声明 `confirm=False` 或没有确认入口时直接跳过；
-2. **当前层就是目标**：再跑一次 `detect_layer`，要求返回的最上层严格等于目标页。
+1. **目标页出现**
+   - 域页面：动作刚点下去画面还在切换，先等 `_DOMAIN_ARRIVAL_SETTLE_SECONDS`（2 秒），
+     再问一次域探针；探针返回的页面里包含目标页就算到达。域探针一帧判完整族，组内页面
+     互斥，不再扫全层。
+   - 其余页面：调用 registry.get_checker(edge.target) 的入口，入口自带轮询，负责等切换完成。
+   - 边声明 `confirm=False` 或没有确认入口时直接跳过。
+2. **当前层就是目标**（仅逐页页面）：再跑一次 `detect_layer`，要求返回的最上层严格等于目标页。
    目标出现不代表它就在最上面——浮窗、侧边栏这类覆盖层会盖住它。
 3. **到达记账**：确认成功后调 `registry.on_arrival`，回到干净主页时写每日浮窗标记。
-4. **稳定窗口**：记账之后再等 `_ARRIVAL_REST_SECONDS`（1.2 秒）才把控制权交回调用方。
-   到达只说明目标页的标志已经出现在画面里，入场动画往往还没走完；这段动画期间点下去会落到上一页。
+4. **稳定窗口**（仅逐页页面）：记账之后再等 `_ARRIVAL_REST_SECONDS`（1.2 秒）才把控制权
+   交回调用方。到达只说明目标页的标志已经出现在画面里，入场动画往往还没走完；这段动画期间
+   点下去会落到上一页。域页面已在第 1 步等过稳定窗口，不再重复等。
 
 ## 9. 统一配置
 
@@ -205,9 +209,8 @@ NavigationExecutor._confirm_arrival(edge: NavTarget) -> None
 | `_TAB_CLICK_ATTEMPTS` | `2` | 标签「点击 + 确认」的总次数 |
 | `_TAB_RETRY_INTERVAL_SECONDS` | `2.0` | 标签没切过去时，下一次点击前再等的秒数 |
 | `_ARRIVAL_SETTLE_SECONDS` | `3.0` | 到达首页/侧边栏后等浮窗弹出的秒数 |
-| `_ARRIVAL_PROBE_ATTEMPTS` | `3` | 到达确认时域探针的最多尝试次数 |
-| `_ARRIVAL_PROBE_INTERVAL_SECONDS` | `0.8` | 到达确认时域探针两次尝试之间的间隔 |
-| `_ARRIVAL_REST_SECONDS` | `1.2` | 确认成功后到交还控制权的稳定窗口 |
+| `_DOMAIN_ARRIVAL_SETTLE_SECONDS` | `2.0` | 到达域页面后、问域探针前等画面稳定的秒数 |
+| `_ARRIVAL_REST_SECONDS` | `1.2` | 逐页页面确认成功后到交还控制权的稳定窗口 |
 | `_QUIET_DURING_PROBE` | 两个模块前缀 | 全层扫描期间静默日志的通道 |
 
 ## 10. 错误约定

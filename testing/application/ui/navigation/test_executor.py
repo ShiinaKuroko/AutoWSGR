@@ -107,4 +107,57 @@ def test_executor_reports_tab_switch_failure(monkeypatch: pytest.MonkeyPatch) ->
         executor._enter_tab(PageName.BUILD, 'destroy')
 
 
+# ── 到达确认 ────────────────────────────────────────────────────────────────
+
+
+def test_executor_confirms_domain_arrival_with_probes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """域页面到达确认只问域探针，不扫全层。"""
+    from autowsgr.application.ui.navigation import executor as executor_module
+
+    slept: list[float] = []
+    arrivals: list[PageName] = []
+    monkeypatch.setattr(executor_module.time, 'sleep', slept.append)
+    monkeypatch.setattr(registry, 'is_domain_page', lambda _page: True)
+    monkeypatch.setattr(registry, 'on_arrival', lambda _ctx, page: arrivals.append(page))
+    monkeypatch.setattr(
+        registry,
+        'probe_domains',
+        lambda _ctx, **_options: (PageName.SORTIE_MAP,),
+    )
+
+    executor = NavigationExecutor(object(), SessionState())
+    monkeypatch.setattr(
+        executor,
+        'detect_layer',
+        lambda **_options: pytest.fail('域到达确认不该扫全层'),
+    )
+
+    edge = NavTarget(PageName.SORTIE_MAP, lambda *_args, **_kwargs: None, '首页 → 出征页')
+    executor._confirm_arrival(edge)
+
+    assert slept == [executor_module._DOMAIN_ARRIVAL_SETTLE_SECONDS]
+    assert arrivals == [PageName.SORTIE_MAP]
+
+
+def test_executor_reports_domain_arrival_failure(monkeypatch: pytest.MonkeyPatch) -> None:
+    """域探针没认出目标页时报到达确认失败。"""
+    from autowsgr.application.ui.navigation import executor as executor_module
+
+    monkeypatch.setattr(executor_module.time, 'sleep', lambda _seconds: None)
+    monkeypatch.setattr(registry, 'is_domain_page', lambda _page: True)
+    monkeypatch.setattr(
+        registry,
+        'probe_domains',
+        lambda _ctx, **_options: (PageName.EXERCISE,),
+    )
+
+    executor = NavigationExecutor(object(), SessionState())
+    edge = NavTarget(PageName.SORTIE_MAP, lambda *_args, **_kwargs: None, '首页 → 出征页')
+
+    with pytest.raises(NavigationError, match='未识别到'):
+        executor._confirm_arrival(edge)
+
+
 # ── 任务页 ──────────────────────────────────────────────────────────────────
