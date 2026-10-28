@@ -6,7 +6,7 @@
 下层依赖：
 - common.device.adb_engine.executor：提供主机侧 ADB 能力。
 
-边界：只导出执行器模块，不实现 ADB 逻辑。
+只导出执行器模块，不实现 ADB 逻辑。
 """
 
 from autowsgr.common.device.adb_engine import executor

@@ -6,10 +6,8 @@
 下层依赖：
 - common.vision.numpy.executor：提供 NumPy 原子操作。
 
-边界：不定义像素匹配规则，不处理设备截图或业务识别。
+不定义像素匹配规则，不处理设备截图或业务识别。
 """
-
-from __future__ import annotations
 
 from autowsgr.common.vision.numpy.executor import NumpyExecutor
 

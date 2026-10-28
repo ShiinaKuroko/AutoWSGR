@@ -10,8 +10,6 @@
 本模块只导出稳定入口，不放业务实现。
 """
 
-from __future__ import annotations
-
 from autowsgr.application.ui.navigation.checker.login.checker import (
     check_black_screen,
     check_loading,

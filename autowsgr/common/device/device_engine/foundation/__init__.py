@@ -6,7 +6,7 @@
 下层依赖：
 - common.device.device_engine.foundation.delay 和 platform。
 
-边界：只导出基础能力模块，不实现平台逻辑。
+只导出基础能力模块，不实现平台逻辑。
 """
 
 from autowsgr.common.device.device_engine.foundation import delay, platform

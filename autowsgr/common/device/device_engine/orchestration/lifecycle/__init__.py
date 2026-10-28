@@ -6,7 +6,7 @@
 下层依赖：
 - common.device.device_engine.orchestration.lifecycle 的 base、service 和各宿主实现。
 
-边界：只导出工厂和管理器类型，不实现进程控制。
+只导出工厂和管理器类型，不实现进程控制。
 """
 
 from autowsgr.common.device.device_engine.orchestration.lifecycle import service

@@ -6,10 +6,8 @@
 下层依赖：
 - common.device.service、common.device.config 和 common.system 基础能力。
 
-边界：不识别游戏页面、不编排业务流程、不持有任务或用户业务状态。
+不识别游戏页面、不编排业务流程、不持有任务或用户业务状态。
 """
-
-from __future__ import annotations
 
 from autowsgr.common.device import service
 

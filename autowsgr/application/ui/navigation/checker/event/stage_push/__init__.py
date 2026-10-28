@@ -10,8 +10,6 @@
 本模块只导出稳定入口与事实模型，不放业务实现。
 """
 
-from __future__ import annotations
-
 from autowsgr.application.ui.navigation.checker.event.stage_push.checker import (
     EventMapState,
     EventMode,

@@ -6,10 +6,8 @@
 下层依赖：
 - common.vision.opencv.executor：提供 OpenCV 原子操作。
 
-边界：不定义页面匹配规则，不处理设备截图或业务识别。
+不定义页面匹配规则，不处理设备截图或业务识别。
 """
-
-from __future__ import annotations
 
 from autowsgr.common.vision.opencv.executor import OpenCVExecutor
 

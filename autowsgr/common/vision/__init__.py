@@ -8,10 +8,8 @@
 - common.vision.adapters：识别数据模型和匹配结果模型。
 - common.vision.ocr：提供 OCR 文本检测结果模型。
 
-边界：只做稳定导出；识别数据、识别规则和预期由调用方提供，不实现业务识别规则或页面流程。
+只做稳定导出；识别数据、识别规则和预期由调用方提供，不实现业务识别规则或页面流程。
 """
-
-from __future__ import annotations
 
 from autowsgr.common.vision.adapters.pixel_matching import (
     Color,

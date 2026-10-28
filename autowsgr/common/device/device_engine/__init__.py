@@ -6,7 +6,7 @@
 下层依赖：
 - 本包的 foundation、orchestration 和 session 子模块。
 
-边界：只做包命名空间，不导出具体能力。
+只做包命名空间，不导出具体能力。
 """
 
 __all__: list[str] = []

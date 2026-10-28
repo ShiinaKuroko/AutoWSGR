@@ -8,7 +8,7 @@
 下层依赖：
 - enums、errors、files 和 logger 四个子模块。
 
-边界：只做能力命名空间，不持有业务配置、页面状态、设备对象或具体领域错误。
+只做能力命名空间，不持有业务配置、页面状态、设备对象或具体领域错误。
 """
 
 from autowsgr.common.system import enums, errors, files, logger

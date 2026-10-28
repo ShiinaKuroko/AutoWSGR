@@ -9,8 +9,6 @@
 本模块只导出稳定入口，不放业务实现。
 """
 
-from __future__ import annotations
-
 from autowsgr.application.ui.navigation.checker.sidebar.checker import (
     check_build_submenu,
     check_intensify_submenu,

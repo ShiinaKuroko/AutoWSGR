@@ -9,8 +9,6 @@
 本模块只导出活动 checker，不放实现；一个活动一个子包，玩法之间的相似代码先各自保留。
 """
 
-from __future__ import annotations
-
 from autowsgr.application.ui.navigation.checker.event import stage_push
 
 

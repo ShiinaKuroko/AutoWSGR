@@ -6,7 +6,7 @@
 下层依赖：
 - common.device.scrcpy_engine.executor：提供 Scrcpy 通道和输入能力。
 
-边界：只导出执行器模块，不实现 Scrcpy 逻辑。
+只导出执行器模块，不实现 Scrcpy 逻辑。
 """
 
 from autowsgr.common.device.scrcpy_engine import executor

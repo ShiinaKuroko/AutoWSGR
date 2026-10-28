@@ -7,10 +7,8 @@
 下层依赖：
 - common.vision.ocr.executor：提供 MaaFramework、OpenCV 和模型配置。
 
-边界：不负责 OCR 文本修正、候选业务规则或页面流程。
+不负责 OCR 文本修正、候选业务规则或页面流程。
 """
-
-from __future__ import annotations
 
 from autowsgr.common.vision.ocr.executor import OCRExecutor, TextDetection
 

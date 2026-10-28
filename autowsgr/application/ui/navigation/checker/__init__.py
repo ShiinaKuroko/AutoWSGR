@@ -3,7 +3,10 @@
 上层调用：
 - application.ui.navigation.registry：按页面取用对应的到达确认入口。
 
-边界：只做页面归属，不放识别规则与导航逻辑。
+下层依赖：
+- backyard、event、home、login、mission、sidebar 和 sortie 各页面检查器子包。
+
+只做页面归属，不放识别规则与导航逻辑。
 """
 
-from __future__ import annotations
+__all__: list[str] = []

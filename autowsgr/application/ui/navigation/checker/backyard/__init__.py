@@ -10,8 +10,6 @@
 本模块只导出稳定入口，不放业务实现。
 """
 
-from __future__ import annotations
-
 from autowsgr.application.ui.navigation.checker.backyard.academy import check_academy_page
 from autowsgr.application.ui.navigation.checker.backyard.bath import check_bath_page
 from autowsgr.application.ui.navigation.checker.backyard.canteen import check_canteen_page
