@@ -34,9 +34,10 @@ autowsgr/application/ui/navigation/
 | --- | --- |
 | 页面内标签参数 | `_TAB_SETTLE_SECONDS`、`_TAB_CLICK_ATTEMPTS`、`_TAB_RETRY_INTERVAL_SECONDS` |
 | 两个方向 | `walk_forward`、`walk_backward` |
+| 断点 | `_check_interrupt` |
 | 页面层识别 | `detect_layer`、`_enter_tab`、`_confirm_arrival` |
 
-文件顶部共有七个模块级常量，都是流程时序、不是配置，取值见 [§9](#9-统一配置)。
+文件顶部共有七个模块级常量，都是流程时序、不是配置，取值见 [§10](#10-统一配置)。
 
 ### 2.3 依赖方向
 
@@ -58,7 +59,7 @@ dispatch.session（导航栈）
 
 ### 2.4 出口策略
 
-唯一稳定出口是 `NavigationExecutor`；`_enter_tab`、`_confirm_arrival` 与全部模块级常量都是内部实现。
+唯一稳定出口是 `NavigationExecutor`；`_check_interrupt`、`_enter_tab`、`_confirm_arrival` 与全部模块级常量都是内部实现。
 
 ## 3. 能力总览
 
@@ -132,21 +133,61 @@ NavigationExecutor.walk_backward(path: tuple[NavTarget, ...]) -> None
 
 与前进相同：到达确认失败抛 `NavigationError`；不修改导航栈。
 
-## 6. 当前层识别：detect_layer
+## 6. 断点协作：_check_interrupt
 
 ### 6.1 能力说明
+
+执行器是导航链路上唯一知道「现在走到哪一跳」的角色，所以让路（暂停、终止、插队）的检查点
+放在执行器里，不放边动作里。断点只在**边与边之间**：一条边的动作是连续动作（选章选节要连点
+十几次、每次等 1.5 秒），中途让路会停在半路。
+
+### 6.2 位置
+
+| 位置 | 时机 | 理由 |
+| --- | --- | --- |
+| `walk_forward` 进入循环前 | 还没点第一下 | 重跑时一进门就能再停一次 |
+| 每条边压栈之后 | 确认到达 + 压栈完成 | 回退路径完整，让路不丢位置 |
+| `walk_backward` 每条边确认之后 | 回退到这一页 | 回退途中也能停 |
+
+边动作内部只有一个例外：`registry._sortie_map_to_preparation` 在选完章、进准备页之前
+自己调一次 `ctx.check_interrupt()`——那一段是连续动作，导航器看不见它内部的分界。
+
+### 6.3 判定交给 dispatch
+
+执行器不判断「该不该停」，只问一次 `ContextHandle.check_interrupt()`；这个入口由 dispatch
+Context 提供，收到信号就抛 `TaskPaused` 或 `TaskStopped`（两者同时置位时 stop 优先）。
+执行器不解析开关、不做恢复决策。
+
+### 6.4 打断之后由谁收尾
+
+| 信号 | 收尾方 | 动作 |
+| --- | --- | --- |
+| 暂停 | `dispatch.processor` | 清导航栈（用户可能改过游戏状态，栈不可信），重跑时按实时识别重建 |
+| 插队 | `dispatch.processor` | 保留导航栈，高优先级任务处理完回到原任务进度 |
+| 终止 | `dispatch.executor.BaseExecutor.run()` | 清栈 → 回主页 → 上报 `stopped` → 重新抛出 |
+
+回主页那一次导航必须用 `NavigationService(..., checkpoint=False)`：停止开关还亮着，
+不带这个参数会在第一条边就再次抛出，永远回不到主页。
+
+### 6.5 为什么传开关而不是传状态
+
+`checkpoint: bool = True` 只控制「要不要问」；开关本身是 dispatch 注入 Context 的
+`threading.Event` 引用，不是快照——处理器一置位，下一个断点立刻看到，中间没有轮询间隔。
+## 7. 当前层识别：detect_layer
+
+### 7.1 能力说明
 
 回答「我现在在哪一页」。先调 `registry.probe_domains` 让每个域一次读一帧，
 再按页面深度降序扫描其余逐页注册的确认入口；合并命中后按深度降序返回。
 覆盖层（浮窗、侧边栏、二级菜单）总比被盖住的页面更深，因此排在最前的命中者就是当前层。
 
-### 6.2 稳定入口
+### 7.2 稳定入口
 
 ~~~text
 | 当前层识别 | `NavigationExecutor.detect_layer` | `attempts`、`interval_seconds` | 返回 `tuple[PageName, ...]` | 域探针 + 逐页确认，按深度降序 | 等待页面切换、处理识别失败 |
 ~~~
 
-### 6.3 行为细节
+### 7.3 行为细节
 
 | 细节 | 规则 |
 | --- | --- |
@@ -157,11 +198,11 @@ NavigationExecutor.walk_backward(path: tuple[NavTarget, ...]) -> None
 | 全部未命中 | 返回 `None`；调用方必须把它当异常处理，不能当成「无法判断所以放行」 |
 | 扫描期间日志 | 静默 `_QUIET_DURING_PROBE` 两个通道，只由调用方留一条汇总 |
 
-### 6.4 错误和副作用
+### 7.4 错误和副作用
 
 本方法不抛异常、不改状态；它只截图识别。
 
-## 7. 内部实现：标签切换 _enter_tab
+## 8. 内部实现：标签切换 _enter_tab
 
 ~~~text
 NavigationExecutor._enter_tab(page: PageName, tab: str) -> None
@@ -177,7 +218,7 @@ NavigationExecutor._enter_tab(page: PageName, tab: str) -> None
 传了标签时页面级确认不参与：切到别的标签之后，认「默认标签激活」的页面级 checker 本来就该失败，
 两者互斥。标签不存在或两次都没切过去都抛 `NavigationError`。
 
-## 8. 内部实现：到达确认 _confirm_arrival
+## 9. 内部实现：到达确认 _confirm_arrival
 
 ~~~text
 NavigationExecutor._confirm_arrival(edge: NavTarget) -> None
@@ -199,7 +240,7 @@ NavigationExecutor._confirm_arrival(edge: NavTarget) -> None
    交回调用方。到达只说明目标页的标志已经出现在画面里，入场动画往往还没走完；这段动画期间
    点下去会落到上一页。域页面已在第 1 步等过稳定窗口，不再重复等。
 
-## 9. 统一配置
+## 10. 统一配置
 
 本模块无运行时配置。文件顶部常量是流程时序，不是配置：
 
@@ -213,15 +254,17 @@ NavigationExecutor._confirm_arrival(edge: NavTarget) -> None
 | `_ARRIVAL_REST_SECONDS` | `1.2` | 逐页页面确认成功后到交还控制权的稳定窗口 |
 | `_QUIET_DURING_PROBE` | 两个模块前缀 | 全层扫描期间静默日志的通道 |
 
-## 10. 错误约定
+## 11. 错误约定
 
 | 错误 | 定义位置 | 触发条件 | 处理者 | 是否可重试 |
 | --- | --- | --- | --- | --- |
 | `NavigationError` | `types.py` | 到达确认失败、当前层不符、标签缺失或重试后仍未切换 | `service.py` 与 dispatch | 由上层决定（dispatch 可 SL） |
+| `TaskPaused` | `application/signals.py` | 断点读到暂停或插队信号 | `dispatch.processor` | 由 dispatch 决定重新入队 |
+| `TaskStopped` | `application/signals.py` | 断点读到终止信号 | `dispatch.executor.BaseExecutor.run()` | 不重试（终局） |
 
 executor 不捕获自己抛出的错误，也不做恢复决策。
 
-## 11. 日志约定
+## 12. 日志约定
 
 通道为 `ui.navigation.executor`（`get_logger('ui.navigation.executor')`）。
 
@@ -233,36 +276,36 @@ executor 不捕获自己抛出的错误，也不做恢复决策。
 
 扫描期间的识别细节日志整体静默，避免一次探测刷出上百条。
 
-## 12. 公开出口和调用边界
+## 13. 公开出口和调用边界
 
-### 12.1 稳定出口
+### 13.1 稳定出口
 
 | 出口 | 来源 | 调用者可以做什么 | 调用者不能做什么 |
 | --- | --- | --- | --- |
 | `NavigationExecutor` | `executor.py` | 构造执行器，调用三个公开方法 | 调用私有方法、改模块级常量 |
 
-### 12.2 内部内容
+### 13.2 内部内容
 
-`_enter_tab`、`_confirm_arrival`、`_TAB_SETTLE_SECONDS`、`_ARRIVAL_SETTLE_SECONDS`、`_QUIET_DURING_PROBE` 均为内部实现。
+`_check_interrupt`、`_enter_tab`、`_confirm_arrival`、`_TAB_SETTLE_SECONDS`、`_ARRIVAL_SETTLE_SECONDS`、`_QUIET_DURING_PROBE` 均为内部实现。
 测试为替换等待行为会 monkeypatch `executor.time.sleep`，这是测试手段，不构成生产出口。
 
-## 13. 模块维护方法
+## 14. 模块维护方法
 
-### 13.1 新增一个覆盖层页面
+### 14.1 新增一个覆盖层页面
 
 覆盖层页面加入对应的域探针（`registry._DOMAIN_PROBERS`），并在 [registry](<./registry.md>)
 里登记边；逐页注册表只放普通页面。
 
-### 13.2 调整标签切换等待
+### 14.2 调整标签切换等待
 
 改 `_TAB_SETTLE_SECONDS`。等待属于流程时序，不放进 `checker.py` 的常量区（那是校准数据）。
 
-### 13.3 新增一种到达确认分支
+### 14.3 新增一种到达确认分支
 
 先在 [registry](<./registry.md>) 的 `NavTarget` 上找现成字段表达（`confirm`、`tab`），
 确实表达不了才改 `_confirm_arrival`，并同步本节与 `types.py` 的字段表。
 
-### 13.4 参数传入与穿透规则
+### 14.4 参数传入与穿透规则
 
 | 参数 | 来源 | 规则 |
 | --- | --- | --- |
@@ -270,11 +313,11 @@ executor 不捕获自己抛出的错误，也不做恢复决策。
 | `params` | 调用方经 `navigate_to` 传入 | 原样透传给每条边的 `action`，执行器不解释内容 |
 | `tab` | `params` 或边的 `tab` 字段 | 只作用于最后一跳 |
 
-### 13.5 删减能力
+### 14.5 删减能力
 
 先 grep 确认没有调用方，再删实现与本节说明，最后跑门禁。
 
-## 14. 验收门禁
+## 15. 验收门禁
 
 | 检查 | 手段 |
 | --- | --- |

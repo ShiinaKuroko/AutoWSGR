@@ -85,6 +85,7 @@ common.vision（识别算法） / dispatch.session（导航栈）
 | 导航到目标页面 | `NavigationService.navigate_to` | `service.py` | 目标页、透传参数 | 点击、确认、压栈 | 算路并执行 | 业务动作、恢复决策 |
 | 回退上一页 | `NavigationService.navigate_back` | `service.py` | 无 | 弹栈、点击、确认 | 按栈回退一层 | 跨多层回退 |
 | 启动段 | `NavigationService.navigate_to_login` | `service.py` | 无 | 识别启动信号 | 把游戏带到登录页 | 拉起进程、换区 |
+| 断点让路 | 无（执行器内部调 `ContextHandle.check_interrupt`） | `executor.py` | 无 | 抛 `TaskPaused` / `TaskStopped` | 每跳确认到达并压栈之后问一次 dispatch | 判断该不该停、打断后的收尾 |
 
 模块当前规模：**30 个已接入页面、49 条可达边、3 个页面共 8 个标签、3 个域探针**；
 `PageName` 共 32 个成员，其余 2 个是尚未接入导航图的预留页面（军阶室技能列表、选择舰船）。
@@ -125,7 +126,7 @@ navigate_to(target, **params)
   ① _current_page()   栈顶有就用栈顶；栈空则按页面深度遍历全部 checker 认出当前页
   ② 起点即目标        → 短路返回
   ③ registry.find_path()  BFS 在可达表上找最短路径；到不了抛 NavigationError
-  ④ executor.walk_forward()  逐边执行：边的动作 → 到达确认（或标签确认）→ 压栈
+  ④ executor.walk_forward()  逐边执行：边的动作 → 到达确认（或标签确认）→ 压栈 → 过断点
 ~~~
 
 ### 4.5 错误和副作用
@@ -135,6 +136,8 @@ navigate_to(target, **params)
 | 栈空且认不出当前页 | 停止 | `NavigationError` | dispatch（可 SL） |
 | 没有可达路径 | 停止 | `NavigationError` | 调用方修正目标或补边 |
 | 到达确认失败 | 停止 | `NavigationError` | dispatch（可 SL） |
+| 断点收到暂停或插队 | 停止，栈清不清由 dispatch 决定 | `TaskPaused` | `dispatch.processor` |
+| 断点收到终止 | 停止 | `TaskStopped` | `dispatch.executor.BaseExecutor.run()`（清栈 → 回主页） |
 
 ## 5. 回退上一页：navigate_back
 

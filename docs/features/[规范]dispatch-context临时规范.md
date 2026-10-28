@@ -102,6 +102,7 @@ autowsgr/dispatch/
 │       ├── navigation.py       # 导航链路实际需要的状态
 │       ├── combat.py           # 战斗链路需要时再创建
 │       └── logistics.py        # 后勤链路需要时再创建
+├── executor.py                 # 任务执行器基类：承接断点信号，终止后清栈回主页
 ├── processor.py                # 请求识别、排队和调度，不保存第二套 Context
 ├── registry.py                 # 执行器注册和构造
 ├── image_context.py            # 模板缓存上下文，不属于任务 Context
@@ -200,6 +201,12 @@ references，这些引用由 ContextScope 单独持有。
 ContextScope，`ContextHandle.runtime` 在作用域内返回该 bundle。dispatch 按 opaque 类型持有，
 不导入 runtime 所有者中的具体服务类。
 
+### 2.7 InterruptSignals
+
+由 dispatch 注入作用域的一对让路开关（`pause`、`stop`，都是 `threading.Event` 引用）。
+它不是任务事实，不参与 `ContextTemplate`；导航器只通过 `ContextHandle.check_interrupt()`
+读取，不直接访问开关。
+
 ## 3. 持有关系
 
 ```text
@@ -235,6 +242,7 @@ with context.bind(
     request.request_id,
     template=ContextTemplate.for_task(request.task_type),
     runtime=runtime_bindings,
+    interrupt=interrupt_signals,
 ):
     run_task()
 ```
@@ -245,6 +253,8 @@ with context.bind(
 - 只绑定作用域，不提前创建完整上下文；
 - 有 runtime 服务需求的任务必须绑定对应 RuntimeBindings；不在 dispatch 内构造或销毁服务；
 - 同一执行作用域内不得绑定另一个不同任务；
+- 需要让路（暂停、终止、插队）的任务必须绑定 `InterruptSignals`；不绑定时 `check_interrupt()`
+  直接返回，等于这条链路没有断点；
 - 退出作用域时恢复上一级作用域，不遗留当前任务身份。
 
 ### 4.2 请求上下文
@@ -314,6 +324,7 @@ ContextHandle 统一提供两类内容，但必须分开持有：
 | --- | --- | --- |
 | RuntimeBindings | ContextScope，由 runtime composition root 注入 | 只保存运行时服务引用，不复制或管理其生命周期 |
 | TaskContext | 按 `ContextTemplate` 懒创建 | 只保存跨模块、跨步骤的任务事实 |
+| InterruptSignals | ContextScope，由 dispatch 注入 | 只保存 `pause` / `stop` 两个 Event 引用，是让路信号，不是任务事实 |
 
 RuntimeBindings 的字段按当前真实消费者增量定义，例如设备控制器、配置、OCR 引擎或
 其他稳定运行时服务。dispatch core 只持有 opaque bundle，不导入这些服务的具体实现。
@@ -396,6 +407,7 @@ read_event_stage()
 record_route_step(...)
 record_result(...)
 record_error(...)
+check_interrupt()
 ```
 
 `ctx.runtime` 返回本作用域绑定的只读 RuntimeBindings；具体字段由 composition root 的
@@ -416,6 +428,7 @@ context.data['anything'] = value
 ```text
 业务层 ──业务参数──→ dispatch Context / Navigator
 Navigator ──截图与导航事实──→ dispatch Context
+Navigator ──每跳一次断点检查──→ dispatch Context（check_interrupt，收到信号就抛）
 checker ──识别结果──→ Navigator
 UI Controller ──操作结果/异常──→ Navigator 或 dispatch
 状态机 ──只读取 Context 事实──→ 下一步决策
