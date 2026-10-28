@@ -73,19 +73,24 @@ class NavigationExecutor:
     Args:
         ctx: 提供设备服务与截图事实的 dispatch 上下文句柄。
         session: 进程级导航会话状态。
+        checkpoint: 是否在断点查让路信号。终止收尾那一趟必须关掉，否则停止开关
+            还亮着，导航会立刻再抛一次。
     """
 
-    def __init__(self, ctx: ContextHandle, session: SessionState) -> None:
+    def __init__(
+        self, ctx: ContextHandle, session: SessionState, *, checkpoint: bool = True
+    ) -> None:
         """绑定任务上下文与导航会话状态。"""
         self._ctx = ctx
         self._session = session
+        self._checkpoint = checkpoint
 
     # ── 两个方向 ────────────────────────────────────────────────────────────
 
     def walk_forward(self, path: tuple[NavTarget, ...], params: dict[str, object]) -> None:
         """前进：按路径从当前页走向目标页。
 
-        每跳依次执行：边的动作 → 到达确认，最后把目标页压进导航栈。
+        每跳依次执行：边的动作 → 到达确认 → 压栈；每条边都会压，压完立刻过断点。
 
         Args:
             path: 已经算好的路径。
@@ -93,12 +98,15 @@ class NavigationExecutor:
 
         Raises:
             NavigationError: 到达确认失败。
+            TaskPaused: 断点收到暂停或插队信号。
+            TaskStopped: 断点收到终止信号。
         """
         # 标签优先取调用方参数，其次取边自己声明的（如「首页 → 出征页」固定切回出征）。
         requested = params.get('tab')
         tab = requested if isinstance(requested, str) else None
         if tab is None and len(path) == 1 and path[0].tab is not None:
             tab = path[0].tab
+        self._check_interrupt()
         for index, edge in enumerate(path):
             _log.debug('[UI] 导航执行 → 前进：edge={!r}', edge.description)
             edge.action(self._ctx, **params)
@@ -108,6 +116,8 @@ class NavigationExecutor:
             else:
                 self._confirm_arrival(edge)
             self._session.push_page(edge.target.value)
+            # 断点放在确认到达并压栈之后：此时回退路径完整，让路不丢位置。
+            self._check_interrupt()
 
     def walk_backward(self, path: tuple[NavTarget, ...]) -> None:
         """后退：按路径从当前页退回上一页。
@@ -121,11 +131,21 @@ class NavigationExecutor:
 
         Raises:
             NavigationError: 到达确认失败。
+            TaskPaused: 断点收到暂停或插队信号。
+            TaskStopped: 断点收到终止信号。
         """
         for edge in path:
             _log.debug('[UI] 导航执行 → 后退：edge={!r}', edge.description)
             edge.action(self._ctx)
             self._confirm_arrival(edge)
+            self._check_interrupt()
+
+    # ── 断点 ────────────────────────────────────────────────────────────────
+
+    def _check_interrupt(self) -> None:
+        """断点：dispatch 要求让路时抛出，边与边之间是唯一的让路位置。"""
+        if self._checkpoint:
+            self._ctx.check_interrupt()
 
     # ── 页面层识别 ──────────────────────────────────────────────────────────
 

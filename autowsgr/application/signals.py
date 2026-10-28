@@ -1,7 +1,7 @@
 """模块功能：定义执行器与调度器之间的任务控制信号。
 
 上层调用：
-- application.runtime.executor：在安全断点抛出暂停或停止信号，交回执行权。
+- dispatch.executor：在安全断点抛出暂停或停止信号，交回执行权。
 - dispatch.processor：捕获信号并转换任务状态。
 
 下层依赖：

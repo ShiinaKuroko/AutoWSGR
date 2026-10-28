@@ -141,8 +141,8 @@ CHAPTER_SINGLE_STEP = 1
 CHAPTER_DOUBLE_STEP = 2
 # 章节或地图切换后的等待时间，用于避开页面动画过渡帧。
 MAP_NAV_SETTLE_DELAY = 1.5000
-# 地图标题单轮采样次数与采样间隔。
-MAP_READ_SAMPLE_COUNT = 3
+# 地图标题单轮采样次数与采样间隔。稳定判据是「末两次相同」，再多的样本不参与判定。
+MAP_READ_SAMPLE_COUNT = 2
 MAP_READ_SAMPLE_DELAY = 0.1500
 # 地图标题连续相同采样次数，用于判定当前地图稳定。
 MAP_READ_STABLE_COUNT = 2
@@ -484,7 +484,7 @@ def _read_map_number(ctx: ContextHandle) -> int | None:
 def _judge_stable_map_number(map_numbers: Sequence[int]) -> tuple[int | None, bool]:
     """判断多次采样的地图编号是否稳定。
 
-    末两次相同，或采满且全部相同即为稳定；否则取众数并标记为抖动。
+    末两次相同即为稳定；否则取众数并标记为抖动。
 
     Args:
         map_numbers: 本轮采样到的地图编号。
@@ -496,8 +496,6 @@ def _judge_stable_map_number(map_numbers: Sequence[int]) -> tuple[int | None, bo
         return None, False
     if len(map_numbers) >= MAP_READ_STABLE_COUNT and map_numbers[-1] == map_numbers[-2]:
         return map_numbers[-1], True
-    if len(map_numbers) == MAP_READ_SAMPLE_COUNT and len(set(map_numbers)) == 1:
-        return map_numbers[0], True
 
     candidate = max(set(map_numbers), key=map_numbers.count)
     _log.warning('[UI] 地图节点导航：OCR 抖动 {}，本轮不点击', map_numbers)

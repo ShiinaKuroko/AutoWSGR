@@ -2,15 +2,19 @@
 
 from __future__ import annotations
 
+import threading
+
 import numpy as np
 import pytest
 
+from autowsgr.application.signals import TaskPaused, TaskStopped
 from autowsgr.dispatch.context import (
     ContextClosedError,
     ContextFieldError,
     ContextManager,
     ContextNotBoundError,
     ContextTemplate,
+    InterruptSignals,
     RuntimeBindings,
 )
 
@@ -104,3 +108,40 @@ def test_runtime_bindings_are_scope_bound() -> None:
         ),
     ):
         _ = manager.request().runtime
+
+
+def test_check_interrupt_returns_without_bound_switches() -> None:
+    manager = ContextManager()
+    with manager.bind('plain-task', template=ContextTemplate.for_task('navigation_checker')):
+        manager.request().check_interrupt()
+
+
+def _check_interrupt_with(
+    manager: ContextManager, pause: threading.Event, stop: threading.Event
+) -> None:
+    signals = InterruptSignals(pause=pause, stop=stop)
+    with manager.bind(
+        'interrupt-task',
+        template=ContextTemplate.for_task('navigation_checker'),
+        interrupt=signals,
+    ):
+        manager.request().check_interrupt()
+
+
+def test_check_interrupt_stays_quiet_while_switches_are_clear() -> None:
+    _check_interrupt_with(ContextManager(), threading.Event(), threading.Event())
+
+
+def test_check_interrupt_raises_pause_when_pause_switch_is_set() -> None:
+    pause = threading.Event()
+    pause.set()
+    with pytest.raises(TaskPaused):
+        _check_interrupt_with(ContextManager(), pause, threading.Event())
+
+
+def test_check_interrupt_prefers_stop_over_pause() -> None:
+    pause, stop = threading.Event(), threading.Event()
+    pause.set()
+    stop.set()
+    with pytest.raises(TaskStopped):
+        _check_interrupt_with(ContextManager(), pause, stop)

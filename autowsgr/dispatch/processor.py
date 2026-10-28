@@ -6,11 +6,12 @@
     ③ 查当前任务 (正在跑什么, 有没有可打断)
     ④ 决策 (直接执行 / 打断让路 / 排队)
 
-打断协作 (执行器的断点藏在 _wait 里, 见 application.runtime.executor):
-    interrupt() 置暂停信号并插队 → 当前执行器在最近的 _wait 断点
-    回主页、抛 TaskPaused 让路 → 处理器清除信号 (明确的继续信息)、
-    把被打断的任务重新入队 → 优先跑加急请求 → 跑完后被打断的任务
-    从头重跑 (progress 里的计数保留)。
+断点协作 (断点布局见 navigation.executor):
+    interrupt() 置暂停信号并插队 → 当前执行器在最近一个断点 (边确认到达并压栈之后)
+    抛 TaskPaused 让路 → 处理器清除信号 (明确的继续信息)、把被打断的任务重新入队
+    → 优先跑加急请求 → 跑完后被打断的任务从头重跑 (progress 里的计数保留)。
+    pause() 走同一条链路, 区别是用户暂停期间可能亲手操作过游戏, 导航栈不可信,
+    所以让路时清栈, 恢复后按实时识别重建; 插队保持栈, 加急任务跑完原路回退。
 """
 
 from __future__ import annotations
@@ -30,9 +31,10 @@ from autowsgr.application.errors import ManualRepairRequiredError
 from autowsgr.application.signals import TaskPaused, TaskStopped
 from autowsgr.common.system.files import load_yaml
 from autowsgr.common.system.logger import get_logger
-from autowsgr.dispatch.context import ContextTemplate, RuntimeBindings, context
+from autowsgr.dispatch.context import ContextTemplate, InterruptSignals, RuntimeBindings, context
 from autowsgr.dispatch.image_context import image_context
 from autowsgr.dispatch.registry import build_executor
+from autowsgr.dispatch.session import get_session
 
 
 if TYPE_CHECKING:
@@ -288,6 +290,7 @@ class Processor:
         self._stop = stop if stop is not None else threading.Event()
         self._current_priority = MAX_PRIORITY
         self._current_request: Request | None = None
+        self._interrupt_kind: str | None = None
         self._recover = recover or self._default_recover
         self._soft_retries = max(0, soft_retries)
         self._hard_retries = max(0, hard_retries)
@@ -319,10 +322,17 @@ class Processor:
             priority = max(0, min(requested, current - 1)) if self._current_request else requested
             request = replace(request, priority=priority, extre=True)
             should_pause = self._current_request is not None
+            if should_pause:
+                self._interrupt_kind = 'handoff'
         _log.info('[Processor] 加急请求打断当前任务: {} (prio={})', request.task_type, priority)
         if should_pause:
             self._pause.set()
         self._push(request)
+
+    def pause(self) -> None:
+        """请求当前执行器在最近断点暂停; 恢复时因为栈不可信会按实时识别重建。"""
+        self._interrupt_kind = 'pause'
+        self._pause.set()
 
     def stop(self) -> None:
         """请求当前执行器在最近安全断点停止并回主页。"""
@@ -361,6 +371,7 @@ class Processor:
                         request.request_id,
                         template=ContextTemplate.for_task(request.task_type),
                         runtime=self._runtime,
+                        interrupt=InterruptSignals(pause=self._pause, stop=self._stop),
                     ):
                         outcomes.extend(self._run_request(request))
                 finally:
@@ -509,6 +520,10 @@ class Processor:
                 return 'failed', str(exc)
             except TaskPaused:
                 _log.info('[Processor] 任务被打断, 保留进度: {}', request.progress)
+                if self._interrupt_kind == 'pause':
+                    # 用户暂停期间可能亲手操作过游戏, 栈不可信; 恢复时重新识别当前页。
+                    get_session().clear_pages()
+                self._interrupt_kind = None
                 self._pause.clear()
                 return 'paused', None
             except TaskStopped:

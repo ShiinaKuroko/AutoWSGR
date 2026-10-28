@@ -52,16 +52,23 @@ _STARTUP_INTERVAL_SECONDS = 1.0
 class NavigationService:
     """导航器入口。"""
 
-    def __init__(self, ctx: ContextHandle, *, session: SessionState | None = None) -> None:
+    def __init__(
+        self,
+        ctx: ContextHandle,
+        *,
+        session: SessionState | None = None,
+        checkpoint: bool = True,
+    ) -> None:
         """绑定任务上下文与进程级会话状态。
 
         Args:
             ctx: 提供设备服务与任务事实的 dispatch 上下文句柄。
             session: 进程级会话状态；缺省使用进程内单例。
+            checkpoint: 是否在断点查让路信号；终止收尾那一趟传 False。
         """
         self._ctx = ctx
         self._session = session or get_session()
-        self._executor = NavigationExecutor(ctx, self._session)
+        self._executor = NavigationExecutor(ctx, self._session, checkpoint=checkpoint)
 
     # ── 公开入口 ────────────────────────────────────────────────────────────
 

@@ -6,6 +6,7 @@ from .contracts.navigation import HomeCheckObservation
 from .errors import ContextClosedError, ContextError, ContextFieldError, ContextNotBoundError
 from .manager import ContextHandle, ContextManager
 from .runtime import RuntimeBindings
+from .state import InterruptSignals
 from .template import ContextTemplate
 
 
@@ -21,6 +22,7 @@ __all__ = [
     'ContextNotBoundError',
     'ContextTemplate',
     'HomeCheckObservation',
+    'InterruptSignals',
     'RuntimeBindings',
     'context',
 ]

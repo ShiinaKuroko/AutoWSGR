@@ -7,8 +7,10 @@ from contextvars import ContextVar
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
+from autowsgr.application.signals import TaskPaused, TaskStopped
+
 from .errors import ContextClosedError, ContextFieldError, ContextNotBoundError, ContextScopeError
-from .state import TaskContextState
+from .state import InterruptSignals, TaskContextState
 
 
 if TYPE_CHECKING:
@@ -26,6 +28,7 @@ class _Binding:
     task_id: str
     template: ContextTemplate
     runtime: RuntimeBindings | None
+    interrupt: InterruptSignals | None
 
 
 _ACTIVE_BINDING: ContextVar[_Binding | None] = ContextVar('_ACTIVE_BINDING', default=None)
@@ -109,6 +112,24 @@ class ContextHandle:
         """Record an error fact without retaining a traceback or exception object."""
         self._state().last_error = str(error)
 
+    def check_interrupt(self) -> None:
+        """让出执行权的唯一检查点：dispatch 要求暂停或终止时抛出对应信号。
+
+        执行器只在边与边之间调用它，所以抛出位置天然是「刚确认到达、导航栈已记账」的
+        安全点，回退路径完整。未绑定让路开关时直接返回，便于单测构造裸上下文。
+
+        Raises:
+            TaskStopped: 处理器已请求终止，执行器应回主页再结束任务。
+            TaskPaused: 处理器请求暂停，或有更高优先级任务插队。
+        """
+        signals = self._state().interrupt
+        if signals is None:
+            return
+        if signals.stop.is_set():
+            raise TaskStopped
+        if signals.pause.is_set():
+            raise TaskPaused
+
     def _state(self) -> TaskContextState:
         return self._manager._require_state(self._task_id)
 
@@ -126,14 +147,15 @@ class ContextManager:
         *,
         template: ContextTemplate,
         runtime: RuntimeBindings | None = None,
+        interrupt: InterruptSignals | None = None,
     ) -> Iterator[None]:
-        """Bind task facts and optional runtime service references without creating state."""
+        """Bind task facts, runtime service references and interrupt switches without creating state."""
         task_id = _require_text(task_id, 'task_id')
         active = _ACTIVE_BINDING.get()
         if active is not None:
             raise ContextScopeError(f'已有活动任务作用域: {active.task_id}')
 
-        token = _ACTIVE_BINDING.set(_Binding(self, task_id, template, runtime))
+        token = _ACTIVE_BINDING.set(_Binding(self, task_id, template, runtime, interrupt))
         try:
             yield
         finally:
@@ -150,7 +172,11 @@ class ContextManager:
 
         state = self._states.get(binding.task_id)
         if state is None:
-            state = TaskContextState(task_id=binding.task_id, template=binding.template)
+            state = TaskContextState(
+                task_id=binding.task_id,
+                template=binding.template,
+                interrupt=binding.interrupt,
+            )
             self._states[binding.task_id] = state
         if state.closed:
             raise ContextClosedError(f'任务上下文已关闭: {binding.task_id}')
@@ -165,7 +191,9 @@ class ContextManager:
         if state is None:
             raise ContextClosedError(f'任务上下文尚未创建: {binding.task_id}')
         state.closed = True
-        _ACTIVE_BINDING.set(_Binding(self, binding.task_id, binding.template, None))
+        _ACTIVE_BINDING.set(
+            _Binding(self, binding.task_id, binding.template, None, binding.interrupt)
+        )
 
     def _require_runtime(self, task_id: str) -> RuntimeBindings:
         binding = _ACTIVE_BINDING.get()

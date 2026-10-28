@@ -395,6 +395,8 @@ def _sortie_map_to_preparation(ctx: ContextHandle, **params: object) -> None:
     if chapter is None or map_id is None:
         raise ValueError('进入出征准备页需要 chapter 与 map_id 入参')
     ensure_chapter(ctx, chapter=int(chapter), map_id=int(map_id))
+    # 选章选节是连续动作，中间不让路；选完、进准备页之前才是安全的断点。
+    ctx.check_interrupt()
     BattlePage(ctx).click_enter_sortie()
 
 

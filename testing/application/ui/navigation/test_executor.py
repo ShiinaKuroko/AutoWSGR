@@ -13,6 +13,7 @@ from typing import Any
 
 import pytest
 
+from autowsgr.application.signals import TaskPaused
 from autowsgr.application.ui.navigation import registry
 from autowsgr.application.ui.navigation.executor import NavigationExecutor
 from autowsgr.application.ui.navigation.types import NavigationError, NavTab, NavTarget, PageName
@@ -161,3 +162,77 @@ def test_executor_reports_domain_arrival_failure(monkeypatch: pytest.MonkeyPatch
 
 
 # ── 任务页 ──────────────────────────────────────────────────────────────────
+
+
+# ── 断点 ────────────────────────────────────────────────────────────────────
+
+
+class _CheckpointRecorder:
+    """记录断点调用次数的上下文替身。"""
+
+    def __init__(self) -> None:
+        self.calls = 0
+
+    def check_interrupt(self) -> None:
+        self.calls += 1
+
+
+def _two_edges() -> tuple[NavTarget, NavTarget]:
+    """两条都不做到达确认的边，避开真实识别。"""
+    return (
+        NavTarget(PageName.HOME_REWARD, lambda *_args, **_kwargs: None, '甲', confirm=False),
+        NavTarget(
+            PageName.HOME_REWARD_CONFIRM, lambda *_args, **_kwargs: None, '乙', confirm=False
+        ),
+    )
+
+
+def test_executor_checks_interrupt_at_entry_and_after_each_forward_edge() -> None:
+    """前进在入口与每条边压栈之后各查一次断点。"""
+    recorder = _CheckpointRecorder()
+    session = SessionState()
+    session.push_page(PageName.HOME.value)
+
+    NavigationExecutor(recorder, session).walk_forward(_two_edges(), {})
+
+    assert recorder.calls == 3
+    assert session.current_page() == PageName.HOME_REWARD_CONFIRM.value
+
+
+def test_executor_checks_interrupt_after_each_backward_edge() -> None:
+    """后退在每条边确认到达之后查断点。"""
+    recorder = _CheckpointRecorder()
+
+    NavigationExecutor(recorder, SessionState()).walk_backward(_two_edges())
+
+    assert recorder.calls == 2
+
+
+def test_executor_skips_interrupt_when_checkpoint_disabled() -> None:
+    """终止收尾那一趟关掉断点，否则停止开关还亮着会立刻再抛一次。"""
+    recorder = _CheckpointRecorder()
+
+    NavigationExecutor(recorder, SessionState(), checkpoint=False).walk_forward(
+        (_two_edges()[0],), {}
+    )
+
+    assert recorder.calls == 0
+
+
+def test_executor_leaves_complete_backtrack_after_interrupt() -> None:
+    """断点抛出时栈已经记到刚才那一跳，让路不丢回退路径。"""
+
+    class _StopOnSecondCheck(_CheckpointRecorder):
+        def check_interrupt(self) -> None:
+            self.calls += 1
+            if self.calls == 2:
+                raise TaskPaused
+
+    recorder = _StopOnSecondCheck()
+    session = SessionState()
+    session.push_page(PageName.HOME.value)
+
+    with pytest.raises(TaskPaused):
+        NavigationExecutor(recorder, session).walk_forward(_two_edges(), {})
+
+    assert session.current_page() == PageName.HOME_REWARD.value

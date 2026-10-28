@@ -36,11 +36,12 @@ class _Ctrl:
 
 @pytest.fixture
 def ctx() -> Any:
-    """带活动任务参数的上下文替身。"""
+    """带活动任务参数与「永不让路」断点的上下文替身。"""
     return SimpleNamespace(
         runtime=SimpleNamespace(ctrl=_Ctrl()),
         read_event_type=lambda: 'stage_push',
         read_event_stage=lambda: 'EX7',
+        check_interrupt=lambda: None,
     )
 
 
