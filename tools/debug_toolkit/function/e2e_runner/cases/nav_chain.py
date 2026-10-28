@@ -34,9 +34,8 @@ CHAIN = (
     'BACKYARD',
     'BATH',
     'BACKYARD',
-    # 学院：新号未解锁，先注释掉；解锁后恢复下面两步。
-    # 'ACADEMY',
-    # 'BACKYARD',
+    'ACADEMY',
+    'BACKYARD',
     'RANK_ROOM',
     'BACKYARD',
     'HOME',

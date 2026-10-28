@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import json
+import random
 import time
 from pathlib import Path
 from typing import Any
@@ -32,6 +33,8 @@ def add_arguments(parser: Any) -> None:
     parser.add_argument('--chapters', default='', help='只跑这些章节，逗号分隔；默认全部')
     parser.add_argument('--nodes', default='', help='只跑这些节点号，逗号分隔；默认全量')
     parser.add_argument('--keep-going', action='store_true', help='单步失败后尝试回退并继续')
+    parser.add_argument('--shuffle', action='store_true', help='打乱组合顺序，模拟随机跳转')
+    parser.add_argument('--seed', type=int, default=0, help='--shuffle 的随机种子，0 表示每次不同')
 
 
 def _parse_ids(text: str) -> set[int]:
@@ -57,6 +60,9 @@ def run(rt: Any) -> bool:
         for chapter, map_id in sorted(MAP_DATABASE)
         if (not chapters or chapter in chapters) and (not nodes or map_id in nodes)
     ]
+    if rt.args.shuffle:
+        random.seed(rt.args.seed or None)
+        random.shuffle(combos)
     print(f'组合 {len(combos)} 个：{combos}', flush=True)
 
     # 建栈：之后每步都读栈顶，不再遍历识别。

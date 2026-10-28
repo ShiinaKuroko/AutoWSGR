@@ -320,7 +320,7 @@ dispatch 决定何时启动、何时 SL、按配置决定是否换区；导航�
 | 导航器单测 | `pytest testing/application testing/common` | 187 passed |
 | checker 单测 | `pytest testing/application/ui/navigation/checker` | 全绿 |
 | 消费者回归 | `pytest testing/dispatch/test_startup.py testing/dispatch/context` | 全绿 |
-| 实机链路（导航图遍历） | `python tools/debug_toolkit/main.py e2e --no-launch nav_chain` | 26/26 通过，边覆盖 26/49（学院未解锁、活动未开放） |
-| 实机链路（出征选图） | `python tools/debug_toolkit/main.py e2e --no-launch sortie_scan --keep-going` | 44/44 通过（1-1 ~ 10-1），单组合约 10.5 秒 |
+| 实机链路（导航图遍历） | `python tools/debug_toolkit/main.py e2e --no-launch nav_chain` | 28/28 通过，边覆盖 28/49（含学院进出；活动未开放、登录段需 `--from-login`、出征准备页往返由下一条覆盖） |
+| 实机链路（出征选图） | `python tools/debug_toolkit/main.py e2e --no-launch sortie_scan --shuffle --keep-going` | 44/44 通过（全 44 个章节×节点，随机顺序），单组合 9~23 秒、平均 14 秒 |
 | 文档树与代码树对齐 | 本文件的子项表与 `navigation/` 目录一致 | 通过 |
 | `git diff --check` | 无空白错误 | 通过 |
