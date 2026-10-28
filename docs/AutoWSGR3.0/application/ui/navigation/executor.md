@@ -32,12 +32,11 @@ autowsgr/application/ui/navigation/
 
 | 分区 | 内容 |
 | --- | --- |
-| 页面内标签参数 | `_TAB_SETTLE_SECONDS` |
+| 页面内标签参数 | `_TAB_SETTLE_SECONDS`、`_TAB_CLICK_ATTEMPTS`、`_TAB_RETRY_INTERVAL_SECONDS` |
 | 两个方向 | `walk_forward`、`walk_backward` |
-| 页面层识别 | `detect_layer`、`_enter_tab`、`_confirm_arrival` |
+| 页面层识别 | `detect_layer`、`_wait_for_layer`、`_enter_tab`、`_confirm_arrival` |
 
-文件顶部还有三个模块级常量：`_QUIET_DURING_PROBE`（全层扫描期间静默的通道）、
-`_TAB_SETTLE_SECONDS`（标签切换等待）与 `_ARRIVAL_SETTLE_SECONDS`（首页/侧边栏浮窗弹出等待）。
+文件顶部共有八个模块级常量，都是流程时序、不是配置，取值见 [§9](#9-统一配置)。
 
 ### 2.3 依赖方向
 
@@ -59,7 +58,7 @@ dispatch.session（导航栈）
 
 ### 2.4 出口策略
 
-唯一稳定出口是 `NavigationExecutor`；`_enter_tab`、`_confirm_arrival` 与三个模块级常量都是内部实现。
+唯一稳定出口是 `NavigationExecutor`；`_wait_for_layer`、`_enter_tab`、`_confirm_arrival` 与全部模块级常量都是内部实现。
 
 ## 3. 能力总览
 
@@ -67,7 +66,7 @@ dispatch.session（导航栈）
 | --- | --- | --- | --- | --- | --- |
 | 前进执行 | `NavigationExecutor.walk_forward` | 路径、参数 | 点击、确认、压栈 | 逐边执行并确认到达 | 算路、栈的起点判断 |
 | 后退执行 | `NavigationExecutor.walk_backward` | 路径 | 点击、确认 | 逐边回退并确认到达 | 弹栈记账 |
-| 当前层识别 | `NavigationExecutor.detect_layer` | 无 | 返回 `tuple[PageName, ...]` | 域探针 + 逐页确认，按深度降序 | 等待页面切换、处理识别失败 |
+| 当前层识别 | `NavigationExecutor.detect_layer` | `attempts`、`interval_seconds` | 返回 `tuple[PageName, ...]` | 域探针 + 逐页确认，按深度降序 | 等待页面切换、处理识别失败 |
 
 ## 4. 前进执行：walk_forward
 
@@ -144,7 +143,7 @@ NavigationExecutor.walk_backward(path: tuple[NavTarget, ...]) -> None
 ### 6.2 稳定入口
 
 ~~~text
-| 当前层识别 | `NavigationExecutor.detect_layer` | 无 | 返回 `tuple[PageName, ...]` | 域探针 + 逐页确认，按深度降序 | 等待页面切换、处理识别失败 |
+| 当前层识别 | `NavigationExecutor.detect_layer` | `attempts`、`interval_seconds` | 返回 `tuple[PageName, ...]` | 域探针 + 逐页确认，按深度降序 | 等待页面切换、处理识别失败 |
 ~~~
 
 ### 6.3 行为细节
@@ -152,8 +151,8 @@ NavigationExecutor.walk_backward(path: tuple[NavTarget, ...]) -> None
 | 细节 | 规则 |
 | --- | --- |
 | 扫描顺序 | `registry.depth_of` 降序；不可达页面排在最后 |
-| 域探针 | 先问 `registry.probe_domains`：home 四个浮窗一帧一次读完 |
-| 每个入口的节奏 | `attempts=1, interval_seconds=0.2`，只看当前一帧 |
+| 域探针 | 先问 `registry.probe_domains`：每个域一次读一帧（home 浮窗、出征标签、出征准备页三组） |
+| 每个入口的节奏 | 默认 `attempts=1, interval_seconds=0.2`，只看当前一帧；等页面切换的调用方传自己的节奏 |
 | 入口抛异常 | 视为不匹配，继续下一层（活动 checker 需要任务上下文，探测时可能没有） |
 | 全部未命中 | 返回 `None`；调用方必须把它当异常处理，不能当成「无法判断所以放行」 |
 | 扫描期间日志 | 静默 `_QUIET_DURING_PROBE` 两个通道，只由调用方留一条汇总 |
@@ -169,10 +168,14 @@ NavigationExecutor._enter_tab(page: PageName, tab: str) -> None
 ~~~
 
 流程：查 [registry](<./registry.md>).get_tabs 取标签项 → 等 `_TAB_SETTLE_SECONDS`（2 秒）→
-点标签 → 用**标签自己的 checker** 确认。
+点标签 → 用**标签自己的 checker** 确认；没确认上就再等 `_TAB_RETRY_INTERVAL_SECONDS` 点一次，
+最多 `_TAB_CLICK_ATTEMPTS`（2 次）。
+
+为什么要重试：页面入口点下去到标签栏属于「这一页」之间有入场动画，这期间点下去会落到上一页；
+目标标签已经激活时再点一次不改变状态，所以重试是安全的。
 
 传了标签时页面级确认不参与：切到别的标签之后，认「默认标签激活」的页面级 checker 本来就该失败，
-两者互斥。标签不存在或未激活都抛 `NavigationError`。
+两者互斥。标签不存在或两次都没切过去都抛 `NavigationError`。
 
 ## 8. 内部实现：到达确认 _confirm_arrival
 
@@ -183,27 +186,35 @@ NavigationExecutor._confirm_arrival(edge: NavTarget) -> None
 到达首页或侧边栏且三个每日浮窗标记不齐时，先等 `_ARRIVAL_SETTLE_SECONDS`（3 秒），
 让延迟弹出的浮窗露出来，再做判层。
 
-1. **目标页出现**：域页面由 `detect_layer` 的域探针直接判层；其余页面调用
-   registry.get_checker(edge.target) 的入口。边声明 `confirm=False` 或没有确认入口时直接跳过；
+1. **目标页出现**：域页面由 `detect_layer` 的域探针直接判层（等 `_ARRIVAL_PROBE_ATTEMPTS` 次，
+   间隔 `_ARRIVAL_PROBE_INTERVAL_SECONDS`）；其余页面调用 registry.get_checker(edge.target) 的入口。
+   边声明 `confirm=False` 或没有确认入口时直接跳过；
 2. **当前层就是目标**：再跑一次 `detect_layer`，要求返回的最上层严格等于目标页。
    目标出现不代表它就在最上面——浮窗、侧边栏这类覆盖层会盖住它。
 3. **到达记账**：确认成功后调 `registry.on_arrival`，回到干净主页时写每日浮窗标记。
+4. **稳定窗口**：记账之后再等 `_ARRIVAL_REST_SECONDS`（1.2 秒）才把控制权交回调用方。
+   到达只说明目标页的标志已经出现在画面里，入场动画往往还没走完；这段动画期间点下去会落到上一页。
 
 ## 9. 统一配置
 
-本模块无运行时配置。文件顶部三个常量是流程时序，不是配置：
+本模块无运行时配置。文件顶部常量是流程时序，不是配置：
 
 | 常量 | 值 | 作用 |
 | --- | --- | --- |
-| `_TAB_SETTLE_SECONDS` | `2.0` | 点标签前等页面切换动画稳定的秒数 |
+| `_TAB_SETTLE_SECONDS` | `2.0` | 点标签前等页面入场稳定的秒数 |
+| `_TAB_CLICK_ATTEMPTS` | `2` | 标签「点击 + 确认」的总次数 |
+| `_TAB_RETRY_INTERVAL_SECONDS` | `2.0` | 标签没切过去时，下一次点击前再等的秒数 |
 | `_ARRIVAL_SETTLE_SECONDS` | `3.0` | 到达首页/侧边栏后等浮窗弹出的秒数 |
+| `_ARRIVAL_PROBE_ATTEMPTS` | `3` | 到达确认时域探针的最多尝试次数 |
+| `_ARRIVAL_PROBE_INTERVAL_SECONDS` | `0.8` | 到达确认时域探针两次尝试之间的间隔 |
+| `_ARRIVAL_REST_SECONDS` | `1.2` | 确认成功后到交还控制权的稳定窗口 |
 | `_QUIET_DURING_PROBE` | 两个模块前缀 | 全层扫描期间静默日志的通道 |
 
 ## 10. 错误约定
 
 | 错误 | 定义位置 | 触发条件 | 处理者 | 是否可重试 |
 | --- | --- | --- | --- | --- |
-| `NavigationError` | `types.py` | 到达确认失败、当前层不符、标签缺失或未激活 | `service.py` 与 dispatch | 由上层决定（dispatch 可 SL） |
+| `NavigationError` | `types.py` | 到达确认失败、当前层不符、标签缺失或重试后仍未切换 | `service.py` 与 dispatch | 由上层决定（dispatch 可 SL） |
 
 executor 不捕获自己抛出的错误，也不做恢复决策。
 

@@ -1,21 +1,23 @@
-"""模块功能：确认出征页五个标签的激活状态。
+"""模块功能：读取出征页当前激活的标签页。
 
 上层调用：
-- application.ui.navigation：确认出征、演习、远征、战役、决战标签当前的激活状态，
-  并读取标签中心。
+- application.ui.navigation.registry：作为出征页域的探针，一帧判出当前停在哪个标签页。
+- application.ui.navigation.executor：切换标签后确认落点。
 
 下层依赖：
-- application.vision：读取模板事实。
+- application.ui.template：加载本模块的激活态模板。
+- common.vision：按模板与区域识别当前激活的标签。
 
-边界：只做识别并返回结论，不执行点击、不计算路由、不上报识别错误。
+边界：只做识别并返回页面结论，不执行点击、不计算路由、不上报识别错误。
 """
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from autowsgr.application.ui.navigation.types import PageName
 from autowsgr.application.ui.template import load_ui_template
-from autowsgr.common.vision import ROI, Template, expect_template, expect_template_center
+from autowsgr.common.vision import ROI, Template, expect_template
 
 
 if TYPE_CHECKING:
@@ -27,8 +29,8 @@ if TYPE_CHECKING:
 # 本模块在 UI 模板根下的命名空间。
 TEMPLATE_NAMESPACE = 'navigation/checker/sortie'
 
-# 五个标签的激活态与未激活态模板；目录小写、文件名全大写。
-# 只保留激活态模板：前识别命中即激活，后识别（absent）命中即未激活，不必再存一套未激活模板。
+# 五个标签的激活态模板；目录小写、文件名全大写。
+# 只保留激活态：标签互斥，一次只有一个激活模板能匹配上。
 SORTIE_TAB_TEMPLATE = 'SORTIE_SORTIE_TAB_720P.png'
 EXERCISE_TAB_TEMPLATE = 'SORTIE_EXERCISE_TAB_720P.png'
 EXPEDITION_TAB_TEMPLATE = 'SORTIE_EXPEDITION_TAB_720P.png'
@@ -46,132 +48,52 @@ EXPEDITION_TAB_ROI = ROI(0.4078, 0.0138, 0.4735, 0.0764)
 CAMPAIGN_TAB_ROI = ROI(0.5367, 0.0138, 0.6008, 0.0764)
 DECISIVE_TAB_ROI = ROI(0.6656, 0.0166, 0.7336, 0.075)
 
+# 页面、激活态模板与识别区域；五个区域互不重叠，顺序即判定顺序。
+_TAB_LAYERS: tuple[tuple[PageName, str, ROI], ...] = (
+    (PageName.SORTIE_MAP, SORTIE_TAB_TEMPLATE, SORTIE_TAB_ROI),
+    (PageName.EXERCISE, EXERCISE_TAB_TEMPLATE, EXERCISE_TAB_ROI),
+    (PageName.EXPEDITION, EXPEDITION_TAB_TEMPLATE, EXPEDITION_TAB_ROI),
+    (PageName.CAMPAIGN, CAMPAIGN_TAB_TEMPLATE, CAMPAIGN_TAB_ROI),
+    (PageName.DECISIVE_BATTLE, DECISIVE_TAB_TEMPLATE, DECISIVE_TAB_ROI),
+)
 
-# 切到这个标签后页面要走一段切换动画；执行器点完标签只确认一次，
-# 因此默认给足重试（7 次 x 0.5 秒，约 3.5 秒），动画没走完时继续等。
-_TAB_SWITCH_ATTEMPTS = 7
-_TAB_SWITCH_INTERVAL_SECONDS = 0.5
-
-
-# 标签名 → (激活态模板, 识别区域)。供标签中心读取使用。
-_TAB_TEMPLATES = {
-    'sortie': (SORTIE_TAB_TEMPLATE, SORTIE_TAB_ROI),
-    'exercise': (EXERCISE_TAB_TEMPLATE, EXERCISE_TAB_ROI),
-    'expedition': (EXPEDITION_TAB_TEMPLATE, EXPEDITION_TAB_ROI),
-    'campaign': (CAMPAIGN_TAB_TEMPLATE, CAMPAIGN_TAB_ROI),
-    'decisive': (DECISIVE_TAB_TEMPLATE, DECISIVE_TAB_ROI),
-}
+# 切标签后页面要走一段切换动画；读一帧判层时不需要等，默认只读一次。
+_READ_ATTEMPTS = 1
+_READ_INTERVAL_SECONDS = 0.5
 
 
-def check_sortie_page(
+# ── 当前标签页 ──────────────────────────────────────────────────────────────
+
+
+def read_sortie_tab_layer(
     ctx: ContextHandle,
     *,
-    absent: bool = False,
-    attempts: int = _TAB_SWITCH_ATTEMPTS,
-    interval_seconds: float = _TAB_SWITCH_INTERVAL_SECONDS,
-) -> bool:
-    """确认出征标签是否激活。
+    attempts: int = _READ_ATTEMPTS,
+    interval_seconds: float = _READ_INTERVAL_SECONDS,
+) -> PageName | None:
+    """读取出征页当前激活的标签页。
+
+    五个标签互斥，一次截图按各自区域匹配五个激活态模板，命中的那个就是当前页。
 
     Args:
         ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
-        absent: 期望该标签不再激活时为真，默认期望它激活。
-        attempts: 识别次数，默认按标签切换节奏。
+        attempts: 识别次数；判层默认只读一帧，切标签确认时由调用方提高。
         interval_seconds: 两次识别之间的等待秒数。
 
     Returns:
-        断言满足时为真；第一次进入出征页默认落在该标签。
+        当前激活标签对应的页面；不在任何标签页时为 None。
     """
-    return expect_template(
+    result = expect_template(
         ctx,
-        template=_load_template(SORTIE_TAB_TEMPLATE),
-        roi=SORTIE_TAB_ROI,
-        absent=absent,
+        template=tuple(_load_template(filename) for _, filename, _ in _TAB_LAYERS),
+        roi=tuple(roi for _, _, roi in _TAB_LAYERS),
         attempts=attempts,
         interval_seconds=interval_seconds,
-    ).satisfied
-
-
-def check_exercise_page(ctx: ContextHandle) -> bool:
-    """确认演习标签是否激活。
-
-    Args:
-        ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
-
-    Returns:
-        演习标签激活时为真。
-    """
-    return expect_template(
-        ctx, template=_load_template(EXERCISE_TAB_TEMPLATE), roi=EXERCISE_TAB_ROI
-    ).satisfied
-
-
-def check_expedition_page(ctx: ContextHandle) -> bool:
-    """确认远征标签是否激活。
-
-    Args:
-        ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
-
-    Returns:
-        远征标签激活时为真。
-    """
-    return expect_template(
-        ctx, template=_load_template(EXPEDITION_TAB_TEMPLATE), roi=EXPEDITION_TAB_ROI
-    ).satisfied
-
-
-def check_campaign_page(ctx: ContextHandle) -> bool:
-    """确认战役标签是否激活。
-
-    Args:
-        ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
-
-    Returns:
-        战役标签激活时为真。
-    """
-    return expect_template(
-        ctx, template=_load_template(CAMPAIGN_TAB_TEMPLATE), roi=CAMPAIGN_TAB_ROI
-    ).satisfied
-
-
-def check_decisive_page(ctx: ContextHandle) -> bool:
-    """确认决战标签是否激活。
-
-    Args:
-        ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
-
-    Returns:
-        决战标签激活时为真。
-    """
-    return expect_template(
-        ctx, template=_load_template(DECISIVE_TAB_TEMPLATE), roi=DECISIVE_TAB_ROI
-    ).satisfied
-
-
-def read_tab_center(ctx: ContextHandle, tab: str) -> tuple[float, float]:
-    """读取出征页某个标签的中心。
-
-    用激活态模板定位；标签没被选中时模板匹配不上，退回该标签识别区域的中心——
-    区域本来就是按校准基准框着这个标签的，中心即落点。因此本函数总能给出坐标，
-    调用方不必处理"读不到"。
-
-    Args:
-        ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
-        tab: 标签名，取值 sortie / exercise / expedition / campaign / decisive。
-
-    Returns:
-        标签的归一化中心。
-
-    Raises:
-        ValueError: 标签名不在本页标签表内。
-    """
-    entry = _TAB_TEMPLATES.get(tab)
-    if entry is None:
-        raise ValueError(f'未知的出征标签: {tab!r}')
-    filename, roi = entry
-    center = expect_template_center(ctx, template=_load_template(filename), roi=roi, attempts=1)
-    if center is None:
-        center = ((roi.x1 + roi.x2) / 2, (roi.y1 + roi.y2) / 2)
-    return center
+    )
+    for (page, _, _), match in zip(_TAB_LAYERS, result.observation, strict=True):
+        if match.matched:
+            return page
+    return None
 
 
 # ── 私有辅助 ────────────────────────────────────────────────────────────────
@@ -182,11 +104,4 @@ def _load_template(filename: str) -> Template:
     return load_ui_template(TEMPLATE_NAMESPACE, filename)
 
 
-__all__ = [
-    'check_campaign_page',
-    'check_decisive_page',
-    'check_exercise_page',
-    'check_expedition_page',
-    'check_sortie_page',
-    'read_tab_center',
-]
+__all__ = ['read_sortie_tab_layer']

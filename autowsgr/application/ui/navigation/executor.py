@@ -41,7 +41,21 @@ _QUIET_DURING_PROBE = (
 # 到达首页或侧边栏后，浮窗可能延迟弹出；先停一会儿再记账。
 _ARRIVAL_SETTLE_SECONDS = 3.0
 
+# 域探针一次只读一帧，页面切换动画没走完时会先读到旧页；到达域页面时按这个
+# 节奏重扫全层。命中即返回，页面真到位时不会白等。
+_ARRIVAL_PROBE_ATTEMPTS = 3
+_ARRIVAL_PROBE_INTERVAL_SECONDS = 0.8
+
+# 「到达」只说明目标页的标志已经出现在画面里，入场动画往往还没走完；这段动画期间
+# 的触摸会被游戏丢掉。留一段稳定窗口，让调用方拿到页面时它是真的可点的。
+_ARRIVAL_REST_SECONDS = 1.2
+
 _TAB_SETTLE_SECONDS = 2.0
+
+# 标签栏要等页面入场动画结束才属于「这一页」；动画期间点下去会落在上一页。
+# 所以点完必须验证，没切过去就再点一次——目标标签已经激活时重复点击不改变状态。
+_TAB_CLICK_ATTEMPTS = 2
+_TAB_RETRY_INTERVAL_SECONDS = 2.0
 
 
 if TYPE_CHECKING:
@@ -116,13 +130,22 @@ class NavigationExecutor:
 
     # ── 页面层识别 ──────────────────────────────────────────────────────────
 
-    def detect_layer(self) -> tuple[PageName, ...]:
+    def detect_layer(
+        self,
+        *,
+        attempts: int = 1,
+        interval_seconds: float = 0.2,
+    ) -> tuple[PageName, ...]:
         """返回当前命中的全部层，按深度降序（最上面那层在最前）。
 
         覆盖层（浮窗、侧边栏、二级菜单）总是比被盖住的页面更深，所以命中的页面里
         深度最大的那个就是当前层。**不能命中即停**：深度排序只保证「更深的排在前面」，
         而单个入口可能因为画面过渡或识别偏差给出假阳性，必须拿全部结果再比较。
         返回全部层而不是只返回最上面那层，是为了让调用方能按层级建栈。
+
+        Args:
+            attempts: 每个确认入口的识别次数，默认只读一帧。
+            interval_seconds: 两次识别之间的等待秒数。
 
         Returns:
             命中的全部层，按深度降序；一个确认入口都没命中时返回空元组。
@@ -137,13 +160,21 @@ class NavigationExecutor:
             logger.disable(name)
         try:
             # 先问域探针：一个域一帧只读一次，避免同组页面重复截图。
-            hits.extend(registry.probe_domains(self._ctx))
+            hits.extend(
+                registry.probe_domains(
+                    self._ctx,
+                    attempts=attempts,
+                    interval_seconds=interval_seconds,
+                ),
+            )
             for page in by_depth:
                 confirm = registry.get_checker(page)
                 if confirm is None:
                     continue
                 try:
-                    matched = confirm(self._ctx, attempts=1, interval_seconds=0.2)
+                    matched = confirm(
+                        self._ctx, attempts=attempts, interval_seconds=interval_seconds
+                    )
                 except Exception:
                     # 某些入口需要任务额外提供上下文（如活动玩法），探测时没有，
                     # 报错就当它不匹配，继续看下一层。
@@ -159,6 +190,28 @@ class NavigationExecutor:
         ordered = tuple(sorted(hits, key=registry.depth_of, reverse=True))
         _log.debug('[UI] 导航执行 → 全层扫描：hits={!r}', [page.value for page in ordered])
         return ordered
+
+    def _wait_for_layer(self, page: PageName) -> PageName | None:
+        """等目标页成为当前层。
+
+        域探针一次只读一帧，页面切换动画没走完时会先读到旧页；这里按固定节奏
+        重扫全层，直到目标页浮到最上面或用完次数。
+
+        Args:
+            page: 期望成为当前层的页面。
+
+        Returns:
+            最后一次扫描到的当前层；一次都没识别到时为 None。
+        """
+        layer: PageName | None = None
+        for index in range(_ARRIVAL_PROBE_ATTEMPTS):
+            if index:
+                time.sleep(_ARRIVAL_PROBE_INTERVAL_SECONDS)
+            layers = self.detect_layer()
+            layer = layers[0] if layers else None
+            if layer is page:
+                return layer
+        return layer
 
     def _enter_tab(self, page: PageName, tab: str) -> None:
         """切到目标页内的标签，并用该标签自己的 checker 确认。
@@ -176,9 +229,14 @@ class NavigationExecutor:
         entry = registry.get_tabs(page).get(tab)
         if entry is None:
             raise NavigationError(f'到达确认失败：{page.value!r} 没有标签 {tab!r}')
-        time.sleep(_TAB_SETTLE_SECONDS)
-        entry.click(self._ctx)
-        if not entry.checker(self._ctx):
+        switched = False
+        for attempt in range(_TAB_CLICK_ATTEMPTS):
+            time.sleep(_TAB_SETTLE_SECONDS if attempt == 0 else _TAB_RETRY_INTERVAL_SECONDS)
+            entry.click(self._ctx)
+            if entry.checker(self._ctx):
+                switched = True
+                break
+        if not switched:
             raise NavigationError(f'标签切换失败：{page.value!r} → {entry.description!r}')
         _log.debug(
             '[UI] 导航执行 → 标签确认：page={!r}，tab={!r}，结果=成功',
@@ -206,12 +264,12 @@ class NavigationExecutor:
             time.sleep(_ARRIVAL_SETTLE_SECONDS)
         # 域页面由探针一次判层；到达确认仍要扫全层，别的覆盖层可能盖在目标上面。
         if registry.is_domain_page(edge.target):
-            layers = self.detect_layer()
-            layer = layers[0] if layers else None
+            layer = self._wait_for_layer(edge.target)
             if layer is not edge.target:
                 detail = '未识别到任何页面' if layer is None else f'当前层是 {layer.value!r}'
                 raise NavigationError(f'到达确认失败：{edge.description!r}，{detail}')
             registry.on_arrival(self._ctx, edge.target)
+            time.sleep(_ARRIVAL_REST_SECONDS)
             _log.debug('[UI] 导航执行 → 到达确认：page={!r}，结果=成功', edge.target.value)
             return
         confirm = registry.get_checker(edge.target)
@@ -232,6 +290,7 @@ class NavigationExecutor:
             detail = '未识别到任何页面' if layer is None else f'当前层是 {layer.value!r}'
             raise NavigationError(f'到达确认失败：{edge.description!r}，{detail}')
         registry.on_arrival(self._ctx, edge.target)
+        time.sleep(_ARRIVAL_REST_SECONDS)
         _log.debug('[UI] 导航执行 → 到达确认：page={!r}，结果=成功', edge.target.value)
 
 

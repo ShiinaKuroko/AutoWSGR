@@ -86,9 +86,9 @@ common.vision（识别算法） / dispatch.session（导航栈）
 | 回退上一页 | `NavigationService.navigate_back` | `service.py` | 无 | 弹栈、点击、确认 | 按栈回退一层 | 跨多层回退 |
 | 启动段 | `NavigationService.navigate_to_login` | `service.py` | 无 | 识别启动信号 | 把游戏带到登录页 | 拉起进程、换区 |
 
-模块当前规模：**22 个已接入页面、43 条可达边、3 个页面共 8 个标签**；
-`PageName` 共 29 个成员，其余 7 个是尚未接入导航图的预留页面（演习、远征、战役、出征准备、
-军阶室技能列表、决战、选择舰船）。对未接入页面调用 `navigate_to` 会抛「没有可达路径」，这是预期行为。
+模块当前规模：**30 个已接入页面、49 条可达边、3 个页面共 8 个标签、3 个域探针**；
+`PageName` 共 32 个成员，其余 2 个是尚未接入导航图的预留页面（军阶室技能列表、选择舰船）。
+对未接入页面调用 `navigate_to` 会抛「没有可达路径」，这是预期行为。
 
 ## 4. 导航到目标页面：navigate_to
 
@@ -317,9 +317,10 @@ dispatch 决定何时启动、何时 SL、按配置决定是否换区；导航�
 | --- | --- | --- |
 | 公共入口 import smoke | `python -c "from autowsgr.application.ui.navigation.service import NavigationService"` | 通过 |
 | 静态检查 | `ruff check autowsgr/application/ui/navigation` | 无新增问题 |
-| 导航器单测 | `pytest testing/application/ui/navigation testing/common` | 160 passed |
+| 导航器单测 | `pytest testing/application testing/common` | 187 passed |
 | checker 单测 | `pytest testing/application/ui/navigation/checker` | 全绿 |
 | 消费者回归 | `pytest testing/dispatch/test_startup.py testing/dispatch/context` | 全绿 |
-| 实机链路 | `python tools/debug_toolkit/main.py e2e --no-launch nav_chain` | 26/26 通过，边覆盖 26/43（学院未解锁、活动未开放） |
+| 实机链路（导航图遍历） | `python tools/debug_toolkit/main.py e2e --no-launch nav_chain` | 26/26 通过，边覆盖 26/49（学院未解锁、活动未开放） |
+| 实机链路（出征选图） | `python tools/debug_toolkit/main.py e2e --no-launch sortie_scan --keep-going` | 44/44 通过（1-1 ~ 10-1），单组合约 10.5 秒 |
 | 文档树与代码树对齐 | 本文件的子项表与 `navigation/` 目录一致 | 通过 |
 | `git diff --check` | 无空白错误 | 通过 |

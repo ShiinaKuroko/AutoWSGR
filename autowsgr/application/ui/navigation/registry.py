@@ -26,6 +26,10 @@ from autowsgr.application.ui.controller.home.event_page import EventPage
 from autowsgr.application.ui.controller.home.main_page import HomePage, Target
 from autowsgr.application.ui.controller.login import LoginPage
 from autowsgr.application.ui.controller.operations.mission_page import MissionPage
+from autowsgr.application.ui.controller.operations.sortie.battle_preparation import (
+    BattlePreparationPage,
+)
+from autowsgr.application.ui.controller.operations.sortie_page.battle_page import BattlePage
 from autowsgr.application.ui.controller.operations.sortie_page.main_page import (
     SortiePage,
     SortieTab,
@@ -43,11 +47,15 @@ from autowsgr.application.ui.navigation.checker import (
     login,
     mission,
     sidebar,
-    sortie,
 )
 from autowsgr.application.ui.navigation.checker.event import stage_push
 from autowsgr.application.ui.navigation.checker.sidebar import build, intensify
 from autowsgr.application.ui.navigation.checker.sidebar.friend import check_friend_page
+from autowsgr.application.ui.navigation.checker.sortie import read_sortie_tab_layer
+from autowsgr.application.ui.navigation.checker.sortie.battle import ensure_chapter
+from autowsgr.application.ui.navigation.checker.sortie.battle_preparation import (
+    read_battle_preparation_layer,
+)
 from autowsgr.application.ui.navigation.types import (
     NavigationError,
     NavTab,
@@ -61,6 +69,21 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
     from autowsgr.dispatch.context import ContextHandle
+
+
+# ── 参数 ────────────────────────────────────────────────────────────────────
+
+# 侧边栏展开与收起都有动画（约 1.5 秒）。判断「在不在」和等它「让没让开」都要给足窗口：
+# 5 次 x 0.4 秒，约 2 秒，留出余量。命中即返回，侧边栏真在时不会白等。
+_SIDEBAR_SETTLE_ATTEMPTS = 5
+_SIDEBAR_SETTLE_INTERVAL_SECONDS = 0.4
+# 领取后确认浮窗出现要走动画和网络，窗口比普通浮窗长一些。
+_CLAIM_CONFIRM_ATTEMPTS = 8
+# 标签切换要走一段动画；确认落点时给它足够的重试窗口，命中即返回。
+_SORTIE_TAB_ATTEMPTS = 7
+# 判层按深度降序，越深越靠前。不可达页面给负深度，确保它们排在任何可达页面之后：
+# 它们没有入边，不该被当成「最上面那一层」。
+_UNREACHABLE_DEPTH = -1
 
 
 # ── 每日浮窗动作 ────────────────────────────────────────────────────────────
@@ -107,12 +130,6 @@ def _settle_to_sidebar(ctx: ContextHandle, **_: object) -> None:
     HomePage(ctx).go_to(Target.SIDEBAR)
 
 
-# 侧边栏展开与收起都有动画（约 1.5 秒）。判断「在不在」和等它「让没让开」都要给足窗口：
-# 5 次 x 0.4 秒，约 2 秒，留出余量。命中即返回，侧边栏真在时不会白等。
-_SIDEBAR_SETTLE_ATTEMPTS = 5
-_SIDEBAR_SETTLE_INTERVAL_SECONDS = 0.4
-
-
 def _settle_to_home(ctx: ContextHandle, **_: object) -> None:
     """清完浮窗后回主页：奖励确认浮窗还在就点掉，停在侧边栏就关掉它。
 
@@ -135,10 +152,6 @@ def _settle_to_home(ctx: ContextHandle, **_: object) -> None:
             attempts=_SIDEBAR_SETTLE_ATTEMPTS,
             interval_seconds=_SIDEBAR_SETTLE_INTERVAL_SECONDS,
         )
-
-
-# 领取后确认浮窗出现要走动画和网络，窗口比普通浮窗长一些。
-_CLAIM_CONFIRM_ATTEMPTS = 8
 
 
 def _claim_daily_reward(ctx: ContextHandle, **_: object) -> None:
@@ -171,6 +184,9 @@ def _confirm_daily_reward(ctx: ContextHandle, **_: object) -> None:
     get_session().mark_popup_settled(DailyPopup.REWARD_CONFIRM)
 
 
+# ── 任务动作 ────────────────────────────────────────────────────────────────
+
+
 def _claim_all_mission_rewards(ctx: ContextHandle, **_: object) -> None:
     """任务页有「全部领取」就点，没有就什么都不做。
 
@@ -183,104 +199,6 @@ def _claim_all_mission_rewards(ctx: ContextHandle, **_: object) -> None:
     if not mission.check_claim_all_button(ctx):
         return
     MissionPage(ctx).click_claim_all()
-
-
-# ── 页面 → 到达确认 ─────────────────────────────────────────────────────────
-
-# 值统一收 (ctx, *, absent=False, attempts, interval_seconds)：前识别判出现，后识别
-# （absent=True）判消失。识别节奏是各页面自己的默认值，定义在对应 checker 的签名里；
-# 调用方需要覆盖时直接传参，注册表不再兼职配节奏。
-# ── 域探针 ─────────────────────────────────────────────────────────────────
-
-# 一个域一次读一帧，直接返回本域当前命中的层。home 的四个页面共享同一组模板，
-# 逐页调用会把同一帧读四遍，因此按域聚合。
-_DOMAIN_PROBERS: tuple[Callable[[ContextHandle], PageName | None], ...] = (home.read_home_layer,)
-
-# 由域探针负责的页面；它们不再登记到逐页注册表。
-_DOMAIN_PAGES: frozenset[PageName] = frozenset(
-    {
-        PageName.HOME,
-        PageName.HOME_NEWS,
-        PageName.HOME_REWARD,
-        PageName.HOME_REWARD_CONFIRM,
-    }
-)
-
-
-_PAGE_CHECKERS: dict[PageName, Callable[..., bool]] = {
-    PageName.LOGIN_PAGE: login.check_login_page,
-    PageName.SERVER_SELECT: login.check_server_select,
-    PageName.SORTIE_MAP: sortie.check_sortie_page,
-    PageName.EVENT_MAP: stage_push.check_event_map_page,
-    PageName.EVENT_STAGE_OVERLAY: stage_push.check_event_sortie_prepare,
-    PageName.SIDEBAR: sidebar.check_sidebar_page,
-    PageName.BUILD_SUBMENU: sidebar.check_build_submenu,
-    PageName.INTENSIFY_SUBMENU: sidebar.check_intensify_submenu,
-    PageName.BUILD: build.check_build_page,
-    PageName.INTENSIFY: intensify.check_intensify_page,
-    PageName.FRIEND: check_friend_page,
-    PageName.MISSION: mission.check_mission_page,
-    PageName.MISSION_REWARD_CONFIRM: mission.check_mission_reward_confirm,
-    PageName.BACKYARD: backyard.check_backyard_page,
-    PageName.CANTEEN: backyard.check_canteen_page,
-    PageName.ACADEMY: backyard.check_academy_page,
-    PageName.RANK_ROOM: backyard.check_rank_room_page,
-    PageName.BATH: backyard.check_bath_page,
-}
-
-# ── 页面 → 标签表 ───────────────────────────────────────────────────────────
-
-# 只登记"非默认标签"：默认标签就是页面本身，页面级 checker 已经认它。
-# 键是 navigate_to 的 tab 入参，与各页面控制器里标签枚举的 name 小写形式一致。
-_TABS: dict[PageName, dict[str, NavTab]] = {
-    PageName.SORTIE_MAP: {
-        # 出征是默认标签，但远征可收时进入会停在远征，注册一个用于切回来。
-        'sortie': NavTab(
-            lambda ctx: SortiePage(ctx).go_to(SortieTab.SORTIE),
-            sortie.check_sortie_page,
-            '出征',
-        ),
-        'exercise': NavTab(
-            lambda ctx: SortiePage(ctx).go_to(SortieTab.EXERCISE),
-            sortie.check_exercise_page,
-            '演习',
-        ),
-        'expedition': NavTab(
-            lambda ctx: SortiePage(ctx).go_to(SortieTab.EXPEDITION),
-            sortie.check_expedition_page,
-            '远征',
-        ),
-        'campaign': NavTab(
-            lambda ctx: SortiePage(ctx).go_to(SortieTab.CAMPAIGN),
-            sortie.check_campaign_page,
-            '战役',
-        ),
-        'decisive': NavTab(
-            lambda ctx: SortiePage(ctx).go_to(SortieTab.DECISIVE),
-            sortie.check_decisive_page,
-            '决战',
-        ),
-    },
-    PageName.BUILD: {
-        'destroy': NavTab(
-            lambda ctx: BuildPage(ctx).go_to_tab(BuildTab.DESTROY),
-            build.check_dismantle_tab,
-            '解体',
-        ),
-    },
-    PageName.INTENSIFY: {
-        'remold': NavTab(
-            lambda ctx: IntensifyPage(ctx).go_to_tab(IntensifyTab.REMOLD),
-            intensify.check_remold_tab,
-            '改造',
-        ),
-        'skill': NavTab(
-            lambda ctx: IntensifyPage(ctx).go_to_tab(IntensifyTab.SKILL),
-            intensify.check_skill_tab,
-            '技能',
-        ),
-    },
-}
 
 
 # ── 活动地图动作 ────────────────────────────────────────────────────────────
@@ -314,6 +232,162 @@ def _event_map_to_overlay(ctx: ContextHandle, **params: object) -> None:
             raise NavigationError(f'切换活动难度失败：未切到 {parsed.difficulty.value!r}')
 
     EventPage(ctx, event_type=event_type).go_to_overlay(parsed.node)
+
+
+# ── 出征动作 ────────────────────────────────────────────────────────────────
+
+
+def _sortie_map_to_preparation(ctx: ContextHandle, **params: object) -> None:
+    """按入参选章选节，再点开该节的出征准备页。
+
+    Args:
+        ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
+        **params: 必填的 chapter（章节）与 map_id（地图节点）。
+
+    Raises:
+        ValueError: 缺少章节或地图节点入参。
+    """
+    chapter = params.get('chapter')
+    map_id = params.get('map_id')
+    if chapter is None or map_id is None:
+        raise ValueError('进入出征准备页需要 chapter 与 map_id 入参')
+    ensure_chapter(ctx, chapter=int(chapter), map_id=int(map_id))
+    BattlePage(ctx).click_enter_sortie()
+
+
+def _leave_sortie_tab_page(ctx: ContextHandle, **_: object) -> None:
+    """从出征域的任一标签页退回主页。
+
+    五个标签共用同一套标题栏，返回按钮位置一致；标签之间的切换是页内行为，
+    回退不需要先切回默认标签。
+
+    Args:
+        ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
+    """
+    SortiePage(ctx).go_back()
+
+
+# ── 到达确认 ────────────────────────────────────────────────────────────────
+
+# 一个域一次读一帧，直接返回本域当前命中的层。同域页面共享同一组识别数据，
+# 逐页调用会把同一帧读好几遍，因此按域聚合。
+_DOMAIN_PROBERS: tuple[Callable[..., PageName | None], ...] = (
+    home.read_home_layer,
+    read_sortie_tab_layer,
+    read_battle_preparation_layer,
+)
+
+# 由域探针负责的页面；它们不再登记到逐页注册表。
+_DOMAIN_PAGES: frozenset[PageName] = frozenset(
+    {
+        PageName.HOME,
+        PageName.HOME_NEWS,
+        PageName.HOME_REWARD,
+        PageName.HOME_REWARD_CONFIRM,
+        PageName.SORTIE_MAP,
+        PageName.EXERCISE,
+        PageName.EXPEDITION,
+        PageName.CAMPAIGN,
+        PageName.DECISIVE_BATTLE,
+        PageName.BATTLE_PREPARATION,
+        PageName.DECISIVE_BATTLE_PREPARATION,
+        PageName.EXERCISE_PREPARATION,
+        PageName.CAMPAIGN_PREPARATION,
+    }
+)
+
+
+# ── 页面确认 ────────────────────────────────────────────────────────────────
+
+# 值统一收 (ctx, *, absent=False, attempts, interval_seconds)：前识别判出现，后识别
+# （absent=True）判消失。识别节奏是各页面自己的默认值，定义在对应 checker 的签名里；
+# 调用方需要覆盖时直接传参，注册表不再兼职配节奏。
+_PAGE_CHECKERS: dict[PageName, Callable[..., bool]] = {
+    PageName.LOGIN_PAGE: login.check_login_page,
+    PageName.SERVER_SELECT: login.check_server_select,
+    PageName.EVENT_MAP: stage_push.check_event_map_page,
+    PageName.EVENT_STAGE_OVERLAY: stage_push.check_event_sortie_prepare,
+    PageName.SIDEBAR: sidebar.check_sidebar_page,
+    PageName.BUILD_SUBMENU: sidebar.check_build_submenu,
+    PageName.INTENSIFY_SUBMENU: sidebar.check_intensify_submenu,
+    PageName.BUILD: build.check_build_page,
+    PageName.INTENSIFY: intensify.check_intensify_page,
+    PageName.FRIEND: check_friend_page,
+    PageName.MISSION: mission.check_mission_page,
+    PageName.MISSION_REWARD_CONFIRM: mission.check_mission_reward_confirm,
+    PageName.BACKYARD: backyard.check_backyard_page,
+    PageName.CANTEEN: backyard.check_canteen_page,
+    PageName.ACADEMY: backyard.check_academy_page,
+    PageName.RANK_ROOM: backyard.check_rank_room_page,
+    PageName.BATH: backyard.check_bath_page,
+}
+
+
+# ── 页面 → 标签表 ───────────────────────────────────────────────────────────
+
+# 只登记"非默认标签"：默认标签就是页面本身，页面级 checker 已经认它。
+# 键是 navigate_to 的 tab 入参，与各页面控制器里标签枚举的 name 小写形式一致。
+_TABS: dict[PageName, dict[str, NavTab]] = {
+    PageName.SORTIE_MAP: {
+        # 五个标签互斥，切完用域探针确认落在哪一个上。
+        # 出征是默认标签，但远征可收时进入会停在远征，注册一个用于切回来。
+        'sortie': NavTab(
+            lambda ctx: SortiePage(ctx).go_to(SortieTab.SORTIE),
+            lambda ctx: (
+                read_sortie_tab_layer(ctx, attempts=_SORTIE_TAB_ATTEMPTS) is PageName.SORTIE_MAP
+            ),
+            '出征',
+        ),
+        'exercise': NavTab(
+            lambda ctx: SortiePage(ctx).go_to(SortieTab.EXERCISE),
+            lambda ctx: (
+                read_sortie_tab_layer(ctx, attempts=_SORTIE_TAB_ATTEMPTS) is PageName.EXERCISE
+            ),
+            '演习',
+        ),
+        'expedition': NavTab(
+            lambda ctx: SortiePage(ctx).go_to(SortieTab.EXPEDITION),
+            lambda ctx: (
+                read_sortie_tab_layer(ctx, attempts=_SORTIE_TAB_ATTEMPTS) is PageName.EXPEDITION
+            ),
+            '远征',
+        ),
+        'campaign': NavTab(
+            lambda ctx: SortiePage(ctx).go_to(SortieTab.CAMPAIGN),
+            lambda ctx: (
+                read_sortie_tab_layer(ctx, attempts=_SORTIE_TAB_ATTEMPTS) is PageName.CAMPAIGN
+            ),
+            '战役',
+        ),
+        'decisive': NavTab(
+            lambda ctx: SortiePage(ctx).go_to(SortieTab.DECISIVE),
+            lambda ctx: (
+                read_sortie_tab_layer(ctx, attempts=_SORTIE_TAB_ATTEMPTS)
+                is PageName.DECISIVE_BATTLE
+            ),
+            '决战',
+        ),
+    },
+    PageName.BUILD: {
+        'destroy': NavTab(
+            lambda ctx: BuildPage(ctx).go_to_tab(BuildTab.DESTROY),
+            build.check_dismantle_tab,
+            '解体',
+        ),
+    },
+    PageName.INTENSIFY: {
+        'remold': NavTab(
+            lambda ctx: IntensifyPage(ctx).go_to_tab(IntensifyTab.REMOLD),
+            intensify.check_remold_tab,
+            '改造',
+        ),
+        'skill': NavTab(
+            lambda ctx: IntensifyPage(ctx).go_to_tab(IntensifyTab.SKILL),
+            intensify.check_skill_tab,
+            '技能',
+        ),
+    },
+}
 
 
 # ── 页面 → 可达列表 ─────────────────────────────────────────────────────────
@@ -559,10 +633,58 @@ _NAV_TARGETS: dict[PageName, tuple[NavTarget, ...]] = {
     ),
     PageName.SORTIE_MAP: (
         NavTarget(
+            PageName.BATTLE_PREPARATION,
+            _sortie_map_to_preparation,
+            '出征页 → 出征准备页',
+        ),
+        NavTarget(
             PageName.HOME_NEWS,
             lambda ctx, **_: SortiePage(ctx).go_back(),
             '出征页 → 主页（经每日浮窗链）',
             confirm=False,
+        ),
+    ),
+    # 出征域内其余四个标签页：进得去（首页的标签边）就得回得来。
+    # 标签之间怎么切是页内行为，回主页一律走同一条返回链路。
+    PageName.EXERCISE: (
+        NavTarget(
+            PageName.HOME_NEWS,
+            _leave_sortie_tab_page,
+            '演习页 → 主页（经每日浮窗链）',
+            confirm=False,
+        ),
+    ),
+    PageName.EXPEDITION: (
+        NavTarget(
+            PageName.HOME_NEWS,
+            _leave_sortie_tab_page,
+            '远征页 → 主页（经每日浮窗链）',
+            confirm=False,
+        ),
+    ),
+    PageName.CAMPAIGN: (
+        NavTarget(
+            PageName.HOME_NEWS,
+            _leave_sortie_tab_page,
+            '战役页 → 主页（经每日浮窗链）',
+            confirm=False,
+        ),
+    ),
+    PageName.DECISIVE_BATTLE: (
+        NavTarget(
+            PageName.HOME_NEWS,
+            _leave_sortie_tab_page,
+            '决战页 → 主页（经每日浮窗链）',
+            confirm=False,
+        ),
+    ),
+    # 出征准备页只维护「退回出征页」一条边：选章选节是进入方向的职责，
+    # 返回不需要任何入参，导航栈自己知道该退回哪一层。
+    PageName.BATTLE_PREPARATION: (
+        NavTarget(
+            PageName.SORTIE_MAP,
+            lambda ctx, **_: BattlePreparationPage(ctx).go_back(),
+            '出征准备页 → 出征页',
         ),
     ),
     # 每日浮窗链：进链的边只负责「走到这一步」，浮窗在不在由各自的动作自查；
@@ -667,18 +789,28 @@ def get_checker(page: PageName) -> Callable[[ContextHandle], bool] | None:
     return _PAGE_CHECKERS.get(page)
 
 
-def probe_domains(ctx: ContextHandle) -> tuple[PageName, ...]:
+def probe_domains(
+    ctx: ContextHandle,
+    *,
+    attempts: int = 1,
+    interval_seconds: float = 0.2,
+) -> tuple[PageName, ...]:
     """探测所有域，返回本帧命中的页面。
+
+    识别节奏由调用方决定：判层按「试问」只读一帧，等页面切换的重试留给
+    执行器，探针自己不额外等待。
 
     Args:
         ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
+        attempts: 每个域探针的识别次数。
+        interval_seconds: 两次识别之间的等待秒数。
 
     Returns:
         域探针命中的页面；一个都没命中时为空元组。
     """
     hits: list[PageName] = []
     for prober in _DOMAIN_PROBERS:
-        layer = prober(ctx)
+        layer = prober(ctx, attempts=attempts, interval_seconds=interval_seconds)
         if layer is not None:
             hits.append(layer)
     return tuple(hits)
@@ -708,10 +840,6 @@ def get_tabs(page: PageName) -> dict[str, NavTab]:
     return _TABS.get(page, {})
 
 
-# 不可达页面在深度排序里排最后：它们不该盖住任何可达页面。
-_UNREACHABLE_DEPTH = 1 << 30
-
-
 @functools.cache
 def depth_of(page: PageName) -> int:
     """页面在导航图里的深度：从主页出发的最短跳数。
@@ -723,7 +851,7 @@ def depth_of(page: PageName) -> int:
         page: 待查询的页面。
 
     Returns:
-        最短跳数；主页为 0，不可达返回 `_UNREACHABLE_DEPTH`。
+        最短跳数；主页为 0，不可达返回负值，判层时排在所有可达页面之后。
     """
     try:
         return len(find_path(PageName.HOME, page))

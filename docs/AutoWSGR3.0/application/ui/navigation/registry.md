@@ -31,7 +31,7 @@ registry 是单文件模块，没有子目录，因此不拆分子文档：
 
 ~~~text
 autowsgr/application/ui/navigation/
-└── registry.py      # 三张注册表 + 七个查询入口
+└── registry.py      # 三张注册表 + 域探针 + 九个查询入口
 ~~~
 
 ### 2.2 文件内部结构
@@ -41,10 +41,11 @@ autowsgr/application/ui/navigation/
 | 分区 | 内容 |
 | --- | --- |
 | 每日浮窗动作 | 浮窗链每一步的具名动作（`_close_daily_news`、`_claim_daily_reward` 等） |
-| 域探针 | `_DOMAIN_PROBERS` / `_DOMAIN_PAGES`，home 四个浮窗一帧一次判层 |
+| 域探针 | `_DOMAIN_PROBERS` / `_DOMAIN_PAGES`，每个域一帧一次判层（主页浮窗、出征标签、出征准备页） |
 | 页面 → 到达确认 | `_PAGE_CHECKERS` 表（只放逐页确认的普通页面） |
 | 页面 → 标签表 | `_TABS` 表 |
 | 活动地图动作 | `_event_map_to_overlay`，进章节浮窗前先对齐难度 |
+| 出征动作 | `_sortie_map_to_preparation`（选章选节后进准备页）、`_leave_sortie_tab_page`（标签页退回主页） |
 | 页面 → 可达列表 | `_NAV_TARGETS` 表 |
 | 查询入口 | `get_targets`、`get_checker`、`get_tabs`、`depth_of`、`find_path`、`probe_domains`、`is_domain_page`、`on_arrival`、`popups_all_settled` |
 
@@ -69,7 +70,7 @@ application.ui.controller 各页面对象（仅作为边动作被引用）
 
 ### 2.4 出口策略
 
-稳定出口是七个查询入口；三张注册表本身是模块私有数据，外部只能通过查询入口读取。
+稳定出口是九个查询入口；三张注册表与域探针常量本身是模块私有数据，外部只能通过查询入口读取。
 测试为了替换确认入口会直接改 `_PAGE_CHECKERS`、`_TABS`，这属于测试手段，不构成生产公开出口。
 
 ## 3. 能力总览
@@ -104,30 +105,36 @@ _PAGE_CHECKERS: dict[PageName, Callable[..., bool]] = {
 
 ### 4.2 当前覆盖
 
-已注册 **18 个页面**（主页四个浮窗改由域探针负责，不在此表）。页面名表（`types.PageName`）共 29 个成员，其余是尚未接入导航图的预留页面：
-演习、远征、战役、出征准备、军阶室技能列表、决战、选择舰船。
+已注册 **17 个页面**。页面名表（`types.PageName`）共 32 个成员：13 个由域探针负责（见 [§4.3](#43-域探针)），
+17 个逐页登记在本表，其余 2 个（军阶室技能列表、选择舰船）是尚未接入导航图的预留页面。
 
 对未注册的页面调用 `find_path` 会抛 `NavigationError`（没有可达路径），这是预期行为，不是故障。
 
 ### 4.3 域探针
 
-主页的四个浮窗共享同一组模板，逐页调用会把同一帧读四遍，因此按域聚合：
+同族页面的标志物落在同一帧的同一块区域上，逐页调用会把同一帧读好几遍，因此按域聚合。当前三个域：
+
+| 域 | 探针 | 一帧读什么 | 负责的页面 |
+| --- | --- | --- | --- |
+| 主页浮窗 | `home.read_home_layer` | 7 个浮窗/主页模板 | 主页、每日公告弹窗、每日奖励弹窗、每日奖励确认 |
+| 出征标签 | `sortie.read_sortie_tab_layer` | 5 个标签激活态模板（各配互不重叠 ROI） | 出征页面、演习、远征、战役、决战页面 |
+| 出征准备页 | `battle_preparation.read_battle_preparation_layer` | 4 个准备页模板（共用同一个 ROI） | 出征准备、决战准备、演习准备、战役准备 |
 
 ~~~python
-_DOMAIN_PROBERS: tuple[Callable[[ContextHandle], PageName | None], ...] = (
+_DOMAIN_PROBERS: tuple[Callable[..., PageName | None], ...] = (
     home.read_home_layer,
+    read_sortie_tab_layer,
+    read_battle_preparation_layer,
 )
 
-_DOMAIN_PAGES: frozenset[PageName] = frozenset({
-    PageName.HOME,
-    PageName.HOME_NEWS,
-    PageName.HOME_REWARD,
-    PageName.HOME_REWARD_CONFIRM,
-})
+_DOMAIN_PAGES: frozenset[PageName] = frozenset({ ... })  # 上表 13 个页面
 ~~~
 
-`probe_domains(ctx)` 一次读一帧返回本域命中的层；`is_domain_page(page)` 判断页面是否由探针负责。
-由探针负责的四个页面不再登记到 `_PAGE_CHECKERS`。
+`probe_domains(ctx)` 在每个域读一帧，返回本域命中的层（没命中返回 `None`）；
+`is_domain_page(page)` 判断页面是否由探针负责。由探针负责的页面不再登记到 `_PAGE_CHECKERS`。
+
+域的划分原则是「一次点击只能把那组页面中的一个变成激活态」：五个标签互斥、四种准备页互斥，
+它们共享同一块识别区域，所以一帧就能判定。
 
 ### 4.4 维护规则
 
@@ -153,7 +160,7 @@ _DOMAIN_PAGES: frozenset[PageName] = frozenset({
 
 ### 5.2 当前规模
 
-**43 条边、22 个有出边的页面**。按域分布：
+**49 条边、27 个有出边的页面**。按域分布：
 
 | 起点 | 出边 |
 | --- | --- |
@@ -163,7 +170,9 @@ _DOMAIN_PAGES: frozenset[PageName] = frozenset({
 | 每日公告弹窗 | 每日奖励弹窗（`confirm=False`） |
 | 每日奖励弹窗 | 每日奖励确认（`confirm=False`） |
 | 每日奖励确认 | 侧边栏、主页面 |
-| 出征页面 | 每日公告弹窗（`confirm=False`） |
+| 出征页面 | 出征准备页、每日公告弹窗（`confirm=False`） |
+| 演习 / 远征 / 战役 / 决战页面 | 每日公告弹窗（`confirm=False`），各一条 |
+| 出征准备页 | 出征页面 |
 | 侧边栏 | 建造二级菜单、强化二级菜单、好友页面、主页面 |
 | 任务页面 | 任务奖励确认（`confirm=False`）、每日公告弹窗（`confirm=False`） |
 | 任务奖励确认 | 任务页面 |
@@ -183,7 +192,7 @@ _DOMAIN_PAGES: frozenset[PageName] = frozenset({
 
 只加一行数据。新增边后必须确认：
 
-- 起点和终点都能被 `_PAGE_CHECKERS` 认出来；
+- 起点和终点都能被 `_PAGE_CHECKERS` 或域探针（`_DOMAIN_PAGES`）认出来；
 - 目标页有回边；
 - 需要参数时，参数在边内部现算，不在调用方算好再传。
 

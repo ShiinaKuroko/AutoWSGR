@@ -1,4 +1,4 @@
-"""静态验证 case：用外挂截图跑出征页检查器。
+"""静态验证 case：用外挂截图跑出征页域探针。
 
 样本属于临时验证数据，放在仓库之外的 debug 目录，不随仓库提交。
 运行方式::
@@ -9,35 +9,43 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from autowsgr.application.ui.navigation.checker import sortie
+from autowsgr.application.ui.navigation.checker.sortie import read_sortie_tab_layer
 
 
-DESC = '出征页检查器静态验证: 出征 / 演习 / 远征 / 战役 / 决战标签激活'
+if TYPE_CHECKING:
+    from autowsgr.application.ui.navigation.types import PageName
+
+
+DESC = '出征页域探针静态验证: 一次读五模板判当前标签页'
 
 # 外挂截图目录；样本是各标签激活时的整页截图。
 _SHOT_DIR = Path('C:/ShiinaKuroko/01.Project/debug/nav/静态模板/出征')
 
-_SAMPLES = (
-    ('出征页面.png', 'check_sortie_page'),
-    ('选择演习tab.png', 'check_exercise_page'),
-    ('选择远征tab.png', 'check_expedition_page'),
-    ('选择战役tab.png', 'check_campaign_page'),
-    ('选择决战tab.png', 'check_decisive_page'),
-)
+
+def _samples() -> tuple[tuple[str, PageName], ...]:
+    """按样本顺序返回 (文件名, 期望页面) 组合。"""
+    from autowsgr.application.ui.navigation.types import PageName
+
+    return (
+        ('出征页面.png', PageName.SORTIE_MAP),
+        ('选择演习tab.png', PageName.EXERCISE),
+        ('选择远征tab.png', PageName.EXPEDITION),
+        ('选择战役tab.png', PageName.CAMPAIGN),
+        ('选择决战tab.png', PageName.DECISIVE_BATTLE),
+    )
 
 
 def run(rt: Any) -> bool:
-    """按样本切换静态截图并校验五个标签识别入口。"""
+    """按样本切换静态截图并校验域探针判层结果。"""
     ctx = rt.ctx
 
-    for filename, entry_name in _SAMPLES:
+    for filename, expected in _samples():
         rt.use_frame(_SHOT_DIR / filename)
-        entry = getattr(sortie, entry_name)
-        matched = rt.action(f'识别 {entry_name}', entry, ctx)
-        if matched is rt.FAILED:
+        actual = rt.action(f'识别 {filename}', read_sortie_tab_layer, ctx)
+        if actual is rt.FAILED:
             return False
-        if not rt.check(f'{filename} 命中 {entry_name}', lambda: matched):
+        if not rt.check(f'{filename} → {expected.value}', lambda: actual == expected):
             return False
     return True

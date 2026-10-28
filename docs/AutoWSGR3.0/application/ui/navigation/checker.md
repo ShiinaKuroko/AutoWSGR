@@ -35,6 +35,9 @@ autowsgr/application/ui/navigation/checker/
 ├── mission/         # 任务页与领奖浮窗
 ├── sidebar/         # 侧边栏、二级菜单与好友页
 └── sortie/          # 出征页五个标签
+    ├── checker.py          # 一帧判五个标签
+    ├── battle/             # 出征页内导航：选章选节
+    └── battle_preparation/ # 四种准备页一帧判层
 ~~~
 
 ### 2.2 子项职责
@@ -48,7 +51,9 @@ autowsgr/application/ui/navigation/checker/
 | `login/` | 本文件 | 登录页、区服选择页、启动三信号、区服定位 | 启动编排 |
 | `mission/` | 本文件 | 任务页身份、领奖浮窗、全部领取按钮 | 任务业务 |
 | `sidebar/` | 本文件 | 侧边栏、两个二级菜单、好友页、建造/强化页标签 | 侧边栏业务 |
-| `sortie/` | 本文件 | 出征页五个标签的激活判定与中心读取 | 出征业务 |
+| `sortie/` | 本文件 | 出征页五个标签的激活判定 | 出征业务 |
+| `sortie/battle/` | 本文件 | 出征页内导航：从当前章走到第 N 章第 M 节 | 标签切换、进出页面 |
+| `sortie/battle_preparation/` | 本文件 | 四种准备页一帧判层 | 准备页业务操作 |
 
 **页面子包不单独建架构文档**，统一登记在本文件。理由：它们职责同构——同一套文件职责
 （`constants` / `recognition` / `checker` / `__init__`）、同一套签名契约、同一套依赖方向，
@@ -70,6 +75,12 @@ autowsgr/application/ui/navigation/checker/
 原先拆开的 `constants.py` 和 `recognition.py` 已并入 `checker.py`：一个页面子包的校准数据、
 识别逻辑和对外入口写在一起，减少无意义的跨文件跳转；文件内部仍按「常量 → 数据模型 →
 识别入口 → 页面确认 → 私有辅助」分区。
+
+子包装不装得下，看它认的是「一页」还是「一族互斥页」：
+
+- 一帧就能判出是哪一页的（主页四个浮窗、五个出征标签、四种准备页），收成一个`checker.py`
+  里的域探针入口，由 [registry](<./registry.md>) 的 `_DOMAIN_PROBERS` 统一调用；
+- 只做页内导航、不判页面身份的（`sortie/battle/`），也收成单文件，入口是动作而不是判定。
 
 ### 2.4 依赖方向
 
@@ -108,13 +119,14 @@ checker 的能力按页面分组，每组提供「确认」与（部分页面的
 | 后院与二级页确认 | `backyard.check_backyard_page` 与四个二级页入口 | `backyard/` | `ctx` + 三件套 | `bool` | 后院主页与四个二级页身份 |
 | 侧边栏体系确认 | `sidebar.check_sidebar_page` / `check_build_submenu` / `check_intensify_submenu` / `check_friend_page` | `sidebar/` | `ctx` + 三件套 | `bool` | 侧边栏、二级菜单、好友页 |
 | 建造与强化标签 | `sidebar.build.check_dismantle_tab` / `sidebar.intensify.check_remold_tab` / `check_skill_tab` | `sidebar/` | `ctx` | `bool` | 页面内标签激活 |
-| 出征页标签 | `sortie.check_sortie_page` 与四个标签入口 | `sortie/` | `ctx` | `bool` | 五个标签的激活判定 |
+| 出征页标签判层 | `sortie.read_sortie_tab_layer` | `sortie/` | `ctx` | `PageName \| None` | 一帧读五个标签模板，判当前落在哪个标签页 |
 | 任务页与领奖 | `mission.check_mission_page` / `check_claim_all_button` / `check_mission_reward_confirm` | `mission/` | `ctx` + 三件套 | `bool` | 任务页身份与领奖浮窗 |
 | 活动页面 | `event.stage_push.check_event_map_page` / `check_event_sortie_prepare` / `check_event_entry` | `event/` | `ctx`、活动标识 | `bool` | 活动入口、地图、章节浮窗 |
 | 活动事实与解析 | `event.stage_push.read_event_map_state` / `read_event_type` / `read_event_stage` / `parse_stage` | `event/` | `ctx`、章节标识 | 事实模型 / 标识 / 执行参数 | 难度结论、任务绑定读取、章节解析 |
 | 登录页按钮中心 | `login.read_enter_button_center` / `read_switch_entry_center` | `login/` | `ctx` | 归一化中心或 `None` | 给出按钮与换区入口中心 |
 | 后院入口中心 | `backyard.read_canteen_entry_center` / `read_academy_entry_center` / `read_rank_room_entry_center` / `read_bath_entry_center` | `backyard/` | `ctx` | 归一化中心或 `None` | 给出四个入口中心供控制器点击 |
-| 出征标签中心 | `sortie.read_tab_center` | `sortie/` | `ctx`、标签名 | 归一化中心 | 给出标签落点（读不到时用 ROI 中心兜底） |
+| 出征准备页判层 | `sortie.battle_preparation.read_battle_preparation_layer` | `sortie/battle_preparation/` | `ctx` | `PageName \| None` | 一帧读四个准备页模板（共用同一 ROI），判是哪一种准备页 |
+| 出征页内导航 | `sortie.battle.ensure_chapter` | `sortie/battle/` | `ctx`、`chapter`、`map_id` | 无（点击副作用） | 从当前章走到目标章、再翻到目标节点 |
 | 活动按钮中心 | `event.stage_push.read_mode_button_center` / `read_sortie_prepare_center` | `event/` | `ctx`、活动标识 | 归一化中心或 `None` | 给出难度按钮与确认出征按钮中心 |
 | 活动难度等待 | `event.stage_push.wait_event_mode` | `event/` | `ctx`、活动标识、目标难度 | `bool` | 重读难度直到切到目标值 |
 
@@ -212,13 +224,15 @@ def check_xxx_page(
 | --- | --- | --- | --- |
 | `login.check_login_page` 等 | `login/__init__.py` | 注册为到达确认、按顺序判断启动画面 | 依赖内部识别细节 |
 | `home.read_home_layer` | `home/__init__.py` | 注册为主页判层入口 | 自行拼装浮窗判断 |
-| `sortie.check_sortie_page` 等 | `sortie/__init__.py` | 注册为标签确认 | 把标签当页面 |
+| `sortie.read_sortie_tab_layer` | `sortie/__init__.py` | 注册为域探针、按标签判层 | 复用它的模板自己拼别的判定 |
+| `sortie.battle.ensure_chapter` | `sortie/battle/__init__.py` | 由导航边按参数调用 | 在别处重复实现选章选节 |
+| `sortie.battle_preparation.read_battle_preparation_layer` | `sortie/battle_preparation/__init__.py` | 注册为域探针 | 逐个准备页写 checker 重复截图 |
 | `event.stage_push.*` | `event/stage_push/__init__.py` | 注册确认、读活动事实与解析章节 | 绕过 `event_type` 校验 |
 
 ### 10.2 内部内容
 
-各子包内的私有辅助（`_read_home_hits`、`_load_template`、`_require_activity` 等）都是内部内容。
-`_is_tab_active`、`_require_activity`、`_stage_number` 等）都是内部内容。
+各子包内的私有辅助（`_read_home_hits`、`_load_template`、`_require_activity`、
+`_select_target_chapter`、`_parse_chapter_label` 等）都是内部内容。
 测试直接调用它们不构成生产出口。
 
 ## 11. 模块维护方法
@@ -229,7 +243,8 @@ def check_xxx_page(
 2. 在对应子包下建（或复用）`checker.py`，常量、识别和页面确认写在一起；
 3. 写确认入口，签名用三件套，节奏默认值写在签名里；
 4. 从子包 `__init__.py` 导出；
-5. 在 [registry](<./registry.md>) 的 `_PAGE_CHECKERS` 注册；
+5. 在 [registry](<./registry.md>) 的 `_PAGE_CHECKERS` 注册；如果这一页和同族页面共用一块
+   识别区域、一帧就能判出是哪一页，就写域探针入口，改注册到 `_DOMAIN_PROBERS` 与 `_DOMAIN_PAGES`；
 6. 在 `testing/application/ui/navigation/checker/` 加对应的 focused 单测；
 7. 跑 `pytest testing/application/ui/navigation/checker testing/application/ui/navigation`。
 
@@ -237,6 +252,11 @@ def check_xxx_page(
 
 只有当页面拥有独立依赖、独立校准数据或独立变化节奏时才建子包。子包必须至少有一个真实职责，
 不为凑结构创建空文件。
+
+### 11.2.1 域探针入口的写法
+
+一次 `expect_template` 传齐本域全部模板，命中谁就是谁，按「误命中风险从低到高」排序后取首个命中：
+`read_sortie_tab_layer` 与 `read_battle_preparation_layer` 都是这个形状，共用的 ROI 只声明一份。
 
 ### 11.3 新增一个活动玩法
 
