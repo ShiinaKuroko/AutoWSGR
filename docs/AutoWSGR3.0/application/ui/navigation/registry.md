@@ -13,13 +13,8 @@ registry 是 **application 层导航器**的注册中心与算路模块。它只
 2. 从某一页能直达哪里、怎么去——可达边表 `_NAV_TARGETS`；
 3. 到达某一页之后可以落在哪个标签上——标签表 `_TABS`。
 
-它明确不负责：点击落点与设备操作的具体实现（属于 UI 控制器）、画面识别规则的实现（属于
-[checker](<./checker.md>)）、路径的执行与逐跳确认（属于 [executor](<./executor.md>)）、
-跨页面流程编排（属于 `service.py`）。
-
-边动作是本模块唯一会碰识别和点击的地方：一条边的「怎么去」必须先看当前状态、点完再确认
-新状态时，才为它写一个具名动作。动作只读 checker 的事实、调 controller 的公开入口，不拼
-坐标、不写新流程——它实现的是「一行数据写不下」的那几步，不是新的编排层。
+它明确不负责：点击坐标与设备操作（属于 UI 控制器）、识别规则（属于 [checker](<./checker.md>)）、
+路径的执行与逐跳确认（属于 [executor](<./executor.md>)）、跨页面流程编排（属于 `service.py`）。
 
 所有权：
 
@@ -45,7 +40,7 @@ autowsgr/application/ui/navigation/
 
 | 分区 | 内容 |
 | --- | --- |
-| 边动作 | 8 个"先问再做"的具名动作，分四组：每日浮窗（`_close_daily_news`、`_claim_daily_reward`、`_confirm_daily_reward`、`_settle_to_home`、`_settle_to_sidebar`）、任务（`_claim_all_mission_rewards`）、活动地图（`_event_map_to_overlay`）、出征（`_sortie_map_to_preparation`） |
+| 边动作 | 一行数据写不下的边才写，共 8 个：每日浮窗 5 个、任务 1 个、活动地图 1 个、出征 1 个 |
 | 域探针 | `_DOMAIN_PROBERS` / `_DOMAIN_PAGES`，每个域一帧一次判层（主页浮窗、出征标签、出征准备页） |
 | 页面 → 到达确认 | `_PAGE_CHECKERS` 表（只放逐页确认的普通页面） |
 | 页面 → 标签表 | `_TABS` 表 |
@@ -67,8 +62,7 @@ application.ui.controller 各页面对象（仅作为边动作被引用）
 禁止方向：
 
 - registry 不导入 `service.py` 或 [executor](<./executor.md>)（会形成循环）；
-- 表与查询入口不做识别、不点击、不读写设备；
-- 边动作允许读 checker 的事实、调 controller 的公开入口点一下，但不拼坐标、不写新流程、不吞异常；
+- 表与查询入口不做识别、不点击；边动作可以读事实、点一下，但不拼坐标、不写流程；
 - 页面控制器不得反向导入 registry。
 
 ### 2.4 出口策略
@@ -158,8 +152,7 @@ _DOMAIN_PAGES: frozenset[PageName] = frozenset({ ... })  # 上表 13 个页面
 | `confirm` | `bool` | 到达后是否做确认；浮窗链中间步置假 |
 | `tab` | `str \| None` | 到达后要落在的页面内标签 |
 
-**一条边默认就是一行数据。** 换页、点一下就走的边直接写 lambda；只有当"怎么去"必须先看
-当前状态、点完再确认新状态时，才写一个具名边动作（放在本模块的边动作区，不另起模块）。
+**一条边默认就是一行数据。** 换页、点一下就走的写 lambda；一行写不下的才写具名边动作。
 需要参数的边在 `action` 内部现算，调用方（dispatch）只传业务参数，例如区服那条边收的是
 区服名，位置由边内部定位。
 
@@ -324,7 +317,7 @@ registry.depth_of(page: PageName) -> int
 ### 13.2 新增一条边
 
 只往 `_NAV_TARGETS` 加一行，并补反方向。若这条边的目标不是「干净到达」，显式声明 `confirm=False` 并写明原因。
-若「怎么去」要先看当前状态、点完再确认新状态，另写一个边动作放进本模块的边动作区；不要在 lambda 里堆流程。
+一行写不下的才写边动作，不要在 lambda 里堆流程。
 
 ### 13.3 新增一个标签
 
