@@ -255,18 +255,6 @@ def _sortie_map_to_preparation(ctx: ContextHandle, **params: object) -> None:
     BattlePage(ctx).click_enter_sortie()
 
 
-def _leave_sortie_tab_page(ctx: ContextHandle, **_: object) -> None:
-    """从出征域的任一标签页退回主页。
-
-    五个标签共用同一套标题栏，返回按钮位置一致；标签之间的切换是页内行为，
-    回退不需要先切回默认标签。
-
-    Args:
-        ctx: 提供设备服务和截图事实的 dispatch 上下文句柄。
-    """
-    SortiePage(ctx).go_back()
-
-
 # ── 到达确认 ────────────────────────────────────────────────────────────────
 
 # 一个域一次读一帧，直接返回本域当前命中的层。同域页面共享同一组识别数据，
@@ -649,7 +637,7 @@ _NAV_TARGETS: dict[PageName, tuple[NavTarget, ...]] = {
     PageName.EXERCISE: (
         NavTarget(
             PageName.HOME_NEWS,
-            _leave_sortie_tab_page,
+            lambda ctx, **_: SortiePage(ctx).go_back(),
             '演习页 → 主页（经每日浮窗链）',
             confirm=False,
         ),
@@ -657,7 +645,7 @@ _NAV_TARGETS: dict[PageName, tuple[NavTarget, ...]] = {
     PageName.EXPEDITION: (
         NavTarget(
             PageName.HOME_NEWS,
-            _leave_sortie_tab_page,
+            lambda ctx, **_: SortiePage(ctx).go_back(),
             '远征页 → 主页（经每日浮窗链）',
             confirm=False,
         ),
@@ -665,7 +653,7 @@ _NAV_TARGETS: dict[PageName, tuple[NavTarget, ...]] = {
     PageName.CAMPAIGN: (
         NavTarget(
             PageName.HOME_NEWS,
-            _leave_sortie_tab_page,
+            lambda ctx, **_: SortiePage(ctx).go_back(),
             '战役页 → 主页（经每日浮窗链）',
             confirm=False,
         ),
@@ -673,7 +661,7 @@ _NAV_TARGETS: dict[PageName, tuple[NavTarget, ...]] = {
     PageName.DECISIVE_BATTLE: (
         NavTarget(
             PageName.HOME_NEWS,
-            _leave_sortie_tab_page,
+            lambda ctx, **_: SortiePage(ctx).go_back(),
             '决战页 → 主页（经每日浮窗链）',
             confirm=False,
         ),
